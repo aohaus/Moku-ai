@@ -40,57 +40,14 @@ jobs:
           BRANCH_NAME="ai-auto-improve-$(date +%Y%m%d%H%M)"
           git checkout -b "$BRANCH_NAME"
 
-          python -c "
-          import os, glob
-          from google import genai
-
-          client = genai.Client(api_key=os.environ.get('GEMINI_API_KEY'))
-
-          # GEMINI.mdの確認
-          with open('GEMINI.md', 'r', encoding='utf-8') as f:
-              gemini_md = f.read()
-
-          # リポジトリ内の主要なコードファイルを取得
-          code_files = glob.glob('**/*.js', recursive=True) + glob.glob('**/*.ts', recursive=True) + glob.glob('**/*.html', recursive=True)
-          target_file = 'index.html'
-
-          if code_files:
-              target_file = code_files[0]
-              with open(target_file, 'r', encoding='utf-8') as f:
-                  code_context = f.read()[:3000]
-
-          prompt = f'''
-          プロジェクトルール（GEMINI.md）:
-          {gemini_md}
-
-          対象ファイル ({target_file}) の現状コード:
-          {code_context}
-
-          【重要指示】
-          上記の対象ファイル ({target_file}) をベースに、ゲームがより面白くなる『新しい機能、UIの改善、CSSアニメーション、または演出』を必ず1つ以上追加・修正したコードを生成してください。
-          元コードと全く同じ内容を出力することは禁止です。
-
-          ※注意事項:
-          - コード以外の解説文やバックティックス(```)は一切含めず、ファイル全体の完成版コードのみを出力してください。
-          '''
-
-          response = client.models.generate_content(
-              model='gemini-3.6-flash',
-              contents=prompt
-          )
-
-          if response.text and len(response.text.strip()) > 0:
-              new_code = response.text.replace('```html', '').replace('```javascript', '').replace('```typescript', '').replace('```', '').strip()
-              with open(target_file, 'w', encoding='utf-8') as f:
-                  f.write(new_code)
-              print(f'Successfully updated {target_file}')
-          "
+          # 独立したPythonスクリプトを実行
+          python scripts/generate_code.py
 
           if [ -n "$(git status --porcelain)" ]; then
             git add .
-            git commit -m "feat(auto): [Moku Agent] ゲーム機能・UIの自律改善"
+            git commit -m "feat(auto): [Moku Agent] ゲーム機能・演出の自動改善"
             git push origin "$BRANCH_NAME"
-            gh pr create --title "🎮 [Moku Agent] ゲームの新機能・演出改善提案" --body "GEMINI.mdのビジョンに基づき、Geminiが自動生成した機能改善PRです。内容を確認してマージ/クローズを選択してください。" --head "$BRANCH_NAME" --base main
+            gh pr create --title "🎮 [Moku Agent] ゲームの新機能・演出改善提案" --body "GEMINI.mdのビジョンに基づき、Geminiが自動生成した機能改善PRです。" --head "$BRANCH_NAME" --base main
           else
             echo "No changes detected."
           fi
