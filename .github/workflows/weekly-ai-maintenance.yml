@@ -1,0 +1,87 @@
+name: Weekly AI Studio Maintenance & Test
+
+on:
+  schedule:
+    # 毎週月曜日の午前9時(JST) / UTC 0:00 に自動実行
+    - cron: '0 0 * * 1'
+  # 手動で即座に実行したい場合もボタン一つで起動可能
+  workflow_dispatch:
+
+jobs:
+  weekly-maintenance:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install google-genai
+
+      - name: Run Gemini Code Analysis & Test Generation
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          python - << 'EOF'
+          import os
+          import glob
+          from google import genai
+
+          client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+
+          # 分析対象のファイルを読み込み
+          code_contents = ""
+          for target in ["index.html", "game.js", "style.css"]:
+              if os.path.exists(target):
+                  with open(target, "r", encoding="utf-8") as f:
+                      code_contents += f"\n--- {target} ---\n" + f.read()
+
+          prompt = f"""
+          あなたは「Moku-ai」のリードQA兼プロダクトマネージャーです。
+          以下のコードベースを分析し、改善案と自動テスト観点を抽出してください。
+
+          コードベース:
+          {code_contents}
+
+          【出力フォーマット】
+          以下のマークダウン形式のみで出力してください。
+
+          ## 🛠 今週の自動コード診断レポート
+          ### 1. コードの健康状態・潜在バグ
+          - (改善点や潜在バグの指摘)
+
+          ### 2. ユーザー体験（UX）・演出の改善アイデア（3選）
+          - (温かい絵本調・レトロな世界観を壊さないアイデア)
+
+          ### 3. 推奨されるテストケース
+          - (単体テスト・動作検証すべき項目)
+          """
+
+          response = client.models.generate_content(
+              model="gemini-2.5-flash",
+              contents=prompt
+          )
+
+          # 結果をファイルに保存
+          with open("maintenance_report.md", "w", encoding="utf-8") as f:
+              f.write(response.text)
+          EOF
+
+      - name: Create GitHub Issue with Gemini Report
+        uses: peter-evans/create-issue-from-file@v5
+        with:
+          title: "🤖【定期AI診断】今週の改善提案とテストレポート"
+          content-filepath: ./maintenance_report.md
+          labels: |
+            maintenance
+            automated-issue
