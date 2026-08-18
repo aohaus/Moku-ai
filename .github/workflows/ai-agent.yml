@@ -1,0 +1,65 @@
+name: Gemini AI Maintenance Agent
+
+on:
+  schedule:
+    # 毎週月曜日の朝9時(JST) / UTC 0:00 に自動実行
+    - cron: '0 0 * * 1'
+  workflow_dispatch: # 手動実行ボタンも用意
+
+jobs:
+  run-gemini-agent:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          if [ -f package.json ]; then npm ci || npm install; fi
+
+      - name: Run Gemini Code Modification
+        env:
+          GEMINI_API_KEY: ${{ secrets.Moku_ai }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Gitの設定
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # 枝分かれ用のブランチを作成
+          BRANCH_NAME="ai-auto-improve-$(date +%Y%m%d%H%M)"
+          git checkout -b "$BRANCH_NAME"
+
+          # 簡易AIスクリプトの実行（PythonでGemini APIを呼び出してコード提案・改修）
+          pip install google-genai
+          python -c "
+          import os
+          from google import genai
+
+          client = genai.Client(api_key=os.environ['GEMINI_API_KEY'])
+          response = client.models.generate_content(
+              model='gemini-2.5-flash',
+              contents='GEMINI.mdのルールに従い、プロジェクトの品質を高める小さな改善やテストの追加をしてください。'
+          )
+          print(response.text)
+          "
+
+          # 変更があればテスト実行してPRを作成
+          if [ -n "$(git status --porcelain)" ]; then
+            if [ -f package.json ]; then npm test || true; fi
+            git add .
+            git commit -m "feat(auto): [Gemini Agent] 自律自動改修の実施"
+            git push origin "$BRANCH_NAME"
+            gh pr create --title "🤖 [AI Agent] 自動改修・改善提案" --body "GeminiがGEMINI.mdに基づいて自動生成したPRです。確認してMerge/Closeを選択してください。"
+          fi
