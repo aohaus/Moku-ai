@@ -1,5 +1,5 @@
-import os
 import glob
+import os
 import re
 from google import genai
 
@@ -12,7 +12,9 @@ if os.path.exists("GEMINI.md"):
         gemini_md = f.read()
 
 # 修正対象ファイルの検索
-code_files = glob.glob("**/*.html", recursive=True) + glob.glob("**/*.js", recursive=True)
+code_files = glob.glob("**/*.html", recursive=True) + glob.glob(
+    "**/*.js", recursive=True
+)
 target_file = code_files[0] if code_files else "index.html"
 
 code_context = ""
@@ -27,9 +29,11 @@ prompt = f"""
 対象ファイル ({target_file}) の現状コード:
 {code_context}
 
-【指示】
-1. 上記コードに対し、ゲームの面白さ向上やUIの「垢抜け感」を高める新機能・演出改善を1つ実施してください。
-2. 以下のフォーマットを厳格に守って説明文とコードを出力してください。
+【重要指示】
+1. 上記コードの**既存の世界観（背景色、グラフィック、配色、温かみのある雰囲気）を100%維持**してください。
+2. 背景色や全体デザインの大幅な変更、サイバー風・ネオン調・ダークモード化などの世界観を損なう変更は【絶対禁止】です。
+3. 既存のキャラクターやテーマを尊重し、ゲーム性が少し増すような「控えめな機能追加」または「自然な演出強化」を1つだけ実施してください。
+4. 以下のフォーマットを厳格に守って説明文とコードを出力してください。
 
 ===EXPLANATION===
 ## 概要
@@ -55,8 +59,10 @@ if response.text and "===CODE===" in response.text:
     explanation = parts[0].replace("===EXPLANATION===", "").strip()
     raw_code = parts[1].strip()
 
-    # マークダウン装飾の除去
-    cleaned_code = re.sub(r"^```[a-zA-Z]*\n", "", raw_code, flags=re.MULTILINE)
+    # マークダウン装飾（```html や ``` など）を除去
+    cleaned_code = re.sub(
+        r"^```[a-zA-Z]*\n", "", raw_code, flags=re.MULTILINE
+    )
     cleaned_code = re.sub(r"\n```$", "", cleaned_code, flags=re.MULTILINE)
 
     # コード上書き
