@@ -2,9 +2,8 @@ name: Gemini AI Maintenance Agent
 
 on:
   schedule:
-    # 毎週月曜日の朝9時(JST) / UTC 0:00 に自動実行
     - cron: '0 0 * * 1'
-  workflow_dispatch: # 手動実行ボタン
+  workflow_dispatch:
 
 jobs:
   run-gemini-agent:
@@ -40,14 +39,18 @@ jobs:
           BRANCH_NAME="ai-auto-improve-$(date +%Y%m%d%H%M)"
           git checkout -b "$BRANCH_NAME"
 
-          # 独立したPythonスクリプトを実行
           python scripts/generate_code.py
 
           if [ -n "$(git status --porcelain)" ]; then
             git add .
             git commit -m "feat(auto): [Moku Agent] ゲーム機能・演出の自動改善"
             git push origin "$BRANCH_NAME"
-            gh pr create --title "🎮 [Moku Agent] ゲームの新機能・演出改善提案" --body "GEMINI.mdのビジョンに基づき、Geminiが自動生成した機能改善PRです。" --head "$BRANCH_NAME" --base main
+            
+            if [ -f pr_body.txt ]; then
+              gh pr create --title "🎮 [Moku Agent] ゲームの新機能・演出改善提案" --body-file pr_body.txt --head "$BRANCH_NAME" --base main
+            else
+              gh pr create --title "🎮 [Moku Agent] ゲームの新機能・演出改善提案" --body "Geminiによる自動改善提案です。" --head "$BRANCH_NAME" --base main
+            fi
           else
             echo "No changes detected."
           fi
