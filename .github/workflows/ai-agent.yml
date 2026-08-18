@@ -50,16 +50,26 @@ jobs:
           with open('GEMINI.md', 'r', encoding='utf-8') as f:
               gemini_md = f.read()
 
+          # リポジトリ内の主要なコードファイルを取得（例: js, ts, html, css, pyなど）
+          code_files = glob.glob('**/*.js', recursive=True) + glob.glob('**/*.ts', recursive=True) + glob.glob('**/*.html', recursive=True)
+          code_context = ''
+          target_file = 'index.html' # デフォルトTarget
+
+          if code_files:
+              target_file = code_files[0]
+              with open(target_file, 'r', encoding='utf-8') as f:
+                  code_context = f.read()[:2000] # 上限文字数
+
           prompt = f'''
-          以下はプロジェクトのルールと概要（GEMINI.md）です：
+          プロジェクトルール（GEMINI.md）:
           {gemini_md}
 
-          【依頼】
-          プロジェクト内の既存コードを確認し、ゲームをより面白くする機能追加、または見た目・UIの『垢抜け感』を高めるための具体的なコード変更・追加を行ってください。
-          
-          ※注意：
-          - 抽象的なテキスト解説ファイルの作成は厳禁です。
-          - 既存のゲームコード（JS/TS/HTML/CSS等）を直接編集・修正するか、新しい機能用ファイルを追加してください。
+          対象ファイル ({target_file}) の現状コード:
+          {code_context}
+
+          【指示】
+          上記の対象ファイル ({target_file}) について、ゲーム性を高める機能追加やUIの改善・演出強化を行った『完全な修正後コード』を出力してください。
+          コード以外の解説文やバックティックス(```)は含めず、純粋なコード内容のみを出力してください。
           '''
 
           response = client.models.generate_content(
@@ -67,7 +77,12 @@ jobs:
               contents=prompt
           )
 
-          print('Gemini response executed.')
+          # 修正結果をファイルに書き込み
+          if response.text and len(response.text.strip()) > 0:
+              new_code = response.text.replace('```html', '').replace('```javascript', '').replace('```typescript', '').replace('```', '').strip()
+              with open(target_file, 'w', encoding='utf-8') as f:
+                  f.write(new_code)
+              print(f'Successfully updated {target_file}')
           "
 
           if [ -n "$(git status --porcelain)" ]; then
@@ -75,4 +90,6 @@ jobs:
             git commit -m "feat(auto): [Moku Agent] ゲーム機能・UIの自律改善"
             git push origin "$BRANCH_NAME"
             gh pr create --title "🎮 [Moku Agent] ゲームの新機能・演出改善提案" --body "GEMINI.mdのビジョンに基づき、Geminiが自動生成した機能改善PRです。内容を確認してマージ/クローズを選択してください。" --head "$BRANCH_NAME" --base main
+          else
+            echo "No changes detected."
           fi
