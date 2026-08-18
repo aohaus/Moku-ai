@@ -41,25 +41,38 @@ jobs:
           git checkout -b "$BRANCH_NAME"
 
           python -c "
-          import os
+          import os, glob
           from google import genai
 
           client = genai.Client(api_key=os.environ.get('GEMINI_API_KEY'))
-          prompt = 'GEMINI.mdの指示に従い、プロジェクトの品質を高める具体案を作成してください。'
+
+          # GEMINI.mdの確認
+          with open('GEMINI.md', 'r', encoding='utf-8') as f:
+              gemini_md = f.read()
+
+          prompt = f'''
+          以下はプロジェクトのルールと概要（GEMINI.md）です：
+          {gemini_md}
+
+          【依頼】
+          プロジェクト内の既存コードを確認し、ゲームをより面白くする機能追加、または見た目・UIの『垢抜け感』を高めるための具体的なコード変更・追加を行ってください。
+          
+          ※注意：
+          - 抽象的なテキスト解説ファイルの作成は厳禁です。
+          - 既存のゲームコード（JS/TS/HTML/CSS等）を直接編集・修正するか、新しい機能用ファイルを追加してください。
+          '''
 
           response = client.models.generate_content(
               model='gemini-3.6-flash',
               contents=prompt
           )
 
-          if response.text:
-              with open('README_AI_SUGGESTION.md', 'w', encoding='utf-8') as f:
-                  f.write(response.text)
+          print('Gemini response executed.')
           "
 
-          if [ -s README_AI_SUGGESTION.md ]; then
+          if [ -n "$(git status --porcelain)" ]; then
             git add .
-            git commit -m "feat(auto): [Gemini Agent] 自律自動改修案の作成"
+            git commit -m "feat(auto): [Moku Agent] ゲーム機能・UIの自律改善"
             git push origin "$BRANCH_NAME"
-            gh pr create --title "🤖 [AI Agent] 自動改修・改善提案" --body "GeminiがGEMINI.mdに基づいて自動生成した提案（README_AI_SUGGESTION.md）です。" --head "$BRANCH_NAME" --base main
+            gh pr create --title "🎮 [Moku Agent] ゲームの新機能・演出改善提案" --body "GEMINI.mdのビジョンに基づき、Geminiが自動生成した機能改善PRです。内容を確認してマージ/クローズを選択してください。" --head "$BRANCH_NAME" --base main
           fi
