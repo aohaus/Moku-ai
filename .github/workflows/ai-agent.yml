@@ -45,22 +45,19 @@ jobs:
           from google import genai
 
           client = genai.Client(api_key=os.environ.get('GEMINI_API_KEY'))
-          prompt = '''GEMINI.mdの指示に従い、プロジェクトの品質を高める提案を作成してください。
-          以下のフォーマットで記述したREADME_AI_SUGGESTION.mdというファイルを新規作成（または更新）してください。
-          - 提案タイトル
-          - 改善点の説明
-          - 推奨される変更コード例'''
+          prompt = 'GEMINI.mdの指示に従い、プロジェクトの品質を高める具体案を作成してください。'
 
           response = client.models.generate_content(
               model='gemini-3.6-flash',
               contents=prompt
           )
 
-          with open('README_AI_SUGGESTION.md', 'w', encoding='utf-8') as f:
-              f.write(response.text)
+          if response.text:
+              with open('README_AI_SUGGESTION.md', 'w', encoding='utf-8') as f:
+                  f.write(response.text)
           "
 
-          if [ -n "$(git status --porcelain)" ]; then
+          if [ -s README_AI_SUGGESTION.md ]; then
             git add .
             git commit -m "feat(auto): [Gemini Agent] 自律自動改修案の作成"
             git push origin "$BRANCH_NAME"
