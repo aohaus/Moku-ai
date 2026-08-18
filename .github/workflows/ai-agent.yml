@@ -50,15 +50,14 @@ jobs:
           with open('GEMINI.md', 'r', encoding='utf-8') as f:
               gemini_md = f.read()
 
-          # リポジトリ内の主要なコードファイルを取得（例: js, ts, html, css, pyなど）
+          # リポジトリ内の主要なコードファイルを取得
           code_files = glob.glob('**/*.js', recursive=True) + glob.glob('**/*.ts', recursive=True) + glob.glob('**/*.html', recursive=True)
-          code_context = ''
-          target_file = 'index.html' # デフォルトTarget
+          target_file = 'index.html'
 
           if code_files:
               target_file = code_files[0]
               with open(target_file, 'r', encoding='utf-8') as f:
-                  code_context = f.read()[:2000] # 上限文字数
+                  code_context = f.read()[:3000]
 
           prompt = f'''
           プロジェクトルール（GEMINI.md）:
@@ -67,9 +66,12 @@ jobs:
           対象ファイル ({target_file}) の現状コード:
           {code_context}
 
-          【指示】
-          上記の対象ファイル ({target_file}) について、ゲーム性を高める機能追加やUIの改善・演出強化を行った『完全な修正後コード』を出力してください。
-          コード以外の解説文やバックティックス(```)は含めず、純粋なコード内容のみを出力してください。
+          【重要指示】
+          上記の対象ファイル ({target_file}) をベースに、ゲームがより面白くなる『新しい機能、UIの改善、CSSアニメーション、または演出』を必ず1つ以上追加・修正したコードを生成してください。
+          元コードと全く同じ内容を出力することは禁止です。
+
+          ※注意事項:
+          - コード以外の解説文やバックティックス(```)は一切含めず、ファイル全体の完成版コードのみを出力してください。
           '''
 
           response = client.models.generate_content(
@@ -77,7 +79,6 @@ jobs:
               contents=prompt
           )
 
-          # 修正結果をファイルに書き込み
           if response.text and len(response.text.strip()) > 0:
               new_code = response.text.replace('```html', '').replace('```javascript', '').replace('```typescript', '').replace('```', '').strip()
               with open(target_file, 'w', encoding='utf-8') as f:
