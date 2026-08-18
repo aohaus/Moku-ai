@@ -64,5 +64,5 @@ jobs:
             git add .
             git commit -m "feat(auto): [Gemini Agent] 自律自動改修案の作成"
             git push origin "$BRANCH_NAME"
-            gh pr create --title "🤖 [AI Agent] 自動改修・改善提案" --body "GeminiがGEMINI.mdに基づいて自動生成した提案（README_AI_SUGGESTION.md）です。"
+            gh pr create --title "🤖 [AI Agent] 自動改修・改善提案" --body "GeminiがGEMINI.mdに基づいて自動生成した提案（README_AI_SUGGESTION.md）です。" --head "$BRANCH_NAME" --base main
           fi
