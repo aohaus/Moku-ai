@@ -30,16 +30,14 @@ jobs:
 
       - name: Run Gemini Code Analysis & Test Generation
         env:
-          Moku_ai: ${{ secrets.Moku_ai }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           python - << 'EOF'
           import os
           import glob
           from google import genai
 
-          # Secret名「Moku_ai」からAPIキーを取得
-          api_key = os.environ.get("Moku_ai")
-          client = genai.Client(api_key=api_key)
+          client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
           # 分析対象のファイルを読み込み
           code_contents = ""
@@ -69,9 +67,8 @@ jobs:
           - (単体テスト・動作検証すべき項目)
           """
 
-          # 最新モデル「gemini-3.6-flash」に変更
           response = client.models.generate_content(
-              model="gemini-3.6-flash",
+              model="gemini-2.5-flash",
               contents=prompt
           )
 

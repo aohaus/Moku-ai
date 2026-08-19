@@ -1,0 +1,1970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Moku-rane — 3D Arcade Claw Machine</title>
+<link rel="icon" href="icons/moyomoyo-icon-192.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="shared/moku-scores.js"></script>
+<style>
+  :root {
+    --hi: #FF4B91;
+    --lo: #6A1A40;
+    --accent-cyan: #22D3EE;
+    --accent-gold: #FFC94A;
+    --accent-purple: #7C3AED;
+    --navy-bg: #0A0B12;
+    --navy-surface: #131627;
+    --text-primary: #EDEEF6;
+    --text-muted: rgba(237, 238, 246, 0.6);
+  }
+
+  * {
+    margin: 0; padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: radial-gradient(circle at 50% 25%, #181c33 0%, #0c0e1a 60%, #05060a 100%);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--text-primary);
+    user-select: none;
+    touch-action: none;
+  }
+
+  /* ---------- Title Frame & Standard Moku Brand ---------- */
+  #title-frame {
+    display: block;
+    position: fixed; inset: 12px;
+    border: 3px solid var(--hi);
+    border-radius: 12px;
+    pointer-events: none;
+    z-index: 40;
+    box-shadow: 0 0 16px rgba(255, 75, 145, 0.25);
+  }
+  #title-frame::after {
+    content: '';
+    position: absolute; inset: 4px;
+    border: 1px solid var(--lo);
+    border-radius: 8px;
+  }
+  #hub-link {
+    display: block;
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 16px);
+    right: calc(env(safe-area-inset-right, 0px) + 18px);
+    z-index: 50;
+    font-size: 13.5px;
+    font-weight: 800;
+    color: var(--hi);
+    text-decoration: none;
+    background: rgba(255, 75, 145, 0.12);
+    border: 1px solid rgba(255, 75, 145, 0.35);
+    padding: 6px 14px;
+    border-radius: 999px;
+    backdrop-filter: blur(8px);
+    animation: hubPulse 2.4s ease-in-out infinite;
+  }
+  @keyframes hubPulse { 0%,100%{ opacity: 0.85; transform: scale(1); } 50%{ opacity: 1; transform: scale(1.03); } }
+
+  #buildInfo {
+    display: block;
+    position: fixed;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+    left: calc(env(safe-area-inset-left, 0px) + 18px);
+    z-index: 50;
+    font-size: 11px;
+    color: rgba(255,255,255,0.35);
+    pointer-events: none;
+  }
+
+  body.in-game #title-frame,
+  body.in-game #buildInfo {
+    display: none;
+  }
+
+  /* ---------- App Layout ---------- */
+  #app {
+    position: relative;
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #canvas-container {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    z-index: 1;
+    cursor: grab;
+  }
+  #canvas-container:active { cursor: grabbing; }
+
+  /* ---------- Top HUD in Game ---------- */
+  #game-hud {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 12px);
+    left: 14px; right: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    pointer-events: none;
+    z-index: 30;
+    transition: opacity 0.3s ease;
+  }
+  #game-hud > * { pointer-events: auto; }
+
+  .hud-pill {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(19, 22, 39, 0.82);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 4px 18px rgba(0,0,0,0.4);
+    backdrop-filter: blur(10px);
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 800;
+  }
+  .hud-pill.gold { color: var(--accent-gold); border-color: rgba(255, 201, 74, 0.4); }
+  .hud-pill.pink { color: var(--hi); border-color: rgba(255, 75, 145, 0.4); }
+  .hud-pill.cyan { color: var(--accent-cyan); border-color: rgba(34, 211, 238, 0.4); }
+
+  .hud-btn {
+    appearance: none; border: none; cursor: pointer;
+    background: rgba(19, 22, 39, 0.85);
+    border: 1px solid rgba(255,255,255,0.18);
+    color: #fff; border-radius: 50%;
+    width: 38px; height: 38px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+    transition: transform 0.15s ease, background 0.15s ease;
+  }
+  .hud-btn:hover { transform: scale(1.08); background: rgba(35, 42, 74, 0.9); }
+  .hud-btn:active { transform: scale(0.94); }
+
+  /* ---------- Camera Switcher Bar ---------- */
+  #camera-bar {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 60px);
+    right: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 30;
+  }
+  .cam-btn {
+    background: rgba(15, 18, 33, 0.85);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(237,238,246,0.7);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 11.5px;
+    font-weight: 700;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: all 0.2s ease;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .cam-btn.active {
+    color: #fff;
+    border-color: var(--accent-cyan);
+    background: rgba(34, 211, 238, 0.2);
+    box-shadow: 0 0 12px rgba(34, 211, 238, 0.35);
+  }
+
+  /* ---------- Bottom Arcade Controller Deck ---------- */
+  #controller-deck {
+    position: absolute;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(94%, 540px);
+    background: linear-gradient(180deg, rgba(25, 30, 54, 0.92) 0%, rgba(12, 14, 26, 0.96) 100%);
+    border: 1.5px solid rgba(255, 75, 145, 0.35);
+    border-radius: 24px;
+    box-shadow: 0 12px 36px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.15);
+    backdrop-filter: blur(12px);
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    z-index: 30;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+  }
+
+  /* D-Pad Controller */
+  .dpad-container {
+    position: relative;
+    width: 120px; height: 120px;
+    flex: none;
+  }
+  .dpad-btn {
+    position: absolute;
+    width: 38px; height: 38px;
+    background: linear-gradient(135deg, #2b335c, #1a1f38);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 10px;
+    color: #EDEEF6;
+    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    user-select: none;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+    transition: transform 0.1s ease, background 0.1s ease, border-color 0.1s ease;
+  }
+  .dpad-btn:active, .dpad-btn.pressed {
+    background: linear-gradient(135deg, var(--accent-cyan), #0891b2);
+    color: #042f2e;
+    transform: scale(0.92);
+    border-color: #fff;
+    box-shadow: 0 0 14px rgba(34,211,238,0.6);
+  }
+  .dpad-btn.up    { top: 0; left: 41px; }
+  .dpad-btn.down  { bottom: 0; left: 41px; }
+  .dpad-btn.left  { top: 41px; left: 0; }
+  .dpad-btn.right { top: 41px; right: 0; }
+  .dpad-center    { position: absolute; top: 41px; left: 41px; width: 38px; height: 38px; border-radius: 8px; background: rgba(0,0,0,0.3); }
+
+  /* Deck Middle: Status & Claw Height */
+  .deck-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+  }
+  .deck-status-txt {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-cyan);
+    text-align: center;
+  }
+  .timer-badge {
+    font-size: 18px;
+    font-weight: 900;
+    color: var(--accent-gold);
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 12px rgba(255, 201, 74, 0.4);
+  }
+
+  /* Big Drop / Grab Button */
+  #drop-btn {
+    position: relative;
+    width: 86px; height: 86px;
+    border-radius: 50%;
+    border: none; cursor: pointer;
+    background: radial-gradient(circle at 35% 30%, #ff6fa9 0%, #ff2a7a 55%, #b30047 100%);
+    box-shadow: 0 8px 24px rgba(255, 42, 122, 0.5), inset 0 2px 4px rgba(255,255,255,0.4);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    font-weight: 900;
+    transition: transform 0.12s ease, filter 0.12s ease, box-shadow 0.12s ease;
+    flex: none;
+  }
+  #drop-btn:hover {
+    transform: scale(1.04);
+    filter: brightness(1.1);
+  }
+  #drop-btn:active, #drop-btn.is-active {
+    transform: scale(0.92) translateY(4px);
+    box-shadow: 0 2px 10px rgba(255, 42, 122, 0.4);
+  }
+  #drop-btn span.lbl { font-size: 14px; letter-spacing: 0.06em; line-height: 1; }
+  #drop-btn span.sub { font-size: 9px; opacity: 0.85; font-weight: 700; text-transform: uppercase; }
+
+  /* ---------- Screen Overlays & Modals ---------- */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(5, 7, 14, 0.82);
+    backdrop-filter: blur(10px);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .modal-overlay.active { display: flex; }
+
+  .modal-card {
+    width: min(92vw, 440px);
+    max-height: 88vh;
+    background: linear-gradient(165deg, #181d36 0%, #0e1122 100%);
+    border: 2px solid rgba(255, 75, 145, 0.4);
+    border-radius: 24px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(255, 75, 145, 0.2);
+    padding: 22px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+    position: relative;
+    animation: modalPop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes modalPop { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .modal-title {
+    font-size: 19px;
+    font-weight: 900;
+    color: #EDEEF6;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .modal-close-btn {
+    background: rgba(255,255,255,0.08);
+    border: none; color: #fff;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    font-size: 16px; font-weight: 800;
+    cursor: pointer;
+  }
+
+  /* Title Screen */
+  #title-screen {
+    position: absolute; inset: 0;
+    z-index: 35;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    text-align: center;
+    background: radial-gradient(circle at 50% 35%, rgba(124, 58, 237, 0.22) 0%, rgba(10, 11, 18, 0.88) 70%, #06070c 100%);
+    backdrop-filter: blur(4px);
+    transition: opacity 0.4s ease, visibility 0.4s;
+  }
+  #title-screen.hidden { opacity: 0; pointer-events: none; visibility: hidden; }
+
+  .title-hero-badge {
+    width: clamp(100px, 22vw, 130px);
+    height: clamp(100px, 22vw, 130px);
+    border-radius: 50%;
+    padding: 3px;
+    background: conic-gradient(from 0deg, #FF4B91, #FFC94A, #22D3EE, #7C3AED, #FF4B91);
+    box-shadow: 0 0 28px rgba(255, 75, 145, 0.45);
+    margin-bottom: 12px;
+    animation: heroFloat 3.2s ease-in-out infinite;
+  }
+  @keyframes heroFloat { 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(-8px); } }
+  .title-hero-inner {
+    width: 100%; height: 100%; border-radius: 50%;
+    overflow: hidden; background: #16122b;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .title-hero-inner img {
+    width: 125%; height: 125%; object-fit: cover; object-position: center 30%;
+  }
+
+  .title-h1 {
+    font-size: clamp(34px, 8vw, 48px);
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    margin-bottom: 4px;
+    color: #fff;
+    text-shadow: 0 0 24px rgba(255, 75, 145, 0.5);
+  }
+  .title-h1 span.accent {
+    background: linear-gradient(90deg, #FF4B91, #FFC94A, #22D3EE);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .title-sub {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+  }
+
+  .title-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: min(100%, 280px);
+  }
+  .menu-btn {
+    appearance: none; border: none; cursor: pointer;
+    font-size: 16px; font-weight: 800;
+    padding: 14px 24px; border-radius: 999px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .menu-btn.primary {
+    background: linear-gradient(135deg, #FF4B91, #d91b65);
+    color: #fff;
+    box-shadow: 0 8px 24px rgba(255, 75, 145, 0.45);
+  }
+  .menu-btn.primary:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(255, 75, 145, 0.6); }
+  .menu-btn.secondary {
+    background: rgba(255,255,255,0.07);
+    color: var(--text-primary);
+    border: 1px solid rgba(255,255,255,0.18);
+  }
+  .menu-btn.secondary:hover { background: rgba(255,255,255,0.12); transform: translateY(-2px); }
+
+  /* Leaderboard Styling */
+  .leaderboard-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 280px;
+    overflow-y: auto;
+  }
+  .leaderboard-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .leaderboard-row.gold { border-color: rgba(255,201,74,0.4); background: rgba(255,201,74,0.08); }
+  .leaderboard-row.silver { border-color: rgba(237,238,246,0.3); }
+  .leaderboard-row.bronze { border-color: rgba(205,127,50,0.3); }
+  .rank-badge {
+    width: 24px; height: 24px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 900;
+  }
+  .rank-meta { display: flex; align-items: center; gap: 10px; }
+  .player-name { font-size: 13.5px; font-weight: 800; }
+  .player-score { font-size: 15px; font-weight: 900; color: var(--accent-gold); font-variant-numeric: tabular-nums; }
+
+  /* Prize Showcase Shelf */
+  .prizes-filter-row {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+  .prize-filter-btn {
+    appearance: none;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.05);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 5px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+  }
+  .prize-filter-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
+  .prize-filter-btn.active {
+    background: var(--accent-cyan);
+    color: #0c0e1a;
+    border-color: var(--accent-cyan);
+    font-weight: 800;
+  }
+
+  .prizes-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .prize-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px;
+    padding: 10px 8px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    text-align: center;
+    position: relative;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+  }
+  .prize-card.unlocked {
+    border-color: rgba(34, 211, 238, 0.4);
+    background: linear-gradient(145deg, rgba(34, 211, 238, 0.08) 0%, rgba(124, 58, 237, 0.06) 100%);
+  }
+  .prize-card.unlocked:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent-cyan);
+    box-shadow: 0 4px 16px rgba(34, 211, 238, 0.2);
+  }
+  .prize-card.locked { opacity: 0.38; filter: grayscale(1); border-style: dashed; }
+  .prize-category-tag {
+    font-size: 8.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 1px 6px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.08);
+    color: var(--text-muted);
+  }
+  .prize-category-tag.moku { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
+  .prize-category-tag.enemy { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+  .prize-category-tag.friend { background: rgba(245, 158, 11, 0.2); color: #fde68a; }
+
+  .prize-icon { font-size: 26px; line-height: 1; margin: 2px 0; }
+  .prize-name { font-size: 11.5px; font-weight: 800; line-height: 1.2; }
+  .prize-desc { font-size: 9.5px; color: var(--text-muted); line-height: 1.2; display: none; }
+  .prize-footer-row {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    margin-top: 2px;
+    font-size: 9px;
+    font-weight: 700;
+  }
+  .prize-pts { color: var(--accent-gold); }
+  .prize-count { color: var(--accent-cyan); }
+
+  /* Win Celebration Popup */
+  #win-toast {
+    position: absolute;
+    top: 25%; left: 50%;
+    transform: translate(-50%, -50%) scale(0.7);
+    background: linear-gradient(135deg, rgba(255, 75, 145, 0.95), rgba(124, 58, 237, 0.95));
+    border: 2px solid #fff;
+    border-radius: 20px;
+    padding: 16px 28px;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.8), 0 0 30px rgba(255, 75, 145, 0.6);
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    color: #fff; z-index: 80;
+    opacity: 0; pointer-events: none;
+    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  #win-toast.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  #win-toast .win-emoji { font-size: 42px; animation: bounce 0.6s infinite alternate; }
+  @keyframes bounce { from{ transform: translateY(0); } to{ transform: translateY(-8px); } }
+  #win-toast .win-title { font-size: 20px; font-weight: 900; }
+  #win-toast .win-score { font-size: 14px; font-weight: 800; color: var(--accent-gold); }
+
+  /* Confetti Canvas */
+  #confetti-canvas {
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 75;
+  }
+</style>
+</head>
+<body>
+
+<div id="title-frame"></div>
+<a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
+<div id="buildInfo">v1.0.0 · Updated Aug 19, 2026</div>
+
+<canvas id="confetti-canvas"></canvas>
+
+<div id="app">
+  <div id="canvas-container"></div>
+
+  <!-- Top In-Game HUD -->
+  <div id="game-hud">
+    <div style="display:flex; gap:8px;">
+      <div class="hud-pill gold" id="scorePill">⭐ <span id="hudScore">0</span> PTS</div>
+      <div class="hud-pill pink" id="creditPill">🪙 <span id="hudCredits">5</span> Credits</div>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="hud-btn" id="btnSound" title="Toggle Sound">🔊</button>
+      <button class="hud-btn" id="btnRanks" title="Leaderboards">🏆</button>
+      <button class="hud-btn" id="btnPrizes" title="Prize Collection">🎁</button>
+      <button class="hud-btn" id="btnMenu" title="Menu">⚙️</button>
+    </div>
+  </div>
+
+  <!-- Camera View Selector -->
+  <div id="camera-bar">
+    <button class="cam-btn active" data-cam="front"><span>🎥</span> Front</button>
+    <button class="cam-btn" data-cam="top"><span>🎯</span> Top</button>
+    <button class="cam-btn" data-cam="side"><span>📐</span> Side</button>
+    <button class="cam-btn" data-cam="orbit"><span>🔄</span> Free</button>
+  </div>
+
+  <!-- Arcade Controller Deck -->
+  <div id="controller-deck">
+    <div class="dpad-container" id="dpad">
+      <button class="dpad-btn up" data-dir="up" aria-label="Move Backward">▲</button>
+      <button class="dpad-btn left" data-dir="left" aria-label="Move Left">◀</button>
+      <div class="dpad-center"></div>
+      <button class="dpad-btn right" data-dir="right" aria-label="Move Right">▶</button>
+      <button class="dpad-btn down" data-dir="down" aria-label="Move Forward">▼</button>
+    </div>
+
+    <div class="deck-center">
+      <div class="deck-status-txt" id="craneStatus">READY · POSITION CLAW</div>
+      <div class="timer-badge" id="roundTimer">60s</div>
+    </div>
+
+    <button id="drop-btn" aria-label="Drop Claw">
+      <span class="lbl">DROP</span>
+      <span class="sub">GRAB</span>
+    </button>
+  </div>
+</div>
+
+<!-- Title Screen -->
+<div id="title-screen">
+  <div class="title-hero-badge">
+    <div class="title-hero-inner">
+      <img src="brand/mokumoku-hero.png" alt="Mokumoku Hero">
+    </div>
+  </div>
+  <h1 class="title-h1">MOKU-<span class="accent">RANE</span></h1>
+  <p class="title-sub">3D Real-Physics Arcade Claw Machine</p>
+  <div class="title-menu">
+    <button class="menu-btn primary" id="btnStartGame">🕹️ INSERT COIN & PLAY</button>
+    <button class="menu-btn secondary" id="btnOpenRanks">🏆 Leaderboards</button>
+    <button class="menu-btn secondary" id="btnOpenPrizes">🎁 Prize Collection</button>
+  </div>
+</div>
+
+<!-- Win Notification Toast -->
+<div id="win-toast">
+  <div class="win-emoji" id="winToastEmoji">🦉</div>
+  <div class="win-title" id="winToastTitle">YOU WON!</div>
+  <div class="win-score" id="winToastScore">+500 Points</div>
+</div>
+
+<!-- Leaderboard Modal -->
+<div class="modal-overlay" id="ranksModal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-title">🏆 High Scores</div>
+      <button class="modal-close-btn" data-close="ranksModal">✕</button>
+    </div>
+    <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-muted); font-weight:700; padding:0 6px;">
+      <span>RANK & PLAYER</span>
+      <span>SCORE</span>
+    </div>
+    <div class="leaderboard-list" id="ranksList">
+      <!-- Injected by JS -->
+    </div>
+    <div style="display:flex; gap:10px; margin-top:6px;">
+      <input type="text" id="playerNameInput" placeholder="Your Name" maxlength="12" style="flex:1; background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.2); border-radius:10px; color:#fff; padding:10px 14px; font-weight:700; font-size:14px; outline:none;">
+      <button class="menu-btn primary" id="submitScoreBtn" style="padding:10px 18px; font-size:14px;">Submit</button>
+    </div>
+  </div>
+</div>
+
+<!-- Prize Collection Modal -->
+<div class="modal-overlay" id="prizesModal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-title">🎁 Prize Collection (<span id="collectionCounter">0/12</span>)</div>
+      <button class="modal-close-btn" data-close="prizesModal">✕</button>
+    </div>
+    <div style="font-size:12px; color:var(--text-muted); font-weight:600;">
+      Grab Moku characters & cute enemy plushies to complete your arcade collection!
+    </div>
+    <div class="prizes-filter-row" id="prizesFilterRow">
+      <button class="prize-filter-btn active" data-filter="all">All (12)</button>
+      <button class="prize-filter-btn" data-filter="owl">🦉 Moku Clan</button>
+      <button class="prize-filter-btn" data-filter="rat">🐭 Cute Enemies</button>
+      <button class="prize-filter-btn" data-filter="other">✨ Friends</button>
+    </div>
+    <div class="prizes-grid" id="prizesGrid">
+      <!-- Injected by JS -->
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  /* ================= AUDIO SYSTEM (Web Audio API) ================= */
+  var audioCtx = null;
+  var soundEnabled = true;
+
+  function initAudio() {
+    if (!audioCtx) {
+      var AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (AudioContext) audioCtx = new AudioContext();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+
+  function playTone(freq, type, duration, gainVal, slideFreq) {
+    if (!soundEnabled) return;
+    try {
+      initAudio();
+      if (!audioCtx) return;
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      if (slideFreq) {
+        osc.frequency.exponentialRampToValueAtTime(slideFreq, audioCtx.currentTime + duration);
+      }
+      gain.gain.setValueAtTime(gainVal || 0.15, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + duration);
+    } catch(e) {}
+  }
+
+  function sfxCoin() {
+    playTone(987.77, 'sine', 0.1, 0.2);
+    setTimeout(function() { playTone(1318.51, 'sine', 0.25, 0.25); }, 90);
+  }
+
+  function sfxMove() {
+    playTone(180, 'sawtooth', 0.06, 0.04);
+  }
+
+  function sfxDrop() {
+    playTone(440, 'triangle', 0.2, 0.2, 220);
+  }
+
+  function sfxGrab() {
+    playTone(520, 'square', 0.08, 0.18);
+    setTimeout(function() { playTone(650, 'square', 0.12, 0.18); }, 80);
+  }
+
+  function sfxWin() {
+    var notes = [523.25, 659.25, 783.99, 1046.50];
+    notes.forEach(function(n, i) {
+      setTimeout(function() { playTone(n, 'triangle', 0.22, 0.25); }, i * 110);
+    });
+  }
+
+  /* ================= PRIZE DEFINITIONS ================= */
+  var PRIZE_TYPES = [
+    // --- Moku Protagonists ---
+    { id: 'classic_moku', name: 'Classic Moku', emoji: '🦉', category: 'owl', color: 0x3b82f6, radius: 0.42, points: 300, weight: 1.0, desc: 'Brave blue owl hero of Moku Island' },
+    { id: 'angry_moku',   name: 'Angry Moku',   emoji: '💢', category: 'owl', color: 0xef4444, radius: 0.42, points: 450, weight: 1.0, desc: 'Furious flying owl with battle eyebrows' },
+    { id: 'king_moku',    name: 'King Moku',    emoji: '👑', category: 'owl', color: 0xffc94a, radius: 0.45, points: 1200, weight: 1.25, desc: 'Royal golden monarch with jeweled crown' },
+    { id: 'baby_moku',    name: 'Baby Moku',    emoji: '🐣', category: 'owl', color: 0x67e8f9, radius: 0.35, points: 350, weight: 0.8, desc: 'Cute sky-blue chick with blushing cheeks' },
+    { id: 'robo_moku',    name: 'Robo-Moku',    emoji: '🤖', category: 'owl', color: 0x94a3b8, radius: 0.42, points: 600, weight: 1.15, desc: 'Cybernetic owl with glowing neon visor' },
+
+    // --- Cute Enemy Plushies ---
+    { id: 'chibi_rat',    name: 'Chibi-Nezumi', emoji: '🐭', category: 'rat', color: 0xa8a29e, radius: 0.38, points: 280, weight: 0.85, desc: 'Cute baby mouse with big pink ears & snout' },
+    { id: 'ninja_rat',    name: 'Ninja-Nezumi', emoji: '🥷', category: 'rat', color: 0x1e1b4b, radius: 0.40, points: 550, weight: 1.05, desc: 'Shinobi mouse with red headband & mask' },
+    { id: 'boss_rat',     name: 'Boss-Nezumi',  emoji: '😈', category: 'rat', color: 0x7c3aed, radius: 0.46, points: 1000, weight: 1.3, desc: 'Mastermind rat with gold crown & mustache' },
+    { id: 'chef_rat',     name: 'Chef-Nezumi',  emoji: '👨‍🍳', category: 'rat', color: 0x64748b, radius: 0.40, points: 400, weight: 0.95, desc: 'Gourmet mouse wearing a puffy chef hat' },
+    { id: 'agent_rat',    name: 'Agent-Nezumi', emoji: '🕶️', category: 'rat', color: 0x334155, radius: 0.40, points: 500, weight: 1.0, desc: 'Secret agent mouse with shades & bowtie' },
+
+    // --- Series Friends & Items ---
+    { id: 'pink_moyo',    name: 'Pink Moyo',    emoji: '🍬', category: 'other', color: 0xff4b91, radius: 0.38, points: 320, weight: 0.8, desc: 'Bouncy strawberry gummy from Moyomoyo' },
+    { id: 'soccer_ball',  name: 'Moku Soccer',  emoji: '⚽', category: 'other', color: 0xf8fafc, radius: 0.40, points: 350, weight: 0.9, desc: 'Official match ball from MK Mobile' }
+  ];
+
+  /* ================= PERSISTENCE & LEADERBOARDS ================= */
+  var STORAGE_KEY = 'moku:moku-rane:progress';
+  var progress = {
+    score: 0,
+    highScore: 0,
+    credits: 5,
+    prizesWon: 0,
+    collection: {},
+    updatedAt: new Date().toISOString()
+  };
+
+  function loadProgress() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        progress = Object.assign(progress, parsed);
+      }
+    } catch(e) {}
+  }
+
+  function saveProgress() {
+    try {
+      progress.updatedAt = new Date().toISOString();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+      localStorage.setItem('moku:played:moku-rane', progress.updatedAt);
+    } catch(e) {}
+  }
+
+  /* Configure MokuScores */
+  if (window.MokuScores) {
+    window.MokuScores.configure({
+      proxyBaseUrl: '/api/scores',
+      gameId: 'moku-rane'
+    });
+  }
+
+  /* ================= 3D THREE.JS ARCADE SCENE ================= */
+  var scene, camera, renderer;
+  var cameraTarget = new THREE.Vector3(0, 2.5, 0);
+  var currentCamMode = 'front';
+  var cabinetWidth = 4.2;
+  var cabinetDepth = 4.2;
+  var cabinetHeight = 5.2;
+
+  // Crane Gantry & Claw
+  var gantryGroup, trolleyGroup, cableMesh, clawGroup;
+  var clawProngs = [];
+  var clawPos = { x: 0, y: 4.4, z: 0 };
+  var clawTarget = { x: 0, y: 4.4, z: 0 };
+  var clawState = 'idle'; // 'idle', 'dropping', 'grabbing', 'lifting', 'returning', 'releasing'
+  var clawOpenAngle = 0.55;
+  var clawCurrentAngle = 0.55;
+  var grabbedPrize = null;
+
+  // Physics Bodies / Prizes
+  var prizes = [];
+  var chuteBounds = { minX: -1.9, maxX: -0.9, minZ: 0.9, maxZ: 1.9 };
+
+  function initThree() {
+    var container = document.getElementById('canvas-container');
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a0c16);
+    scene.fog = new THREE.FogExp2(0x0a0c16, 0.04);
+
+    camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+    setCameraMode('front');
+
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    setupLighting();
+    buildCabinet();
+    buildGantryAndClaw();
+    spawnPrizes();
+
+    window.addEventListener('resize', onWindowResize);
+    setupOrbitControl(container);
+  }
+
+  function setupLighting() {
+    var ambient = new THREE.AmbientLight(0xffffff, 0.45);
+    scene.add(ambient);
+
+    // Main ceiling arcade light
+    var spotLight = new THREE.SpotLight(0xffffff, 1.2);
+    spotLight.position.set(0, 8, 2);
+    spotLight.angle = Math.PI / 3;
+    spotLight.penumbra = 0.4;
+    spotLight.castShadow = true;
+    spotLight.shadow.mapSize.width = 1024;
+    spotLight.shadow.mapSize.height = 1024;
+    scene.add(spotLight);
+
+    // Neon Accent Lights
+    var pinkLight = new THREE.PointLight(0xff4b91, 1.5, 8);
+    pinkLight.position.set(2, 4.5, 2);
+    scene.add(pinkLight);
+
+    var cyanLight = new THREE.PointLight(0x22d3ee, 1.5, 8);
+    cyanLight.position.set(-2, 4.5, -2);
+    scene.add(cyanLight);
+
+    // Chute Green Glow
+    var chuteLight = new THREE.PointLight(0x22c55e, 1.2, 4);
+    chuteLight.position.set(-1.4, 0.8, 1.4);
+    scene.add(chuteLight);
+  }
+
+  function buildCabinet() {
+    // Floor
+    var floorGeo = new THREE.PlaneGeometry(16, 16);
+    var floorMat = new THREE.MeshStandardMaterial({ color: 0x090b14, roughness: 0.7, metalness: 0.2 });
+    var floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = 0;
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    // Cabinet Base / Pedestal
+    var baseGeo = new THREE.BoxGeometry(cabinetWidth + 0.4, 1.2, cabinetDepth + 0.4);
+    var baseMat = new THREE.MeshStandardMaterial({ color: 0x14182b, roughness: 0.3, metalness: 0.6 });
+    var baseMesh = new THREE.Mesh(baseGeo, baseMat);
+    baseMesh.position.set(0, 0.6, 0);
+    baseMesh.castShadow = true;
+    baseMesh.receiveShadow = true;
+    scene.add(baseMesh);
+
+    // Neon Trim on Base
+    var trimGeo = new THREE.BoxGeometry(cabinetWidth + 0.44, 0.1, cabinetDepth + 0.44);
+    var trimMat = new THREE.MeshBasicMaterial({ color: 0xff4b91 });
+    var trimMesh = new THREE.Mesh(trimGeo, trimMat);
+    trimMesh.position.set(0, 1.2, 0);
+    scene.add(trimMesh);
+
+    // Interior Prize Bed
+    var bedGeo = new THREE.BoxGeometry(cabinetWidth - 0.2, 0.2, cabinetDepth - 0.2);
+    var bedMat = new THREE.MeshStandardMaterial({ color: 0x1f2647, roughness: 0.8 });
+    var bedMesh = new THREE.Mesh(bedGeo, bedMat);
+    bedMesh.position.set(0, 1.2, 0);
+    bedMesh.receiveShadow = true;
+    scene.add(bedMesh);
+
+    // Glass Enclosure Walls
+    var glassMat = new THREE.MeshPhysicalMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.18,
+      roughness: 0.1,
+      metalness: 0.1,
+      transmission: 0.85,
+      ior: 1.4,
+      reflectivity: 0.4
+    });
+
+    // 4 Glass Panels
+    var wallH = cabinetHeight - 1.2;
+    var backWall = new THREE.Mesh(new THREE.PlaneGeometry(cabinetWidth, wallH), glassMat);
+    backWall.position.set(0, 1.2 + wallH / 2, -cabinetDepth / 2);
+    scene.add(backWall);
+
+    var leftWall = new THREE.Mesh(new THREE.PlaneGeometry(cabinetDepth, wallH), glassMat);
+    leftWall.rotation.y = Math.PI / 2;
+    leftWall.position.set(-cabinetWidth / 2, 1.2 + wallH / 2, 0);
+    scene.add(leftWall);
+
+    var rightWall = new THREE.Mesh(new THREE.PlaneGeometry(cabinetDepth, wallH), glassMat);
+    rightWall.rotation.y = -Math.PI / 2;
+    rightWall.position.set(cabinetWidth / 2, 1.2 + wallH / 2, 0);
+    scene.add(rightWall);
+
+    var frontWall = new THREE.Mesh(new THREE.PlaneGeometry(cabinetWidth, wallH), glassMat);
+    frontWall.rotation.y = Math.PI;
+    frontWall.position.set(0, 1.2 + wallH / 2, cabinetDepth / 2);
+    scene.add(frontWall);
+
+    // Corner Posts
+    var postMat = new THREE.MeshStandardMaterial({ color: 0x2e3863, roughness: 0.2, metalness: 0.8 });
+    var postGeo = new THREE.CylinderGeometry(0.08, 0.08, wallH, 16);
+    [
+      [-cabinetWidth / 2, -cabinetDepth / 2],
+      [ cabinetWidth / 2, -cabinetDepth / 2],
+      [-cabinetWidth / 2,  cabinetDepth / 2],
+      [ cabinetWidth / 2,  cabinetDepth / 2]
+    ].forEach(function(pos) {
+      var post = new THREE.Mesh(postGeo, postMat);
+      post.position.set(pos[0], 1.2 + wallH / 2, pos[1]);
+      scene.add(post);
+    });
+
+    // Cabinet Top Roof & Marquee
+    var topGeo = new THREE.BoxGeometry(cabinetWidth + 0.4, 0.8, cabinetDepth + 0.4);
+    var topMat = new THREE.MeshStandardMaterial({ color: 0x14182b, roughness: 0.3, metalness: 0.7 });
+    var topMesh = new THREE.Mesh(topGeo, topMat);
+    topMesh.position.set(0, cabinetHeight + 0.4, 0);
+    scene.add(topMesh);
+
+    // Top Glowing Neon Sign
+    var signGeo = new THREE.BoxGeometry(cabinetWidth - 0.6, 0.4, 0.1);
+    var signMat = new THREE.MeshBasicMaterial({ color: 0xff4b91 });
+    var signMesh = new THREE.Mesh(signGeo, signMat);
+    signMesh.position.set(0, cabinetHeight + 0.4, cabinetDepth / 2 + 0.22);
+    scene.add(signMesh);
+
+    // Drop Chute Hole & Barrier (Front-Left Corner)
+    var chuteGeo = new THREE.BoxGeometry(1.0, 0.35, 1.0);
+    var chuteMat = new THREE.MeshStandardMaterial({ color: 0x0a0c16, roughness: 0.4 });
+    var chuteMesh = new THREE.Mesh(chuteGeo, chuteMat);
+    chuteMesh.position.set(-1.4, 1.2, 1.4);
+    scene.add(chuteMesh);
+
+    var chuteBorder = new THREE.LineSegments(
+      new THREE.EdgesGeometry(chuteGeo),
+      new THREE.LineBasicMaterial({ color: 0x22c55e, linewidth: 2 })
+    );
+    chuteBorder.position.copy(chuteMesh.position);
+    scene.add(chuteBorder);
+  }
+
+  function buildGantryAndClaw() {
+    gantryGroup = new THREE.Group();
+    gantryGroup.position.set(0, 4.8, 0);
+    scene.add(gantryGroup);
+
+    // X-Rail Bars
+    var railMat = new THREE.MeshStandardMaterial({ color: 0xc0c5d6, metalness: 0.9, roughness: 0.2 });
+    var railGeo = new THREE.CylinderGeometry(0.04, 0.04, cabinetWidth - 0.4, 16);
+    railGeo.rotateZ(Math.PI / 2);
+
+    var rail1 = new THREE.Mesh(railGeo, railMat);
+    rail1.position.set(0, 0, -0.25);
+    gantryGroup.add(rail1);
+
+    var rail2 = new THREE.Mesh(railGeo, railMat);
+    rail2.position.set(0, 0, 0.25);
+    gantryGroup.add(rail2);
+
+    // Trolley Box
+    trolleyGroup = new THREE.Group();
+    gantryGroup.add(trolleyGroup);
+
+    var trolleyBox = new THREE.Mesh(
+      new THREE.BoxGeometry(0.5, 0.3, 0.6),
+      new THREE.MeshStandardMaterial({ color: 0xff4b91, metalness: 0.5, roughness: 0.3 })
+    );
+    trolleyGroup.add(trolleyBox);
+
+    // Claw Assembly
+    clawGroup = new THREE.Group();
+    scene.add(clawGroup);
+
+    // Claw Top Motor Hub
+    var hubMesh = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.22, 0.22, 0.2, 16),
+      new THREE.MeshStandardMaterial({ color: 0xffc94a, metalness: 0.8, roughness: 0.2 })
+    );
+    clawGroup.add(hubMesh);
+
+    // Cable line from trolley to claw
+    var cableGeo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(0, 1, 0)
+    ]);
+    cableMesh = new THREE.Line(cableGeo, new THREE.LineBasicMaterial({ color: 0x999999, linewidth: 2 }));
+    scene.add(cableMesh);
+
+    // 3 Articulated Prongs
+    clawProngs = [];
+    for (var i = 0; i < 3; i++) {
+      var angle = (i * Math.PI * 2) / 3;
+      var prongRoot = new THREE.Group();
+      prongRoot.rotation.y = angle;
+      prongRoot.position.set(Math.cos(angle) * 0.15, -0.1, Math.sin(angle) * 0.15);
+
+      // Upper arm
+      var armGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.35, 8);
+      var armMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.8, roughness: 0.2 });
+      var upperArm = new THREE.Mesh(armGeo, armMat);
+      upperArm.position.set(0, -0.15, 0.1);
+      upperArm.rotation.x = 0.4;
+      prongRoot.add(upperArm);
+
+      // Lower claw tip
+      var tipGeo = new THREE.ConeGeometry(0.04, 0.25, 8);
+      tipGeo.rotateX(Math.PI);
+      var tipMat = new THREE.MeshStandardMaterial({ color: 0xff4b91, metalness: 0.3, roughness: 0.3 });
+      var lowerTip = new THREE.Mesh(tipGeo, tipMat);
+      lowerTip.position.set(0, -0.36, 0.18);
+      prongRoot.add(lowerTip);
+
+      clawGroup.add(prongRoot);
+      clawProngs.push(prongRoot);
+    }
+  }
+
+  /* ================= 3D PLUSHIE MESH GENERATOR ================= */
+  function createPlushMesh(type) {
+    var group = new THREE.Group();
+    var r = type.radius;
+
+    // Body Material
+    var isGold = type.id.includes('gold') || type.id === 'king_moku';
+    var isRobo = type.id.includes('robo');
+    var isGummy = type.id.includes('moyo');
+
+    var bodyMat = new THREE.MeshStandardMaterial({
+      color: type.color,
+      roughness: isGummy ? 0.25 : (isGold ? 0.35 : (isRobo ? 0.3 : 0.65)),
+      metalness: isGold ? 0.85 : (isRobo ? 0.75 : 0.05)
+    });
+
+    var bodyGeo = new THREE.SphereGeometry(r, 22, 22);
+    var body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.castShadow = true;
+    body.receiveShadow = true;
+    group.add(body);
+
+    // Common details materials
+    var eyeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    var pupilMat = new THREE.MeshBasicMaterial({ color: 0x111118 });
+    var sparkleMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    var pinkCheekMat = new THREE.MeshBasicMaterial({ color: 0xff70a6 });
+    var goldMat = new THREE.MeshStandardMaterial({ color: 0xffc94a, metalness: 0.9, roughness: 0.2 });
+
+    if (type.category === 'owl') {
+      // === MOKU CLAN OWLS ===
+      // White/Cream Belly Patch
+      var bellyGeo = new THREE.SphereGeometry(r * 0.68, 16, 16);
+      var bellyMat = new THREE.MeshStandardMaterial({
+        color: type.id === 'angry_moku' ? 0xffe2db : 0xf8fafc,
+        roughness: 0.7
+      });
+      var belly = new THREE.Mesh(bellyGeo, bellyMat);
+      belly.scale.set(0.9, 1.0, 0.35);
+      belly.position.set(0, -r * 0.22, r * 0.75);
+      group.add(belly);
+
+      var eyeR = type.id === 'baby_moku' ? 0.11 : 0.085;
+      var eyeSpread = r * 0.42;
+      var eyeY = r * 0.22;
+
+      [-1, 1].forEach(function(side) {
+        // Owl Eyes
+        var eye = new THREE.Mesh(new THREE.SphereGeometry(eyeR, 14, 14), eyeMat);
+        eye.position.set(side * eyeSpread, eyeY, r * 0.84);
+        var pupil = new THREE.Mesh(new THREE.SphereGeometry(eyeR * 0.55, 10, 10), pupilMat);
+        pupil.position.set(side * eyeSpread, eyeY, r * 0.92);
+        var sparkle = new THREE.Mesh(new THREE.SphereGeometry(eyeR * 0.22, 8, 8), sparkleMat);
+        sparkle.position.set(side * eyeSpread + 0.02, eyeY + 0.03, r * 0.95);
+        group.add(eye); group.add(pupil); group.add(sparkle);
+
+        // Owl Wings
+        var wingGeo = new THREE.ConeGeometry(r * 0.32, r * 0.65, 12);
+        wingGeo.rotateZ(side * -Math.PI / 3);
+        var wing = new THREE.Mesh(wingGeo, bodyMat);
+        wing.position.set(side * (r * 0.95), -r * 0.05, 0);
+        group.add(wing);
+
+        // Owl Ear Tuft Feathers
+        var earGeo = new THREE.ConeGeometry(r * 0.22, r * 0.45, 8);
+        earGeo.rotateZ(side * -0.25);
+        var ear = new THREE.Mesh(earGeo, bodyMat);
+        ear.position.set(side * (r * 0.48), r * 0.92, 0);
+        group.add(ear);
+      });
+
+      // Orange Beak
+      var beakGeo = new THREE.ConeGeometry(0.065, 0.14, 8);
+      beakGeo.rotateX(Math.PI / 2);
+      var beakMat = new THREE.MeshStandardMaterial({ color: 0xff9900, roughness: 0.3 });
+      var beak = new THREE.Mesh(beakGeo, beakMat);
+      beak.position.set(0, r * 0.02, r + 0.03);
+      group.add(beak);
+
+      // Angry Moku Features
+      if (type.id === 'angry_moku') {
+        [-1, 1].forEach(function(side) {
+          var browGeo = new THREE.BoxGeometry(0.16, 0.04, 0.05);
+          var browMat = new THREE.MeshBasicMaterial({ color: 0x111118 });
+          var brow = new THREE.Mesh(browGeo, browMat);
+          brow.rotation.z = side * 0.42;
+          brow.position.set(side * eyeSpread, eyeY + 0.1, r * 0.86);
+          group.add(brow);
+        });
+      }
+
+      // King Moku Royal Crown
+      if (type.id === 'king_moku') {
+        var crownGeo = new THREE.CylinderGeometry(0.24, 0.17, 0.22, 5, 1, true);
+        var crown = new THREE.Mesh(crownGeo, goldMat);
+        crown.position.set(0, r * 0.96, 0);
+        group.add(crown);
+
+        var rubyGeo = new THREE.SphereGeometry(0.04, 8, 8);
+        var rubyMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+        var ruby = new THREE.Mesh(rubyGeo, rubyMat);
+        ruby.position.set(0, r * 0.96, 0.18);
+        group.add(ruby);
+      }
+
+      // Baby Moku Cute Cheeks
+      if (type.id === 'baby_moku') {
+        [-1, 1].forEach(function(side) {
+          var cheek = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 8), pinkCheekMat);
+          cheek.position.set(side * (eyeSpread + 0.04), eyeY - 0.08, r * 0.82);
+          group.add(cheek);
+        });
+      }
+
+      // Robo-Moku Cyborg Visor & Antenna
+      if (type.id === 'robo_moku') {
+        var visorGeo = new THREE.BoxGeometry(0.42, 0.12, 0.1);
+        var visorMat = new THREE.MeshBasicMaterial({ color: 0x22d3ee });
+        var visor = new THREE.Mesh(visorGeo, visorMat);
+        visor.position.set(0, eyeY, r * 0.88);
+        group.add(visor);
+
+        var antPole = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.015, 0.015, 0.24, 8),
+          new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8 })
+        );
+        antPole.position.set(0, r + 0.12, 0);
+        var antTip = new THREE.Mesh(
+          new THREE.SphereGeometry(0.045, 8, 8),
+          new THREE.MeshBasicMaterial({ color: 0xffc94a })
+        );
+        antTip.position.set(0, r + 0.24, 0);
+        group.add(antPole); group.add(antTip);
+      }
+
+    } else if (type.category === 'rat') {
+      // === CUTE ENEMY MICE & RATS ===
+      // Big Round Mouse Ears
+      [-1, 1].forEach(function(side) {
+        var outerEarGeo = new THREE.SphereGeometry(r * 0.42, 16, 16);
+        var outerEar = new THREE.Mesh(outerEarGeo, bodyMat);
+        outerEar.scale.set(1.0, 1.0, 0.3);
+        outerEar.position.set(side * (r * 0.72), r * 0.76, 0);
+        outerEar.rotation.y = side * 0.2;
+
+        var innerEarGeo = new THREE.SphereGeometry(r * 0.26, 12, 12);
+        var innerEarMat = new THREE.MeshBasicMaterial({ color: 0xf472b6 });
+        var innerEar = new THREE.Mesh(innerEarGeo, innerEarMat);
+        innerEar.scale.set(1.0, 1.0, 0.2);
+        innerEar.position.set(side * (r * 0.72), r * 0.76, 0.05);
+
+        group.add(outerEar); group.add(innerEar);
+      });
+
+      // Snout / Nose Cone
+      var snoutGeo = new THREE.ConeGeometry(0.12, 0.22, 12);
+      snoutGeo.rotateX(Math.PI / 2);
+      var snoutMat = new THREE.MeshStandardMaterial({ color: 0xfecdd3, roughness: 0.5 });
+      var snout = new THREE.Mesh(snoutGeo, snoutMat);
+      snout.position.set(0, -r * 0.05, r + 0.04);
+      group.add(snout);
+
+      // Black Nose Tip
+      var noseTipGeo = new THREE.SphereGeometry(0.045, 8, 8);
+      var noseTip = new THREE.Mesh(noseTipGeo, pupilMat);
+      noseTip.position.set(0, -r * 0.05, r + 0.15);
+      group.add(noseTip);
+
+      // Eyes
+      var eyeSpread = r * 0.38;
+      var eyeY = r * 0.18;
+      [-1, 1].forEach(function(side) {
+        var eye = new THREE.Mesh(new THREE.SphereGeometry(0.075, 12, 12), pupilMat);
+        eye.position.set(side * eyeSpread, eyeY, r * 0.88);
+        var sparkle = new THREE.Mesh(new THREE.SphereGeometry(0.025, 8, 8), sparkleMat);
+        sparkle.position.set(side * eyeSpread + 0.02, eyeY + 0.02, r * 0.94);
+        group.add(eye); group.add(sparkle);
+      });
+
+      // Curled Pink Tail on the Back
+      var tailGeo = new THREE.TorusGeometry(r * 0.45, 0.03, 8, 24, Math.PI * 1.2);
+      var tailMat = new THREE.MeshBasicMaterial({ color: 0xf472b6 });
+      var tail = new THREE.Mesh(tailGeo, tailMat);
+      tail.rotation.x = Math.PI / 2;
+      tail.rotation.y = 0.4;
+      tail.position.set(0, -r * 0.35, -r * 0.8);
+      group.add(tail);
+
+      // --- Cute Enemy Accessories ---
+      if (type.id === 'ninja_rat') {
+        // Red Forehead Headband (Hachimaki)
+        var bandGeo = new THREE.TorusGeometry(r * 0.98, 0.05, 8, 24);
+        var bandMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+        var band = new THREE.Mesh(bandGeo, bandMat);
+        band.rotation.x = Math.PI / 2;
+        band.position.set(0, r * 0.28, 0);
+        group.add(band);
+
+        // Ninja Mask Scarf
+        var maskGeo = new THREE.SphereGeometry(r * 0.72, 14, 14);
+        var maskMat = new THREE.MeshBasicMaterial({ color: 0x312e81 });
+        var mask = new THREE.Mesh(maskGeo, maskMat);
+        mask.scale.set(0.9, 0.45, 0.6);
+        mask.position.set(0, -r * 0.16, r * 0.68);
+        group.add(mask);
+
+      } else if (type.id === 'boss_rat') {
+        // Golden Crown
+        var crownGeo = new THREE.CylinderGeometry(0.24, 0.18, 0.22, 5, 1, true);
+        var crown = new THREE.Mesh(crownGeo, goldMat);
+        crown.position.set(0, r * 0.94, 0);
+        group.add(crown);
+
+        // Villain Mustache
+        [-1, 1].forEach(function(side) {
+          var mustGeo = new THREE.TorusGeometry(0.08, 0.025, 8, 12, Math.PI);
+          var must = new THREE.Mesh(mustGeo, pupilMat);
+          must.rotation.z = side * 0.5;
+          must.position.set(side * 0.08, -r * 0.12, r * 0.92);
+          group.add(must);
+        });
+
+      } else if (type.id === 'chef_rat') {
+        // Tall Puffy White Chef Hat
+        var toqueBase = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.18, 0.18, 0.12, 16),
+          new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 })
+        );
+        toqueBase.position.set(0, r * 0.92, 0);
+        var toquePuff = new THREE.Mesh(
+          new THREE.SphereGeometry(0.24, 16, 16),
+          new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 })
+        );
+        toquePuff.scale.set(1.0, 0.8, 1.0);
+        toquePuff.position.set(0, r * 0.92 + 0.14, 0);
+        group.add(toqueBase); group.add(toquePuff);
+
+        // Red Kerchief
+        var kerchief = new THREE.Mesh(
+          new THREE.TorusGeometry(r * 0.94, 0.04, 8, 20),
+          new THREE.MeshBasicMaterial({ color: 0xef4444 })
+        );
+        kerchief.rotation.x = Math.PI / 2;
+        kerchief.position.set(0, -r * 0.45, 0);
+        group.add(kerchief);
+
+      } else if (type.id === 'agent_rat') {
+        // Dark Sunglasses
+        var shadesGeo = new THREE.BoxGeometry(0.38, 0.09, 0.06);
+        var shadesMat = new THREE.MeshBasicMaterial({ color: 0x0f172a });
+        var shades = new THREE.Mesh(shadesGeo, shadesMat);
+        shades.position.set(0, eyeY, r * 0.94);
+        group.add(shades);
+
+        // Red Bowtie
+        var bowMat = new THREE.MeshBasicMaterial({ color: 0xdc2626 });
+        [-1, 1].forEach(function(side) {
+          var bowWing = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.09, 8), bowMat);
+          bowWing.rotateZ(side * (Math.PI / 2));
+          bowWing.position.set(side * 0.05, -r * 0.38, r * 0.82);
+          group.add(bowWing);
+        });
+        var bowCenter = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 8), bowMat);
+        bowCenter.position.set(0, -r * 0.38, r * 0.84);
+        group.add(bowCenter);
+
+      } else if (type.id === 'chibi_rat') {
+        // Big Pink Cheeks
+        [-1, 1].forEach(function(side) {
+          var cheek = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), pinkCheekMat);
+          cheek.position.set(side * (eyeSpread + 0.06), eyeY - 0.07, r * 0.82);
+          group.add(cheek);
+        });
+      }
+
+    } else if (type.id === 'pink_moyo') {
+      // Sweet Pink Gummy Character
+      [-1, 1].forEach(function(side) {
+        var eye = new THREE.Mesh(new THREE.SphereGeometry(0.065, 10, 10), pupilMat);
+        eye.position.set(side * 0.12, 0.06, r * 0.88);
+        var sparkle = new THREE.Mesh(new THREE.SphereGeometry(0.02, 6, 6), sparkleMat);
+        sparkle.position.set(side * 0.12 + 0.02, 0.08, r * 0.94);
+        var cheek = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+        cheek.position.set(side * 0.18, -0.02, r * 0.82);
+        group.add(eye); group.add(sparkle); group.add(cheek);
+      });
+
+    } else if (type.id === 'soccer_ball') {
+      // Soccer Ball Pentagon Patches
+      var patchMat = new THREE.MeshBasicMaterial({ color: 0x111118 });
+      for (var k = 0; k < 6; k++) {
+        var patch = new THREE.Mesh(new THREE.CircleGeometry(0.09, 5), patchMat);
+        var ang = (k * Math.PI * 2) / 6;
+        patch.position.set(Math.cos(ang) * (r * 0.7), Math.sin(ang) * (r * 0.7), r * 0.6);
+        patch.lookAt(0, 0, 0);
+        group.add(patch);
+      }
+    }
+
+    return group;
+  }
+
+  function spawnPrizes() {
+    prizes = [];
+    var bedMinX = -1.6;
+    var bedMaxX = 1.6;
+    var bedMinZ = -1.6;
+    var bedMaxZ = 1.6;
+
+    for (var i = 0; i < 28; i++) {
+      var type = PRIZE_TYPES[i % PRIZE_TYPES.length];
+      var px = bedMinX + Math.random() * (bedMaxX - bedMinX);
+      var pz = bedMinZ + Math.random() * (bedMaxZ - bedMinZ);
+
+      // Avoid placing right over chute on spawn
+      if (px < -0.8 && pz > 0.8) {
+        px += 1.2;
+      }
+
+      var py = 1.35 + Math.random() * 0.4;
+      var group = createPlushMesh(type);
+      group.position.set(px, py, pz);
+      group.rotation.set(Math.random() * 0.25, Math.random() * Math.PI * 2, Math.random() * 0.25);
+
+      scene.add(group);
+      prizes.push({
+        type: type,
+        mesh: group,
+        pos: group.position,
+        velocity: new THREE.Vector3(0, 0, 0),
+        grabbed: false,
+        collected: false
+      });
+    }
+  }
+
+  /* ================= CAMERA CONTROLS ================= */
+  function setCameraMode(mode) {
+    currentCamMode = mode;
+    document.querySelectorAll('.cam-btn').forEach(function(b) {
+      b.classList.toggle('active', b.dataset.cam === mode);
+    });
+
+    if (mode === 'front') {
+      camera.position.set(0, 4.2, 7.2);
+      camera.lookAt(0, 2.5, 0);
+    } else if (mode === 'top') {
+      camera.position.set(0, 9.5, 0.01);
+      camera.lookAt(0, 0, 0);
+    } else if (mode === 'side') {
+      camera.position.set(7.5, 4.2, 0);
+      camera.lookAt(0, 2.5, 0);
+    }
+  }
+
+  function setupOrbitControl(domElement) {
+    var isDragging = false;
+    var prevX = 0, prevY = 0;
+    var theta = 0, phi = Math.PI / 3;
+    var radius = 7.5;
+
+    domElement.addEventListener('pointerdown', function(e) {
+      if (currentCamMode !== 'orbit') return;
+      isDragging = true;
+      prevX = e.clientX;
+      prevY = e.clientY;
+    });
+
+    window.addEventListener('pointermove', function(e) {
+      if (!isDragging || currentCamMode !== 'orbit') return;
+      var dx = e.clientX - prevX;
+      var dy = e.clientY - prevY;
+      prevX = e.clientX;
+      prevY = e.clientY;
+
+      theta -= dx * 0.008;
+      phi = Math.max(0.2, Math.min(Math.PI / 2.2, phi - dy * 0.008));
+
+      camera.position.x = radius * Math.sin(phi) * Math.sin(theta);
+      camera.position.y = radius * Math.cos(phi) + 1.8;
+      camera.position.z = radius * Math.sin(phi) * Math.cos(theta);
+      camera.lookAt(0, 2.5, 0);
+    });
+
+    window.addEventListener('pointerup', function() { isDragging = false; });
+  }
+
+  /* ================= GAMEPLAY LOGIC & CONTROLS ================= */
+  var moveSpeed = 2.4;
+  var keys = { up: false, down: false, left: false, right: false };
+  var roundTime = 60;
+  var timerInterval = null;
+  var isPlaying = false;
+
+  function moveClaw(dt) {
+    if (clawState !== 'idle') return;
+
+    var dx = 0, dz = 0;
+    if (keys.left)  dx -= moveSpeed * dt;
+    if (keys.right) dx += moveSpeed * dt;
+    if (keys.up)    dz -= moveSpeed * dt;
+    if (keys.down)  dz += moveSpeed * dt;
+
+    if (dx !== 0 || dz !== 0) {
+      clawTarget.x = Math.max(-1.7, Math.min(1.7, clawTarget.x + dx));
+      clawTarget.z = Math.max(-1.7, Math.min(1.7, clawTarget.z + dz));
+      sfxMove();
+    }
+  }
+
+  function startClawDrop() {
+    if (clawState !== 'idle' || !isPlaying) return;
+    clawState = 'dropping';
+    sfxDrop();
+    document.getElementById('craneStatus').textContent = 'CLAW DESCENDING...';
+  }
+
+  function updateClawSequence(dt) {
+    // Smooth interpolate gantry & trolley
+    clawPos.x += (clawTarget.x - clawPos.x) * 12 * dt;
+    clawPos.z += (clawTarget.z - clawPos.z) * 12 * dt;
+    clawPos.y += (clawTarget.y - clawPos.y) * 8 * dt;
+
+    // Gantry moves on Z, Trolley moves on X
+    gantryGroup.position.z = clawPos.z;
+    trolleyGroup.position.x = clawPos.x;
+
+    // Claw head position
+    clawGroup.position.set(clawPos.x, clawPos.y, clawPos.z);
+
+    // Update cable
+    var positions = cableMesh.geometry.attributes.position.array;
+    positions[0] = clawPos.x;
+    positions[1] = 4.8;
+    positions[2] = clawPos.z;
+    positions[3] = clawPos.x;
+    positions[4] = clawPos.y + 0.1;
+    positions[5] = clawPos.z;
+    cableMesh.geometry.attributes.position.needsUpdate = true;
+
+    // Claw Prong Animations
+    clawProngs.forEach(function(prong) {
+      prong.rotation.z = clawCurrentAngle;
+    });
+
+    if (clawState === 'dropping') {
+      clawCurrentAngle += (clawOpenAngle - clawCurrentAngle) * 8 * dt;
+      clawTarget.y -= 2.2 * dt;
+
+      // Check collision with prize or floor
+      var hitPrize = checkClawPrizeContact();
+      if (clawTarget.y <= 1.7 || hitPrize) {
+        clawState = 'grabbing';
+        sfxGrab();
+        document.getElementById('craneStatus').textContent = 'GRABBING PRIZE...';
+      }
+    } else if (clawState === 'grabbing') {
+      clawCurrentAngle += (0.12 - clawCurrentAngle) * 6 * dt;
+      if (Math.abs(clawCurrentAngle - 0.12) < 0.04) {
+        grabbedPrize = findBestGrabCandidate();
+        clawState = 'lifting';
+        clawTarget.y = 4.4;
+        document.getElementById('craneStatus').textContent = 'LIFTING PRIZE!';
+      }
+    } else if (clawState === 'lifting') {
+      if (grabbedPrize) {
+        grabbedPrize.pos.set(clawPos.x, clawPos.y - 0.45, clawPos.z);
+      }
+      if (clawPos.y >= 4.35) {
+        clawState = 'returning';
+        clawTarget.x = -1.4;
+        clawTarget.z = 1.4;
+        document.getElementById('craneStatus').textContent = 'RETURNING TO CHUTE...';
+      }
+    } else if (clawState === 'returning') {
+      if (grabbedPrize) {
+        grabbedPrize.pos.set(clawPos.x, clawPos.y - 0.45, clawPos.z);
+      }
+      if (Math.abs(clawPos.x - (-1.4)) < 0.08 && Math.abs(clawPos.z - 1.4) < 0.08) {
+        clawState = 'releasing';
+        document.getElementById('craneStatus').textContent = 'RELEASING PRIZE!';
+      }
+    } else if (clawState === 'releasing') {
+      clawCurrentAngle += (clawOpenAngle - clawCurrentAngle) * 6 * dt;
+      if (grabbedPrize) {
+        // Prize drops down chute
+        grabbedPrize.velocity.y = -3.5;
+        checkWinCondition(grabbedPrize);
+        grabbedPrize = null;
+      }
+      if (Math.abs(clawCurrentAngle - clawOpenAngle) < 0.05) {
+        clawState = 'idle';
+        clawTarget.x = 0;
+        clawTarget.z = 0;
+        document.getElementById('craneStatus').textContent = 'READY · POSITION CLAW';
+      }
+    }
+  }
+
+  function checkClawPrizeContact() {
+    for (var i = 0; i < prizes.length; i++) {
+      var p = prizes[i];
+      if (p.collected) continue;
+      var dist = clawPos.distanceTo(p.pos);
+      if (dist < p.type.radius + 0.4) return true;
+    }
+    return false;
+  }
+
+  function findBestGrabCandidate() {
+    var best = null;
+    var minDist = 0.65;
+    for (var i = 0; i < prizes.length; i++) {
+      var p = prizes[i];
+      if (p.collected) continue;
+      var dist = clawPos.distanceTo(p.pos);
+      if (dist < minDist) {
+        minDist = dist;
+        best = p;
+      }
+    }
+    return best;
+  }
+
+  function checkWinCondition(prize) {
+    if (!prize) return;
+    prize.collected = true;
+
+    // Trigger Win Toast
+    var toast = document.getElementById('win-toast');
+    document.getElementById('winToastEmoji').textContent = prize.type.emoji;
+    document.getElementById('winToastTitle').textContent = 'WON ' + prize.type.name.toUpperCase() + '!';
+    document.getElementById('winToastScore').textContent = '+' + prize.type.points + ' Points';
+    toast.classList.add('show');
+    setTimeout(function() { toast.classList.remove('show'); }, 2400);
+
+    // Sound & Confetti
+    sfxWin();
+    triggerConfetti();
+
+    // Progress updates
+    progress.score += prize.type.points;
+    progress.prizesWon += 1;
+    progress.collection[prize.type.id] = (progress.collection[prize.type.id] || 0) + 1;
+    progress.highScore = Math.max(progress.highScore, progress.score);
+    saveProgress();
+    updateHUD();
+
+    // Respawn new prize on bed after delay
+    setTimeout(function() {
+      scene.remove(prize.mesh);
+      spawnSinglePrize();
+    }, 1500);
+  }
+
+  function spawnSinglePrize() {
+    var type = PRIZE_TYPES[Math.floor(Math.random() * PRIZE_TYPES.length)];
+    var px = -1.4 + Math.random() * 2.8;
+    var pz = -1.4 + Math.random() * 2.8;
+    var group = createPlushMesh(type);
+    group.position.set(px, 1.35, pz);
+    group.rotation.set(Math.random() * 0.25, Math.random() * Math.PI * 2, Math.random() * 0.25);
+    scene.add(group);
+
+    prizes.push({
+      type: type,
+      mesh: group,
+      pos: group.position,
+      velocity: new THREE.Vector3(0, 0, 0),
+      grabbed: false,
+      collected: false
+    });
+  }
+
+  /* ================= CONFETTI PARTICLES ================= */
+  var confettiCanvas = document.getElementById('confetti-canvas');
+  var confettiCtx = confettiCanvas.getContext('2d');
+  var confettiPieces = [];
+
+  function triggerConfetti() {
+    confettiCanvas.width = window.innerWidth;
+    confettiCanvas.height = window.innerHeight;
+    confettiPieces = [];
+    var colors = ['#FF4B91', '#FFC94A', '#22D3EE', '#7C3AED', '#22C55E', '#FFFFFF'];
+    for (var i = 0; i < 70; i++) {
+      confettiPieces.push({
+        x: window.innerWidth / 2,
+        y: window.innerHeight * 0.4,
+        vx: (Math.random() - 0.5) * 14,
+        vy: (Math.random() - 0.8) * 16,
+        size: 6 + Math.random() * 6,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        rotation: Math.random() * 360,
+        rotSpeed: (Math.random() - 0.5) * 10
+      });
+    }
+  }
+
+  function updateConfetti() {
+    if (confettiPieces.length === 0) return;
+    confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+    for (var i = confettiPieces.length - 1; i >= 0; i--) {
+      var p = confettiPieces[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.4;
+      p.rotation += p.rotSpeed;
+
+      confettiCtx.save();
+      confettiCtx.translate(p.x, p.y);
+      confettiCtx.rotate((p.rotation * Math.PI) / 180);
+      confettiCtx.fillStyle = p.color;
+      confettiCtx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.7);
+      confettiCtx.restore();
+
+      if (p.y > window.innerHeight + 20) {
+        confettiPieces.splice(i, 1);
+      }
+    }
+  }
+
+  /* ================= UI & MODALS ================= */
+  function updateHUD() {
+    document.getElementById('hudScore').textContent = progress.score.toLocaleString();
+    document.getElementById('hudCredits').textContent = progress.credits;
+  }
+
+  function startArcadeGame() {
+    initAudio();
+    sfxCoin();
+    isPlaying = true;
+    roundTime = 60;
+    progress.score = 0;
+    document.body.classList.add('in-game');
+    document.getElementById('title-screen').classList.add('hidden');
+    updateHUD();
+
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(function() {
+      roundTime--;
+      document.getElementById('roundTimer').textContent = roundTime + 's';
+      if (roundTime <= 0) {
+        clearInterval(timerInterval);
+        endArcadeGame();
+      }
+    }, 1000);
+  }
+
+  function endArcadeGame() {
+    isPlaying = false;
+    document.getElementById('craneStatus').textContent = 'GAME OVER · TIME UP';
+    setTimeout(function() {
+      openLeaderboards();
+    }, 1200);
+  }
+
+  function openLeaderboards() {
+    var modal = document.getElementById('ranksModal');
+    modal.classList.add('active');
+    renderLeaderboard();
+  }
+
+  async function renderLeaderboard() {
+    var list = document.getElementById('ranksList');
+    list.innerHTML = '<div style="text-align:center; padding:16px; color:var(--text-muted);">Loading rankings...</div>';
+
+    var rankingData = [];
+    if (window.MokuScores) {
+      try {
+        rankingData = await window.MokuScores.fetchTop(15);
+      } catch(e) {}
+    }
+
+    if (!rankingData || rankingData.length === 0) {
+      // Local fallback top records
+      rankingData = [
+        { rank: 1, playerName: 'MokuMaster', score: Math.max(progress.highScore, 2400) },
+        { rank: 2, playerName: 'OwlGrabber', score: 1850 },
+        { rank: 3, playerName: 'NeonClaw', score: 1400 },
+        { rank: 4, playerName: 'ArcadeHero', score: 950 }
+      ];
+    }
+
+    list.innerHTML = '';
+    rankingData.forEach(function(row, idx) {
+      var rankClass = idx === 0 ? 'gold' : idx === 1 ? 'silver' : idx === 2 ? 'bronze' : '';
+      var rowEl = document.createElement('div');
+      rowEl.className = 'leaderboard-row ' + rankClass;
+      rowEl.innerHTML = `
+        <div class="rank-meta">
+          <span class="rank-badge">${row.rank || idx + 1}</span>
+          <span class="player-name">${row.playerName || 'Player'}</span>
+        </div>
+        <span class="player-score">${(row.score || 0).toLocaleString()} PTS</span>
+      `;
+      list.appendChild(rowEl);
+    });
+  }
+
+  var currentPrizeFilter = 'all';
+
+  function openPrizeCollection(filter) {
+    if (filter) currentPrizeFilter = filter;
+    var modal = document.getElementById('prizesModal');
+    var grid = document.getElementById('prizesGrid');
+    grid.innerHTML = '';
+
+    // Calculate total unlocked
+    var unlockedCount = 0;
+    PRIZE_TYPES.forEach(function(p) {
+      if ((progress.collection[p.id] || 0) > 0) unlockedCount++;
+    });
+
+    var counterEl = document.getElementById('collectionCounter');
+    if (counterEl) {
+      counterEl.textContent = unlockedCount + '/' + PRIZE_TYPES.length;
+    }
+
+    // Filter items
+    var list = PRIZE_TYPES.filter(function(p) {
+      if (currentPrizeFilter === 'all') return true;
+      if (currentPrizeFilter === 'owl') return p.category === 'owl';
+      if (currentPrizeFilter === 'rat') return p.category === 'rat';
+      if (currentPrizeFilter === 'other') return p.category === 'other';
+      return true;
+    });
+
+    list.forEach(function(p) {
+      var count = progress.collection[p.id] || 0;
+      var unlocked = count > 0;
+      var tagClass = p.category === 'owl' ? 'moku' : (p.category === 'rat' ? 'enemy' : 'friend');
+      var tagLabel = p.category === 'owl' ? 'Moku Clan' : (p.category === 'rat' ? 'Cute Enemy' : 'Friend');
+
+      var card = document.createElement('div');
+      card.className = 'prize-card ' + (unlocked ? 'unlocked' : 'locked');
+      card.title = p.name + ': ' + p.desc;
+      card.innerHTML = `
+        <span class="prize-category-tag ${tagClass}">${tagLabel}</span>
+        <span class="prize-icon">${p.emoji}</span>
+        <span class="prize-name">${p.name}</span>
+        <div class="prize-footer-row">
+          <span class="prize-pts">${p.points} pts</span>
+          <span class="prize-count">${unlocked ? 'x' + count : '🔒'}</span>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+
+    modal.classList.add('active');
+  }
+
+  /* ================= EVENT BINDINGS ================= */
+  function setupEvents() {
+    // Title buttons
+    document.getElementById('btnStartGame').addEventListener('click', startArcadeGame);
+    document.getElementById('btnOpenRanks').addEventListener('click', openLeaderboards);
+    document.getElementById('btnOpenPrizes').addEventListener('click', openPrizeCollection);
+
+    // In-game HUD buttons
+    document.getElementById('btnRanks').addEventListener('click', openLeaderboards);
+    document.getElementById('btnPrizes').addEventListener('click', openPrizeCollection);
+    document.getElementById('btnMenu').addEventListener('click', function() {
+      document.body.classList.remove('in-game');
+      document.getElementById('title-screen').classList.remove('hidden');
+    });
+
+    document.getElementById('btnSound').addEventListener('click', function() {
+      soundEnabled = !soundEnabled;
+      document.getElementById('btnSound').textContent = soundEnabled ? '🔊' : '🔇';
+    });
+
+    // Camera buttons
+    document.querySelectorAll('.cam-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        setCameraMode(btn.dataset.cam);
+      });
+    });
+
+    // Prize Collection Filter Buttons
+    document.querySelectorAll('.prize-filter-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.prize-filter-btn').forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        openPrizeCollection(btn.dataset.filter);
+      });
+    });
+
+    // Modals close buttons
+    document.querySelectorAll('.modal-close-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var modalId = btn.dataset.close;
+        if (modalId) document.getElementById(modalId).classList.remove('active');
+      });
+    });
+
+    // Submit Leaderboard score
+    document.getElementById('submitScoreBtn').addEventListener('click', async function() {
+      var name = document.getElementById('playerNameInput').value.trim() || 'Moku';
+      var btn = document.getElementById('submitScoreBtn');
+      btn.textContent = 'Submitting...';
+      btn.disabled = true;
+      try {
+        if (window.MokuScores) {
+          await window.MokuScores.submit(progress.highScore, { playerName: name, level: progress.prizesWon });
+        }
+        btn.textContent = 'Saved! ✓';
+        setTimeout(function() {
+          btn.textContent = 'Submit';
+          btn.disabled = false;
+        }, 1500);
+        renderLeaderboard();
+      } catch(e) {
+        btn.textContent = 'Saved! ✓';
+        setTimeout(function() {
+          btn.textContent = 'Submit';
+          btn.disabled = false;
+        }, 1500);
+      }
+    });
+
+    // Controller D-Pad Buttons
+    document.querySelectorAll('.dpad-btn').forEach(function(btn) {
+      var dir = btn.dataset.dir;
+      var onStart = function(e) {
+        e.preventDefault();
+        keys[dir] = true;
+        btn.classList.add('pressed');
+      };
+      var onEnd = function(e) {
+        e.preventDefault();
+        keys[dir] = false;
+        btn.classList.remove('pressed');
+      };
+      btn.addEventListener('pointerdown', onStart);
+      btn.addEventListener('pointerup', onEnd);
+      btn.addEventListener('pointerleave', onEnd);
+    });
+
+    // Big Drop Button
+    var dropBtn = document.getElementById('drop-btn');
+    dropBtn.addEventListener('click', function() {
+      dropBtn.classList.add('is-active');
+      setTimeout(function() { dropBtn.classList.remove('is-active'); }, 180);
+      startClawDrop();
+    });
+
+    // Keyboard Controls
+    window.addEventListener('keydown', function(e) {
+      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
+      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
+      if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.up = true;
+      if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.down = true;
+      if (e.key === ' ' || e.code === 'Space') {
+        e.preventDefault();
+        startClawDrop();
+      }
+      if (e.key === 'c' || e.key === 'C') {
+        var modes = ['front', 'top', 'side', 'orbit'];
+        var next = modes[(modes.indexOf(currentCamMode) + 1) % modes.length];
+        setCameraMode(next);
+      }
+    });
+
+    window.addEventListener('keyup', function(e) {
+      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
+      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
+      if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.up = false;
+      if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.down = false;
+    });
+  }
+
+  function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    confettiCanvas.width = window.innerWidth;
+    confettiCanvas.height = window.innerHeight;
+  }
+
+  /* ================= MAIN ANIMATION LOOP ================= */
+  var clock = new THREE.Clock();
+
+  function animate() {
+    requestAnimationFrame(animate);
+    var dt = Math.min(clock.getDelta(), 0.05);
+
+    moveClaw(dt);
+    updateClawSequence(dt);
+    updateConfetti();
+
+    renderer.render(scene, camera);
+  }
+
+  /* ================= INIT ================= */
+  loadProgress();
+  initThree();
+  setupEvents();
+  updateHUD();
+  animate();
+
+})();
+</script>
+</body>
+</html>

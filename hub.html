@@ -288,6 +288,162 @@ body[data-band="morning"] #starsLayer { --star-opacity: 0.15; }
 }
 #placeLabel { color: var(--place-accent); transition: color 1.4s ease; }
 
+/* ---------- badge showcase (achievements) ---------- */
+.badge-showcase {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 20px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.badge-showcase-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.badge-showcase-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.badge-showcase-title {
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(237, 238, 246, 0.8);
+}
+.badge-showcase-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: rgba(237, 238, 246, 0.6);
+  flex-wrap: wrap;
+}
+.badge-stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-variant-numeric: tabular-nums;
+}
+.badge-stat-pill.streak-pill {
+  color: #FFC94A;
+  border-color: rgba(255, 201, 74, 0.3);
+  background: rgba(255, 201, 74, 0.08);
+}
+.badge-showcase-counter {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #FFC94A;
+  font-variant-numeric: tabular-nums;
+  background: rgba(255, 201, 74, 0.14);
+  border: 1px solid rgba(255, 201, 74, 0.35);
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+.badge-showcase-list {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.hub-achievement-badge {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  padding: 0;
+  font-size: 22px;
+  line-height: 1;
+  color: inherit;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease, filter 0.2s ease, opacity 0.2s ease;
+  outline: none;
+}
+.hub-achievement-badge.is-locked {
+  opacity: 0.32;
+  filter: grayscale(1);
+  border-style: dashed;
+  background: rgba(0, 0, 0, 0.25);
+}
+.hub-achievement-badge.is-locked:hover,
+.hub-achievement-badge.is-locked:focus-visible {
+  opacity: 0.72;
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+.hub-achievement-badge.is-unlocked {
+  opacity: 1;
+  filter: none;
+  background: linear-gradient(135deg, rgba(255, 201, 74, 0.2), rgba(124, 58, 237, 0.2));
+  border: 1.5px solid #FFC94A;
+  box-shadow: 0 0 16px rgba(255, 201, 74, 0.35);
+}
+.hub-achievement-badge.is-unlocked:hover,
+.hub-achievement-badge.is-unlocked:focus-visible {
+  transform: translateY(-3px) scale(1.08);
+  box-shadow: 0 0 24px rgba(255, 201, 74, 0.55);
+}
+.hub-achievement-badge:focus-visible {
+  outline: 2px solid #FFFFFF;
+  outline-offset: 2px;
+}
+.hub-achievement-status {
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-size: 9px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  pointer-events: none;
+}
+.hub-achievement-badge.is-locked .hub-achievement-status {
+  background: rgba(15, 10, 25, 0.85);
+  color: rgba(237, 238, 246, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.hub-achievement-badge.is-unlocked .hub-achievement-status {
+  background: #22C55E;
+  color: #0F172A;
+  border: 1px solid #86EFAC;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
+}
+.hub-achievement-hint {
+  font-size: 12px;
+  color: rgba(237, 238, 246, 0.6);
+  min-height: 18px;
+  line-height: 1.4;
+  transition: color 0.2s ease;
+}
+.hub-achievement-hint.hint-active {
+  color: #FFE699;
+}
+
 /* ---------- section label ---------- */
 .section-label {
   display: flex;
@@ -459,6 +615,83 @@ body[data-band="morning"] #starsLayer { --star-opacity: 0.15; }
 }
 .card:focus-visible { outline: 2px solid var(--hi); outline-offset: 3px; }
 .card .emoji { font-size: 34px; line-height: 1; }
+.card-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+.card-status-badge {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.card-status-badge.status-completed {
+  display: inline-flex;
+  background: rgba(110, 231, 168, 0.18);
+  border: 1.5px solid #6EE7A8;
+  color: #6EE7A8;
+  box-shadow: 0 0 14px rgba(110, 231, 168, 0.35);
+  animation: pulseCompleted 2.4s ease-in-out infinite;
+}
+@keyframes pulseCompleted {
+  0%, 100% { box-shadow: 0 0 10px rgba(110, 231, 168, 0.25); }
+  50% { box-shadow: 0 0 18px rgba(110, 231, 168, 0.5); }
+}
+.card-status-badge.status-played {
+  display: inline-flex;
+  background: rgba(147, 160, 255, 0.14);
+  border: 1px solid rgba(147, 160, 255, 0.45);
+  color: #93A0FF;
+}
+.card.is-completed {
+  border-color: #6EE7A8;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.35), 0 0 20px rgba(110, 231, 168, 0.18);
+}
+.card.is-completed::before {
+  border-color: rgba(110, 231, 168, 0.3);
+}
+.card.is-completed .cta {
+  color: #6EE7A8;
+}
+.card-meter {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: auto;
+  margin-bottom: 2px;
+}
+.card-meter-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--hi), #6EE7A8);
+  transition: width 0.6s ease;
+}
+.card.is-completed .card-meter-fill {
+  background: #6EE7A8;
+  box-shadow: 0 0 6px #6EE7A8;
+}
+.completed-summary-pill {
+  font-size: 12px;
+  font-weight: 800;
+  color: #6EE7A8;
+  background: rgba(110, 231, 168, 0.1);
+  border: 1px solid rgba(110, 231, 168, 0.35);
+  padding: 4px 11px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
 .card h2 {
   font-size: 19px;
   font-weight: 800;
@@ -511,6 +744,7 @@ body[data-band="morning"] #starsLayer { --star-opacity: 0.15; }
 .card.br { --hi: #6E7BFF; --lo: #2B2F80; }
 .card.so { --hi: #FF6B4A; --lo: #7A2E1A; }
 .card.mc { --hi: #4BC9C9; --lo: #1F6666; }
+.card.mr { --hi: #FF4B91; --lo: #6A1A40; }
 
 .card.soon {
   --hi: rgba(237,238,246,0.22);
@@ -628,6 +862,7 @@ footer {
         <div class="xp-top"><span id="xpNum">0 / 200 XP</span></div>
         <div class="xp-track"><div class="xp-fill" id="xpFill" style="width:0%"></div></div>
       </div>
+      <div id="completedPill" class="completed-summary-pill" title="Overall Series Completion">0 / 6 Completed</div>
     </div>
     <div id="skyMeta">
       <span id="placeLabel">···</span>
@@ -635,67 +870,141 @@ footer {
     </div>
   </div>
 
+  <div class="badge-showcase" id="badgeShowcase" aria-label="Badge Showcase">
+    <div class="badge-showcase-header">
+      <div class="badge-showcase-title-wrap">
+        <span class="badge-showcase-title">🏆 Badge Showcase</span>
+        <span class="badge-showcase-counter" id="hubAchievementsCounter">0 / 5</span>
+      </div>
+      <div class="badge-showcase-stats">
+        <span class="badge-stat-pill" id="hubStatTotalPlayed">🎮 0 Played</span>
+        <span class="badge-stat-pill streak-pill" id="hubStatStreak">🔥 1 Day Streak</span>
+      </div>
+    </div>
+    <div class="badge-showcase-list" role="list" id="hubAchievementsList">
+      <button class="hub-achievement-badge is-locked" type="button" data-id="first_flight" aria-label="First Flight: Play your first game (Locked)">
+        <span>🦉</span>
+        <span class="hub-achievement-status" aria-hidden="true">🔒</span>
+      </button>
+      <button class="hub-achievement-badge is-locked" type="button" data-id="high_five" aria-label="High Five: Play 5 games (Locked)">
+        <span>🖐️</span>
+        <span class="hub-achievement-status" aria-hidden="true">🔒</span>
+      </button>
+      <button class="hub-achievement-badge is-locked" type="button" data-id="on_fire" aria-label="On Fire: 3-day streak (Locked)">
+        <span>🔥</span>
+        <span class="hub-achievement-status" aria-hidden="true">🔒</span>
+      </button>
+      <button class="hub-achievement-badge is-locked" type="button" data-id="globe_trotter" aria-label="Globe Trotter: Play 3 distinct games (Locked)">
+        <span>🗺️</span>
+        <span class="hub-achievement-status" aria-hidden="true">🔒</span>
+      </button>
+      <button class="hub-achievement-badge is-locked" type="button" data-id="champion" aria-label="Series Champion: Complete any game (Locked)">
+        <span>🏆</span>
+        <span class="hub-achievement-status" aria-hidden="true">🔒</span>
+      </button>
+    </div>
+    <div class="hub-achievement-hint" id="hubAchievementHint" aria-live="polite">Hover or tap a badge to view unlock requirements</div>
+  </div>
+
   <div class="section-label">🎮 PICK A GAME</div>
 
   <div class="cards">
-    <a class="card am" href="angry-mokumoku.html">
-      <div class="emoji">🦉</div>
+    <a class="card am" href="angry-mokumoku.html" data-game="am">
+      <div class="card-header-row">
+        <div class="emoji">🦉</div>
+        <div class="card-status-badge" data-status-for="am"></div>
+      </div>
       <div class="sub">Action / Puzzle</div>
       <h2>Angry Mokumoku</h2>
       <p class="desc">Launch an owl to take down enemies in this slingshot action game. 30 stages.</p>
+      <div class="card-meter"><div class="card-meter-fill" data-meter-for="am"></div></div>
       <div class="cta-row">
         <div class="cta">Play ▶</div>
         <div class="progress-badge" data-game="am">—</div>
       </div>
     </a>
-    <a class="card mm" href="moyomoyo.html">
-      <div class="emoji">🍬</div>
+    <a class="card mm" href="moyomoyo.html" data-game="mm">
+      <div class="card-header-row">
+        <div class="emoji">🍬</div>
+        <div class="card-status-badge" data-status-for="mm"></div>
+      </div>
       <div class="sub">Falling Block</div>
       <h2>Moyomoyo</h2>
       <p class="desc">Match 4 or more gummies of the same stage to evolve them in this falling-block puzzle.</p>
+      <div class="card-meter"><div class="card-meter-fill" data-meter-for="mm"></div></div>
       <div class="cta-row">
         <div class="cta">Play ▶</div>
         <div class="progress-badge" data-game="mm">—</div>
       </div>
     </a>
-    <a class="card mk" href="mk-mobile.html">
-      <div class="emoji">⚽</div>
+    <a class="card mk" href="mk-mobile.html" data-game="mk">
+      <div class="card-header-row">
+        <div class="emoji">⚽</div>
+        <div class="card-status-badge" data-status-for="mk"></div>
+      </div>
       <div class="sub">Sports</div>
       <h2>MK Mobile</h2>
       <p class="desc">Score more goals than your opponent before time runs out in this quick soccer match.</p>
+      <div class="card-meter"><div class="card-meter-fill" data-meter-for="mk"></div></div>
       <div class="cta-row">
         <div class="cta">Play ▶</div>
         <div class="progress-badge" data-game="mk">—</div>
       </div>
     </a>
-    <a class="card br" href="angry-moku-battle-royal.html">
-      <div class="emoji">🏆</div>
+    <a class="card br" href="angry-moku-battle-royal.html" data-game="br">
+      <div class="card-header-row">
+        <div class="emoji">🏆</div>
+        <div class="card-status-badge" data-status-for="br"></div>
+      </div>
       <div class="sub">Battle Royal</div>
       <h2>Angry Moku Battle Royal</h2>
       <p class="desc">4v4 slingshot showdown — team up and knock out the rival owls first.</p>
+      <div class="card-meter"><div class="card-meter-fill" data-meter-for="br"></div></div>
       <div class="cta-row">
         <div class="cta">Play ▶</div>
         <div class="progress-badge" data-game="br">—</div>
       </div>
     </a>
-    <a class="card so" href="shiri-of-moku.html">
-      <div class="emoji">💬</div>
+    <a class="card so" href="shiri-of-moku.html" data-game="so">
+      <div class="card-header-row">
+        <div class="emoji">💬</div>
+        <div class="card-status-badge" data-status-for="so"></div>
+      </div>
       <div class="sub">Chat / Quiz</div>
       <h2>Shiri of Moku</h2>
       <p class="desc">Talk with Moku without setting him off. Pick your reply carefully — one wrong word and he blows up.</p>
+      <div class="card-meter"><div class="card-meter-fill" data-meter-for="so"></div></div>
       <div class="cta-row">
         <div class="cta">Play ▶</div>
         <div class="progress-badge" data-game="so">—</div>
       </div>
     </a>
-    <a class="card mc" href="mokucity.html">
-      <div class="emoji">🏘️</div>
+    <a class="card mc" href="mokucity.html" data-game="mc">
+      <div class="card-header-row">
+        <div class="emoji">🏘️</div>
+        <div class="card-status-badge" data-status-for="mc"></div>
+      </div>
       <div class="sub">Town Builder</div>
       <h2>MokuCity</h2>
       <p class="desc">Grow Moku's town from the forest — build houses, shops, and parks without losing Nature.</p>
+      <div class="card-meter"><div class="card-meter-fill" data-meter-for="mc"></div></div>
       <div class="cta-row">
         <div class="cta">Play ▶</div>
         <div class="progress-badge" data-game="mc">—</div>
+      </div>
+    </a>
+    <a class="card mr" href="moku-rane.html" data-game="mr">
+      <div class="card-header-row">
+        <div class="emoji">🕹️</div>
+        <div class="card-status-badge" data-status-for="mr"></div>
+      </div>
+      <div class="sub">3D Arcade / Physics</div>
+      <h2>Moku-rane</h2>
+      <p class="desc">Real-physics 3D arcade claw machine — aim, drop, and grab cute Moku prizes for your collection.</p>
+      <div class="card-meter"><div class="card-meter-fill" data-meter-for="mr"></div></div>
+      <div class="cta-row">
+        <div class="cta">Play ▶</div>
+        <div class="progress-badge" data-game="mr">—</div>
       </div>
     </a>
     <div class="card soon"><div class="emoji">🔒</div><h2>Mokuball</h2><div class="sub">TBA</div></div>
@@ -915,11 +1224,8 @@ footer {
 })();
 
 (function () {
-  // Inline stats strip — formerly a separate dashboard.html page, now
-  // folded directly into the hub per the merged Home+Dashboard redesign.
-  // Reads each game's own localStorage save (see SPEC.md §2); never makes
-  // a network call. A row only renders once at least one game has data,
-  // and each game shows "—" for stats it doesn't have yet.
+  // Local storage-based progress tracking system — reads game saves, evaluates
+  // completion criteria, updates badges, meters, XP, and series completion stats.
   function readJSON(key) {
     try {
       var raw = localStorage.getItem(key);
@@ -930,132 +1236,534 @@ footer {
     var n = parseInt(localStorage.getItem(key), 10);
     return isNaN(n) ? null : n;
   }
+  function isExplicitlyMarked(prefix, card) {
+    return localStorage.getItem('moku:' + prefix + ':' + card) === 'true' ||
+           localStorage.getItem('moku:' + prefix + ':' + card) !== null;
+  }
 
   var GAMES = [
     {
       name: 'Angry Mokumoku',
       card: 'am',
+      gameId: 'angry-mokumoku',
+      isCompleted: function () {
+        if (isExplicitlyMarked('completed', 'am')) return true;
+        var lvl = readInt('amoku-level');
+        return lvl !== null && lvl >= 30;
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'am')) return true;
+        var lvl = readInt('amoku-level');
+        var best = readInt('amoku-best-score');
+        return (lvl !== null && lvl > 0) || (best !== null && best > 0);
+      },
       progress: function () {
+        if (this.isCompleted()) return 1;
         var lvl = readInt('amoku-level');
         return lvl && lvl > 0 ? Math.min(lvl, 30) / 30 : 0;
       },
       badge: function () {
         var lvl = readInt('amoku-level');
-        if (!(lvl > 0)) return null;
         var best = readInt('amoku-best-score') || 0;
-        return 'Lv.' + Math.min(lvl, 30) + ' · Best ' + best.toLocaleString();
+        if (!(lvl > 0) && !(best > 0) && !this.isPlayed()) return null;
+        if (this.isCompleted() || (lvl !== null && lvl >= 30)) {
+          return 'All 30 Stages Clear · ' + best.toLocaleString() + ' pts';
+        }
+        return 'Lv.' + Math.min(lvl || 1, 30) + ' · Best ' + best.toLocaleString();
       }
     },
     {
       name: 'Moyomoyo',
       card: 'mm',
+      gameId: 'moyomoyo',
+      isCompleted: function () {
+        if (isExplicitlyMarked('completed', 'mm')) return true;
+        var quest = readInt('moyomoyo-quest-best') || 0;
+        var best = readInt('moyomoyo-best') || 0;
+        return quest >= 1000 || best >= 3000;
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'mm')) return true;
+        var best = readInt('moyomoyo-best');
+        var quest = readInt('moyomoyo-quest-best');
+        return (best !== null && best > 0) || (quest !== null && quest > 0);
+      },
       progress: function () {
+        if (this.isCompleted()) return 1;
         var best = readInt('moyomoyo-best') || 0;
         var quest = readInt('moyomoyo-quest-best') || 0;
-        return Math.min(1, best / 3000) * 0.5 + Math.min(1, quest / 3000) * 0.5;
+        return Math.min(1, Math.min(1, best / 3000) * 0.5 + Math.min(1, quest / 1000) * 0.5);
       },
       badge: function () {
         var best = readInt('moyomoyo-best');
         var quest = readInt('moyomoyo-quest-best');
-        if (!(best > 0) && !(quest > 0)) return null;
+        if (!(best > 0) && !(quest > 0) && !this.isPlayed()) return null;
+        if (this.isCompleted()) {
+          return 'Quest Master · ' + (best || quest || 0).toLocaleString() + ' pts';
+        }
         return 'Score ' + (best || 0).toLocaleString() + ' · Quest ' + (quest || 0).toLocaleString();
       }
     },
     {
       name: 'MK Mobile',
       card: 'mk',
+      gameId: 'mk-mobile',
+      isCompleted: function () {
+        if (isExplicitlyMarked('completed', 'mk')) return true;
+        var p = readJSON('moku:mk-mobile:profile');
+        return Boolean(p && (p.points >= 1000 || p.completed === true));
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'mk')) return true;
+        var p = readJSON('moku:mk-mobile:profile');
+        return Boolean(p && p.updatedAt);
+      },
       progress: function () {
+        if (this.isCompleted()) return 1;
         var p = readJSON('moku:mk-mobile:profile');
         if (!p || !p.updatedAt) return 0;
-        return Math.min(1, (p.points || 0) / 2000);
+        return Math.min(1, (p.points || 0) / 1000);
       },
       badge: function () {
         var p = readJSON('moku:mk-mobile:profile');
-        if (!p || !p.updatedAt) return null;
+        if (!p || !p.updatedAt) {
+          if (this.isPlayed()) return 'Match Active';
+          return null;
+        }
         var pl = p.players && p.activePlayerId ? p.players[p.activePlayerId] : null;
-        if (!pl) return null;
+        if (!pl) return (p.points || 0) + ' pts';
         return 'Sp' + pl.sp + ' / Sh' + pl.sh + ' / Def' + pl.def;
       }
     },
     {
       name: 'Angry Moku Battle Royal',
       card: 'br',
+      gameId: 'angry-moku-battle-royal',
+      isCompleted: function () {
+        if (isExplicitlyMarked('completed', 'br')) return true;
+        var s = readJSON('moku:save');
+        return Boolean(s && (s.level >= 20 || s.completed === true));
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'br')) return true;
+        var s = readJSON('moku:save');
+        return Boolean(s && (s.level > 1 || s.coins > 0 || s.updatedAt));
+      },
       progress: function () {
+        if (this.isCompleted()) return 1;
         var s = readJSON('moku:save');
         if (!s) return 0;
         return Math.min(1, (s.level || 1) / 20);
       },
       badge: function () {
         var s = readJSON('moku:save');
-        return s ? 'Lv.' + (s.level || 1) + ' · ' + (s.coins || 0).toLocaleString() + ' coins' : null;
+        if (!s && !this.isPlayed()) return null;
+        if (this.isCompleted()) {
+          return 'Champion · Lv.' + (s ? s.level || 20 : 20);
+        }
+        return s ? 'Lv.' + (s.level || 1) + ' · ' + (s.coins || 0).toLocaleString() + ' coins' : 'Rank Active';
       }
     },
     {
       name: 'Shiri of Moku',
       card: 'so',
+      gameId: 'shiri-of-moku',
+      isCompleted: function () {
+        if (isExplicitlyMarked('completed', 'so')) return true;
+        var p = readJSON('moku:shiri-of-moku:progress');
+        return Boolean(p && (p.unlockedStage >= 20 || (p.stageStars && Object.keys(p.stageStars).length >= 20)));
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'so')) return true;
+        var p = readJSON('moku:shiri-of-moku:progress');
+        return Boolean(p && (p.unlockedStage > 1 || p.updatedAt || (p.stageStars && Object.keys(p.stageStars).length > 0)));
+      },
       progress: function () {
+        if (this.isCompleted()) return 1;
         var p = readJSON('moku:shiri-of-moku:progress');
         if (!p || !p.updatedAt) return 0;
         return Math.min(1, (p.unlockedStage || 1) / 20);
       },
       badge: function () {
         var p = readJSON('moku:shiri-of-moku:progress');
-        if (!p || !p.updatedAt) return null;
+        if (!p || !p.updatedAt) {
+          if (this.isPlayed()) return 'Chat Started';
+          return null;
+        }
         var cleared = Math.max(0, (p.unlockedStage || 1) - 1);
+        if (cleared >= 20 || this.isCompleted()) {
+          return 'All 20 Stages Cleared';
+        }
         return 'Stage ' + cleared + ' / 20 cleared';
       }
     },
     {
-      name: 'Mokuball',
-      card: null,
-      progress: function () {
-        var p = readJSON('moku:mokuball:progress');
-        if (!p || !p.updatedAt) return 0;
-        return Math.min(1, (p.unlockedStage || 1) / 5);
-      },
-      badge: function () { return null; }
-    },
-    {
       name: 'MokuCity',
       card: 'mc',
+      gameId: 'mokucity',
+      isCompleted: function () {
+        if (isExplicitlyMarked('completed', 'mc')) return true;
+        var p = readJSON('moku:mokucity:progress');
+        return Boolean(p && (p.level >= 10 || p.completed === true));
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'mc')) return true;
+        var p = readJSON('moku:mokucity:progress');
+        return Boolean(p && (p.level > 1 || p.coins > 0 || p.updatedAt));
+      },
       progress: function () {
+        if (this.isCompleted()) return 1;
         var p = readJSON('moku:mokucity:progress');
         if (!p || !p.updatedAt) return 0;
         return Math.min(1, (p.level || 1) / 10);
       },
       badge: function () {
         var p = readJSON('moku:mokucity:progress');
-        if (!p || !p.updatedAt) return null;
+        if (!p || !p.updatedAt) {
+          if (this.isPlayed()) return 'Town Founded';
+          return null;
+        }
+        if (this.isCompleted()) {
+          return 'Metropolis · Lv.' + (p.level || 10);
+        }
         return 'Lv.' + (p.level || 1) + ' · ' + (p.coins || 0).toLocaleString() + ' coins';
       }
+    },
+    {
+      name: 'Moku-rane',
+      card: 'mr',
+      gameId: 'moku-rane',
+      isCompleted: function () {
+        if (isExplicitlyMarked('completed', 'mr')) return true;
+        var p = readJSON('moku:moku-rane:progress');
+        return Boolean(p && (p.prizesWon >= 10 || p.highScore >= 5000));
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'mr')) return true;
+        var p = readJSON('moku:moku-rane:progress');
+        return Boolean(p && (p.prizesWon > 0 || p.score > 0 || p.updatedAt));
+      },
+      progress: function () {
+        if (this.isCompleted()) return 1;
+        var p = readJSON('moku:moku-rane:progress');
+        if (!p || !p.updatedAt) return 0;
+        return Math.min(1, (p.prizesWon || 0) / 10);
+      },
+      badge: function () {
+        var p = readJSON('moku:moku-rane:progress');
+        if (!p || !p.updatedAt) {
+          if (this.isPlayed()) return 'Coin Inserted';
+          return null;
+        }
+        if (this.isCompleted()) {
+          return 'Claw Master · ' + (p.prizesWon || 10) + ' Prizes';
+        }
+        return (p.prizesWon || 0) + ' Prizes · ' + (p.score || 0).toLocaleString() + ' pts';
+      }
+    },
+    {
+      name: 'Mokuball',
+      card: null,
+      gameId: 'mokuball',
+      isCompleted: function () {
+        var p = readJSON('moku:mokuball:progress');
+        return Boolean(p && p.unlockedStage >= 5);
+      },
+      isPlayed: function () {
+        var p = readJSON('moku:mokuball:progress');
+        return Boolean(p && p.updatedAt);
+      },
+      progress: function () {
+        var p = readJSON('moku:mokuball:progress');
+        if (!p || !p.updatedAt) return 0;
+        return Math.min(1, (p.unlockedStage || 1) / 5);
+      },
+      badge: function () { return null; }
     }
   ];
 
   var XP_PER_GAME = 400;
   var XP_PER_LEVEL = 200;
-  var totalXp = 0;
-  GAMES.forEach(function (g) {
-    var pr = 0;
-    try { pr = g.progress ? g.progress() : 0; } catch (e) { pr = 0; }
-    totalXp += Math.round((pr || 0) * XP_PER_GAME);
-  });
-  var level = Math.floor(totalXp / XP_PER_LEVEL) + 1;
-  var xpIntoLevel = totalXp % XP_PER_LEVEL;
-  document.getElementById('xpLevelPill').textContent = 'Lv.' + level;
-  document.getElementById('xpNum').textContent = xpIntoLevel + ' / ' + XP_PER_LEVEL + ' XP';
-  document.getElementById('xpFill').style.width = Math.round((xpIntoLevel / XP_PER_LEVEL) * 100) + '%';
 
-  GAMES.forEach(function (g) {
-    if (!g.card) return;
-    var el = document.querySelector('.progress-badge[data-game="' + g.card + '"]');
-    if (!el) return;
-    var val = null;
-    try { val = g.badge ? g.badge() : null; } catch (e) { val = null; }
-    if (val) {
-      el.textContent = val;
-      el.classList.add('has-progress');
+  var ACHIEVEMENTS = [
+    {
+      id: 'first_flight',
+      name: 'First Flight',
+      icon: '🦉',
+      description: 'Play your first game in Moku Series',
+      check: function (stats) { return stats.totalPlayed >= 1; },
+      progress: function (stats) { return Math.min(stats.totalPlayed, 1) + ' / 1 Game'; }
+    },
+    {
+      id: 'high_five',
+      name: 'High Five',
+      icon: '🖐️',
+      description: 'Play 5 total games across the series',
+      check: function (stats) { return stats.totalPlayed >= 5; },
+      progress: function (stats) { return Math.min(stats.totalPlayed, 5) + ' / 5 Games'; }
+    },
+    {
+      id: 'on_fire',
+      name: 'On Fire',
+      icon: '🔥',
+      description: 'Maintain a 3-day daily streak',
+      check: function (stats) { return stats.streak >= 3 || stats.bestStreak >= 3; },
+      progress: function (stats) { return Math.min(Math.max(stats.streak, stats.bestStreak), 3) + ' / 3 Days'; }
+    },
+    {
+      id: 'globe_trotter',
+      name: 'Globe Trotter',
+      icon: '🗺️',
+      description: 'Play at least 3 distinct game titles',
+      check: function (stats) { return stats.distinctGames >= 3; },
+      progress: function (stats) { return Math.min(stats.distinctGames, 3) + ' / 3 Titles'; }
+    },
+    {
+      id: 'champion',
+      name: 'Series Champion',
+      icon: '🏆',
+      description: 'Complete all stages or master any game',
+      check: function (stats) { return stats.completedGames >= 1; },
+      progress: function (stats) { return Math.min(stats.completedGames, 1) + ' / 1 Complete'; }
     }
+  ];
+
+  var hubHintElem = document.getElementById('hubAchievementHint');
+  var hubHintTimeout = null;
+
+  function showHubHint(text, isActive) {
+    if (!hubHintElem) return;
+    if (hubHintTimeout) clearTimeout(hubHintTimeout);
+    hubHintElem.textContent = text;
+    hubHintElem.classList.toggle('hint-active', Boolean(isActive));
+  }
+
+  function resetHubHintDefault() {
+    if (hubHintTimeout) clearTimeout(hubHintTimeout);
+    hubHintTimeout = setTimeout(function () {
+      showHubHint('Hover or tap a badge to view unlock requirements', false);
+    }, 1800);
+  }
+
+  function renderProgress() {
+    var totalXp = 0;
+    var completedCount = 0;
+    var playedDistinctCount = 0;
+    var playableCount = 0;
+
+    GAMES.forEach(function (g) {
+      var isPlayable = Boolean(g.card);
+      if (isPlayable) playableCount++;
+
+      var completed = false;
+      var played = false;
+      var pr = 0;
+
+      try { completed = g.isCompleted ? g.isCompleted() : false; } catch (e) { completed = false; }
+      try { played = completed || (g.isPlayed ? g.isPlayed() : false); } catch (e) { played = false; }
+      try { pr = completed ? 1 : (g.progress ? g.progress() : 0); } catch (e) { pr = 0; }
+
+      if (played || completed) playedDistinctCount++;
+      if (completed && isPlayable) completedCount++;
+      totalXp += Math.round((pr || 0) * XP_PER_GAME);
+
+      if (!g.card) return;
+
+      // Update status pill badge on card header
+      var statusBadge = document.querySelector('.card-status-badge[data-status-for="' + g.card + '"]');
+      var cardElem = document.querySelector('.card[data-game="' + g.card + '"]');
+      var meterFill = document.querySelector('.card-meter-fill[data-meter-for="' + g.card + '"]');
+      var detailBadge = document.querySelector('.progress-badge[data-game="' + g.card + '"]');
+
+      if (statusBadge) {
+        statusBadge.className = 'card-status-badge';
+        if (completed) {
+          statusBadge.classList.add('status-completed');
+          statusBadge.innerHTML = '✓ Completed';
+        } else if (played) {
+          statusBadge.classList.add('status-played');
+          statusBadge.innerHTML = '🎮 Played';
+        } else {
+          statusBadge.innerHTML = '';
+        }
+      }
+
+      if (cardElem) {
+        cardElem.classList.toggle('is-completed', completed);
+      }
+
+      if (meterFill) {
+        var pct = Math.max(0, Math.min(100, Math.round(pr * 100)));
+        meterFill.style.width = pct + '%';
+      }
+
+      if (detailBadge) {
+        var val = null;
+        try { val = g.badge ? g.badge() : null; } catch (e) { val = null; }
+        if (val) {
+          detailBadge.textContent = val;
+          detailBadge.classList.add('has-progress');
+        } else {
+          detailBadge.textContent = '—';
+          detailBadge.classList.remove('has-progress');
+        }
+      }
+    });
+
+    // Update XP and Level
+    var level = Math.floor(totalXp / XP_PER_LEVEL) + 1;
+    var xpIntoLevel = totalXp % XP_PER_LEVEL;
+    var xpLevelElem = document.getElementById('xpLevelPill');
+    var xpNumElem = document.getElementById('xpNum');
+    var xpFillElem = document.getElementById('xpFill');
+    var completedPill = document.getElementById('completedPill');
+
+    if (xpLevelElem) xpLevelElem.textContent = 'Lv.' + level;
+    if (xpNumElem) xpNumElem.textContent = xpIntoLevel + ' / ' + XP_PER_LEVEL + ' XP';
+    if (xpFillElem) xpFillElem.style.width = Math.round((xpIntoLevel / XP_PER_LEVEL) * 100) + '%';
+    if (completedPill) {
+      completedPill.textContent = completedCount + ' / ' + playableCount + ' Completed';
+    }
+
+    // Update Badge Showcase & Statistics on Hub
+    var rawTotal = parseInt(localStorage.getItem('moku:stats:total_games_played'), 10);
+    var totalGamesPlayed = (!isNaN(rawTotal) && rawTotal > playedDistinctCount) ? rawTotal : playedDistinctCount;
+
+    var rawStreak = localStorage.getItem('moku:stats:streak');
+    var streakData = rawStreak ? JSON.parse(rawStreak) : null;
+    var currentStreak = (streakData && typeof streakData.count === 'number') ? streakData.count : 1;
+    var bestStreak = (streakData && typeof streakData.bestStreak === 'number') ? streakData.bestStreak : currentStreak;
+
+    var hubTotalPlayedElem = document.getElementById('hubStatTotalPlayed');
+    var hubStreakElem = document.getElementById('hubStatStreak');
+
+    if (hubTotalPlayedElem) {
+      hubTotalPlayedElem.textContent = '🎮 ' + totalGamesPlayed + ' Played';
+    }
+    if (hubStreakElem) {
+      hubStreakElem.textContent = '🔥 ' + currentStreak + ' Day' + (currentStreak === 1 ? '' : 's') + ' Streak';
+    }
+
+    var stats = {
+      totalPlayed: totalGamesPlayed,
+      streak: currentStreak,
+      bestStreak: bestStreak,
+      distinctGames: playedDistinctCount,
+      completedGames: completedCount
+    };
+
+    var unlockedAchievements = 0;
+    ACHIEVEMENTS.forEach(function (ach) {
+      var isUnlocked = ach.check(stats);
+      if (isUnlocked) unlockedAchievements++;
+
+      var btn = document.querySelector('.hub-achievement-badge[data-id="' + ach.id + '"]');
+      if (!btn) return;
+
+      btn.classList.toggle('is-unlocked', isUnlocked);
+      btn.classList.toggle('is-locked', !isUnlocked);
+
+      var indicator = btn.querySelector('.hub-achievement-status');
+      if (indicator) {
+        indicator.textContent = isUnlocked ? '✓' : '🔒';
+      }
+
+      var statusText = isUnlocked ? 'Unlocked ✓' : 'Locked 🔒 (' + ach.progress(stats) + ')';
+      btn.setAttribute('aria-label', ach.name + ': ' + ach.description + ' (' + statusText + ')');
+      btn.setAttribute('title', ach.name + ' — ' + statusText);
+
+      btn.onmouseenter = function () {
+        showHubHint(ach.icon + ' ' + ach.name + ': ' + ach.description + ' — ' + statusText, true);
+      };
+      btn.onmouseleave = resetHubHintDefault;
+      btn.onfocus = function () {
+        showHubHint(ach.icon + ' ' + ach.name + ': ' + ach.description + ' — ' + statusText, true);
+      };
+      btn.onblur = resetHubHintDefault;
+      btn.onclick = function (e) {
+        e.preventDefault();
+        showHubHint(ach.icon + ' ' + ach.name + ': ' + ach.description + ' — ' + statusText, true);
+      };
+    });
+
+    var hubCounterElem = document.getElementById('hubAchievementsCounter');
+    if (hubCounterElem) {
+      hubCounterElem.textContent = unlockedAchievements + ' / ' + ACHIEVEMENTS.length;
+    }
+  }
+
+  // Auto-record interaction when a user clicks a game card
+  document.querySelectorAll('.card[data-game]').forEach(function (card) {
+    card.addEventListener('click', function () {
+      var gameKey = card.getAttribute('data-game');
+      if (gameKey) {
+        try {
+          localStorage.setItem('moku:played:' + gameKey, new Date().toISOString());
+          var curCount = parseInt(localStorage.getItem('moku:stats:total_games_played'), 10) || 0;
+          localStorage.setItem('moku:stats:total_games_played', String(curCount + 1));
+        } catch (e) {}
+        renderProgress();
+      }
+    });
   });
+
+  // Maintain streak when visiting hub directly
+  try {
+    var now = new Date();
+    var todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+    var rawStreak = localStorage.getItem('moku:stats:streak');
+    var streakData = rawStreak ? JSON.parse(rawStreak) : null;
+    if (!streakData || typeof streakData.count !== 'number') {
+      streakData = { count: 1, lastDate: todayStr, bestStreak: 1 };
+      localStorage.setItem('moku:stats:streak', JSON.stringify(streakData));
+    } else if (streakData.lastDate !== todayStr) {
+      var lastDate = new Date(streakData.lastDate);
+      var diffDays = Math.round((new Date(todayStr) - lastDate) / (1000 * 60 * 60 * 24));
+      if (diffDays === 1) {
+        streakData.count = (streakData.count || 0) + 1;
+        streakData.bestStreak = Math.max(streakData.bestStreak || 1, streakData.count);
+      } else if (diffDays > 1) {
+        streakData.count = 1;
+      }
+      streakData.lastDate = todayStr;
+      localStorage.setItem('moku:stats:streak', JSON.stringify(streakData));
+    }
+  } catch (e) {}
+
+  // Re-evaluate on return to tab or focus
+  window.addEventListener('focus', renderProgress);
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') renderProgress();
+  });
+
+  // Initial render
+  renderProgress();
+
+  // Expose global tracker helper for debugging or programmatic game completions
+  window.MokuTracker = {
+    refresh: renderProgress,
+    markPlayed: function (gameKey) {
+      localStorage.setItem('moku:played:' + gameKey, new Date().toISOString());
+      renderProgress();
+    },
+    markCompleted: function (gameKey) {
+      localStorage.setItem('moku:completed:' + gameKey, 'true');
+      localStorage.setItem('moku:played:' + gameKey, new Date().toISOString());
+      renderProgress();
+    },
+    resetTracking: function (gameKey) {
+      if (gameKey) {
+        localStorage.removeItem('moku:played:' + gameKey);
+        localStorage.removeItem('moku:completed:' + gameKey);
+      } else {
+        ['am', 'mm', 'mk', 'br', 'so', 'mc', 'mr', 'mb'].forEach(function (k) {
+          localStorage.removeItem('moku:played:' + k);
+          localStorage.removeItem('moku:completed:' + k);
+        });
+      }
+      renderProgress();
+    }
+  };
 })();
 </script>
 </body>

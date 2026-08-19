@@ -1,0 +1,8 @@
+{
+  "name": "Moku Series",
+  "description": "A collection of web mini-games in the Moku Series featuring Angry Mokumoku, Moyomoyo, MK Mobile, Battle Royal, Moku-rane 3D claw machine, and more.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

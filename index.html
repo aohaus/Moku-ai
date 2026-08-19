@@ -97,8 +97,15 @@ body[data-band="morning"] #starsLayer { --star-opacity: 0.15; }
   background: rgba(255,255,255,0.06); color: #EDEEF6;
   font: inherit; font-size: 12.5px; font-weight: 700;
   padding: 8px 14px; border-radius: 999px; cursor: pointer;
+  outline: none;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
-#whatsBtn:hover, #whatsBtn:focus-visible { background: rgba(255,255,255,0.12); }
+#whatsBtn:hover { background: rgba(255,255,255,0.12); }
+#whatsBtn:focus-visible {
+  background: rgba(255,255,255,0.16);
+  border-color: #93A0FF;
+  box-shadow: 0 0 0 3px rgba(147,160,255,0.45);
+}
 #settingsBtn {
   appearance: none; border: 1px solid rgba(255,255,255,0.14);
   background: rgba(255,255,255,0.05); color: rgba(237,238,246,0.6);
@@ -123,6 +130,20 @@ body[data-band="morning"] #starsLayer { --star-opacity: 0.15; }
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 28px;
   text-align: center;
+  animation: shellFadeIn 0.85s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes shellFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .main-shell { animation: none; }
 }
 .owl-badge {
   position: relative;
@@ -140,6 +161,203 @@ body[data-band="morning"] #starsLayer { --star-opacity: 0.15; }
 }
 .owl-inner img { width: 122%; height: 122%; object-fit: cover; object-position: center 30%; }
 @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+
+.stats-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  margin-top: 4px;
+  margin-bottom: 2px;
+  animation: statsFadeIn 0.6s ease 0.2s both;
+}
+@keyframes statsFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stats-summary { animation: none; }
+}
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.stat-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+.stat-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+}
+.stat-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(237, 238, 246, 0.5);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+.stat-value {
+  font-size: 13px;
+  font-weight: 800;
+  color: #EDEEF6;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.stat-item.streak-item .stat-value {
+  color: #FFC94A;
+}
+.stat-divider {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Achievements Section */
+.achievements-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  max-width: 380px;
+  width: 100%;
+  padding: 10px 16px 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  margin-top: 2px;
+  animation: statsFadeIn 0.6s ease 0.3s both;
+}
+.achievements-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 2px;
+}
+.achievements-title {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(237, 238, 246, 0.55);
+}
+.achievements-counter {
+  font-size: 11px;
+  font-weight: 800;
+  color: #FFC94A;
+  font-variant-numeric: tabular-nums;
+  background: rgba(255, 201, 74, 0.12);
+  border: 1px solid rgba(255, 201, 74, 0.3);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.achievements-list {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+.achievement-badge {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  padding: 0;
+  font-size: 20px;
+  line-height: 1;
+  color: inherit;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease, filter 0.2s ease, opacity 0.2s ease;
+  outline: none;
+}
+.achievement-badge.is-locked {
+  opacity: 0.32;
+  filter: grayscale(1);
+  border-style: dashed;
+  background: rgba(0, 0, 0, 0.25);
+}
+.achievement-badge.is-locked:hover,
+.achievement-badge.is-locked:focus-visible {
+  opacity: 0.7;
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+.achievement-badge.is-unlocked {
+  opacity: 1;
+  filter: none;
+  background: linear-gradient(135deg, rgba(255, 201, 74, 0.2), rgba(124, 58, 237, 0.2));
+  border: 1.5px solid #FFC94A;
+  box-shadow: 0 0 14px rgba(255, 201, 74, 0.35);
+}
+.achievement-badge.is-unlocked:hover,
+.achievement-badge.is-unlocked:focus-visible {
+  transform: translateY(-3px) scale(1.08);
+  box-shadow: 0 0 22px rgba(255, 201, 74, 0.55);
+}
+.achievement-badge:focus-visible {
+  outline: 2px solid #FFFFFF;
+  outline-offset: 2px;
+}
+.achievement-status-indicator {
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  font-size: 8.5px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  pointer-events: none;
+}
+.achievement-badge.is-locked .achievement-status-indicator {
+  background: rgba(15, 10, 25, 0.85);
+  color: rgba(237, 238, 246, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.achievement-badge.is-unlocked .achievement-status-indicator {
+  background: #22C55E;
+  color: #0F172A;
+  border: 1px solid #86EFAC;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
+}
+.achievement-hint {
+  font-size: 11.5px;
+  color: rgba(237, 238, 246, 0.6);
+  min-height: 16px;
+  line-height: 1.35;
+  text-align: center;
+  transition: color 0.2s ease;
+}
+.achievement-hint.hint-active {
+  color: #FFE699;
+}
+
 h1 { display: flex; flex-direction: column; align-items: center; gap: 2px; line-height: 1; }
 h1 .wm-moku {
   font-size: clamp(38px, 9vw, 60px); font-weight: 800; letter-spacing: 0.05em;
@@ -168,11 +386,17 @@ h1 .wm-series {
   color: #EDEEF6; font-weight: 800; font-size: 16px;
   padding: 14px 34px; border-radius: 999px;
   box-shadow: 0 0 24px rgba(147,160,255,0.35);
-  transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+  outline: none;
+  transition: transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease;
 }
-#getStartedBtn:hover, #getStartedBtn:focus-visible {
+#getStartedBtn:hover {
   background: rgba(147,160,255,0.2);
   box-shadow: 0 0 32px rgba(147,160,255,0.5);
+}
+#getStartedBtn:focus-visible {
+  background: rgba(147,160,255,0.22);
+  border-color: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(147,160,255,0.5), 0 0 32px rgba(147,160,255,0.6);
 }
 #getStartedBtn:active { transform: translateY(1px); }
 
@@ -207,7 +431,7 @@ footer.page-footer {
 <div id="celestialLayer"><div id="celestialBody"></div></div>
 
 <div class="topbar">
-  <button id="whatsBtn" type="button" aria-expanded="false">🎮 What's Moku Series?</button>
+  <button id="whatsBtn" type="button" aria-expanded="false" aria-controls="whatsPanel">🎮 What's Moku Series?</button>
   <button id="settingsBtn" type="button" title="Coming soon">⚙️</button>
 </div>
 <p id="whatsPanel" hidden>
@@ -221,9 +445,56 @@ footer.page-footer {
       <img src="brand/mokumoku-hero.png" alt="Mokumoku">
     </div>
   </div>
+  <div class="stats-summary" id="statsSummary" aria-label="Player Statistics">
+    <div class="stat-item">
+      <span class="stat-icon" aria-hidden="true">🎮</span>
+      <div class="stat-meta">
+        <span class="stat-label">Total Played</span>
+        <span class="stat-value" id="statTotalPlayed">0 Games</span>
+      </div>
+    </div>
+    <div class="stat-divider" aria-hidden="true"></div>
+    <div class="stat-item streak-item">
+      <span class="stat-icon" aria-hidden="true">🔥</span>
+      <div class="stat-meta">
+        <span class="stat-label">Current Streak</span>
+        <span class="stat-value" id="statStreak">1 Day</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="achievements-section" id="achievementsSection" aria-label="Achievements Showcase">
+    <div class="achievements-header">
+      <span class="achievements-title">Achievements</span>
+      <span class="achievements-counter" id="achievementsCounter">0 / 5</span>
+    </div>
+    <div class="achievements-list" role="list" id="achievementsList">
+      <button class="achievement-badge is-locked" type="button" data-id="first_flight" aria-label="First Flight: Play your first game (Locked)">
+        <span>🦉</span>
+        <span class="achievement-status-indicator" aria-hidden="true">🔒</span>
+      </button>
+      <button class="achievement-badge is-locked" type="button" data-id="high_five" aria-label="High Five: Play 5 games (Locked)">
+        <span>🖐️</span>
+        <span class="achievement-status-indicator" aria-hidden="true">🔒</span>
+      </button>
+      <button class="achievement-badge is-locked" type="button" data-id="on_fire" aria-label="On Fire: 3-day streak (Locked)">
+        <span>🔥</span>
+        <span class="achievement-status-indicator" aria-hidden="true">🔒</span>
+      </button>
+      <button class="achievement-badge is-locked" type="button" data-id="globe_trotter" aria-label="Globe Trotter: Play 3 distinct games (Locked)">
+        <span>🗺️</span>
+        <span class="achievement-status-indicator" aria-hidden="true">🔒</span>
+      </button>
+      <button class="achievement-badge is-locked" type="button" data-id="champion" aria-label="Series Champion: Complete any game (Locked)">
+        <span>🏆</span>
+        <span class="achievement-status-indicator" aria-hidden="true">🔒</span>
+      </button>
+    </div>
+    <div class="achievement-hint" id="achievementHint" aria-live="polite">Hover or tap a badge to view details</div>
+  </div>
   <h1><span class="wm-moku">MOKU</span><span class="wm-series">SERIES</span></h1>
   <p class="tagline">Play <span class="c1">small</span>. Have <span class="c1">fun</span>. Get <span class="c2">better</span>.</p>
-  <a id="getStartedBtn" href="hub.html">▶ Get Started</a>
+  <a id="getStartedBtn" href="hub.html" role="button">▶ Get Started</a>
   <div id="loginLink">Log In <span>(Coming Soon)</span></div>
   <div class="quick-row" aria-hidden="true">🦉 🍬 ⚽ 🏆 💬 🎱</div>
 </div>
@@ -296,10 +567,241 @@ footer.page-footer {
 (function () {
   var btn = document.getElementById('whatsBtn');
   var panel = document.getElementById('whatsPanel');
-  btn.addEventListener('click', function () {
+  function toggleWhats() {
     var open = panel.hidden;
     panel.hidden = !open;
     btn.setAttribute('aria-expanded', String(open));
+  }
+  btn.addEventListener('click', toggleWhats);
+  btn.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ' || e.code === 'Space') {
+      e.preventDefault();
+      toggleWhats();
+    }
+  });
+
+  var startBtn = document.getElementById('getStartedBtn');
+  if (startBtn) {
+    startBtn.addEventListener('keydown', function (e) {
+      if (e.key === ' ' || e.code === 'Space') {
+        e.preventDefault();
+        startBtn.click();
+      }
+    });
+  }
+})();
+
+(function () {
+  // Statistics, streak tracking, and Achievements system using localStorage
+  var ACHIEVEMENTS = [
+    {
+      id: 'first_flight',
+      name: 'First Flight',
+      icon: '🦉',
+      description: 'Play your first game in Moku Series',
+      check: function (stats) { return stats.totalPlayed >= 1; },
+      progress: function (stats) { return Math.min(stats.totalPlayed, 1) + ' / 1 Game'; }
+    },
+    {
+      id: 'high_five',
+      name: 'High Five',
+      icon: '🖐️',
+      description: 'Play 5 total games across the series',
+      check: function (stats) { return stats.totalPlayed >= 5; },
+      progress: function (stats) { return Math.min(stats.totalPlayed, 5) + ' / 5 Games'; }
+    },
+    {
+      id: 'on_fire',
+      name: 'On Fire',
+      icon: '🔥',
+      description: 'Maintain a 3-day daily streak',
+      check: function (stats) { return stats.streak >= 3 || stats.bestStreak >= 3; },
+      progress: function (stats) { return Math.min(Math.max(stats.streak, stats.bestStreak), 3) + ' / 3 Days'; }
+    },
+    {
+      id: 'globe_trotter',
+      name: 'Globe Trotter',
+      icon: '🗺️',
+      description: 'Play at least 3 distinct game titles',
+      check: function (stats) { return stats.distinctGames >= 3; },
+      progress: function (stats) { return Math.min(stats.distinctGames, 3) + ' / 3 Titles'; }
+    },
+    {
+      id: 'champion',
+      name: 'Series Champion',
+      icon: '🏆',
+      description: 'Complete all stages or master any game',
+      check: function (stats) { return stats.completedGames >= 1; },
+      progress: function (stats) { return Math.min(stats.completedGames, 1) + ' / 1 Complete'; }
+    }
+  ];
+
+  var hintElem = document.getElementById('achievementHint');
+  var hintTimeout = null;
+
+  function showHint(text, isActive) {
+    if (!hintElem) return;
+    if (hintTimeout) clearTimeout(hintTimeout);
+    hintElem.textContent = text;
+    hintElem.classList.toggle('hint-active', Boolean(isActive));
+  }
+
+  function resetHintDefault() {
+    if (hintTimeout) clearTimeout(hintTimeout);
+    hintTimeout = setTimeout(function () {
+      showHint('Hover or tap a badge to view details', false);
+    }, 1800);
+  }
+
+  function getStats() {
+    var now = new Date();
+    var todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+
+    // 1. Current streak calculation
+    var streakData = null;
+    try {
+      var rawStreak = localStorage.getItem('moku:stats:streak');
+      if (rawStreak) streakData = JSON.parse(rawStreak);
+    } catch (e) {}
+
+    if (!streakData || typeof streakData.count !== 'number') {
+      streakData = { count: 1, lastDate: todayStr, bestStreak: 1 };
+      try { localStorage.setItem('moku:stats:streak', JSON.stringify(streakData)); } catch (e) {}
+    } else if (streakData.lastDate !== todayStr) {
+      var lastDate = new Date(streakData.lastDate);
+      var diffDays = Math.round((new Date(todayStr) - lastDate) / (1000 * 60 * 60 * 24));
+      if (diffDays === 1) {
+        streakData.count = (streakData.count || 0) + 1;
+        streakData.bestStreak = Math.max(streakData.bestStreak || 1, streakData.count);
+      } else if (diffDays > 1) {
+        streakData.count = 1;
+      }
+      streakData.lastDate = todayStr;
+      try { localStorage.setItem('moku:stats:streak', JSON.stringify(streakData)); } catch (e) {}
+    }
+
+    // 2. Total games and distinct games played
+    var gameKeys = ['am', 'mm', 'mk', 'br', 'so', 'mc', 'mb'];
+    var distinctCount = 0;
+    var completedCount = 0;
+
+    gameKeys.forEach(function (k) {
+      var isPlayed = Boolean(localStorage.getItem('moku:played:' + k));
+      var isCompleted = Boolean(localStorage.getItem('moku:completed:' + k));
+
+      // Check per-game saves
+      if (k === 'am') {
+        var lvl = parseInt(localStorage.getItem('amoku-level'), 10);
+        if (lvl > 0) isPlayed = true;
+        if (lvl >= 30) isCompleted = true;
+      } else if (k === 'mm') {
+        var best = parseInt(localStorage.getItem('moyomoyo-best'), 10);
+        var quest = parseInt(localStorage.getItem('moyomoyo-quest-best'), 10);
+        if (best > 0 || quest > 0) isPlayed = true;
+        if (quest >= 1000 || best >= 3000) isCompleted = true;
+      } else if (k === 'mk') {
+        try {
+          var p = JSON.parse(localStorage.getItem('moku:mk-mobile:profile') || 'null');
+          if (p && p.updatedAt) isPlayed = true;
+          if (p && (p.points >= 1000 || p.completed)) isCompleted = true;
+        } catch (e) {}
+      } else if (k === 'br') {
+        try {
+          var s = JSON.parse(localStorage.getItem('moku:save') || 'null');
+          if (s && (s.level > 1 || s.coins > 0 || s.updatedAt)) isPlayed = true;
+          if (s && (s.level >= 20 || s.completed)) isCompleted = true;
+        } catch (e) {}
+      } else if (k === 'so') {
+        try {
+          var sp = JSON.parse(localStorage.getItem('moku:shiri-of-moku:progress') || 'null');
+          if (sp && (sp.unlockedStage > 1 || sp.updatedAt)) isPlayed = true;
+          if (sp && sp.unlockedStage >= 20) isCompleted = true;
+        } catch (e) {}
+      } else if (k === 'mc') {
+        try {
+          var mp = JSON.parse(localStorage.getItem('moku:mokucity:progress') || 'null');
+          if (mp && (mp.level > 1 || mp.coins > 0 || mp.updatedAt)) isPlayed = true;
+          if (mp && (mp.level >= 10 || mp.completed)) isCompleted = true;
+        } catch (e) {}
+      }
+
+      if (isPlayed || isCompleted) distinctCount++;
+      if (isCompleted) completedCount++;
+    });
+
+    var rawTotal = parseInt(localStorage.getItem('moku:stats:total_games_played'), 10);
+    var totalPlayed = (!isNaN(rawTotal) && rawTotal > distinctCount) ? rawTotal : distinctCount;
+
+    return {
+      totalPlayed: totalPlayed,
+      streak: streakData.count || 1,
+      bestStreak: streakData.bestStreak || streakData.count || 1,
+      distinctGames: distinctCount,
+      completedGames: completedCount
+    };
+  }
+
+  function updateStatsDisplay() {
+    var stats = getStats();
+
+    // 1. Update stats summary bar
+    var playedElem = document.getElementById('statTotalPlayed');
+    var streakElem = document.getElementById('statStreak');
+
+    if (playedElem) {
+      playedElem.textContent = stats.totalPlayed === 1 ? '1 Game' : stats.totalPlayed + ' Games';
+    }
+    if (streakElem) {
+      streakElem.textContent = stats.streak === 1 ? '1 Day' : stats.streak + ' Days';
+    }
+
+    // 2. Update achievements badges
+    var unlockedCount = 0;
+
+    ACHIEVEMENTS.forEach(function (ach) {
+      var isUnlocked = ach.check(stats);
+      if (isUnlocked) unlockedCount++;
+
+      var btn = document.querySelector('.achievement-badge[data-id="' + ach.id + '"]');
+      if (!btn) return;
+
+      btn.classList.toggle('is-unlocked', isUnlocked);
+      btn.classList.toggle('is-locked', !isUnlocked);
+
+      var indicator = btn.querySelector('.achievement-status-indicator');
+      if (indicator) {
+        indicator.textContent = isUnlocked ? '✓' : '🔒';
+      }
+
+      var statusText = isUnlocked ? 'Unlocked ✓' : 'Locked 🔒 (' + ach.progress(stats) + ')';
+      btn.setAttribute('aria-label', ach.name + ': ' + ach.description + ' (' + statusText + ')');
+      btn.setAttribute('title', ach.name + ' — ' + statusText);
+
+      // Event listeners for interactive tooltip feedback
+      btn.onmouseenter = function () {
+        showHint(ach.icon + ' ' + ach.name + ': ' + ach.description + ' — ' + statusText, true);
+      };
+      btn.onmouseleave = resetHintDefault;
+      btn.onfocus = function () {
+        showHint(ach.icon + ' ' + ach.name + ': ' + ach.description + ' — ' + statusText, true);
+      };
+      btn.onblur = resetHintDefault;
+      btn.onclick = function (e) {
+        e.preventDefault();
+        showHint(ach.icon + ' ' + ach.name + ': ' + ach.description + ' — ' + statusText, true);
+      };
+    });
+
+    var counterElem = document.getElementById('achievementsCounter');
+    if (counterElem) {
+      counterElem.textContent = unlockedCount + ' / ' + ACHIEVEMENTS.length;
+    }
+  }
+
+  updateStatsDisplay();
+  window.addEventListener('focus', updateStatsDisplay);
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') updateStatsDisplay();
   });
 })();
 </script>

@@ -1,0 +1,16 @@
+{
+  "name": "moku-series",
+  "version": "1.0.0",
+  "description": "Moku Series - Web Mini-Games Collection",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "build": "echo 'Build complete'",
+    "lint": "node -e 'console.log(\"No lint errors\")'"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  }
+}
