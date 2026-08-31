@@ -69,7 +69,10 @@ canvas { display: block; cursor: crosshair; width: 100%; height: auto; }
   flex: 1;
   gap: 8px;
 }
-#pause-btn {
+#hud-controls {
+  display: flex; gap: 8px; align-items: center;
+}
+#pause-btn, #sound-btn {
   pointer-events: all;
   flex-shrink: 0;
   background: rgba(0,0,0,0.45);
@@ -206,7 +209,10 @@ canvas { display: block; cursor: crosshair; width: 100%; height: auto; }
       <div id="target-display">⭐⭐⭐ = 1800pt</div>
       <div id="birds-display">🦉🦉🦉</div>
     </div>
-    <button id="pause-btn" title="Pause">⏸</button>
+    <div id="hud-controls">
+      <button id="sound-btn" title="Sound Toggle">🔊</button>
+      <button id="pause-btn" title="Pause">⏸</button>
+    </div>
   </div>
   <div id="overlay" class="hidden">
     <h1 id="ov-title"></h1>
@@ -224,6 +230,142 @@ canvas { display: block; cursor: crosshair; width: 100%; height: auto; }
 </div>
 
 <script>
+// ─── AUDIO ENGINE (Web Audio API) ─────────────────────────────
+let audioCtx = null;
+let soundEnabled = localStorage.getItem('amoku-sound') !== 'false';
+
+function initAudio() {
+  if (!audioCtx) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) audioCtx = new AudioContextClass();
+  }
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+}
+
+function updateSoundButton() {
+  const btn = document.getElementById('sound-btn');
+  if (btn) btn.textContent = soundEnabled ? '🔊' : '🔇';
+}
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  localStorage.setItem('amoku-sound', soundEnabled.toString());
+  updateSoundButton();
+  if (soundEnabled) playSound('boost');
+}
+
+function playSound(type) {
+  if (!soundEnabled) return;
+  initAudio();
+  if (!audioCtx) return;
+
+  const now = audioCtx.currentTime;
+
+  if (type === 'launch') {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(180, now);
+    osc.frequency.exponentialRampToValueAtTime(520, now + 0.18);
+    gain.gain.setValueAtTime(0.35, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(now); osc.stop(now + 0.18);
+
+  } else if (type === 'boost') {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(260, now);
+    osc.frequency.exponentialRampToValueAtTime(880, now + 0.22);
+    gain.gain.setValueAtTime(0.4, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(now); osc.stop(now + 0.22);
+
+  } else if (type === 'rat') {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(600, now);
+    osc.frequency.setValueAtTime(900, now + 0.06);
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.16);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(now); osc.stop(now + 0.16);
+
+  } else if (type === 'hit') {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(120, now);
+    osc.frequency.exponentialRampToValueAtTime(40, now + 0.08);
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(now); osc.stop(now + 0.08);
+
+  } else if (type === 'tnt') {
+    // Noise buffer + sub bass
+    const bufferSize = audioCtx.sampleRate * 0.4;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(800, now);
+    filter.frequency.exponentialRampToValueAtTime(80, now + 0.4);
+
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(0.6, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+
+    noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+    noise.start(now);
+
+    const osc = audioCtx.createOscillator();
+    const subGain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(150, now);
+    osc.frequency.exponentialRampToValueAtTime(30, now + 0.35);
+    subGain.gain.setValueAtTime(0.5, now);
+    subGain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+    osc.connect(subGain); subGain.connect(audioCtx.destination);
+    osc.start(now); osc.stop(now + 0.35);
+
+  } else if (type === 'win') {
+    const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+    notes.forEach((f, idx) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(f, now + idx * 0.09);
+      gain.gain.setValueAtTime(0.28, now + idx * 0.09);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.09 + 0.3);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(now + idx * 0.09); osc.stop(now + idx * 0.09 + 0.3);
+    });
+
+  } else if (type === 'lose') {
+    const notes = [400, 350, 300, 240];
+    notes.forEach((f, idx) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(f, now + idx * 0.12);
+      gain.gain.setValueAtTime(0.2, now + idx * 0.12);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.12 + 0.25);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(now + idx * 0.12); osc.stop(now + idx * 0.12 + 0.25);
+    });
+  }
+}
+
 // ─── CANVAS ───────────────────────────────────────────────────
 const canvas = document.getElementById('c');
 const ctx    = canvas.getContext('2d');
@@ -561,6 +703,7 @@ class Rat {
   die() {
     if (this.dying) return;
     this.dying = true;
+    playSound('rat');
     this.vx += (Math.random() - 0.5) * 5;
     this.vy += popAway(5 + Math.random() * 3);
     this.angV = (Math.random() - 0.5) * 0.35;
@@ -632,6 +775,7 @@ function updateHUD() {
   document.getElementById('target-display').textContent = `🐀 ${ratsKilled}/${totalRatsAtStart}匹`;
   const rem = Math.max(0, birdsLeft);
   document.getElementById('birds-display').textContent = '🦉'.repeat(rem);
+  updateSoundButton();
 }
 
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
@@ -1917,6 +2061,7 @@ function circleCirle(ax, ay, ar, bx, by, br) {
 }
 
 function explodeTNT(x, y) {
+  playSound('tnt');
   addParticles(x, y, '#FF5500', 22, 7);
   addParticles(x, y, '#FFD000', 16, 5);
   addParticles(x, y, '#FF0000', 10, 4);
@@ -1969,6 +2114,7 @@ function checkCollisions() {
     const c = circleRect(bird.x, bird.y, bird.r, blk.x, blk.y, blk.w, blk.h);
     if (!c) return;
 
+    playSound('hit');
     blk.hp -= speed * 0.12 * dmgMult;
     blk.flash = 8;
 
@@ -3252,1126 +3398,3 @@ function drawMokumoku(x, y, r, angle, mood) {
 
   // Angry eyebrows
   if (mood === 'angry' || mood === 'super-angry') {
-    const slope = mood === 'super-angry' ? r*0.16 : r*0.10;
-    ctx.strokeStyle = '#4A1800';
-    ctx.lineWidth = mood === 'super-angry' ? r*0.09 : r*0.07;
-    ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(-r*0.52, -r*0.36 - slope); ctx.lineTo(-r*0.14, -r*0.36 + slope*0.3); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(r*0.14, -r*0.36 + slope*0.3); ctx.lineTo(r*0.52, -r*0.36 - slope); ctx.stroke();
-  }
-
-  // Eye highlights
-  ctx.fillStyle = 'white';
-  ctx.beginPath(); ctx.arc(-r*0.27, -r*0.2, r*0.065, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(r*0.37, -r*0.2, r*0.065, 0, Math.PI*2); ctx.fill();
-
-  // Forehead stripe
-  ctx.fillStyle = mood === 'super-angry' ? '#C87818' : '#E89230';
-  ctx.beginPath(); ctx.ellipse(0, -r*0.02, r*0.24, r*0.115, 0, 0, Math.PI*2); ctx.fill();
-
-  // Beak — open when angry
-  if (mood === 'super-angry') {
-    // Open beak: dark mouth interior + upper/lower parts
-    ctx.fillStyle = '#2A1000';
-    ctx.beginPath(); ctx.ellipse(0, r*0.15, r*0.115, r*0.10, 0, 0, Math.PI); ctx.fill();
-    ctx.fillStyle = '#D07818';
-    ctx.beginPath(); ctx.ellipse(0, r*0.10, r*0.115, r*0.075, 0, Math.PI, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(0, r*0.17, r*0.115, r*0.06, 0, 0, Math.PI); ctx.fill();
-  } else if (mood === 'angry') {
-    // Slightly open beak
-    ctx.fillStyle = '#5A2800';
-    ctx.beginPath(); ctx.ellipse(0, r*0.14, r*0.105, r*0.055, 0, 0, Math.PI); ctx.fill();
-    ctx.fillStyle = '#D07818';
-    ctx.beginPath(); ctx.ellipse(0, r*0.09, r*0.115, r*0.075, 0, Math.PI, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(0, r*0.155, r*0.105, r*0.055, 0, 0, Math.PI); ctx.fill();
-  } else {
-    // Closed beak
-    ctx.fillStyle = '#D07818';
-    ctx.beginPath(); ctx.ellipse(0, r*0.12, r*0.115, r*0.135, 0, 0, Math.PI); ctx.fill();
-  }
-
-  // Teal leaf bowtie
-  ctx.fillStyle = '#3DA890';
-  ctx.beginPath(); ctx.ellipse(-r*0.28, r*0.47, r*0.24, r*0.13, -0.35, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(r*0.28, r*0.47, r*0.24, r*0.13, 0.35, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = '#2A7868';
-  ctx.beginPath(); ctx.arc(0, r*0.47, r*0.07, 0, Math.PI*2); ctx.fill();
-  ctx.strokeStyle = '#2A7868'; ctx.lineWidth = 0.8;
-  ctx.beginPath(); ctx.moveTo(-r*0.04, r*0.47); ctx.lineTo(-r*0.48, r*0.45); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(r*0.04, r*0.47); ctx.lineTo(r*0.48, r*0.45); ctx.stroke();
-
-  // Orange feet
-  ctx.fillStyle = '#E89230';
-  ctx.beginPath(); ctx.ellipse(-r*0.26, r*0.88, r*0.13, r*0.08, 0.25, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(r*0.26, r*0.88, r*0.13, r*0.08, -0.25, 0, Math.PI*2); ctx.fill();
-  ctx.strokeStyle = '#C06810'; ctx.lineWidth = 1.2;
-  [-r*0.26, r*0.26].forEach(fx => {
-    ctx.beginPath(); ctx.moveTo(fx - r*0.07, r*0.9); ctx.lineTo(fx - r*0.15, r*0.96); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(fx, r*0.92); ctx.lineTo(fx, r*1.0); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(fx + r*0.07, r*0.9); ctx.lineTo(fx + r*0.15, r*0.96); ctx.stroke();
-  });
-
-  ctx.restore();
-}
-
-function drawSlingshot() {
-  const forkL = { x: SX - 18, y: FORK_Y + 4 };
-  const forkR = { x: SX + 18, y: FORK_Y + 4 };
-
-  // Elastic bands
-  if (state === 'AIMING' && dragging) {
-    const birdX = SX + pullX;
-    const birdY = FORK_Y + pullY;
-    ctx.strokeStyle = '#A0623A';
-    ctx.lineWidth = 3.5;
-    ctx.lineCap = 'round';
-    // Left band
-    ctx.beginPath(); ctx.moveTo(forkL.x, forkL.y); ctx.lineTo(birdX, birdY); ctx.stroke();
-    // Right band
-    ctx.beginPath(); ctx.moveTo(forkR.x, forkR.y); ctx.lineTo(birdX, birdY); ctx.stroke();
-  } else {
-    // Relaxed bands
-    ctx.strokeStyle = '#8A5230';
-    ctx.lineWidth = 2.5;
-    ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(forkL.x, forkL.y); ctx.lineTo(SX, FORK_Y); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(forkR.x, forkR.y); ctx.lineTo(SX, FORK_Y); ctx.stroke();
-  }
-
-  // Fork prongs
-  ctx.strokeStyle = '#6B3C12';
-  ctx.lineWidth = 9;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.moveTo(SX, SY);
-  ctx.lineTo(SX, FORK_Y + 20);
-  ctx.stroke();
-  ctx.lineWidth = 7;
-  ctx.beginPath();
-  ctx.moveTo(SX, FORK_Y + 24);
-  ctx.lineTo(forkL.x, forkL.y);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(SX, FORK_Y + 24);
-  ctx.lineTo(forkR.x, forkR.y);
-  ctx.stroke();
-  // Fork tips
-  ctx.fillStyle = '#8B5A2B';
-  [forkL, forkR].forEach(f => {
-    ctx.beginPath(); ctx.arc(f.x, f.y, 4.5, 0, Math.PI*2); ctx.fill();
-  });
-}
-
-function drawBird() {
-  if (!bird) return;
-
-  // Lucky bird glow
-  if (birdType === 'super') {
-    ctx.save();
-    const hue = (Date.now() * 0.3) % 360;
-    ctx.shadowColor = `hsl(${hue},100%,60%)`; ctx.shadowBlur = 36;
-    ctx.fillStyle = `hsla(${hue},100%,60%,0.15)`;
-    ctx.beginPath(); ctx.arc(bird.x, bird.y, bird.r + 12, 0, Math.PI*2); ctx.fill();
-    ctx.restore();
-  } else if (birdType === 'giant') {
-    ctx.save();
-    ctx.shadowColor = '#FFD700'; ctx.shadowBlur = 28;
-    ctx.fillStyle = 'rgba(255,215,0,0.12)';
-    ctx.beginPath(); ctx.arc(bird.x, bird.y, bird.r + 8, 0, Math.PI*2); ctx.fill();
-    ctx.restore();
-  } else if (birdType === 'speed') {
-    ctx.save();
-    ctx.shadowColor = '#00EEFF'; ctx.shadowBlur = 28;
-    ctx.fillStyle = 'rgba(0,238,255,0.10)';
-    ctx.beginPath(); ctx.arc(bird.x, bird.y, bird.r + 8, 0, Math.PI*2); ctx.fill();
-    ctx.restore();
-  }
-
-  // Trail
-  const RAINBOW = ['#FF3060','#FF8800','#FFE030','#30FF70','#3090FF','#AA00FF','#FF30CC'];
-  if (birdType === 'super') {
-    bird.trail.forEach((pt, i) => {
-      const alpha = (i / bird.trail.length) * 0.55;
-      const sz = bird.r * 0.45 * (i / bird.trail.length);
-      ctx.globalAlpha = alpha;
-      ctx.fillStyle = RAINBOW[i % RAINBOW.length];
-      ctx.beginPath(); ctx.arc(pt.x, pt.y, sz, 0, Math.PI*2); ctx.fill();
-    });
-    // Sparkles at bird position
-    if (bird.launched) {
-      for (let s = 0; s < 5; s++) {
-        const sa = (Date.now() * 0.01 + s * 1.26) % (Math.PI * 2);
-        const sd = bird.r * 0.7 + Math.sin(Date.now() * 0.008 + s) * 6;
-        ctx.globalAlpha = 0.7;
-        ctx.fillStyle = RAINBOW[s % RAINBOW.length];
-        ctx.beginPath(); ctx.arc(bird.x + Math.cos(sa)*sd, bird.y + Math.sin(sa)*sd, 2.5, 0, Math.PI*2); ctx.fill();
-      }
-    }
-  } else {
-    const trailColor = birdType === 'speed' ? '#00EEFF' : birdType === 'giant' ? '#FFD700' : '#FFE070';
-    bird.trail.forEach((pt, i) => {
-      const alpha = (i / bird.trail.length) * 0.35;
-      const sz = bird.r * 0.3 * (i / bird.trail.length);
-      ctx.globalAlpha = alpha;
-      ctx.fillStyle = trailColor;
-      ctx.beginPath(); ctx.arc(pt.x, pt.y, sz, 0, Math.PI*2); ctx.fill();
-    });
-  }
-  ctx.globalAlpha = 1;
-
-  // Flash ring
-  if (bird.flash > 0) {
-    ctx.strokeStyle = `rgba(255,220,50,${bird.flash / 8})`;
-    ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.arc(bird.x, bird.y, bird.r + 8, 0, Math.PI*2); ctx.stroke();
-  }
-
-  // Mood: neutral when aiming, angry when flying, super-angry after boost or lucky bird
-  let mood = 'neutral';
-  if (score >= 1500) mood = 'angry';
-  if (state === 'FLYING') {
-    mood = (boostUsed || birdType !== 'normal') ? 'super-angry' : 'angry';
-  }
-
-  const angle = bird.launched ? bird.angle : 0;
-  drawMokumoku(bird.x, bird.y, bird.r, angle, mood);
-}
-
-function drawTrajectoryArc() {
-  if (!dragging) return;
-  if (birdType === 'super') return; // super mokumoku doesn't fly a parabola — no preview
-  const speedMult = birdType === 'speed' ? SPEED_MULT : 1;
-  const r = birdType === 'giant' ? GIANT_R : BIRD_R;
-  const vx = -pullX * POWER * speedMult;
-  const vy = -pullY * POWER * speedMult;
-  let x = SX + pullX, y = FORK_Y + pullY;
-  let dvx = vx, dvy = vy;
-  let landX = x, landY = y;
-  let landed = false;
-
-  const arcColor = birdType === 'speed' ? 'rgba(100,230,255,0.65)' :
-                   birdType === 'giant' ? 'rgba(255,210,50,0.65)' :
-                   'rgba(255,255,255,0.55)';
-
-  ctx.save();
-  ctx.setLineDash([5, 8]);
-  ctx.strokeStyle = arcColor;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(x, y);
-  for (let i = 0; i < 120; i++) {
-    dvy += curGrav;
-    x += dvx; y += dvy;
-    if (curGDir === 1 ? (y >= curFloorY - r || x > W) : (y <= curFloorY + r || x > W)) {
-      landX = x; landY = curGDir === 1 ? Math.min(y, curFloorY) : Math.max(y, curFloorY);
-      landed = true; break;
-    }
-    ctx.lineTo(x, y);
-  }
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  // Landing indicator
-  if (landed && landX < W) {
-    ctx.fillStyle = arcColor;
-    ctx.beginPath(); ctx.arc(landX, landY, 5, 0, Math.PI*2); ctx.fill();
-  }
-
-  ctx.restore();
-}
-
-function drawParticles() {
-  particles.forEach(p => {
-    ctx.globalAlpha = p.alpha;
-    ctx.fillStyle = p.col;
-    ctx.beginPath(); ctx.arc(p.x, p.y, p.sz, 0, Math.PI*2); ctx.fill();
-  });
-  ctx.globalAlpha = 1;
-}
-
-function drawWaitingBirds() {
-  // Show extra birds waiting near base of slingshot
-  for (let i = 0; i < birdsLeft - 1; i++) {
-    const bx = SX - 60 - i * 52;
-    drawMokumoku(bx, GROUND_Y - 16, 16, 0);
-  }
-}
-
-// ─── AIMING UI ────────────────────────────────────────────────
-
-function drawAimUI() {
-  // Highlight zone around bird when not dragging
-  if (!dragging) {
-    const pulse = 0.5 + 0.5 * Math.sin(Date.now() * 0.005);
-    ctx.strokeStyle = `rgba(255,220,80,${0.4 + pulse * 0.4})`;
-    ctx.lineWidth = 2.5;
-    ctx.setLineDash([4, 6]);
-    ctx.beginPath(); ctx.arc(SX, FORK_Y, BIRD_R + 14, 0, Math.PI*2); ctx.stroke();
-    ctx.setLineDash([]);
-  }
-  drawTrajectoryArc();
-}
-
-// ─── GAME LOGIC ───────────────────────────────────────────────
-
-function launch() {
-  if (!bird || state !== 'AIMING') return;
-  const speedMult = birdType === 'speed' ? SPEED_MULT : 1;
-  const vx = -pullX * POWER * speedMult;
-  const vy = -pullY * POWER * speedMult;
-  bird.x = SX + pullX;
-  bird.y = FORK_Y + pullY;
-  bird.vx = vx;
-  bird.vy = vy;
-  bird.launched = true;
-  state = 'FLYING';
-  settleTimer = 0;
-  boostCooldown = 30; // prevent accidental boost on launch touchend
-
-  if (birdType === 'super') {
-    const spd = Math.sqrt(vx * vx + vy * vy) || 0.001;
-    bird.dirX = vx / spd; bird.dirY = vy / spd;
-    bird.perpX = -bird.dirY; bird.perpY = bird.dirX;
-    bird.speed = spd * 1.15;
-    bird.baseX = bird.x; bird.baseY = bird.y;
-    bird.travel = 0;
-  } else {
-    document.getElementById('boost-hint').style.opacity = '1';
-    setTimeout(() => {
-      document.getElementById('boost-hint').style.opacity = '0';
-    }, 2000);
-  }
-}
-
-function applyBoost() {
-  if (!bird || !bird.launched || boostUsed || boostCooldown > 0 || birdType === 'super') return;
-  const sp = Math.sqrt(bird.vx*bird.vx + bird.vy*bird.vy);
-  if (sp < 0.1) return;
-  const nx = bird.vx / sp, ny = bird.vy / sp;
-  bird.vx += nx * BOOST_SPD;
-  bird.vy += ny * BOOST_SPD;
-  bird.flash = 18;
-  boostUsed = true;
-  addParticles(bird.x, bird.y, '#FFE030', 16, 6);
-  addParticles(bird.x, bird.y, '#FF8030', 10, 4);
-  document.getElementById('boost-hint').style.opacity = '0';
-}
-
-function checkWinLose() {
-  const livingRats = rats.filter(r => r.alive && !r.dying);
-  if (livingRats.length === 0) {
-    setTimeout(() => showResult('WIN'), 800);
-    return true;
-  }
-  return false;
-}
-
-function nextBirdOrLose() {
-  if (checkWinLose()) return;
-
-  birdsLeft--;
-  updateHUD();
-
-  if (birdsLeft <= 0) {
-    const dyingRats = rats.filter(r => r.dying).length;
-    const aliveRats  = rats.filter(r => r.alive && !r.dying).length;
-    if (aliveRats > 0) {
-      setTimeout(() => showResult('LOSE'), 800);
-    } else {
-      setTimeout(() => showResult('WIN'), 800);
-    }
-  } else {
-    setTimeout(() => {
-      resetBird();
-      state = 'AIMING';
-    }, 1200);
-  }
-}
-
-function showResult(result) {
-  state = result;
-  const ov      = document.getElementById('overlay');
-  const title   = document.getElementById('ov-title');
-  const sub     = document.getElementById('ov-sub');
-  const nextBtn = document.getElementById('ov-next-btn');
-
-  if (result === 'WIN') {
-    const unused = Math.max(0, birdsLeft - 1);
-    if (unused > 0) { score += unused * BIRD_BONUS; updateHUD(); }
-    saveProgress();
-
-    // All-clear: last level cleared
-    if (currentLevel >= LEVEL_CONFIGS.length - 1) {
-      totalPlayTime = Math.floor((Date.now() - gameStartTime) / 1000);
-      state = 'ALLCLEAR';
-      return;
-    }
-
-    // Chapter checkpoint: pause on a congrats screen at Lv.10 and Lv.20
-    if (currentLevel === 9 || currentLevel === 19) {
-      state = 'CHECKPOINT';
-      return;
-    }
-
-    ov.classList.remove('hidden');
-    const cfg   = LEVEL_CONFIGS[currentLevel];
-    const lvScore = score - levelStartScore;
-    const stars = lvScore >= cfg.stars[2] ? 3 : lvScore >= cfg.stars[1] ? 2 : 1;
-    const starStr = '⭐'.repeat(stars) + '☆'.repeat(3 - stars);
-    title.textContent = '🎉 全員やっつけた！';
-    sub.textContent   = `${starStr}  累計 ${score} pt`;
-    nextBtn.style.display = 'inline-block';
-  } else {
-    ov.classList.remove('hidden');
-    title.textContent = '😢 やられた…';
-    sub.textContent = `${ratsKilled}/${totalRatsAtStart}匹倒した  スコア: ${score}pt`;
-    nextBtn.style.display = 'none';
-  }
-}
-
-function restartGame() {
-  score = Math.floor(score / 2); // halve score as penalty
-  levelStartScore = score;       // new baseline after penalty
-  totalDeaths++;
-  particles = [];
-  state = 'AIMING';
-  document.getElementById('overlay').classList.add('hidden');
-  setupLevel(currentLevel);
-  resetBird();
-  updateHUD();
-}
-
-function nextLevel() {
-  currentLevel++;
-  levelStartScore = score; // carry cumulative score forward
-  particles = [];
-  state = 'AIMING';
-  document.getElementById('overlay').classList.add('hidden');
-  setupLevel(currentLevel);
-  resetBird();
-  updateHUD();
-}
-
-// ─── INPUT ────────────────────────────────────────────────────
-
-function getPos(e) {
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = W / rect.width;
-  const scaleY = H / rect.height;
-  const src = e.touches ? e.touches[0] : e;
-  return {
-    x: (src.clientX - rect.left) * scaleX,
-    y: (src.clientY - rect.top)  * scaleY,
-  };
-}
-
-// ─── PAUSE ────────────────────────────────────────────────────
-let prePauseState = null;
-const PAUSABLE_STATES = ['AIMING', 'FLYING', 'SETTLING', 'WAITING'];
-
-function pauseGame() {
-  if (!PAUSABLE_STATES.includes(state)) return;
-  prePauseState = state;
-  state = 'PAUSED';
-  document.getElementById('pause-btn').textContent = '▶';
-}
-function resumeGame() {
-  if (state !== 'PAUSED') return;
-  state = prePauseState;
-  prePauseState = null;
-  document.getElementById('pause-btn').textContent = '⏸';
-}
-function quitToTitle() {
-  state = 'TITLE';
-  prePauseState = null;
-  titleMenuSel = 0; titleFrame = 0;
-  document.getElementById('pause-btn').textContent = '⏸';
-  document.getElementById('hud').style.visibility = 'hidden';
-  document.getElementById('title-frame').style.display = 'block';
-  document.getElementById('hub-link').style.display = 'block';
-}
-
-function startFromTitle() {
-  const savedLevel = getSavedLevel();
-  const lvl = (titleMenuSel === 1 && savedLevel >= 0 && savedLevel < LEVEL_CONFIGS.length)
-    ? savedLevel : 0;
-  currentLevel = lvl;
-  score = 0; levelStartScore = 0; totalDeaths = 0;
-  totalPlayTime = 0; gameStartTime = Date.now();
-  allClearParticles = [];
-  particles = [];
-  document.getElementById('hud').style.visibility = 'visible';
-  document.getElementById('title-frame').style.display = 'none';
-  document.getElementById('hub-link').style.display = 'none';
-  document.getElementById('buildInfo').style.display = 'none';
-  document.getElementById('titleMascotImg').style.display = 'none';
-  setupLevel(currentLevel);
-  resetBird();
-  updateHUD();
-  state = 'AIMING';
-}
-
-function onDown(e) {
-  e.preventDefault();
-  if (state === 'PAUSED') {
-    const p = getPos(e);
-    if (p.x >= W/2 - 110 && p.x <= W/2 + 110 && p.y >= PAUSE_RESUME_Y - 29 && p.y <= PAUSE_RESUME_Y + 29) { resumeGame(); return; }
-    if (p.x >= W/2 - 110 && p.x <= W/2 + 110 && p.y >= PAUSE_QUIT_Y - 25 && p.y <= PAUSE_QUIT_Y + 25) { quitToTitle(); return; }
-    return;
-  }
-  if (state === 'CHECKPOINT') {
-    allClearParticles = [];
-    nextLevel();
-    return;
-  }
-  if (state === 'ALLCLEAR') {
-    const p = getPos(e);
-    // Share button: centered at W/2=450, y range [398,436]
-    if (p.x >= 360 && p.x <= 540 && p.y >= 398 && p.y <= 436) {
-      shareResult();
-      return;
-    }
-    state = 'TITLE';
-    titleMenuSel = 0; titleFrame = 0;
-    allClearParticles = []; shareCopied = false; shareCopiedTimer = 0;
-    document.getElementById('hud').style.visibility = 'hidden';
-    document.getElementById('title-frame').style.display = 'block';
-    document.getElementById('hub-link').style.display = 'block';
-    document.getElementById('buildInfo').style.display = 'block';
-    document.getElementById('titleMascotImg').style.display = 'block';
-    return;
-  }
-  if (state === 'TITLE') {
-    const p = getPos(e);
-    const menuY = 345;
-    if (p.y >= menuY - 24 && p.y < menuY + 30) { titleMenuSel = 0; startFromTitle(); return; }
-    if (p.y >= menuY + 22) {
-      const savedLevel = getSavedLevel();
-      if (savedLevel >= 0 && savedLevel < LEVEL_CONFIGS.length) { titleMenuSel = 1; }
-      startFromTitle(); return;
-    }
-    return;
-  }
-  if (state !== 'AIMING') return;
-  const p = getPos(e);
-  const dx = p.x - SX, dy = p.y - FORK_Y;
-  if (Math.sqrt(dx*dx + dy*dy) < BIRD_R + 20) {
-    dragging = true;
-    mouse = p;
-  }
-}
-
-function onMove(e) {
-  e.preventDefault();
-  if (!dragging || state !== 'AIMING') return;
-  const p = getPos(e);
-  mouse = p;
-  let dx = p.x - SX, dy = p.y - FORK_Y;
-  const dist = Math.sqrt(dx*dx + dy*dy);
-  if (dist > MAX_PULL) {
-    dx = dx / dist * MAX_PULL;
-    dy = dy / dist * MAX_PULL;
-  }
-  pullX = dx; pullY = dy;
-  if (bird) { bird.x = SX + pullX; bird.y = FORK_Y + pullY; }
-}
-
-function onUp(e) {
-  e.preventDefault();
-  if (!dragging || state !== 'AIMING') return;
-  dragging = false;
-  const dist = Math.sqrt(pullX*pullX + pullY*pullY);
-  if (dist > 12) {
-    launch();
-  } else {
-    pullX = 0; pullY = 0;
-    if (bird) { bird.x = SX; bird.y = FORK_Y; }
-  }
-}
-
-function onClick(e) {
-  if (state === 'FLYING') {
-    applyBoost();
-  }
-}
-
-function onTouchStart(e) {
-  e.preventDefault();
-  if (state === 'TITLE') { onDown(e); return; }
-  if (state === 'FLYING') { applyBoost(); return; }
-  onDown(e);
-}
-
-canvas.addEventListener('mousedown',  onDown,        { passive: false });
-canvas.addEventListener('mousemove',  onMove,        { passive: false });
-canvas.addEventListener('mouseup',    onUp,          { passive: false });
-canvas.addEventListener('click',      onClick);
-canvas.addEventListener('touchstart', onTouchStart,  { passive: false });
-canvas.addEventListener('touchmove',  onMove,        { passive: false });
-canvas.addEventListener('touchend',   onUp,          { passive: false });
-
-document.getElementById('ov-btn').addEventListener('click', restartGame);
-document.getElementById('ov-next-btn').addEventListener('click', nextLevel);
-
-document.getElementById('pause-btn').addEventListener('click', () => {
-  if (state === 'PAUSED') resumeGame();
-  else pauseGame();
-});
-
-document.addEventListener('keydown', e => {
-  if (state === 'TITLE') {
-    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-      const savedLevel = getSavedLevel();
-      if (savedLevel >= 0 && savedLevel < LEVEL_CONFIGS.length) {
-        titleMenuSel = titleMenuSel === 0 ? 1 : 0;
-      }
-    } else if (e.key === 'Enter' || e.key === ' ') {
-      startFromTitle();
-    }
-  }
-});
-
-// ─── MAIN LOOP ────────────────────────────────────────────────
-
-function update() {
-  if (state === 'TITLE' || state === 'WIN' || state === 'LOSE' || state === 'CHECKPOINT' || state === 'ALLCLEAR' || state === 'PAUSED') return;
-
-  // Always animate particles/dying objects even while waiting
-  particles.forEach(p => p.update());
-  particles = particles.filter(p => p.alive);
-  rats.forEach(r => r.update());
-  rats = rats.filter(r => r.alive);
-  blocks.forEach(b => b.update());
-  blocks = blocks.filter(b => b.alive);
-
-  if (state === 'AIMING') return;
-
-  if (boostCooldown > 0) boostCooldown--;
-  if (bird) bird.update();
-
-  // WAITING can be entered mid-flight (win detected before the bird lands).
-  // Keep running bird.update() above so it still falls/settles naturally
-  // instead of freezing in mid-air — but skip collisions/win-checks below,
-  // the result is already being finalized.
-  if (state === 'WAITING') return;
-
-  checkCollisions();
-  checkBlockRatCollisions();
-
-  // Win check fires even mid-flight (e.g. block crushes last rat)
-  if ((state === 'FLYING' || state === 'SETTLING') && totalRatsAtStart > 0) {
-    const livingRats = rats.filter(r => r.alive && !r.dying);
-    if (livingRats.length === 0) {
-      state = 'WAITING';
-      setTimeout(() => showResult('WIN'), 800);
-      return;
-    }
-  }
-
-  if (bird && !bird.alive && state === 'FLYING') {
-    state = 'SETTLING';
-    settleTimer = 0;
-  }
-
-  if (state === 'SETTLING') {
-    settleTimer++;
-    if (settleTimer >= SETTLE_WAIT) {
-      state = 'WAITING'; // guard: prevent calling nextBirdOrLose every frame
-      nextBirdOrLose();
-    }
-  }
-}
-
-function drawBoostPrompt() {
-  if (state !== 'FLYING' || boostUsed || !bird || boostCooldown > 0 || birdType === 'super') return;
-  const a = 0.65 + 0.35 * Math.sin(Date.now() * 0.006);
-  ctx.save();
-  ctx.globalAlpha = a;
-  ctx.font = 'bold 22px Arial';
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#FFE030';
-  ctx.shadowColor = '#FF8000';
-  ctx.shadowBlur = 10;
-  ctx.fillText('💥 タップでブースト！', W / 2, H - 55);
-  ctx.restore();
-}
-
-function drawLuckyAnnouncement() {
-  if (luckyTimer <= 0 || !luckyText) return;
-  luckyTimer--;
-  const alpha = luckyTimer > 60 ? 1 : luckyTimer / 60;
-  const scale = luckyTimer > 75 ? 1 + (90 - luckyTimer) * 0.025 : 1;
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.translate(W / 2, H / 2 - 70);
-  ctx.scale(scale, scale);
-  ctx.textAlign = 'center';
-  ctx.font = 'bold 32px Arial';
-  const hueShift = (Date.now() * 0.3) % 360;
-  ctx.shadowColor = birdType === 'super' ? `hsl(${hueShift},100%,60%)` : birdType === 'giant' ? '#FF8800' : '#0088FF';
-  ctx.shadowBlur = birdType === 'super' ? 30 : 22;
-  ctx.fillStyle = birdType === 'super' ? `hsl(${hueShift},100%,72%)` : birdType === 'giant' ? '#FFD700' : '#00EEFF';
-  ctx.fillText(luckyText, 0, 0);
-  ctx.restore();
-}
-
-function _dataURLToBlob(dataURL) {
-  const [header, base64] = dataURL.split(',');
-  const mime = header.match(/:(.*?);/)[1];
-  const binary = atob(base64);
-  const arr = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
-  return new Blob([arr], { type: mime });
-}
-
-function shareResult() {
-  const rating = computeRating(score, totalPlayTime, totalDeaths);
-  const mins = Math.floor(totalPlayTime / 60);
-  const secs = String(totalPlayTime % 60).padStart(2, '0');
-  const GRADE_STARS = { '伝説':5, 'エース':4, 'ベテラン':3, 'アマチュア':2, 'ビギナー':1 };
-  const stars = '⭐'.repeat(GRADE_STARS[rating] || 1);
-  const text = `🎊 Angry Mokumoku 全20ステージ クリア！\n` +
-    `🦉 ${rating}モクモク ${stars}\n` +
-    `📊 累計スコア: ${score} pt\n` +
-    `⏱ プレイ時間: ${mins}分${secs}秒\n` +
-    `💀 やられた回数: ${totalDeaths}回\n` +
-    `https://aohaus.github.io/Moku/angry-mokumoku.html`;
-
-  // Snapshot the current (all-clear) canvas frame as a shareable PNG.
-  // toDataURL is synchronous so this stays inside the click's user-gesture
-  // scope, which iOS Safari requires for navigator.share to work.
-  let blob = null;
-  try { blob = _dataURLToBlob(canvas.toDataURL('image/png')); } catch (e) {}
-
-  if (blob) {
-    const file = new File([blob], 'angry-mokumoku-clear.png', { type: 'image/png' });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      navigator.share({ title: 'Angry Mokumoku 全クリア！', text, files: [file] }).catch(() => {});
-      return;
-    }
-  }
-  if (navigator.share) {
-    navigator.share({ title: 'Angry Mokumoku 全クリア！', text }).catch(() => {});
-    return;
-  }
-  if (navigator.clipboard) { navigator.clipboard.writeText(text).catch(() => {}); }
-  if (blob) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'angry-mokumoku-clear.png';
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 4000);
-  }
-  shareCopied = true; shareCopiedTimer = 90;
-}
-
-function computeRating(totalScore, timeSeconds, deaths) {
-  let pts = Math.min(60, Math.floor(totalScore / 500));
-  if      (timeSeconds < 300)  pts += 25;
-  else if (timeSeconds < 600)  pts += 20;
-  else if (timeSeconds < 900)  pts += 14;
-  else if (timeSeconds < 1200) pts += 8;
-  else if (timeSeconds < 1800) pts += 3;
-  pts -= Math.min(25, deaths * 5);
-  if (pts >= 72) return '伝説';
-  if (pts >= 55) return 'エース';
-  if (pts >= 38) return 'ベテラン';
-  if (pts >= 20) return 'アマチュア';
-  return 'ビギナー';
-}
-
-const CHECKPOINTS = {
-  9:  { title: '🎉 クアラルンプール編 クリア！', sub: '次は東南アジア各都市を巡る旅へ…',
-        col1: '#1C0038', col2: '#0A1830', hue: 190 },
-  19: { title: '🎉 東南アジア＆異世界編 クリア！', sub: '次は重力が反転する未知のゾーンへ…',
-        col1: '#140A28', col2: '#02051A', hue: 280 },
-};
-
-function drawCheckpointScreen() {
-  const cp = CHECKPOINTS[currentLevel] || CHECKPOINTS[9];
-
-  // Background
-  const bg = ctx.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0, cp.col1); bg.addColorStop(1, cp.col2);
-  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
-
-  // Gentle sparkle particles (reuses the all-clear firework particle pool, calmer rate)
-  if (Math.random() < 0.03) {
-    const fx = 80 + Math.random() * (W - 160);
-    const fy = 40 + Math.random() * 180;
-    const FCOLS = ['#FFD700', '#00CCFF', '#FF88CC', '#88FF88'];
-    const fc = FCOLS[Math.floor(Math.random() * FCOLS.length)];
-    for (let i = 0; i < 10; i++) {
-      const a2 = (i / 10) * Math.PI * 2;
-      const sp = 1.5 + Math.random() * 3;
-      allClearParticles.push(new Particle(fx, fy, Math.cos(a2)*sp, Math.sin(a2)*sp - 1, fc, 3 + Math.random()*2, 45));
-    }
-  }
-  allClearParticles.forEach(p => {
-    p.update();
-    ctx.globalAlpha = p.alpha;
-    ctx.fillStyle = p.col;
-    ctx.beginPath(); ctx.arc(p.x, p.y, p.sz, 0, Math.PI*2); ctx.fill();
-  });
-  allClearParticles = allClearParticles.filter(p => p.alive);
-  ctx.globalAlpha = 1;
-
-  // Title
-  ctx.save();
-  ctx.textAlign = 'center';
-  ctx.shadowColor = `hsl(${cp.hue},100%,65%)`; ctx.shadowBlur = 30;
-  ctx.fillStyle = '#FFD700';
-  ctx.font = 'bold 36px Arial';
-  ctx.fillText(cp.title, W/2, 130);
-  ctx.shadowBlur = 0;
-  ctx.restore();
-
-  // Bouncing Mokumoku
-  const bob = Math.sin(Date.now() * 0.003) * 6;
-  const tilt = Math.sin(Date.now() * 0.002) * 0.12;
-  drawMokumoku(W/2, 240 + bob, 52, tilt, 'angry');
-
-  // Subtitle / teaser
-  ctx.save();
-  ctx.textAlign = 'center';
-  ctx.fillStyle = 'rgba(255,255,255,0.85)';
-  ctx.font = '18px Arial';
-  ctx.fillText(cp.sub, W/2, 330);
-  ctx.fillStyle = 'rgba(255,224,60,0.9)';
-  ctx.font = '15px Arial';
-  ctx.fillText(`累計スコア: ${score} pt`, W/2, 358);
-  ctx.restore();
-
-  // Tap to continue
-  const pulse = 0.6 + 0.4 * Math.sin(Date.now() * 0.005);
-  ctx.save();
-  ctx.globalAlpha = pulse;
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#FFE030';
-  ctx.font = 'bold 18px Arial';
-  ctx.fillText('▶ タップして次のステージへ ◀', W/2, H - 30);
-  ctx.restore();
-}
-
-function drawAllClearScreen() {
-  // Background
-  const bg = ctx.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0, '#1C0038'); bg.addColorStop(1, '#020A20');
-  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
-
-  // Spawn fireworks
-  if (Math.random() < 0.06) {
-    const fx = 80 + Math.random() * (W - 160);
-    const fy = 40 + Math.random() * 200;
-    const FCOLS = ['#FF3060','#FF9020','#FFE030','#30FF90','#30A0FF','#CC30FF','#FF30C0'];
-    const fc = FCOLS[Math.floor(Math.random() * FCOLS.length)];
-    for (let i = 0; i < 18; i++) {
-      const a2 = (i / 18) * Math.PI * 2;
-      const sp = 2 + Math.random() * 4.5;
-      allClearParticles.push(new Particle(fx, fy, Math.cos(a2)*sp, Math.sin(a2)*sp - 1.5, fc, 4 + Math.random()*3, 55));
-    }
-  }
-  // Update & draw firework particles
-  allClearParticles.forEach(p => {
-    p.update();
-    ctx.globalAlpha = p.alpha;
-    ctx.fillStyle = p.col;
-    ctx.beginPath(); ctx.arc(p.x, p.y, p.sz, 0, Math.PI*2); ctx.fill();
-  });
-  allClearParticles = allClearParticles.filter(p => p.alive);
-  ctx.globalAlpha = 1;
-
-  // "全クリア！" title
-  ctx.save();
-  ctx.textAlign = 'center';
-  const hue = (Date.now() * 0.2) % 360;
-  ctx.shadowColor = `hsl(${hue},100%,65%)`; ctx.shadowBlur = 38;
-  ctx.fillStyle = '#FFD700';
-  ctx.font = 'bold 58px Arial';
-  ctx.fillText('🎊  全 ク リ ア ！  🎊', W/2, 88);
-  ctx.shadowBlur = 0;
-  ctx.restore();
-
-  // Bouncing Mokumoku
-  const bob = Math.sin(Date.now() * 0.003) * 6;
-  const tilt = Math.sin(Date.now() * 0.002) * 0.12;
-  drawMokumoku(W/2, 182 + bob, 52, tilt, 'super-angry');
-
-  // Rating
-  const rating = computeRating(score, totalPlayTime, totalDeaths);
-  const GRADE_COLS = { '伝説':'#FFD700', 'エース':'#FF88FF', 'ベテラン':'#60DDFF', 'アマチュア':'#AAFFAA', 'ビギナー':'#AAAAAA' };
-  const GRADE_STARS = { '伝説':5, 'エース':4, 'ベテラン':3, 'アマチュア':2, 'ビギナー':1 };
-  const gcol = GRADE_COLS[rating] || '#FFFFFF';
-  const stars = GRADE_STARS[rating] || 1;
-
-  ctx.save();
-  ctx.textAlign = 'center';
-  ctx.shadowColor = gcol; ctx.shadowBlur = 22;
-  ctx.fillStyle = gcol;
-  ctx.font = 'bold 38px Arial';
-  ctx.fillText(`${rating}モクモク`, W/2, 268);
-  ctx.shadowBlur = 0;
-  ctx.font = '30px Arial';
-  ctx.fillText('⭐'.repeat(stars) + '☆'.repeat(5 - stars), W/2, 306);
-  ctx.restore();
-
-  // Stats
-  const mins = Math.floor(totalPlayTime / 60);
-  const secs = totalPlayTime % 60;
-  ctx.save();
-  ctx.textAlign = 'center';
-  ctx.fillStyle = 'rgba(255,255,255,0.82)';
-  ctx.font = '17px Arial';
-  ctx.fillText(`累計スコア: ${score} pt`, W/2, 346);
-  ctx.fillText(`プレイ時間: ${mins}分 ${String(secs).padStart(2,'0')}秒`, W/2, 370);
-  ctx.fillText(`やられた回数: ${totalDeaths}回`, W/2, 394);
-  ctx.restore();
-
-  // Share button
-  const sbx = W/2, sby = 418;
-  ctx.save();
-  ctx.shadowColor = '#00CCFF'; ctx.shadowBlur = 18;
-  ctx.fillStyle = '#0099DD';
-  ctx.beginPath(); ctx.roundRect(sbx - 90, sby - 20, 180, 38, 20); ctx.fill();
-  ctx.shadowBlur = 0;
-  ctx.fillStyle = 'white';
-  ctx.font = 'bold 18px Arial';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('📤 シェアする', sbx, sby);
-  ctx.textBaseline = 'alphabetic';
-  ctx.restore();
-  // "Copied!" toast
-  if (shareCopied && shareCopiedTimer > 0) {
-    shareCopiedTimer--;
-    if (shareCopiedTimer <= 0) { shareCopied = false; }
-    const ta = shareCopiedTimer > 60 ? 1 : shareCopiedTimer / 60;
-    ctx.save();
-    ctx.globalAlpha = ta;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#00FFAA';
-    ctx.font = 'bold 16px Arial';
-    ctx.shadowColor = '#00CC88'; ctx.shadowBlur = 10;
-    ctx.fillText('✅ テキストをコピー・画像を保存しました！', W/2, sby + 30);
-    ctx.textBaseline = 'alphabetic';
-    ctx.restore();
-  }
-
-  // Tap to continue
-  const pulse = 0.6 + 0.4 * Math.sin(Date.now() * 0.005);
-  ctx.save();
-  ctx.globalAlpha = pulse;
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#FFE030';
-  ctx.font = 'bold 18px Arial';
-  ctx.fillText('▶ タップしてタイトルへ ◀', W/2, H - 24);
-  ctx.restore();
-}
-
-function drawTitleScreen() {
-  titleFrame++;
-  // Game Boy-style dark BG
-  const bg = ctx.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0, '#030D08'); bg.addColorStop(1, '#081810');
-  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
-  // Scanlines
-  for (let y = 0; y < H; y += 4) {
-    ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.fillRect(0, y, W, 2);
-  }
-  // (Frame border is the full-viewport #title-frame HTML element, not
-  // drawn on the canvas — shared structure with the other two games'
-  // title screens so it always reads as full-screen.)
-
-  // Title
-  ctx.save();
-  ctx.textAlign = 'center';
-  ctx.shadowColor = '#66FF44'; ctx.shadowBlur = 24;
-  ctx.fillStyle = '#88FF66';
-  ctx.font = 'bold 50px "Courier New", monospace';
-  ctx.fillText('ANGRY MOKUMOKU', W/2, 85);
-  ctx.shadowBlur = 0;
-  ctx.fillStyle = '#3A9040';
-  ctx.font = '16px "Courier New", monospace';
-  ctx.fillText('★  K L  C I T Y  E D I T I O N  ★', W/2, 112);
-  ctx.restore();
-
-  // Cross-links to the sister games now live in the #hub-link HTML
-  // element (single link to the series hub), not drawn on canvas.
-
-  // Owl character now lives in the #titleMascotImg HTML overlay (the
-  // real illustrated artwork), not drawn on canvas — see its show/hide
-  // wiring alongside #hub-link/#buildInfo.
-
-  // Stars around owl
-  const sparkT = (titleFrame * 0.04) % (Math.PI * 2);
-  [[W/2-85,185],[ W/2+90,175],[W/2-70,250],[W/2+75,255]].forEach(([sx,sy],i)=>{
-    const s = 0.5 + 0.5*Math.sin(sparkT + i*1.5);
-    ctx.globalAlpha = s * 0.8;
-    ctx.fillStyle = '#CCFF66';
-    ctx.font = '16px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('✦', sx, sy);
-  });
-  ctx.globalAlpha = 1;
-
-  // Menu
-  const savedLevel = getSavedLevel();
-  const hasSave    = savedLevel >= 0 && savedLevel < LEVEL_CONFIGS.length;
-  const menuY = 345;
-  const items = [
-    { text: 'Start',                   enabled: true  },
-    { text: hasSave ? `Continue  (Lv.${savedLevel+1})` : 'Continue  (No Save)', enabled: hasSave },
-  ];
-  ctx.font = 'bold 20px "Courier New", monospace';
-  items.forEach((item, i) => {
-    const sel = titleMenuSel === i;
-    const y   = menuY + i * 46;
-    ctx.textAlign = 'center';
-    if (!item.enabled) {
-      ctx.fillStyle = '#1A4520'; ctx.shadowBlur = 0;
-    } else if (sel) {
-      ctx.fillStyle = '#CCFF66';
-      ctx.shadowColor = '#88FF44'; ctx.shadowBlur = 12;
-    } else {
-      ctx.fillStyle = '#44AA44'; ctx.shadowBlur = 0;
-    }
-    const arrow = sel ? '▶ ' : '  ';
-    ctx.fillText(arrow + item.text, W/2, y);
-  });
-  ctx.shadowBlur = 0;
-
-  // Franchise footer tag — ties the three games together as one series,
-  // matching the badge the other two title screens show.
-  const tagY = H - 56;
-  ctx.save();
-  ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(W/2 - 70, tagY - 16); ctx.lineTo(W/2 + 70, tagY - 16); ctx.stroke();
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#2A6A2A';
-  ctx.font = '11px "Courier New", monospace';
-  ctx.fillText('🦉 × 🍬 × ⚽  M O K U M O K U   S E R I E S', W/2, tagY);
-  ctx.restore();
-
-  // Player count
-  if (onlinePlayers > 1) {
-    ctx.fillStyle = '#2A6A2A'; ctx.font = '13px "Courier New", monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText(`👥 オンライン: ${onlinePlayers}人`, W/2, H-36);
-  }
-  // Footer
-  ctx.fillStyle = '#1E4A20'; ctx.font = '12px "Courier New", monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText('CLICK OR TAP TO SELECT  •  ARROW KEYS TO MOVE', W/2, H-20);
-}
-
-function drawPlayerCount() {
-  if (onlinePlayers <= 1) return;
-  ctx.save();
-  ctx.textAlign = 'right'; ctx.font = '13px Arial';
-  ctx.fillStyle = 'rgba(255,255,255,0.55)';
-  ctx.fillText(`👥 ${onlinePlayers}`, W - 14, H - 14);
-  ctx.restore();
-}
-
-function drawComboAnnouncement() {
-  if (comboTimer <= 0 || !comboText) return;
-  comboTimer--;
-  const alpha = comboTimer > 60 ? 1 : comboTimer / 60;
-  const scale = comboTimer > 80 ? 1 + (100 - comboTimer) * 0.018 : 1;
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.translate(W / 2, H / 2 + 30);
-  ctx.scale(scale, scale);
-  ctx.textAlign = 'center';
-  ctx.font = 'bold 30px Arial';
-  ctx.shadowColor = '#FF6600'; ctx.shadowBlur = 20;
-  ctx.fillStyle = '#FFD700';
-  ctx.fillText(comboText, 0, 0);
-  ctx.restore();
-}
-
-// ─── PAUSE OVERLAY (canvas) ─────────────────────────────────────
-const PAUSE_TITLE_Y  = H/2 - 90;
-const PAUSE_RESUME_Y = H/2 - 10;
-const PAUSE_QUIT_Y   = PAUSE_RESUME_Y + 64;
-function drawPausedOverlay() {
-  ctx.save();
-  ctx.fillStyle = 'rgba(10,15,10,0.72)';
-  ctx.fillRect(0, 0, W, H);
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#EDFCEA';
-  ctx.font = 'bold 32px Arial';
-  ctx.shadowColor = '#4CBE55'; ctx.shadowBlur = 20;
-  ctx.fillText('⏸ Paused', W/2, PAUSE_TITLE_Y);
-  ctx.shadowBlur = 0;
-  ctx.restore();
-
-  ctx.save();
-  ctx.fillStyle = '#4CBE55';
-  ctx.beginPath(); ctx.roundRect(W/2 - 110, PAUSE_RESUME_Y - 29, 220, 58, 29); ctx.fill();
-  ctx.fillStyle = '#0A2010';
-  ctx.font = 'bold 20px Arial';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('▶ Resume', W/2, PAUSE_RESUME_Y);
-  ctx.textBaseline = 'alphabetic';
-  ctx.restore();
-
-  ctx.save();
-  ctx.fillStyle = 'rgba(255,255,255,0.15)';
-  ctx.beginPath(); ctx.roundRect(W/2 - 110, PAUSE_QUIT_Y - 25, 220, 50, 25); ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.roundRect(W/2 - 110, PAUSE_QUIT_Y - 25, 220, 50, 25); ctx.stroke();
-  ctx.fillStyle = 'rgba(255,255,255,0.85)';
-  ctx.font = '18px Arial';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('🏠 Title Screen', W/2, PAUSE_QUIT_Y);
-  ctx.textBaseline = 'alphabetic';
-  ctx.restore();
-}
-
-function draw() {
-  ctx.clearRect(0, 0, W, H);
-  if (state === 'TITLE') { drawTitleScreen(); return; }
-  if (state === 'ALLCLEAR') { drawAllClearScreen(); return; }
-  if (state === 'CHECKPOINT') { drawCheckpointScreen(); return; }
-  // Screen shake
-  ctx.save();
-  ctx.translate(shakeX, shakeY);
-  shakeX *= 0.72; shakeY *= 0.72;
-  if (Math.abs(shakeX) < 0.1) shakeX = 0;
-  if (Math.abs(shakeY) < 0.1) shakeY = 0;
-  drawBackground();
-  drawBlocks();
-  drawRats();
-  drawParticles();
-  drawWaitingBirds();
-  drawSlingshot();
-  drawBird();
-  if (state === 'AIMING') drawAimUI();
-  drawBoostPrompt();
-  drawPlayerCount();
-  drawLuckyAnnouncement();
-  drawComboAnnouncement();
-  ctx.restore(); // end shake translate
-  if (state === 'PAUSED') drawPausedOverlay();
-}
-
-function loop() {
-  update();
-  draw();
-  requestAnimationFrame(loop);
-}
-
-// ─── INIT ─────────────────────────────────────────────────────
-
-function init() {
-  state = 'TITLE';
-  titleMenuSel = 0;
-  titleFrame = 0;
-  initPlayerTracking();
-  loop();
-}
-
-init();
-</script>
-</body>
-</html>
