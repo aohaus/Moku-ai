@@ -121,6 +121,10 @@ canvas {
   width: 42px; height: 42px;
   font-size: 17px;
   cursor: pointer;
+  transition: transform 0.1s ease;
+}
+#pause-btn:active {
+  transform: scale(0.92);
 }
 /* Sized as a % of #wrapper's WIDTH (which shrink-wraps the canvas 1:1),
    not vw — vw is relative to the raw viewport and drifts out of sync
@@ -168,10 +172,20 @@ canvas {
   visibility: hidden;
   touch-action: none;
   cursor: pointer;
+  transition: transform 0.08s ease, filter 0.15s ease;
 }
 #shoot-btn:active {
   transform: translateY(-50%) scale(0.9);
   background: radial-gradient(circle at 35% 30%, #FFB374, #FF6A3D 70%);
+}
+#shoot-btn.primed {
+  filter: brightness(1.25);
+  box-shadow: 0 0 22px rgba(255, 201, 74, 0.9), inset 0 2px 8px rgba(255,255,255,0.8);
+  animation: shootPulse 0.15s ease-in-out infinite alternate;
+}
+@keyframes shootPulse {
+  from { transform: translateY(-50%) scale(1.0); }
+  to { transform: translateY(-50%) scale(1.06); }
 }
 #overlay {
   position: absolute; inset: 0;
@@ -305,6 +319,101 @@ canvas {
 </div>
 
 <script>
+// ─── AUDIO SYSTEM (Web Audio API Synthesizer) ──────────────────
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+
+function initAudio() {
+  if (!audioCtx) {
+    try {
+      audioCtx = new AudioCtx();
+    } catch(e){}
+  }
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+}
+
+function playSE(type) {
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  
+  if (type === 'kick') {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(140, now);
+    osc.frequency.exponentialRampToValueAtTime(35, now + 0.09);
+    gain.gain.setValueAtTime(0.35, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.09);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.09);
+  } else if (type === 'power') {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(180, now);
+    osc.frequency.exponentialRampToValueAtTime(540, now + 0.16);
+    gain.gain.setValueAtTime(0.45, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.2);
+  } else if (type === 'bounce') {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(220, now);
+    osc.frequency.exponentialRampToValueAtTime(90, now + 0.05);
+    gain.gain.setValueAtTime(0.18, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.05);
+  } else if (type === 'goal') {
+    [261.63, 329.63, 392.00, 523.25].forEach((freq, idx) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+      gain.gain.setValueAtTime(0.28, now + idx * 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.35);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now + idx * 0.08);
+      osc.stop(now + idx * 0.08 + 0.35);
+    });
+  } else if (type === 'concede') {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(170, now);
+    osc.frequency.linearRampToValueAtTime(60, now + 0.3);
+    gain.gain.setValueAtTime(0.35, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.3);
+  } else if (type === 'click') {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(460, now);
+    osc.frequency.exponentialRampToValueAtTime(880, now + 0.04);
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.04);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.04);
+  }
+}
+
 // ─── CANVAS ───────────────────────────────────────────────────
 const canvas = document.getElementById('c');
 const ctx    = canvas.getContext('2d');
@@ -895,8 +1004,10 @@ function resolvePaddleHit(entity, radius) {
         addShake(9);
         shotMessage = t('powerShotMsg');
         shotMessageTimer = 36;
+        playSE('power');
       } else {
         addParticles(ball.x, ball.y, '#FFE9A8', 6, 3);
+        playSE('kick');
       }
       if (entity !== player) entity.contactFrames = 0;
     } else if (entity !== player) {
@@ -943,18 +1054,20 @@ function updateBall() {
   resolvePaddleHit(gkPlayer, GK_R);
   resolvePaddleHit(gkCPU, GK_R);
 
-  if (ball.y - BALL_R < PITCH_Y0) { ball.y = PITCH_Y0 + BALL_R; ball.vy = -ball.vy * WALL_BOUNCE; }
-  if (ball.y + BALL_R > PITCH_Y1) { ball.y = PITCH_Y1 - BALL_R; ball.vy = -ball.vy * WALL_BOUNCE; }
+  let bounced = false;
+  if (ball.y - BALL_R < PITCH_Y0) { ball.y = PITCH_Y0 + BALL_R; ball.vy = -ball.vy * WALL_BOUNCE; bounced = true; }
+  if (ball.y + BALL_R > PITCH_Y1) { ball.y = PITCH_Y1 - BALL_R; ball.vy = -ball.vy * WALL_BOUNCE; bounced = true; }
 
   const inGoalMouth = ball.y > GOAL_Y0 && ball.y < GOAL_Y1;
   if (ball.x - BALL_R < PITCH_X0) {
     if (inGoalMouth && ball.x < PITCH_X0 - BALL_R * 0.6) { scoreGoal('away'); return; }
-    if (!inGoalMouth) { ball.x = PITCH_X0 + BALL_R; ball.vx = -ball.vx * WALL_BOUNCE; }
+    if (!inGoalMouth) { ball.x = PITCH_X0 + BALL_R; ball.vx = -ball.vx * WALL_BOUNCE; bounced = true; }
   }
   if (ball.x + BALL_R > PITCH_X1) {
     if (inGoalMouth && ball.x > PITCH_X1 + BALL_R * 0.6) { scoreGoal('home'); return; }
-    if (!inGoalMouth) { ball.x = PITCH_X1 - BALL_R; ball.vx = -ball.vx * WALL_BOUNCE; }
+    if (!inGoalMouth) { ball.x = PITCH_X1 - BALL_R; ball.vx = -ball.vx * WALL_BOUNCE; bounced = true; }
   }
+  if (bounced) playSE('bounce');
 
   // Safety valve: a paddle (especially the CPU/keepers, which re-target or
   // re-patrol on their own) can keep pinning the ball against a corner —
@@ -993,8 +1106,8 @@ function updateBall() {
 }
 
 function scoreGoal(who) {
-  if (who === 'home') { scoreHome++; goalMessage = t('goalMsg'); }
-  else { scoreAway++; goalMessage = t('concededMsg'); }
+  if (who === 'home') { scoreHome++; goalMessage = t('goalMsg'); playSE('goal'); }
+  else { scoreAway++; goalMessage = t('concededMsg'); playSE('concede'); }
   updateHUD();
   addParticles(who === 'home' ? PITCH_X1 : PITCH_X0, PITCH_CY, '#FFC94A', 26, 6);
   addShake(14);
@@ -1543,6 +1656,7 @@ function upgradeStat(key) {
   profile.points -= cost;
   ap[key] = level + 1;
   saveProfile();
+  playSE('click');
 }
 function drawShopPanel() {
   drawPanelFrame(t('panelShop'));
@@ -1595,6 +1709,7 @@ function buyPlayer(id) {
   profile.points -= SHOP_PRICE;
   profile.players[id] = { owned: true, name: meta.name, sp: 1, sh: 1, def: 1 };
   saveProfile();
+  playSE('click');
 }
 function drawBallPanel() {
   drawPanelFrame(t('panelBall'));
@@ -1789,6 +1904,14 @@ function update() {
     matchFramesLeft--;
     if (matchFramesLeft % 15 === 0) updateTimeDisplay();
     if (matchFramesLeft <= 0) { matchFramesLeft = 0; updateTimeDisplay(); endMatch(); }
+    
+    // Shoot button active feedback update
+    const btn = document.getElementById('shoot-btn');
+    if (frameCount - shootPressFrame <= SHOOT_WINDOW_FRAMES) {
+      btn.classList.add('primed');
+    } else {
+      btn.classList.remove('primed');
+    }
   } else if (state === 'GOAL_PAUSE') {
     if (--goalPauseTimer <= 0) {
       centerBall(scoreHome > scoreAway ? -1 : 1);
@@ -1898,11 +2021,13 @@ function pauseGame() {
   if (state !== 'PLAYING') return;
   state = 'PAUSED';
   document.getElementById('pause-btn').textContent = '▶';
+  playSE('click');
 }
 function resumeGame() {
   if (state !== 'PAUSED') return;
   state = 'PLAYING';
   document.getElementById('pause-btn').textContent = '⏸';
+  playSE('click');
 }
 function quitToTitle() {
   state = 'TITLE';
@@ -1919,6 +2044,7 @@ function quitToTitle() {
   document.getElementById('buildInfo').style.display = 'block';
   document.getElementById('titleMascotImg').style.display = 'block';
   document.getElementById('pause-btn').textContent = '⏸';
+  playSE('click');
 }
 function quitToHome() {
   state = 'HOME';
@@ -1934,6 +2060,7 @@ function quitToHome() {
   document.getElementById('buildInfo').style.display = 'block';
   document.getElementById('titleMascotImg').style.display = 'none';
   document.getElementById('pause-btn').textContent = '⏸';
+  playSE('click');
 }
 function returnToProfile() {
   state = 'PROFILE';
@@ -1944,6 +2071,7 @@ function returnToProfile() {
   document.getElementById('lang-toggle').style.display = 'block';
   document.getElementById('buildInfo').style.display = 'block';
   document.getElementById('titleMascotImg').style.display = 'none';
+  playSE('click');
 }
 
 // ─── INPUT ────────────────────────────────────────────────────
@@ -1956,12 +2084,14 @@ function getPos(e) {
 }
 
 function onDown(e) {
+  initAudio();
   e.preventDefault();
   const p = getPos(e);
   if (state === 'TITLE') {
     if (p.x >= W/2 - 85 && p.x <= W/2 + 85 && p.y >= 366 && p.y <= 414) {
       state = 'HOME';
       document.getElementById('titleMascotImg').style.display = 'none';
+      playSE('click');
       return;
     }
     return;
@@ -1969,6 +2099,7 @@ function onDown(e) {
   if (state === 'HOME') {
     if (p.x >= W/2-100 && p.x <= W/2+100 && p.y >= 394 && p.y <= 446) {
       state = activePlayer() ? 'PROFILE' : 'ROSTER';
+      playSE('click');
       return;
     }
     if (p.x < 140 && p.y > H - 46) { quitToTitle(); return; }
@@ -1980,21 +2111,23 @@ function onDown(e) {
     for (let i = 0; i < 3; i++) {
       const x = startX + i * (ROSTER_CARD_W + ROSTER_CARD_GAP);
       if (p.x >= x && p.x <= x + ROSTER_CARD_W && p.y >= ROSTER_CARD_Y && p.y <= ROSTER_CARD_Y + ROSTER_CARD_H) {
-        pickStarter(STARTER_PLAYERS[i].id); return;
+        pickStarter(STARTER_PLAYERS[i].id);
+        playSE('click');
+        return;
       }
     }
-    if (p.x < 140 && p.y > H - 46) { state = 'HOME'; return; }
+    if (p.x < 140 && p.y > H - 46) { state = 'HOME'; playSE('click'); return; }
     return;
   }
   if (state === 'PROFILE') {
     if (profilePanel) {
-      if (p.x >= PANEL_X+PANEL_W-46 && p.x <= PANEL_X+PANEL_W-10 && p.y >= PANEL_Y+10 && p.y <= PANEL_Y+44) { profilePanel = null; return; }
+      if (p.x >= PANEL_X+PANEL_W-46 && p.x <= PANEL_X+PANEL_W-10 && p.y >= PANEL_Y+10 && p.y <= PANEL_Y+44) { profilePanel = null; playSE('click'); return; }
       if (profilePanel === 'manage') {
         const owned = ownedIds();
         for (let i = 0; i < owned.length; i++) {
           const y = MANAGE_ROW_Y0 + i * MANAGE_ROW_H;
           if (p.x >= PANEL_X+40 && p.x <= PANEL_X+PANEL_W-40 && p.y >= y && p.y <= y+MANAGE_ROW_H-16) {
-            profile.activePlayerId = owned[i]; saveProfile(); return;
+            profile.activePlayerId = owned[i]; saveProfile(); playSE('click'); return;
           }
         }
         const renameY = MANAGE_ROW_Y0 + owned.length * MANAGE_ROW_H + 20;
@@ -2002,7 +2135,7 @@ function onDown(e) {
           const ap = activePlayer();
           if (ap) {
             const nn = window.prompt(t('renamePrompt'), ap.name);
-            if (nn && nn.trim()) { ap.name = nn.trim().slice(0, 20); saveProfile(); }
+            if (nn && nn.trim()) { ap.name = nn.trim().slice(0, 20); saveProfile(); playSE('click'); }
           }
           return;
         }
@@ -2011,6 +2144,7 @@ function onDown(e) {
           profile.lang = profile.lang === 'en' ? 'ja' : 'en';
           saveProfile();
           applyLanguage();
+          playSE('click');
           return;
         }
         return;
@@ -2039,7 +2173,7 @@ function onDown(e) {
         BALL_SKINS.forEach((skin, i) => {
           const x = startX + i * (BALL_ITEM_W + 20);
           if (p.x >= x && p.x <= x+BALL_ITEM_W && p.y >= BALL_ITEM_Y0 && p.y <= BALL_ITEM_Y0+BALL_ITEM_H) {
-            profile.ballSkin = skin.id; saveProfile();
+            profile.ballSkin = skin.id; saveProfile(); playSE('click');
           }
         });
         return;
@@ -2047,12 +2181,12 @@ function onDown(e) {
       return;
     }
 
-    if (Math.hypot(p.x - PF_AVATAR_X, p.y - PF_AVATAR_Y) <= PF_AVATAR_R + 10) { profilePanel = 'manage'; return; }
+    if (Math.hypot(p.x - PF_AVATAR_X, p.y - PF_AVATAR_Y) <= PF_AVATAR_R + 10) { profilePanel = 'manage'; playSE('click'); return; }
 
     for (let i = 0; i < PROFILE_ICONS.length; i++) {
       const y = PF_ICON_Y0 + i * PF_ICON_GAP;
       if (p.x >= PF_ICON_X-PF_ICON_SIZE/2 && p.x <= PF_ICON_X+PF_ICON_SIZE/2 && p.y >= y-PF_ICON_SIZE/2 && p.y <= y+PF_ICON_SIZE/2) {
-        profilePanel = PROFILE_ICONS[i].key; return;
+        profilePanel = PROFILE_ICONS[i].key; playSE('click'); return;
       }
     }
 
@@ -2061,7 +2195,7 @@ function onDown(e) {
     for (let i = 0; i < 3; i++) {
       const x = timeStartX + i * (PF_TIME_W + PF_TIME_GAP);
       if (p.x >= x && p.x <= x+PF_TIME_W && p.y >= PF_TIME_Y && p.y <= PF_TIME_Y+PF_TIME_H) {
-        matchDurationIdx = i; profile.matchDurationIdx = i; saveProfile(); return;
+        matchDurationIdx = i; profile.matchDurationIdx = i; saveProfile(); playSE('click'); return;
       }
     }
     const lvlTotalW = PF_LVL_W * 3 + PF_LVL_GAP * 2;
@@ -2069,18 +2203,18 @@ function onDown(e) {
     for (let i = 0; i < 3; i++) {
       const x = lvlStartX + i * (PF_LVL_W + PF_LVL_GAP);
       if (p.x >= x && p.x <= x+PF_LVL_W && p.y >= PF_LVL_Y && p.y <= PF_LVL_Y+PF_LVL_H) {
-        cpuLevel = i; profile.cpuLevel = i; saveProfile(); return;
+        cpuLevel = i; profile.cpuLevel = i; saveProfile(); playSE('click'); return;
       }
     }
     if (p.x >= W/2-120 && p.x <= W/2+120 && p.y >= PF_READY_Y-28 && p.y <= PF_READY_Y+28) {
-      if (activePlayer()) { matchMode = 'ready'; enterVS(); }
+      if (activePlayer()) { matchMode = 'ready'; enterVS(); playSE('click'); }
       return;
     }
     if (p.x >= W/2-110 && p.x <= W/2+110 && p.y >= PF_FREEPLAY_Y-22 && p.y <= PF_FREEPLAY_Y+22) { return; } // Free Play: Coming Soon
-    if (p.x < 140 && p.y > H - 46) { state = 'HOME'; return; }
+    if (p.x < 140 && p.y > H - 46) { state = 'HOME'; playSE('click'); return; }
     return;
   }
-  if (state === 'VS') { startMatch(); return; }
+  if (state === 'VS') { startMatch(); playSE('click'); return; }
   if (state === 'PAUSED') {
     if (p.x >= W/2-90 && p.x <= W/2+90 && p.y >= PAUSE_RESUME_Y-24 && p.y <= PAUSE_RESUME_Y+24) { resumeGame(); return; }
     if (p.x >= W/2-90 && p.x <= W/2+90 && p.y >= PAUSE_QUIT_Y-22 && p.y <= PAUSE_QUIT_Y+22) { quitToHome(); return; }
@@ -2112,6 +2246,7 @@ function setStickFromClient(clientX, clientY) {
   stickY = maxR > 0 ? ky / maxR : 0;
 }
 joystick.addEventListener('pointerdown', e => {
+  initAudio();
   e.preventDefault();
   joyPointerId = e.pointerId;
   joystick.setPointerCapture(e.pointerId);
@@ -2132,16 +2267,19 @@ joystick.addEventListener('pointercancel', endJoyPointer);
 // ─── SHOOT BUTTON (timed press primes the next paddle contact) ─
 const shootBtn = document.getElementById('shoot-btn');
 shootBtn.addEventListener('pointerdown', e => {
+  initAudio();
   e.preventDefault();
   if (state !== 'PLAYING') return;
   if (frameCount < shootReadyFrame) return; // still on cooldown from the last press
   shootPressFrame = frameCount;
   shootReadyFrame = frameCount + SHOOT_COOLDOWN_FRAMES;
+  playSE('click');
 });
 
 document.addEventListener('keydown', e => {
+  initAudio();
   if (state === 'TITLE') {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); state = 'HOME'; }
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); state = 'HOME'; playSE('click'); }
     return;
   }
   if (e.key === 'Escape' && (state === 'PLAYING' || state === 'PAUSED')) {
@@ -2158,6 +2296,7 @@ document.addEventListener('keydown', e => {
     if (frameCount >= shootReadyFrame) {
       shootPressFrame = frameCount;
       shootReadyFrame = frameCount + SHOOT_COOLDOWN_FRAMES;
+      playSE('click');
     }
   }
 });
@@ -2169,10 +2308,12 @@ document.addEventListener('keyup', e => {
 });
 
 document.getElementById('pause-btn').addEventListener('click', () => {
+  initAudio();
   if (state === 'PLAYING') pauseGame();
   else if (state === 'PAUSED') resumeGame();
 });
 document.getElementById('ov-btn').addEventListener('click', () => {
+  initAudio();
   document.getElementById('overlay').classList.add('hidden');
   returnToProfile();
 });
@@ -2191,9 +2332,11 @@ function applyLanguage() {
   document.getElementById('lang-toggle').textContent = t('langToggle');
 }
 document.getElementById('lang-toggle').addEventListener('click', () => {
+  initAudio();
   profile.lang = profile.lang === 'en' ? 'ja' : 'en';
   saveProfile();
   applyLanguage();
+  playSE('click');
 });
 applyLanguage();
 
