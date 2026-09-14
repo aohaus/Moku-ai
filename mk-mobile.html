@@ -305,6 +305,102 @@ canvas {
 </div>
 
 <script>
+// ─── AUDIO SYSTEM (Web Audio API) ─────────────────────────────
+let audioCtx = null;
+function initAudio() {
+  if (!audioCtx) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) {
+      audioCtx = new AudioContextClass();
+    }
+  }
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+}
+
+function playSound(type) {
+  if (!audioCtx) return;
+  try {
+    const now = audioCtx.currentTime;
+    if (type === 'hit') {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(180, now);
+      osc.frequency.exponentialRampToValueAtTime(60, now + 0.08);
+      gain.gain.setValueAtTime(0.3, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.08);
+    } else if (type === 'wall') {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(120, now);
+      osc.frequency.exponentialRampToValueAtTime(40, now + 0.06);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.06);
+    } else if (type === 'powershot') {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.exponentialRampToValueAtTime(110, now + 0.22);
+      gain.gain.setValueAtTime(0.4, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.22);
+    } else if (type === 'goal') {
+      const notes = [261.63, 329.63, 392.00, 523.25];
+      notes.forEach((freq, idx) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const startTime = now + idx * 0.09;
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, startTime);
+        gain.gain.setValueAtTime(0.3, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.25);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(startTime);
+        osc.stop(startTime + 0.25);
+      });
+    } else if (type === 'click') {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(520, now);
+      osc.frequency.exponentialRampToValueAtTime(260, now + 0.04);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.04);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.04);
+    } else if (type === 'count') {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, now);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.12);
+    }
+  } catch (e) {}
+}
+
 // ─── CANVAS ───────────────────────────────────────────────────
 const canvas = document.getElementById('c');
 const ctx    = canvas.getContext('2d');
@@ -895,8 +991,10 @@ function resolvePaddleHit(entity, radius) {
         addShake(9);
         shotMessage = t('powerShotMsg');
         shotMessageTimer = 36;
+        playSound('powershot');
       } else {
         addParticles(ball.x, ball.y, '#FFE9A8', 6, 3);
+        playSound('hit');
       }
       if (entity !== player) entity.contactFrames = 0;
     } else if (entity !== player) {
@@ -943,17 +1041,17 @@ function updateBall() {
   resolvePaddleHit(gkPlayer, GK_R);
   resolvePaddleHit(gkCPU, GK_R);
 
-  if (ball.y - BALL_R < PITCH_Y0) { ball.y = PITCH_Y0 + BALL_R; ball.vy = -ball.vy * WALL_BOUNCE; }
-  if (ball.y + BALL_R > PITCH_Y1) { ball.y = PITCH_Y1 - BALL_R; ball.vy = -ball.vy * WALL_BOUNCE; }
+  if (ball.y - BALL_R < PITCH_Y0) { ball.y = PITCH_Y0 + BALL_R; ball.vy = -ball.vy * WALL_BOUNCE; playSound('wall'); }
+  if (ball.y + BALL_R > PITCH_Y1) { ball.y = PITCH_Y1 - BALL_R; ball.vy = -ball.vy * WALL_BOUNCE; playSound('wall'); }
 
   const inGoalMouth = ball.y > GOAL_Y0 && ball.y < GOAL_Y1;
   if (ball.x - BALL_R < PITCH_X0) {
     if (inGoalMouth && ball.x < PITCH_X0 - BALL_R * 0.6) { scoreGoal('away'); return; }
-    if (!inGoalMouth) { ball.x = PITCH_X0 + BALL_R; ball.vx = -ball.vx * WALL_BOUNCE; }
+    if (!inGoalMouth) { ball.x = PITCH_X0 + BALL_R; ball.vx = -ball.vx * WALL_BOUNCE; playSound('wall'); }
   }
   if (ball.x + BALL_R > PITCH_X1) {
     if (inGoalMouth && ball.x > PITCH_X1 + BALL_R * 0.6) { scoreGoal('home'); return; }
-    if (!inGoalMouth) { ball.x = PITCH_X1 - BALL_R; ball.vx = -ball.vx * WALL_BOUNCE; }
+    if (!inGoalMouth) { ball.x = PITCH_X1 - BALL_R; ball.vx = -ball.vx * WALL_BOUNCE; playSound('wall'); }
   }
 
   // Safety valve: a paddle (especially the CPU/keepers, which re-target or
@@ -999,6 +1097,7 @@ function scoreGoal(who) {
   addParticles(who === 'home' ? PITCH_X1 : PITCH_X0, PITCH_CY, '#FFC94A', 26, 6);
   addShake(14);
   flashAlpha = 0.5;
+  playSound('goal');
   state = 'GOAL_PAUSE';
   goalPauseTimer = 90;
 }
@@ -1543,6 +1642,7 @@ function upgradeStat(key) {
   profile.points -= cost;
   ap[key] = level + 1;
   saveProfile();
+  playSound('click');
 }
 function drawShopPanel() {
   drawPanelFrame(t('panelShop'));
@@ -1595,6 +1695,7 @@ function buyPlayer(id) {
   profile.points -= SHOP_PRICE;
   profile.players[id] = { owned: true, name: meta.name, sp: 1, sh: 1, def: 1 };
   saveProfile();
+  playSound('click');
 }
 function drawBallPanel() {
   drawPanelFrame(t('panelBall'));
@@ -1796,6 +1897,9 @@ function update() {
       state = 'PLAYING';
     }
   } else if (state === 'VS') {
+    if (vsTimer % 60 === 0 && vsTimer > 0) {
+      playSound('count');
+    }
     if (--vsTimer <= 0) startMatch();
   }
 }
@@ -1898,11 +2002,13 @@ function pauseGame() {
   if (state !== 'PLAYING') return;
   state = 'PAUSED';
   document.getElementById('pause-btn').textContent = '▶';
+  playSound('click');
 }
 function resumeGame() {
   if (state !== 'PAUSED') return;
   state = 'PLAYING';
   document.getElementById('pause-btn').textContent = '⏸';
+  playSound('click');
 }
 function quitToTitle() {
   state = 'TITLE';
@@ -1919,6 +2025,7 @@ function quitToTitle() {
   document.getElementById('buildInfo').style.display = 'block';
   document.getElementById('titleMascotImg').style.display = 'block';
   document.getElementById('pause-btn').textContent = '⏸';
+  playSound('click');
 }
 function quitToHome() {
   state = 'HOME';
@@ -1934,6 +2041,7 @@ function quitToHome() {
   document.getElementById('buildInfo').style.display = 'block';
   document.getElementById('titleMascotImg').style.display = 'none';
   document.getElementById('pause-btn').textContent = '⏸';
+  playSound('click');
 }
 function returnToProfile() {
   state = 'PROFILE';
@@ -1944,6 +2052,7 @@ function returnToProfile() {
   document.getElementById('lang-toggle').style.display = 'block';
   document.getElementById('buildInfo').style.display = 'block';
   document.getElementById('titleMascotImg').style.display = 'none';
+  playSound('click');
 }
 
 // ─── INPUT ────────────────────────────────────────────────────
@@ -1957,9 +2066,11 @@ function getPos(e) {
 
 function onDown(e) {
   e.preventDefault();
+  initAudio();
   const p = getPos(e);
   if (state === 'TITLE') {
     if (p.x >= W/2 - 85 && p.x <= W/2 + 85 && p.y >= 366 && p.y <= 414) {
+      playSound('click');
       state = 'HOME';
       document.getElementById('titleMascotImg').style.display = 'none';
       return;
@@ -1968,6 +2079,7 @@ function onDown(e) {
   }
   if (state === 'HOME') {
     if (p.x >= W/2-100 && p.x <= W/2+100 && p.y >= 394 && p.y <= 446) {
+      playSound('click');
       state = activePlayer() ? 'PROFILE' : 'ROSTER';
       return;
     }
@@ -1980,25 +2092,27 @@ function onDown(e) {
     for (let i = 0; i < 3; i++) {
       const x = startX + i * (ROSTER_CARD_W + ROSTER_CARD_GAP);
       if (p.x >= x && p.x <= x + ROSTER_CARD_W && p.y >= ROSTER_CARD_Y && p.y <= ROSTER_CARD_Y + ROSTER_CARD_H) {
+        playSound('click');
         pickStarter(STARTER_PLAYERS[i].id); return;
       }
     }
-    if (p.x < 140 && p.y > H - 46) { state = 'HOME'; return; }
+    if (p.x < 140 && p.y > H - 46) { playSound('click'); state = 'HOME'; return; }
     return;
   }
   if (state === 'PROFILE') {
     if (profilePanel) {
-      if (p.x >= PANEL_X+PANEL_W-46 && p.x <= PANEL_X+PANEL_W-10 && p.y >= PANEL_Y+10 && p.y <= PANEL_Y+44) { profilePanel = null; return; }
+      if (p.x >= PANEL_X+PANEL_W-46 && p.x <= PANEL_X+PANEL_W-10 && p.y >= PANEL_Y+10 && p.y <= PANEL_Y+44) { playSound('click'); profilePanel = null; return; }
       if (profilePanel === 'manage') {
         const owned = ownedIds();
         for (let i = 0; i < owned.length; i++) {
           const y = MANAGE_ROW_Y0 + i * MANAGE_ROW_H;
           if (p.x >= PANEL_X+40 && p.x <= PANEL_X+PANEL_W-40 && p.y >= y && p.y <= y+MANAGE_ROW_H-16) {
-            profile.activePlayerId = owned[i]; saveProfile(); return;
+            playSound('click'); profile.activePlayerId = owned[i]; saveProfile(); return;
           }
         }
         const renameY = MANAGE_ROW_Y0 + owned.length * MANAGE_ROW_H + 20;
         if (p.x >= PANEL_X+PANEL_W/2-110 && p.x <= PANEL_X+PANEL_W/2+110 && p.y >= renameY && p.y <= renameY+42) {
+          playSound('click');
           const ap = activePlayer();
           if (ap) {
             const nn = window.prompt(t('renamePrompt'), ap.name);
@@ -2008,6 +2122,7 @@ function onDown(e) {
         }
         const langY = renameY + 58;
         if (p.x >= PANEL_X+PANEL_W/2-110 && p.x <= PANEL_X+PANEL_W/2+110 && p.y >= langY && p.y <= langY+42) {
+          playSound('click');
           profile.lang = profile.lang === 'en' ? 'ja' : 'en';
           saveProfile();
           applyLanguage();
@@ -2039,7 +2154,7 @@ function onDown(e) {
         BALL_SKINS.forEach((skin, i) => {
           const x = startX + i * (BALL_ITEM_W + 20);
           if (p.x >= x && p.x <= x+BALL_ITEM_W && p.y >= BALL_ITEM_Y0 && p.y <= BALL_ITEM_Y0+BALL_ITEM_H) {
-            profile.ballSkin = skin.id; saveProfile();
+            playSound('click'); profile.ballSkin = skin.id; saveProfile();
           }
         });
         return;
@@ -2047,12 +2162,12 @@ function onDown(e) {
       return;
     }
 
-    if (Math.hypot(p.x - PF_AVATAR_X, p.y - PF_AVATAR_Y) <= PF_AVATAR_R + 10) { profilePanel = 'manage'; return; }
+    if (Math.hypot(p.x - PF_AVATAR_X, p.y - PF_AVATAR_Y) <= PF_AVATAR_R + 10) { playSound('click'); profilePanel = 'manage'; return; }
 
     for (let i = 0; i < PROFILE_ICONS.length; i++) {
       const y = PF_ICON_Y0 + i * PF_ICON_GAP;
       if (p.x >= PF_ICON_X-PF_ICON_SIZE/2 && p.x <= PF_ICON_X+PF_ICON_SIZE/2 && p.y >= y-PF_ICON_SIZE/2 && p.y <= y+PF_ICON_SIZE/2) {
-        profilePanel = PROFILE_ICONS[i].key; return;
+        playSound('click'); profilePanel = PROFILE_ICONS[i].key; return;
       }
     }
 
@@ -2061,7 +2176,7 @@ function onDown(e) {
     for (let i = 0; i < 3; i++) {
       const x = timeStartX + i * (PF_TIME_W + PF_TIME_GAP);
       if (p.x >= x && p.x <= x+PF_TIME_W && p.y >= PF_TIME_Y && p.y <= PF_TIME_Y+PF_TIME_H) {
-        matchDurationIdx = i; profile.matchDurationIdx = i; saveProfile(); return;
+        playSound('click'); matchDurationIdx = i; profile.matchDurationIdx = i; saveProfile(); return;
       }
     }
     const lvlTotalW = PF_LVL_W * 3 + PF_LVL_GAP * 2;
@@ -2069,18 +2184,18 @@ function onDown(e) {
     for (let i = 0; i < 3; i++) {
       const x = lvlStartX + i * (PF_LVL_W + PF_LVL_GAP);
       if (p.x >= x && p.x <= x+PF_LVL_W && p.y >= PF_LVL_Y && p.y <= PF_LVL_Y+PF_LVL_H) {
-        cpuLevel = i; profile.cpuLevel = i; saveProfile(); return;
+        playSound('click'); cpuLevel = i; profile.cpuLevel = i; saveProfile(); return;
       }
     }
     if (p.x >= W/2-120 && p.x <= W/2+120 && p.y >= PF_READY_Y-28 && p.y <= PF_READY_Y+28) {
-      if (activePlayer()) { matchMode = 'ready'; enterVS(); }
+      if (activePlayer()) { playSound('click'); matchMode = 'ready'; enterVS(); }
       return;
     }
     if (p.x >= W/2-110 && p.x <= W/2+110 && p.y >= PF_FREEPLAY_Y-22 && p.y <= PF_FREEPLAY_Y+22) { return; } // Free Play: Coming Soon
-    if (p.x < 140 && p.y > H - 46) { state = 'HOME'; return; }
+    if (p.x < 140 && p.y > H - 46) { playSound('click'); state = 'HOME'; return; }
     return;
   }
-  if (state === 'VS') { startMatch(); return; }
+  if (state === 'VS') { playSound('click'); startMatch(); return; }
   if (state === 'PAUSED') {
     if (p.x >= W/2-90 && p.x <= W/2+90 && p.y >= PAUSE_RESUME_Y-24 && p.y <= PAUSE_RESUME_Y+24) { resumeGame(); return; }
     if (p.x >= W/2-90 && p.x <= W/2+90 && p.y >= PAUSE_QUIT_Y-22 && p.y <= PAUSE_QUIT_Y+22) { quitToHome(); return; }
@@ -2113,6 +2228,7 @@ function setStickFromClient(clientX, clientY) {
 }
 joystick.addEventListener('pointerdown', e => {
   e.preventDefault();
+  initAudio();
   joyPointerId = e.pointerId;
   joystick.setPointerCapture(e.pointerId);
   setStickFromClient(e.clientX, e.clientY);
@@ -2133,6 +2249,7 @@ joystick.addEventListener('pointercancel', endJoyPointer);
 const shootBtn = document.getElementById('shoot-btn');
 shootBtn.addEventListener('pointerdown', e => {
   e.preventDefault();
+  initAudio();
   if (state !== 'PLAYING') return;
   if (frameCount < shootReadyFrame) return; // still on cooldown from the last press
   shootPressFrame = frameCount;
@@ -2140,8 +2257,9 @@ shootBtn.addEventListener('pointerdown', e => {
 });
 
 document.addEventListener('keydown', e => {
+  initAudio();
   if (state === 'TITLE') {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); state = 'HOME'; }
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); playSound('click'); state = 'HOME'; }
     return;
   }
   if (e.key === 'Escape' && (state === 'PLAYING' || state === 'PAUSED')) {
@@ -2169,10 +2287,12 @@ document.addEventListener('keyup', e => {
 });
 
 document.getElementById('pause-btn').addEventListener('click', () => {
+  initAudio();
   if (state === 'PLAYING') pauseGame();
   else if (state === 'PAUSED') resumeGame();
 });
 document.getElementById('ov-btn').addEventListener('click', () => {
+  initAudio();
   document.getElementById('overlay').classList.add('hidden');
   returnToProfile();
 });
@@ -2191,6 +2311,8 @@ function applyLanguage() {
   document.getElementById('lang-toggle').textContent = t('langToggle');
 }
 document.getElementById('lang-toggle').addEventListener('click', () => {
+  initAudio();
+  playSound('click');
   profile.lang = profile.lang === 'en' ? 'ja' : 'en';
   saveProfile();
   applyLanguage();
