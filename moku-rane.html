@@ -103,6 +103,29 @@
   }
   #canvas-container:active { cursor: grabbing; }
 
+  /* ---------- Floating Score & Combo Text Overlay ---------- */
+  #floating-text-container {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    z-index: 70;
+    overflow: hidden;
+  }
+  .floating-score {
+    position: absolute;
+    font-weight: 900;
+    color: #FFC94A;
+    text-shadow: 0 0 12px rgba(255, 201, 74, 0.8), 0 4px 8px rgba(0,0,0,0.8);
+    font-size: clamp(22px, 5vw, 36px);
+    transform: translate(-50%, -50%) scale(0.5);
+    animation: floatUpScore 1.2s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+    white-space: nowrap;
+  }
+  @keyframes floatUpScore {
+    0% { opacity: 0; transform: translate(-50%, -20%) scale(0.5) rotate(-6deg); }
+    30% { opacity: 1; transform: translate(-50%, -60%) scale(1.2) rotate(2deg); }
+    100% { opacity: 0; transform: translate(-50%, -140%) scale(0.9) rotate(0deg); }
+  }
+
   /* ---------- Top HUD in Game ---------- */
   #game-hud {
     position: absolute;
@@ -251,7 +274,13 @@
     color: var(--accent-gold);
     font-variant-numeric: tabular-nums;
     text-shadow: 0 0 12px rgba(255, 201, 74, 0.4);
+    transition: color 0.3s ease;
   }
+  .timer-badge.warning {
+    color: #EF4444;
+    animation: timerPulse 0.5s infinite alternate;
+  }
+  @keyframes timerPulse { from{ transform: scale(1); } to{ transform: scale(1.18); } }
 
   /* Big Drop / Grab Button */
   #drop-btn {
@@ -569,6 +598,7 @@
 
 <div id="app">
   <div id="canvas-container"></div>
+  <div id="floating-text-container"></div>
 
   <!-- Top In-Game HUD -->
   <div id="game-hud">
@@ -744,6 +774,25 @@
     });
   }
 
+  function sfxRareWin() {
+    var notes = [523.25, 659.25, 783.99, 880.00, 1046.50, 1318.51];
+    notes.forEach(function(n, i) {
+      setTimeout(function() { playTone(n, 'sine', 0.28, 0.3); }, i * 90);
+    });
+  }
+
+  function sfxButton() {
+    playTone(600, 'sine', 0.05, 0.08);
+  }
+
+  function sfxWarning() {
+    playTone(880, 'square', 0.08, 0.15);
+  }
+
+  function sfxFail() {
+    playTone(300, 'sawtooth', 0.25, 0.12, 120);
+  }
+
   /* ================= PRIZE DEFINITIONS ================= */
   var PRIZE_TYPES = [
     // --- Moku Protagonists ---
@@ -810,6 +859,9 @@
   var cabinetDepth = 4.2;
   var cabinetHeight = 5.2;
 
+  // Dynamic Cabinet Lights
+  var pinkLight, cyanLight, chuteLight, spotLight;
+
   // Crane Gantry & Claw
   var gantryGroup, trolleyGroup, cableMesh, clawGroup;
   var clawProngs = [];
@@ -820,9 +872,16 @@
   var clawCurrentAngle = 0.55;
   var grabbedPrize = null;
 
+  // 3D Particles for Chute Win Effect
+  var chuteParticles = [];
+
   // Physics Bodies / Prizes
   var prizes = [];
   var chuteBounds = { minX: -1.9, maxX: -0.9, minZ: 0.9, maxZ: 1.9 };
+
+  // Combo System & Floating Text
+  var comboCount = 0;
+  var lastWinTime = 0;
 
   function initThree() {
     var container = document.getElementById('canvas-container');
@@ -843,6 +902,7 @@
     setupLighting();
     buildCabinet();
     buildGantryAndClaw();
+    buildChuteParticleGroup();
     spawnPrizes();
 
     window.addEventListener('resize', onWindowResize);
@@ -854,7 +914,7 @@
     scene.add(ambient);
 
     // Main ceiling arcade light
-    var spotLight = new THREE.SpotLight(0xffffff, 1.2);
+    spotLight = new THREE.SpotLight(0xffffff, 1.2);
     spotLight.position.set(0, 8, 2);
     spotLight.angle = Math.PI / 3;
     spotLight.penumbra = 0.4;
@@ -864,16 +924,16 @@
     scene.add(spotLight);
 
     // Neon Accent Lights
-    var pinkLight = new THREE.PointLight(0xff4b91, 1.5, 8);
+    pinkLight = new THREE.PointLight(0xff4b91, 1.5, 8);
     pinkLight.position.set(2, 4.5, 2);
     scene.add(pinkLight);
 
-    var cyanLight = new THREE.PointLight(0x22d3ee, 1.5, 8);
+    cyanLight = new THREE.PointLight(0x22d3ee, 1.5, 8);
     cyanLight.position.set(-2, 4.5, -2);
     scene.add(cyanLight);
 
     // Chute Green Glow
-    var chuteLight = new THREE.PointLight(0x22c55e, 1.2, 4);
+    chuteLight = new THREE.PointLight(0x22c55e, 1.2, 4);
     chuteLight.position.set(-1.4, 0.8, 1.4);
     scene.add(chuteLight);
   }
@@ -1062,6 +1122,38 @@
       clawGroup.add(prongRoot);
       clawProngs.push(prongRoot);
     }
+  }
+
+  function buildChuteParticleGroup() {
+    var pGeo = new THREE.SphereGeometry(0.04, 8, 8);
+    var pMat = new THREE.MeshBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0 });
+    for (var i = 0; i < 20; i++) {
+      var p = new THREE.Mesh(pGeo, pMat.clone());
+      p.position.set(-1.4, 1.2, 1.4);
+      p.userData = { vy: 0, life: 0 };
+      scene.add(p);
+      chuteParticles.push(p);
+    }
+  }
+
+  function triggerChuteParticles() {
+    chuteParticles.forEach(function(p, idx) {
+      p.position.set(-1.4 + (Math.random() - 0.5) * 0.6, 1.2, 1.4 + (Math.random() - 0.5) * 0.6);
+      p.userData.vy = 1.5 + Math.random() * 2.0;
+      p.userData.life = 1.0;
+      p.material.color.setHex([0x22d3ee, 0xff4b91, 0xffc94a, 0x22c55e][idx % 4]);
+      p.material.opacity = 1.0;
+    });
+  }
+
+  function updateChuteParticles(dt) {
+    chuteParticles.forEach(function(p) {
+      if (p.userData.life > 0) {
+        p.position.y += p.userData.vy * dt;
+        p.userData.life -= 1.2 * dt;
+        p.material.opacity = Math.max(0, p.userData.life);
+      }
+    });
   }
 
   /* ================= 3D PLUSHIE MESH GENERATOR ================= */
@@ -1395,7 +1487,8 @@
         pos: group.position,
         velocity: new THREE.Vector3(0, 0, 0),
         grabbed: false,
-        collected: false
+        collected: false,
+        wobbleOffset: Math.random() * 10
       });
     }
   }
@@ -1458,6 +1551,24 @@
   var timerInterval = null;
   var isPlaying = false;
 
+  function createFloatingText(text, isCombo) {
+    var container = document.getElementById('floating-text-container');
+    if (!container) return;
+    var el = document.createElement('div');
+    el.className = 'floating-score';
+    el.style.left = (45 + Math.random() * 10) + '%';
+    el.style.top = (40 + Math.random() * 10) + '%';
+    el.textContent = text;
+    if (isCombo) {
+      el.style.color = '#FF4B91';
+      el.style.fontSize = 'clamp(28px, 6vw, 42px)';
+    }
+    container.appendChild(el);
+    setTimeout(function() {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    }, 1200);
+  }
+
   function moveClaw(dt) {
     if (clawState !== 'idle') return;
 
@@ -1481,7 +1592,27 @@
     document.getElementById('craneStatus').textContent = 'CLAW DESCENDING...';
   }
 
-  function updateClawSequence(dt) {
+  function updateClawSequence(dt, elapsedTime) {
+    // Dynamic Lighting effects based on claw state
+    if (clawState === 'dropping' || clawState === 'grabbing') {
+      pinkLight.intensity = 2.5 + Math.sin(elapsedTime * 15) * 1.0;
+      cyanLight.intensity = 2.5 + Math.cos(elapsedTime * 15) * 1.0;
+    } else if (clawState === 'lifting' || clawState === 'returning') {
+      pinkLight.intensity = 1.8;
+      cyanLight.intensity = 1.8;
+    } else {
+      pinkLight.intensity = 1.5;
+      cyanLight.intensity = 1.5;
+    }
+
+    // Dynamic Prize Breathing / Idle Wobble Animation
+    prizes.forEach(function(p) {
+      if (!p.collected && !p.grabbed) {
+        var wobble = Math.sin(elapsedTime * 2.5 + p.wobbleOffset) * 0.02;
+        p.mesh.position.y = p.pos.y + wobble;
+      }
+    });
+
     // Smooth interpolate gantry & trolley
     clawPos.x += (clawTarget.x - clawPos.x) * 12 * dt;
     clawPos.z += (clawTarget.z - clawPos.z) * 12 * dt;
@@ -1524,13 +1655,20 @@
       clawCurrentAngle += (0.12 - clawCurrentAngle) * 6 * dt;
       if (Math.abs(clawCurrentAngle - 0.12) < 0.04) {
         grabbedPrize = findBestGrabCandidate();
+        if (grabbedPrize) {
+          grabbedPrize.grabbed = true;
+        } else {
+          sfxFail();
+        }
         clawState = 'lifting';
         clawTarget.y = 4.4;
-        document.getElementById('craneStatus').textContent = 'LIFTING PRIZE!';
+        document.getElementById('craneStatus').textContent = grabbedPrize ? 'LIFTING PRIZE!' : 'MISSED!';
       }
     } else if (clawState === 'lifting') {
       if (grabbedPrize) {
-        grabbedPrize.pos.set(clawPos.x, clawPos.y - 0.45, clawPos.z);
+        var wobbleX = Math.sin(elapsedTime * 12) * 0.03 * grabbedPrize.type.weight;
+        grabbedPrize.pos.set(clawPos.x + wobbleX, clawPos.y - 0.45, clawPos.z);
+        grabbedPrize.mesh.rotation.z = wobbleX * 2;
       }
       if (clawPos.y >= 4.35) {
         clawState = 'returning';
@@ -1540,7 +1678,9 @@
       }
     } else if (clawState === 'returning') {
       if (grabbedPrize) {
-        grabbedPrize.pos.set(clawPos.x, clawPos.y - 0.45, clawPos.z);
+        var wobbleX = Math.sin(elapsedTime * 10) * 0.04 * grabbedPrize.type.weight;
+        grabbedPrize.pos.set(clawPos.x + wobbleX, clawPos.y - 0.45, clawPos.z);
+        grabbedPrize.mesh.rotation.z = wobbleX * 2;
       }
       if (Math.abs(clawPos.x - (-1.4)) < 0.08 && Math.abs(clawPos.z - 1.4) < 0.08) {
         clawState = 'releasing';
@@ -1592,20 +1732,46 @@
     if (!prize) return;
     prize.collected = true;
 
+    // Calculate Combo
+    var now = Date.now();
+    if (now - lastWinTime < 25000) {
+      comboCount++;
+    } else {
+      comboCount = 1;
+    }
+    lastWinTime = now;
+
+    var comboMultiplier = Math.min(3, 1 + (comboCount - 1) * 0.5);
+    var addedPoints = Math.round(prize.type.points * comboMultiplier);
+
     // Trigger Win Toast
     var toast = document.getElementById('win-toast');
     document.getElementById('winToastEmoji').textContent = prize.type.emoji;
     document.getElementById('winToastTitle').textContent = 'WON ' + prize.type.name.toUpperCase() + '!';
-    document.getElementById('winToastScore').textContent = '+' + prize.type.points + ' Points';
+    document.getElementById('winToastScore').textContent = '+' + addedPoints + ' PTS' + (comboCount > 1 ? ' (' + comboMultiplier + 'x Combo!)' : '');
     toast.classList.add('show');
     setTimeout(function() { toast.classList.remove('show'); }, 2400);
 
-    // Sound & Confetti
-    sfxWin();
+    // Floating text overlay
+    createFloatingText('+' + addedPoints + ' PTS', false);
+    if (comboCount > 1) {
+      setTimeout(function() {
+        createFloatingText(comboCount + 'x COMBO!', true);
+      }, 300);
+    }
+
+    // Sound & Special Rare SFX / Confetti & Particles
+    if (prize.type.points >= 800 || prize.type.id === 'king_moku' || prize.type.id === 'boss_rat') {
+      sfxRareWin();
+    } else {
+      sfxWin();
+    }
+
     triggerConfetti();
+    triggerChuteParticles();
 
     // Progress updates
-    progress.score += prize.type.points;
+    progress.score += addedPoints;
     progress.prizesWon += 1;
     progress.collection[prize.type.id] = (progress.collection[prize.type.id] || 0) + 1;
     progress.highScore = Math.max(progress.highScore, progress.score);
@@ -1634,7 +1800,8 @@
       pos: group.position,
       velocity: new THREE.Vector3(0, 0, 0),
       grabbed: false,
-      collected: false
+      collected: false,
+      wobbleOffset: Math.random() * 10
     });
   }
 
@@ -1697,14 +1864,22 @@
     isPlaying = true;
     roundTime = 60;
     progress.score = 0;
+    comboCount = 0;
     document.body.classList.add('in-game');
     document.getElementById('title-screen').classList.add('hidden');
+    var timerBadge = document.getElementById('roundTimer');
+    timerBadge.classList.remove('warning');
+    timerBadge.textContent = '60s';
     updateHUD();
 
     if (timerInterval) clearInterval(timerInterval);
     timerInterval = setInterval(function() {
       roundTime--;
-      document.getElementById('roundTimer').textContent = roundTime + 's';
+      timerBadge.textContent = roundTime + 's';
+      if (roundTime <= 10) {
+        timerBadge.classList.add('warning');
+        sfxWarning();
+      }
       if (roundTime <= 0) {
         clearInterval(timerInterval);
         endArcadeGame();
@@ -1721,6 +1896,7 @@
   }
 
   function openLeaderboards() {
+    sfxButton();
     var modal = document.getElementById('ranksModal');
     modal.classList.add('active');
     renderLeaderboard();
@@ -1766,6 +1942,7 @@
   var currentPrizeFilter = 'all';
 
   function openPrizeCollection(filter) {
+    sfxButton();
     if (filter) currentPrizeFilter = filter;
     var modal = document.getElementById('prizesModal');
     var grid = document.getElementById('prizesGrid');
@@ -1826,6 +2003,7 @@
     document.getElementById('btnRanks').addEventListener('click', openLeaderboards);
     document.getElementById('btnPrizes').addEventListener('click', openPrizeCollection);
     document.getElementById('btnMenu').addEventListener('click', function() {
+      sfxButton();
       document.body.classList.remove('in-game');
       document.getElementById('title-screen').classList.remove('hidden');
     });
@@ -1833,11 +2011,13 @@
     document.getElementById('btnSound').addEventListener('click', function() {
       soundEnabled = !soundEnabled;
       document.getElementById('btnSound').textContent = soundEnabled ? '🔊' : '🔇';
+      sfxButton();
     });
 
     // Camera buttons
     document.querySelectorAll('.cam-btn').forEach(function(btn) {
       btn.addEventListener('click', function() {
+        sfxButton();
         setCameraMode(btn.dataset.cam);
       });
     });
@@ -1845,6 +2025,7 @@
     // Prize Collection Filter Buttons
     document.querySelectorAll('.prize-filter-btn').forEach(function(btn) {
       btn.addEventListener('click', function() {
+        sfxButton();
         document.querySelectorAll('.prize-filter-btn').forEach(function(b) { b.classList.remove('active'); });
         btn.classList.add('active');
         openPrizeCollection(btn.dataset.filter);
@@ -1854,6 +2035,7 @@
     // Modals close buttons
     document.querySelectorAll('.modal-close-btn').forEach(function(btn) {
       btn.addEventListener('click', function() {
+        sfxButton();
         var modalId = btn.dataset.close;
         if (modalId) document.getElementById(modalId).classList.remove('active');
       });
@@ -1861,6 +2043,7 @@
 
     // Submit Leaderboard score
     document.getElementById('submitScoreBtn').addEventListener('click', async function() {
+      sfxButton();
       var name = document.getElementById('playerNameInput').value.trim() || 'Moku';
       var btn = document.getElementById('submitScoreBtn');
       btn.textContent = 'Submitting...';
@@ -1949,9 +2132,11 @@
   function animate() {
     requestAnimationFrame(animate);
     var dt = Math.min(clock.getDelta(), 0.05);
+    var elapsedTime = clock.getElapsedTime();
 
     moveClaw(dt);
-    updateClawSequence(dt);
+    updateClawSequence(dt, elapsedTime);
+    updateChuteParticles(dt);
     updateConfetti();
 
     renderer.render(scene, camera);
