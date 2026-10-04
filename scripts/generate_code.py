@@ -6,13 +6,22 @@ from google import genai
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 gemini_md = ""
-if os.path.exists("GEMINI.md"):
-    with open("GEMINI.md", "r", encoding="utf-8") as f:
-        gemini_md = f.read()
+for gemini_path in ("Gemini.md", "GEMINI.md"):
+    if os.path.exists(gemini_path):
+        with open(gemini_path, "r", encoding="utf-8") as f:
+            gemini_md = f.read()
+        break
+if not gemini_md:
+    print("Warning: Gemini.md not found; running without project guidelines.")
 
 code_files = glob.glob("**/*.html", recursive=True) + glob.glob(
     "**/*.js", recursive=True
 )
+# Claude Code 担当のタイトル(Gemini.md §5)と依存パッケージは自動改修の対象外
+EXCLUDED_PATTERNS = ("future-run", "node_modules/")
+code_files = [
+    f for f in code_files if not any(p in f for p in EXCLUDED_PATTERNS)
+]
 target_file = code_files[0] if code_files else "index.html"
 
 original_code = ""
@@ -21,7 +30,7 @@ if os.path.exists(target_file):
         original_code = f.read()
 
 prompt = f"""
-プロジェクト方針 (GEMINI.md):
+プロジェクト方針 (Gemini.md):
 {gemini_md}
 
 対象ファイル ({target_file}) の現状コード:

@@ -21,6 +21,7 @@ npm run dev   # http://localhost:3000 (server.js: 静的配信 + /api/scores の
 AI Studio の GitHub 連携は **AI Studio 側の全ファイルのスナップショットを1コミット("Push" 等)として `main` に書き込む** 方式で、
 GitHub 側の変更を AI Studio に自動で取り込む仕組みではない。そのため以下を守る。
 
+0. **担当分け(Gemini.md §5):** Moku Future Run は Claude Code 担当。それ以外のタイトルは原則 AI Studio 担当なので、触る前にユーザーに確認し、触る場合は Gemini.md §5 の表を更新する。
 1. **Claude Code は `main` に直接 push しない。** 必ず作業ブランチで変更し、PR 経由でマージする。
 2. **同じファイルを AI Studio と同時に触らない。** 1ファイル = 1ゲームなので、「今どのゲームをどちらで触っているか」を分担して作業する。
 3. **AI Studio の "Push" コミットが来たら、作業ブランチに `main` をマージしてから続ける。**
