@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>Moku-rane — 3D Arcade Claw Machine</title>
-<link rel="icon" href="icons/moyomoyo-icon-192.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="shared/moku-scores.js"></script>
 <style>
@@ -83,7 +84,8 @@
   }
 
   body.in-game #title-frame,
-  body.in-game #buildInfo {
+  body.in-game #buildInfo,
+  body.in-game #hub-link {
     display: none;
   }
 
@@ -365,7 +367,7 @@
     display: flex; align-items: center; justify-content: center;
   }
   .title-hero-inner img {
-    width: 125%; height: 125%; object-fit: cover; object-position: center 30%;
+    width: 100%; height: 100%; object-fit: cover; object-position: center; display: block;
   }
 
   .title-h1 {
@@ -526,6 +528,132 @@
   }
   .prize-pts { color: var(--accent-gold); }
   .prize-count { color: var(--accent-cyan); }
+  .prize-desc-preview {
+    font-size: 9px;
+    color: rgba(237, 238, 246, 0.6);
+    line-height: 1.25;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin: 1px 0;
+  }
+  .prize-count-badge {
+    font-size: 9.5px;
+    font-weight: 800;
+    padding: 1px 6px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.08);
+    color: var(--text-muted);
+  }
+  .prize-count-badge.has-count {
+    background: rgba(34, 211, 238, 0.2);
+    color: var(--accent-cyan);
+    border: 1px solid rgba(34, 211, 238, 0.4);
+  }
+
+  /* Vault Stats Banner */
+  .vault-stats-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 201, 74, 0.08);
+    border: 1px solid rgba(255, 201, 74, 0.3);
+    border-radius: 12px;
+    padding: 8px 12px;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #EDEEF6;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .vault-pill { color: var(--accent-gold); font-weight: 800; }
+
+  /* Round Results Modal */
+  .results-stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin: 4px 0;
+  }
+  .results-stat-box {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    padding: 10px 8px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .results-stat-box .stat-label {
+    font-size: 9px;
+    font-weight: 800;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+  }
+  .results-stat-box .stat-val {
+    font-size: 15px;
+    font-weight: 900;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+  .results-stat-box .stat-val.highlight {
+    color: var(--accent-gold);
+  }
+  .results-shelf-title {
+    font-size: 12.5px;
+    font-weight: 800;
+    color: var(--accent-cyan);
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .results-shelf {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 8px;
+    max-height: 220px;
+    overflow-y: auto;
+    padding: 2px;
+  }
+  .results-prize-card {
+    background: linear-gradient(145deg, rgba(34, 211, 238, 0.12) 0%, rgba(255, 75, 145, 0.12) 100%);
+    border: 1.5px solid rgba(255, 201, 74, 0.5);
+    border-radius: 12px;
+    padding: 8px 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 3px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .results-prize-badge {
+    font-size: 10.5px;
+    font-weight: 800;
+    color: var(--accent-gold);
+  }
+  .results-vault-note {
+    font-size: 9px;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+  .results-empty-card {
+    grid-column: 1 / -1;
+    background: rgba(255,255,255,0.03);
+    border: 1px dashed rgba(255,255,255,0.15);
+    border-radius: 14px;
+    padding: 20px 16px;
+    text-align: center;
+  }
+  .results-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 6px;
+  }
 
   /* Win Celebration Popup */
   #win-toast {
@@ -574,6 +702,7 @@
   <div id="game-hud">
     <div style="display:flex; gap:8px;">
       <div class="hud-pill gold" id="scorePill">⭐ <span id="hudScore">0</span> PTS</div>
+      <div class="hud-pill cyan" id="remainingPill">🎁 <span id="hudRemaining">28</span> Left</div>
       <div class="hud-pill pink" id="creditPill">🪙 <span id="hudCredits">5</span> Credits</div>
     </div>
     <div style="display:flex; gap:8px;">
@@ -587,9 +716,7 @@
   <!-- Camera View Selector -->
   <div id="camera-bar">
     <button class="cam-btn active" data-cam="front"><span>🎥</span> Front</button>
-    <button class="cam-btn" data-cam="top"><span>🎯</span> Top</button>
     <button class="cam-btn" data-cam="side"><span>📐</span> Side</button>
-    <button class="cam-btn" data-cam="orbit"><span>🔄</span> Free</button>
   </div>
 
   <!-- Arcade Controller Deck -->
@@ -626,7 +753,7 @@
   <div class="title-menu">
     <button class="menu-btn primary" id="btnStartGame">🕹️ INSERT COIN & PLAY</button>
     <button class="menu-btn secondary" id="btnOpenRanks">🏆 Leaderboards</button>
-    <button class="menu-btn secondary" id="btnOpenPrizes">🎁 Prize Collection</button>
+    <button class="menu-btn secondary" id="btnOpenPrizes">🎁 Prize Collection & Vault</button>
   </div>
 </div>
 
@@ -635,6 +762,43 @@
   <div class="win-emoji" id="winToastEmoji">🦉</div>
   <div class="win-title" id="winToastTitle">YOU WON!</div>
   <div class="win-score" id="winToastScore">+500 Points</div>
+</div>
+
+<!-- Round Results Modal (60s Session Summary) -->
+<div class="modal-overlay" id="resultsModal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-title" id="resultsModalTitle">🎉 TIME'S UP! ROUND RESULTS</div>
+      <button class="modal-close-btn" data-close="resultsModal">✕</button>
+    </div>
+    
+    <div class="results-stats-row">
+      <div class="results-stat-box">
+        <span class="stat-label">ROUND SCORE</span>
+        <span class="stat-val highlight" id="resRoundScore">0 PTS</span>
+      </div>
+      <div class="results-stat-box">
+        <span class="stat-label">PLUSHIES WON</span>
+        <span class="stat-val" id="resPrizesCount">0</span>
+      </div>
+      <div class="results-stat-box">
+        <span class="stat-label">HIGH SCORE</span>
+        <span class="stat-val" id="resBestScore">0 PTS</span>
+      </div>
+    </div>
+
+    <div class="results-shelf-title">🎁 Plushies Won In This 60s Game:</div>
+    <div class="results-shelf" id="resultsPrizesShelf">
+      <!-- Injected by JS -->
+    </div>
+
+    <div class="results-actions">
+      <button class="menu-btn primary" id="btnPlayAgain">🕹️ PLAY AGAIN (60s)</button>
+      <button class="menu-btn secondary" id="btnResOpenVault">🎁 View Prize Vault & History</button>
+      <button class="menu-btn secondary" id="btnResOpenRanks">🏆 Submit / Leaderboards</button>
+      <button class="menu-btn secondary" id="btnResBackMenu">🏠 Main Menu</button>
+    </div>
+  </div>
 </div>
 
 <!-- Leaderboard Modal -->
@@ -658,18 +822,26 @@
   </div>
 </div>
 
-<!-- Prize Collection Modal -->
+<!-- Prize Collection & Lifetime Vault Modal -->
 <div class="modal-overlay" id="prizesModal">
   <div class="modal-card">
     <div class="modal-header">
-      <div class="modal-title">🎁 Prize Collection (<span id="collectionCounter">0/12</span>)</div>
+      <div class="modal-title">🎁 Prize Vault (<span id="collectionCounter">0/13</span>)</div>
       <button class="modal-close-btn" data-close="prizesModal">✕</button>
     </div>
-    <div style="font-size:12px; color:var(--text-muted); font-weight:600;">
-      Grab Moku characters & cute enemy plushies to complete your arcade collection!
+
+    <!-- Lifetime Statistics Banner -->
+    <div class="vault-stats-banner">
+      <div>📦 Total Caught: <span class="vault-pill" id="totalLifetimePlushies">0</span></div>
+      <div>🌟 Progress: <span class="vault-pill" id="vaultCompPct">0% Complete</span></div>
     </div>
+
+    <div style="font-size:11.5px; color:var(--text-muted); font-weight:600;">
+      All 13 collectible plushies and lifetime catch counts across your games:
+    </div>
+
     <div class="prizes-filter-row" id="prizesFilterRow">
-      <button class="prize-filter-btn active" data-filter="all">All (12)</button>
+      <button class="prize-filter-btn active" data-filter="all">All (13)</button>
       <button class="prize-filter-btn" data-filter="owl">🦉 Moku Clan</button>
       <button class="prize-filter-btn" data-filter="rat">🐭 Cute Enemies</button>
       <button class="prize-filter-btn" data-filter="other">✨ Friends</button>
@@ -761,6 +933,7 @@
     { id: 'agent_rat',    name: 'Agent-Nezumi', emoji: '🕶️', category: 'rat', color: 0x334155, radius: 0.40, points: 500, weight: 1.0, desc: 'Secret agent mouse with shades & bowtie' },
 
     // --- Series Friends & Items ---
+    { id: 'mokumoku',     name: 'Mokumoku',     emoji: '☁️', category: 'other', color: 0xffffff, radius: 0.44, points: 700, weight: 0.95, desc: 'Fluffy dreamy white cloud mascot of Mokumoku World' },
     { id: 'pink_moyo',    name: 'Pink Moyo',    emoji: '🍬', category: 'other', color: 0xff4b91, radius: 0.38, points: 320, weight: 0.8, desc: 'Bouncy strawberry gummy from Moyomoyo' },
     { id: 'soccer_ball',  name: 'Moku Soccer',  emoji: '⚽', category: 'other', color: 0xf8fafc, radius: 0.40, points: 350, weight: 0.9, desc: 'Official match ball from MK Mobile' }
   ];
@@ -813,8 +986,8 @@
   // Crane Gantry & Claw
   var gantryGroup, trolleyGroup, cableMesh, clawGroup;
   var clawProngs = [];
-  var clawPos = { x: 0, y: 4.4, z: 0 };
-  var clawTarget = { x: 0, y: 4.4, z: 0 };
+  var clawPos = new THREE.Vector3(0, 4.4, 0);
+  var clawTarget = new THREE.Vector3(0, 4.4, 0);
   var clawState = 'idle'; // 'idle', 'dropping', 'grabbing', 'lifting', 'returning', 'releasing'
   var clawOpenAngle = 0.55;
   var clawCurrentAngle = 0.55;
@@ -846,7 +1019,6 @@
     spawnPrizes();
 
     window.addEventListener('resize', onWindowResize);
-    setupOrbitControl(container);
   }
 
   function setupLighting() {
@@ -966,9 +1138,33 @@
     topMesh.position.set(0, cabinetHeight + 0.4, 0);
     scene.add(topMesh);
 
-    // Top Glowing Neon Sign
-    var signGeo = new THREE.BoxGeometry(cabinetWidth - 0.6, 0.4, 0.1);
-    var signMat = new THREE.MeshBasicMaterial({ color: 0xff4b91 });
+    // Top Glowing Neon Sign with Moku Character & Logo
+    var signCanvas = document.createElement('canvas');
+    signCanvas.width = 512;
+    signCanvas.height = 128;
+    var sctx = signCanvas.getContext('2d');
+    sctx.fillStyle = '#16122b';
+    sctx.fillRect(0, 0, 512, 128);
+    // Glowing Gradient Border
+    var grad = sctx.createLinearGradient(0, 0, 512, 0);
+    grad.addColorStop(0, '#FF4B91');
+    grad.addColorStop(0.5, '#FFC94A');
+    grad.addColorStop(1, '#22D3EE');
+    sctx.strokeStyle = grad;
+    sctx.lineWidth = 10;
+    sctx.strokeRect(5, 5, 502, 118);
+    // Text & Mascot
+    sctx.font = '900 40px -apple-system, sans-serif';
+    sctx.fillStyle = '#FFFFFF';
+    sctx.textAlign = 'center';
+    sctx.textBaseline = 'middle';
+    sctx.shadowColor = '#FF4B91';
+    sctx.shadowBlur = 20;
+    sctx.fillText('🦉 MOKU-RANE 🕹️', 256, 64);
+
+    var signTexture = new THREE.CanvasTexture(signCanvas);
+    var signGeo = new THREE.PlaneGeometry(cabinetWidth - 0.6, 0.45);
+    var signMat = new THREE.MeshBasicMaterial({ map: signTexture });
     var signMesh = new THREE.Mesh(signGeo, signMat);
     signMesh.position.set(0, cabinetHeight + 0.4, cabinetDepth / 2 + 0.22);
     scene.add(signMesh);
@@ -1339,6 +1535,41 @@
         });
       }
 
+    } else if (type.id === 'mokumoku') {
+      // Fluffy Dreamy Cloud Mascot Mokumoku
+      var puffMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.85, metalness: 0.05 });
+      var puffOffsets = [
+        { x: -r * 0.52, y: -r * 0.12, z: 0, s: 0.65 },
+        { x: r * 0.52,  y: -r * 0.12, z: 0, s: 0.65 },
+        { x: -r * 0.35, y: r * 0.42,  z: 0, s: 0.62 },
+        { x: r * 0.35,  y: r * 0.42,  z: 0, s: 0.62 },
+        { x: 0,         y: r * 0.52,  z: 0, s: 0.68 }
+      ];
+      puffOffsets.forEach(function(po) {
+        var puff = new THREE.Mesh(new THREE.SphereGeometry(r * po.s, 14, 14), puffMat);
+        puff.position.set(po.x, po.y, po.z);
+        group.add(puff);
+      });
+
+      // Cute Eyes & Sparkles
+      [-1, 1].forEach(function(side) {
+        var eye = new THREE.Mesh(new THREE.SphereGeometry(0.068, 12, 12), pupilMat);
+        eye.position.set(side * 0.16, 0.05, r * 0.88);
+        var sparkle = new THREE.Mesh(new THREE.SphereGeometry(0.024, 8, 8), sparkleMat);
+        sparkle.position.set(side * 0.16 + 0.02, 0.07, r * 0.94);
+        var cheek = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 8), pinkCheekMat);
+        cheek.position.set(side * 0.25, -0.05, r * 0.80);
+        group.add(eye); group.add(sparkle); group.add(cheek);
+      });
+
+      // Cheerful Open Smile
+      var smileGeo = new THREE.TorusGeometry(0.055, 0.016, 8, 14, Math.PI);
+      var smile = new THREE.Mesh(smileGeo, pupilMat);
+      smile.rotation.x = Math.PI;
+      smile.rotation.z = Math.PI;
+      smile.position.set(0, -0.04, r * 0.92);
+      group.add(smile);
+
     } else if (type.id === 'pink_moyo') {
       // Sweet Pink Gummy Character
       [-1, 1].forEach(function(side) {
@@ -1402,53 +1633,18 @@
 
   /* ================= CAMERA CONTROLS ================= */
   function setCameraMode(mode) {
-    currentCamMode = mode;
+    currentCamMode = mode === 'side' ? 'side' : 'front';
     document.querySelectorAll('.cam-btn').forEach(function(b) {
-      b.classList.toggle('active', b.dataset.cam === mode);
+      b.classList.toggle('active', b.dataset.cam === currentCamMode);
     });
 
-    if (mode === 'front') {
+    if (currentCamMode === 'front') {
       camera.position.set(0, 4.2, 7.2);
       camera.lookAt(0, 2.5, 0);
-    } else if (mode === 'top') {
-      camera.position.set(0, 9.5, 0.01);
-      camera.lookAt(0, 0, 0);
-    } else if (mode === 'side') {
+    } else if (currentCamMode === 'side') {
       camera.position.set(7.5, 4.2, 0);
       camera.lookAt(0, 2.5, 0);
     }
-  }
-
-  function setupOrbitControl(domElement) {
-    var isDragging = false;
-    var prevX = 0, prevY = 0;
-    var theta = 0, phi = Math.PI / 3;
-    var radius = 7.5;
-
-    domElement.addEventListener('pointerdown', function(e) {
-      if (currentCamMode !== 'orbit') return;
-      isDragging = true;
-      prevX = e.clientX;
-      prevY = e.clientY;
-    });
-
-    window.addEventListener('pointermove', function(e) {
-      if (!isDragging || currentCamMode !== 'orbit') return;
-      var dx = e.clientX - prevX;
-      var dy = e.clientY - prevY;
-      prevX = e.clientX;
-      prevY = e.clientY;
-
-      theta -= dx * 0.008;
-      phi = Math.max(0.2, Math.min(Math.PI / 2.2, phi - dy * 0.008));
-
-      camera.position.x = radius * Math.sin(phi) * Math.sin(theta);
-      camera.position.y = radius * Math.cos(phi) + 1.8;
-      camera.position.z = radius * Math.sin(phi) * Math.cos(theta);
-      camera.lookAt(0, 2.5, 0);
-    });
-
-    window.addEventListener('pointerup', function() { isDragging = false; });
   }
 
   /* ================= GAMEPLAY LOGIC & CONTROLS ================= */
@@ -1468,6 +1664,7 @@
     if (keys.down)  dz += moveSpeed * dt;
 
     if (dx !== 0 || dz !== 0) {
+      if (!isPlaying) startArcadeGame();
       clawTarget.x = Math.max(-1.7, Math.min(1.7, clawTarget.x + dx));
       clawTarget.z = Math.max(-1.7, Math.min(1.7, clawTarget.z + dz));
       sfxMove();
@@ -1475,8 +1672,12 @@
   }
 
   function startClawDrop() {
-    if (clawState !== 'idle' || !isPlaying) return;
+    if (clawState !== 'idle') return;
+    if (!isPlaying) {
+      startArcadeGame();
+    }
     clawState = 'dropping';
+    clawTarget.y = 1.65;
     sfxDrop();
     document.getElementById('craneStatus').textContent = 'CLAW DESCENDING...';
   }
@@ -1485,7 +1686,13 @@
     // Smooth interpolate gantry & trolley
     clawPos.x += (clawTarget.x - clawPos.x) * 12 * dt;
     clawPos.z += (clawTarget.z - clawPos.z) * 12 * dt;
-    clawPos.y += (clawTarget.y - clawPos.y) * 8 * dt;
+
+    if (clawState === 'dropping') {
+      // Direct descending speed
+      clawPos.y += (clawTarget.y - clawPos.y) * 4.2 * dt;
+    } else {
+      clawPos.y += (clawTarget.y - clawPos.y) * 8 * dt;
+    }
 
     // Gantry moves on Z, Trolley moves on X
     gantryGroup.position.z = clawPos.z;
@@ -1511,11 +1718,10 @@
 
     if (clawState === 'dropping') {
       clawCurrentAngle += (clawOpenAngle - clawCurrentAngle) * 8 * dt;
-      clawTarget.y -= 2.2 * dt;
 
       // Check collision with prize or floor
       var hitPrize = checkClawPrizeContact();
-      if (clawTarget.y <= 1.7 || hitPrize) {
+      if (clawPos.y <= 1.75 || hitPrize) {
         clawState = 'grabbing';
         sfxGrab();
         document.getElementById('craneStatus').textContent = 'GRABBING PRIZE...';
@@ -1536,6 +1742,7 @@
         clawState = 'returning';
         clawTarget.x = -1.4;
         clawTarget.z = 1.4;
+        clawTarget.y = 4.4;
         document.getElementById('craneStatus').textContent = 'RETURNING TO CHUTE...';
       }
     } else if (clawState === 'returning') {
@@ -1557,29 +1764,40 @@
       if (Math.abs(clawCurrentAngle - clawOpenAngle) < 0.05) {
         clawState = 'idle';
         clawTarget.x = 0;
+        clawTarget.y = 4.4;
         clawTarget.z = 0;
         document.getElementById('craneStatus').textContent = 'READY · POSITION CLAW';
       }
     }
   }
 
+  function getDistance(v1, v2) {
+    if (!v1 || !v2) return 999;
+    if (typeof v1.distanceTo === 'function') return v1.distanceTo(v2);
+    var dx = (v1.x || 0) - (v2.x || 0);
+    var dy = (v1.y || 0) - (v2.y || 0);
+    var dz = (v1.z || 0) - (v2.z || 0);
+    return Math.sqrt(dx * dx + dy * dy + dz * dz);
+  }
+
   function checkClawPrizeContact() {
+    if (clawPos.y > 2.5) return false;
     for (var i = 0; i < prizes.length; i++) {
       var p = prizes[i];
       if (p.collected) continue;
-      var dist = clawPos.distanceTo(p.pos);
-      if (dist < p.type.radius + 0.4) return true;
+      var dist = getDistance(clawPos, p.pos);
+      if (dist < p.type.radius + 0.38) return true;
     }
     return false;
   }
 
   function findBestGrabCandidate() {
     var best = null;
-    var minDist = 0.65;
+    var minDist = 0.75;
     for (var i = 0; i < prizes.length; i++) {
       var p = prizes[i];
       if (p.collected) continue;
-      var dist = clawPos.distanceTo(p.pos);
+      var dist = getDistance(clawPos, p.pos);
       if (dist < minDist) {
         minDist = dist;
         best = p;
@@ -1588,9 +1806,25 @@
     return best;
   }
 
+  var roundPrizesWon = [];
+  var roundScoreEarned = 0;
+
+  function respawnAllPrizes() {
+    if (prizes && prizes.length > 0) {
+      prizes.forEach(function(p) {
+        if (p.mesh) scene.remove(p.mesh);
+      });
+    }
+    spawnPrizes();
+  }
+
   function checkWinCondition(prize) {
     if (!prize) return;
     prize.collected = true;
+
+    // Track for this round
+    roundPrizesWon.push(prize.type);
+    roundScoreEarned += prize.type.points;
 
     // Trigger Win Toast
     var toast = document.getElementById('win-toast');
@@ -1604,38 +1838,41 @@
     sfxWin();
     triggerConfetti();
 
-    // Progress updates
+    // Progress updates & persistence
     progress.score += prize.type.points;
     progress.prizesWon += 1;
     progress.collection[prize.type.id] = (progress.collection[prize.type.id] || 0) + 1;
     progress.highScore = Math.max(progress.highScore, progress.score);
     saveProgress();
+
+    // Remove collected prize from machine (no respawn during active 60s round)
+    setTimeout(function() {
+      if (prize.mesh) {
+        scene.remove(prize.mesh);
+      }
+    }, 1200);
+
     updateHUD();
 
-    // Respawn new prize on bed after delay
-    setTimeout(function() {
-      scene.remove(prize.mesh);
-      spawnSinglePrize();
-    }, 1500);
-  }
-
-  function spawnSinglePrize() {
-    var type = PRIZE_TYPES[Math.floor(Math.random() * PRIZE_TYPES.length)];
-    var px = -1.4 + Math.random() * 2.8;
-    var pz = -1.4 + Math.random() * 2.8;
-    var group = createPlushMesh(type);
-    group.position.set(px, 1.35, pz);
-    group.rotation.set(Math.random() * 0.25, Math.random() * Math.PI * 2, Math.random() * 0.25);
-    scene.add(group);
-
-    prizes.push({
-      type: type,
-      mesh: group,
-      pos: group.position,
-      velocity: new THREE.Vector3(0, 0, 0),
-      grabbed: false,
-      collected: false
-    });
+    // Check if player cleared ALL prizes in the machine!
+    var remaining = prizes.filter(function(p) { return !p.collected; }).length;
+    if (remaining === 0) {
+      setTimeout(function() {
+        progress.score += 2000;
+        roundScoreEarned += 2000;
+        progress.highScore = Math.max(progress.highScore, progress.score);
+        saveProgress();
+        updateHUD();
+        document.getElementById('craneStatus').textContent = '🎉 PERFECT! ALL PRIZES CLEARED! (+2,000 PTS)';
+        document.getElementById('winToastEmoji').textContent = '👑';
+        document.getElementById('winToastTitle').textContent = 'PERFECT ALL CLEAR!';
+        document.getElementById('winToastScore').textContent = '+2,000 BONUS PTS';
+        toast.classList.add('show');
+        setTimeout(function() { toast.classList.remove('show'); }, 4000);
+        triggerConfetti();
+        sfxWin();
+      }, 1400);
+    }
   }
 
   /* ================= CONFETTI PARTICLES ================= */
@@ -1689,6 +1926,9 @@
   function updateHUD() {
     document.getElementById('hudScore').textContent = progress.score.toLocaleString();
     document.getElementById('hudCredits').textContent = progress.credits;
+    var remaining = prizes.filter(function(p) { return !p.collected; }).length;
+    var remEl = document.getElementById('hudRemaining');
+    if (remEl) remEl.textContent = remaining;
   }
 
   function startArcadeGame() {
@@ -1697,8 +1937,26 @@
     isPlaying = true;
     roundTime = 60;
     progress.score = 0;
+    roundPrizesWon = [];
+    roundScoreEarned = 0;
+
+    // Fresh full bed of prizes for the round
+    respawnAllPrizes();
+
+    // Reset crane position
+    clawState = 'idle';
+    if (trolleyGroup) trolleyGroup.position.set(0, 0, 0);
+    if (gantryGroup) gantryGroup.position.z = 0;
+    if (clawGroup) clawGroup.position.y = 4.4;
+    clawPos.set(0, 4.4, 0);
+    clawTarget.set(0, 4.4, 0);
+    clawCurrentAngle = clawOpenAngle;
+    grabbedPrize = null;
+    document.getElementById('craneStatus').textContent = 'READY · POSITION CLAW';
+
     document.body.classList.add('in-game');
     document.getElementById('title-screen').classList.add('hidden');
+    document.querySelectorAll('.modal-overlay').forEach(function(m) { m.classList.remove('active'); });
     updateHUD();
 
     if (timerInterval) clearInterval(timerInterval);
@@ -1716,8 +1974,69 @@
     isPlaying = false;
     document.getElementById('craneStatus').textContent = 'GAME OVER · TIME UP';
     setTimeout(function() {
-      openLeaderboards();
-    }, 1200);
+      openRoundResults();
+    }, 1000);
+  }
+
+  function openRoundResults() {
+    var modal = document.getElementById('resultsModal');
+    var shelf = document.getElementById('resultsPrizesShelf');
+    shelf.innerHTML = '';
+
+    document.getElementById('resRoundScore').textContent = roundScoreEarned.toLocaleString() + ' PTS';
+    document.getElementById('resPrizesCount').textContent = roundPrizesWon.length;
+    document.getElementById('resBestScore').textContent = progress.highScore.toLocaleString() + ' PTS';
+
+    var titleEl = document.getElementById('resultsModalTitle');
+    var remaining = prizes.filter(function(p) { return !p.collected; }).length;
+    if (remaining === 0 && roundPrizesWon.length > 0) {
+      titleEl.innerHTML = '👑 PERFECT ALL CLEAR!';
+    } else if (roundPrizesWon.length > 0) {
+      titleEl.innerHTML = '🎉 TIME\'S UP! ROUND RESULTS';
+    } else {
+      titleEl.innerHTML = '⏱️ TIME\'S UP! NICE TRY!';
+    }
+
+    if (roundPrizesWon.length === 0) {
+      shelf.innerHTML = `
+        <div class="results-empty-card">
+          <div style="font-size:32px; margin-bottom:4px;">🕹️</div>
+          <div style="font-weight:800; font-size:14px; margin-bottom:4px;">No plushies caught this run!</div>
+          <div style="font-size:12px; color:var(--text-muted); line-height:1.4;">
+            Tip: Switch to Side View (📐) to gauge depth accurately, center the claw directly over a plushie, and press DROP!
+          </div>
+        </div>
+      `;
+    } else {
+      // Group won prizes in this round
+      var countsInRound = {};
+      roundPrizesWon.forEach(function(p) {
+        if (!countsInRound[p.id]) {
+          countsInRound[p.id] = { type: p, count: 0 };
+        }
+        countsInRound[p.id].count++;
+      });
+
+      Object.values(countsInRound).forEach(function(item) {
+        var p = item.type;
+        var totalInVault = progress.collection[p.id] || 0;
+        var tagClass = p.category === 'owl' ? 'moku' : (p.category === 'rat' ? 'enemy' : 'friend');
+        var tagLabel = p.category === 'owl' ? 'Moku Clan' : (p.category === 'rat' ? 'Cute Enemy' : 'Friend');
+
+        var card = document.createElement('div');
+        card.className = 'results-prize-card';
+        card.innerHTML = `
+          <span class="prize-category-tag ${tagClass}">${tagLabel}</span>
+          <span class="prize-icon">${p.emoji}</span>
+          <span class="prize-name">${p.name}</span>
+          <div class="results-prize-badge">+${(p.points * item.count).toLocaleString()} pts (x${item.count})</div>
+          <div class="results-vault-note">Total in Vault: x${totalInVault}</div>
+        `;
+        shelf.appendChild(card);
+      });
+    }
+
+    modal.classList.add('active');
   }
 
   function openLeaderboards() {
@@ -1766,20 +2085,33 @@
   var currentPrizeFilter = 'all';
 
   function openPrizeCollection(filter) {
-    if (filter) currentPrizeFilter = filter;
+    if (filter && typeof filter === 'string') currentPrizeFilter = filter;
     var modal = document.getElementById('prizesModal');
     var grid = document.getElementById('prizesGrid');
     grid.innerHTML = '';
 
-    // Calculate total unlocked
+    // Calculate total unlocked and lifetime totals
     var unlockedCount = 0;
+    var totalLifetimePlushies = 0;
+
     PRIZE_TYPES.forEach(function(p) {
-      if ((progress.collection[p.id] || 0) > 0) unlockedCount++;
+      var c = progress.collection[p.id] || 0;
+      if (c > 0) {
+        unlockedCount++;
+        totalLifetimePlushies += c;
+      }
     });
 
     var counterEl = document.getElementById('collectionCounter');
-    if (counterEl) {
-      counterEl.textContent = unlockedCount + '/' + PRIZE_TYPES.length;
+    if (counterEl) counterEl.textContent = unlockedCount + '/' + PRIZE_TYPES.length;
+
+    var lifetimeEl = document.getElementById('totalLifetimePlushies');
+    if (lifetimeEl) lifetimeEl.textContent = totalLifetimePlushies;
+
+    var compPctEl = document.getElementById('vaultCompPct');
+    if (compPctEl) {
+      var pct = Math.round((unlockedCount / PRIZE_TYPES.length) * 100);
+      compPctEl.textContent = pct + '% Complete';
     }
 
     // Filter items
@@ -1799,14 +2131,16 @@
 
       var card = document.createElement('div');
       card.className = 'prize-card ' + (unlocked ? 'unlocked' : 'locked');
-      card.title = p.name + ': ' + p.desc;
       card.innerHTML = `
         <span class="prize-category-tag ${tagClass}">${tagLabel}</span>
         <span class="prize-icon">${p.emoji}</span>
         <span class="prize-name">${p.name}</span>
+        <span class="prize-desc-preview">${p.desc}</span>
         <div class="prize-footer-row">
           <span class="prize-pts">${p.points} pts</span>
-          <span class="prize-count">${unlocked ? 'x' + count : '🔒'}</span>
+          <span class="prize-count-badge ${unlocked ? 'has-count' : ''}">
+            ${unlocked ? 'x' + count + ' Caught' : '🔒 0 Won'}
+          </span>
         </div>
       `;
       grid.appendChild(card);
@@ -1820,11 +2154,30 @@
     // Title buttons
     document.getElementById('btnStartGame').addEventListener('click', startArcadeGame);
     document.getElementById('btnOpenRanks').addEventListener('click', openLeaderboards);
-    document.getElementById('btnOpenPrizes').addEventListener('click', openPrizeCollection);
+    document.getElementById('btnOpenPrizes').addEventListener('click', function() { openPrizeCollection('all'); });
+
+    // Round Results buttons
+    document.getElementById('btnPlayAgain').addEventListener('click', function() {
+      document.getElementById('resultsModal').classList.remove('active');
+      startArcadeGame();
+    });
+    document.getElementById('btnResOpenVault').addEventListener('click', function() {
+      document.getElementById('resultsModal').classList.remove('active');
+      openPrizeCollection('all');
+    });
+    document.getElementById('btnResOpenRanks').addEventListener('click', function() {
+      document.getElementById('resultsModal').classList.remove('active');
+      openLeaderboards();
+    });
+    document.getElementById('btnResBackMenu').addEventListener('click', function() {
+      document.getElementById('resultsModal').classList.remove('active');
+      document.body.classList.remove('in-game');
+      document.getElementById('title-screen').classList.remove('hidden');
+    });
 
     // In-game HUD buttons
     document.getElementById('btnRanks').addEventListener('click', openLeaderboards);
-    document.getElementById('btnPrizes').addEventListener('click', openPrizeCollection);
+    document.getElementById('btnPrizes').addEventListener('click', function() { openPrizeCollection('all'); });
     document.getElementById('btnMenu').addEventListener('click', function() {
       document.body.classList.remove('in-game');
       document.getElementById('title-screen').classList.remove('hidden');
@@ -1921,8 +2274,7 @@
         startClawDrop();
       }
       if (e.key === 'c' || e.key === 'C') {
-        var modes = ['front', 'top', 'side', 'orbit'];
-        var next = modes[(modes.indexOf(currentCamMode) + 1) % modes.length];
+        var next = currentCamMode === 'front' ? 'side' : 'front';
         setCameraMode(next);
       }
     });
@@ -1961,7 +2313,7 @@
   loadProgress();
   initThree();
   setupEvents();
-  updateHUD();
+  startArcadeGame();
   animate();
 
 })();

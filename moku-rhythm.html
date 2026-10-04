@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>MOKU RHYTHM CAFE - Lo-Fi Beat Rush | Moku Series</title>
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@500;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg-top: #2C1820;
+  --bg-bottom: #120A0E;
+  --lane-border: rgba(255, 107, 151, 0.25);
+  --accent-gold: #FFC94A;
+  --accent-pink: #FF6B97;
+  --accent-cyan: #38BDF8;
+  --accent-mint: #6EE7A8;
+  --accent-purple: #C084FC;
+  --text-main: #EDEEF6;
+  --text-muted: rgba(237, 238, 246, 0.65);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: radial-gradient(circle at 50% 20%, #3D1C2A 0%, var(--bg-top) 55%, var(--bg-bottom) 100%);
+  color: var(--text-main);
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+#game-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 860px;
+  display: flex;
+  flex-direction: column;
+  padding: 6px 12px 14px;
+  z-index: 2;
+  justify-content: space-between;
+}
+
+/* Header */
+.game-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  z-index: 10;
+}
+
+.hub-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: var(--text-main);
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-decoration: none;
+  backdrop-filter: blur(8px);
+}
+.hub-link:active { transform: scale(0.96); }
+
+.stats-pill {
+  background: rgba(255, 107, 151, 0.14);
+  border: 1px solid rgba(255, 107, 151, 0.4);
+  border-radius: 13px;
+  padding: 4px 12px;
+  text-align: center;
+  backdrop-filter: blur(8px);
+}
+.stats-label {
+  font-size: 8.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  font-weight: 800;
+}
+.stats-value {
+  font-family: 'Fredoka', cursive, sans-serif;
+  font-size: 19px;
+  font-weight: 700;
+  color: #FFF;
+  line-height: 1.1;
+}
+
+.action-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: var(--text-main);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* Cafe Stage & Rhythm Track */
+.cafe-stage {
+  flex: 1;
+  position: relative;
+  width: 100%;
+  margin: 6px 0;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 107, 151, 0.35);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  background: #1F0D16;
+}
+
+canvas#rhythmCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Judgment Overlay Text */
+.judge-banner {
+  position: absolute;
+  top: 48%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.8);
+  font-family: 'Fredoka', cursive, sans-serif;
+  font-size: 26px;
+  font-weight: 800;
+  pointer-events: none;
+  opacity: 0;
+  transition: all 0.12s ease-out;
+  text-shadow: 0 4px 16px rgba(0,0,0,0.8);
+  z-index: 20;
+}
+.judge-banner.perfect { color: #FFC94A; opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+.judge-banner.great   { color: #6EE7A8; opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+.judge-banner.miss    { color: #FF6B97; opacity: 1; transform: translate(-50%, -50%) scale(0.95); }
+
+/* 3-Lane Bottom Tap Buttons */
+.tap-lanes-bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  width: 100%;
+  height: 80px;
+}
+.lane-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  touch-action: none;
+  transition: transform 0.08s, background-color 0.08s;
+}
+.lane-btn:active, .lane-btn.active {
+  transform: scale(0.94);
+  background: rgba(255, 107, 151, 0.35);
+  border-color: #FF6B97;
+  box-shadow: 0 0 20px rgba(255, 107, 151, 0.6);
+}
+.lane-icon { font-size: 26px; line-height: 1; }
+.lane-name { font-size: 10px; font-weight: 800; color: var(--text-muted); margin-top: 2px; }
+
+/* Cafe Results Modal */
+.modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(18, 8, 14, 0.92);
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 100;
+  border-radius: 20px;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-title {
+  font-family: 'Fredoka', cursive;
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--accent-gold);
+  margin-bottom: 4px;
+}
+.modal-card {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 16px;
+  padding: 14px 24px;
+  width: 100%;
+  max-width: 260px;
+  margin-bottom: 20px;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #FF6B97, #C084FC);
+  border: none;
+  color: #FFF;
+  font-size: 16px;
+  font-weight: 800;
+  padding: 14px 36px;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(255, 107, 151, 0.4);
+}
+
+/* Tablet & iPad Pro / Landscape mode */
+@media (min-width: 768px), (orientation: landscape) and (min-width: 560px) {
+  #game-wrapper {
+    max-width: 1040px;
+    width: 95%;
+    max-height: 94vh;
+    padding: 12px 24px;
+  }
+  .cafe-stage {
+    margin: 8px 0 12px;
+    border-radius: 24px;
+  }
+  .tap-lanes-bar {
+    height: 96px;
+    gap: 16px;
+  }
+  .lane-btn {
+    border-radius: 22px;
+  }
+  .lane-icon {
+    font-size: 36px;
+  }
+  .lane-name {
+    font-size: 13px;
+    margin-top: 4px;
+  }
+}
+
+/* Compact landscape on iPhones */
+@media (max-height: 500px) and (orientation: landscape) {
+  #game-wrapper {
+    max-height: 98vh;
+    padding: 4px 14px;
+    gap: 4px;
+  }
+  .game-header {
+    gap: 4px;
+  }
+  .stats-pill {
+    padding: 2px 8px;
+  }
+  .stats-value {
+    font-size: 15px;
+  }
+  .cafe-stage {
+    margin: 2px 0 4px;
+    border-radius: 14px;
+  }
+  .tap-lanes-bar {
+    height: 54px;
+    gap: 6px;
+  }
+  .lane-btn {
+    border-radius: 12px;
+  }
+  .lane-icon {
+    font-size: 20px;
+  }
+  .lane-name {
+    font-size: 9px;
+    margin-top: 1px;
+  }
+}
+</style>
+</head>
+<body>
+
+<div id="game-wrapper">
+  <!-- Header -->
+  <div class="game-header">
+    <a href="hub.html" class="hub-link" id="backToHubBtn" aria-label="Return to Moku Series Hub">
+      <span>◀ Hub</span>
+    </a>
+    
+    <div class="stats-pill">
+      <div class="stats-label">Score</div>
+      <div class="stats-value" id="scoreDisplay">0</div>
+    </div>
+
+    <div class="stats-pill">
+      <div class="stats-label">Combo</div>
+      <div class="stats-value" id="comboDisplay" style="color: var(--accent-gold);">0🔥</div>
+    </div>
+
+    <button class="action-btn" id="soundToggleBtn" aria-label="Toggle Sound">🔊</button>
+  </div>
+
+  <!-- Stage Canvas -->
+  <div class="cafe-stage">
+    <div class="judge-banner" id="judgeBanner">PERFECT!</div>
+    <canvas id="rhythmCanvas"></canvas>
+  </div>
+
+  <!-- 3 Rhythm Lanes -->
+  <div class="tap-lanes-bar">
+    <button class="lane-btn" data-lane="0" id="laneBtn0">
+      <span class="lane-icon">☕</span>
+      <span class="lane-name">Coffee</span>
+    </button>
+    <button class="lane-btn" data-lane="1" id="laneBtn1">
+      <span class="lane-icon">🍰</span>
+      <span class="lane-name">Cake</span>
+    </button>
+    <button class="lane-btn" data-lane="2" id="laneBtn2">
+      <span class="lane-icon">🍓</span>
+      <span class="lane-name">Berry</span>
+    </button>
+  </div>
+
+  <!-- Results Modal -->
+  <div id="resultsModal" class="modal-overlay">
+    <div class="modal-title">☕ CAFE CONCERT CLEARED!</div>
+    <div style="font-size: 14px; color: var(--text-muted); margin-bottom: 16px;">Forest guests loved your rhythmic brew!</div>
+    <div class="modal-card">
+      <div class="stats-label">Final Cafe Score</div>
+      <div class="stats-value" id="finalScoreDisplay" style="font-size: 32px; color: var(--accent-mint);">0</div>
+      <div class="stats-label" id="maxComboLabel" style="color: var(--accent-gold); margin-top: 6px;">Max Combo: 0</div>
+    </div>
+    <button class="btn-primary" id="replayBtn">▶ Play Song Again</button>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // --- AUDIO & MUSIC SYNTHESIZER ---
+  var audioCtx = null;
+  var soundEnabled = true;
+
+  function getAudioContext() {
+    if (!audioCtx) {
+      var AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (AudioContextClass) audioCtx = new AudioContextClass();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  }
+
+  // Pentatonic melodies & beats
+  var BEAT_FREQS = [
+    [261.63, 329.63, 392.00], // C major triad (Coffee)
+    [329.63, 392.00, 523.25], // E minor / G (Cake)
+    [392.00, 523.25, 659.25]  // High G / C (Berry)
+  ];
+
+  function playNoteSound(laneIdx, grade) {
+    if (!soundEnabled) return;
+    try {
+      var ctx = getAudioContext();
+      if (!ctx) return;
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      var now = ctx.currentTime;
+
+      var fList = BEAT_FREQS[laneIdx] || [440];
+      var baseF = fList[Math.floor(Math.random() * fList.length)];
+      if (grade === 'miss') baseF = 110;
+
+      osc.type = grade === 'miss' ? 'sawtooth' : 'triangle';
+      osc.frequency.setValueAtTime(baseF, now);
+      osc.frequency.exponentialRampToValueAtTime(baseF * 1.5, now + 0.12);
+
+      gain.gain.setValueAtTime(grade === 'perfect' ? 0.3 : 0.18, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+      osc.start(now);
+      osc.stop(now + 0.18);
+    } catch(e) {}
+  }
+
+  // --- CANVAS & STAGE ---
+  var canvas = document.getElementById('rhythmCanvas');
+  var ctx = canvas.getContext('2d');
+  var width = 360, height = 480, dpr = window.devicePixelRatio || 1;
+
+  function resize() {
+    var rect = canvas.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    width = rect.width;
+    height = rect.height;
+    dpr = window.devicePixelRatio || 1;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    ctx.scale(dpr, dpr);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  // --- RHYTHM GAME ENGINE ---
+  var bpm = 118;
+  var speedPxPerSec = 260;
+  var judgmentLineY = 0;
+
+  var currentScore = 0;
+  var combo = 0;
+  var maxCombo = 0;
+  var isSongEnded = false;
+  var songStartTime = 0;
+
+  var notes = [];
+  var sparks = [];
+
+  var LANE_ICONS = ['☕', '🍰', '🍓'];
+  var LANE_COLORS = ['#FFC94A', '#FF6B97', '#38BDF8'];
+
+  // Generate 45-second fun rhythm chart
+  function generateChart() {
+    notes = [];
+    var totalBeats = 64;
+    var beatInterval = 60 / bpm; // ~0.508s
+
+    for (var b = 4; b < totalBeats; b++) {
+      var lane = Math.floor(Math.random() * 3);
+      notes.push({
+        time: b * beatInterval,
+        lane: lane,
+        hit: false,
+        y: 0
+      });
+
+      // Occasional double notes
+      if (b > 12 && b % 4 === 0) {
+        var otherLane = (lane + 1) % 3;
+        notes.push({
+          time: b * beatInterval + (beatInterval * 0.5),
+          lane: otherLane,
+          hit: false,
+          y: 0
+        });
+      }
+    }
+  }
+
+  function startSong() {
+    currentScore = 0;
+    combo = 0;
+    maxCombo = 0;
+    isSongEnded = false;
+    generateChart();
+    songStartTime = Date.now();
+  }
+
+  // Judgment
+  var judgeBanner = document.getElementById('judgeBanner');
+  var judgeTimer = null;
+
+  function showJudgment(text, grade) {
+    clearTimeout(judgeTimer);
+    judgeBanner.textContent = text;
+    judgeBanner.className = 'judge-banner ' + grade;
+    judgeTimer = setTimeout(function() {
+      judgeBanner.className = 'judge-banner';
+    }, 450);
+  }
+
+  function hitLane(laneIdx) {
+    if (isSongEnded) return;
+    var songTime = (Date.now() - songStartTime) / 1000;
+    var hitTarget = null;
+    var minDiff = 999;
+
+    for (var i = 0; i < notes.length; i++) {
+      var n = notes[i];
+      if (n.lane === laneIdx && !n.hit) {
+        var diff = Math.abs(n.time - songTime);
+        if (diff < 0.22 && diff < minDiff) {
+          minDiff = diff;
+          hitTarget = n;
+        }
+      }
+    }
+
+    if (hitTarget) {
+      hitTarget.hit = true;
+      var grade = minDiff < 0.08 ? 'perfect' : 'great';
+      var pts = grade === 'perfect' ? 100 : 60;
+
+      combo++;
+      if (combo > maxCombo) maxCombo = combo;
+      currentScore += pts * (combo > 5 ? 2 : 1);
+
+      document.getElementById('scoreDisplay').textContent = currentScore;
+      document.getElementById('comboDisplay').textContent = combo + '🔥';
+
+      playNoteSound(laneIdx, grade);
+      showJudgment(grade.toUpperCase() + '!', grade);
+
+      // Sparks
+      var laneW = width / 3;
+      var lx = laneIdx * laneW + laneW * 0.5;
+      spawnHitSparks(lx, judgmentLineY, LANE_COLORS[laneIdx]);
+    } else {
+      // Miss tap
+      combo = 0;
+      document.getElementById('comboDisplay').textContent = '0🔥';
+    }
+  }
+
+  function spawnHitSparks(x, y, color) {
+    for (var i = 0; i < 12; i++) {
+      var a = Math.random() * Math.PI * 2;
+      var sp = Math.random() * 5 + 2;
+      sparks.push({
+        x: x, y: y,
+        vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+        color: color, alpha: 1.0, size: Math.random() * 4 + 2
+      });
+    }
+  }
+
+  // --- MAIN LOOP ---
+  function loop() {
+    ctx.clearRect(0, 0, width, height);
+    judgmentLineY = height - 40;
+
+    var songTime = (Date.now() - songStartTime) / 1000;
+    var laneW = width / 3;
+
+    // 1. Draw 3 vertical Cafe Lanes
+    for (var l = 0; l < 3; l++) {
+      var lx = l * laneW;
+      ctx.fillStyle = l % 2 === 0 ? 'rgba(255, 255, 255, 0.02)' : 'rgba(255, 255, 255, 0.04)';
+      ctx.fillRect(lx, 0, laneW, height);
+
+      ctx.strokeStyle = 'rgba(255, 107, 151, 0.18)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(lx, 0);
+      ctx.lineTo(lx, height);
+      ctx.stroke();
+    }
+
+    // 2. Judgment Line
+    ctx.strokeStyle = '#FF6B97';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(0, judgmentLineY);
+    ctx.lineTo(width, judgmentLineY);
+    ctx.stroke();
+
+    // 3. Cafe Host Mascot at Top
+    var owlX = width * 0.5;
+    var owlY = 32;
+    var bounce = Math.sin(songTime * Math.PI * (bpm / 60)) * 4;
+
+    ctx.font = '24px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🦉☕', owlX, owlY + bounce);
+
+    // 4. Draw Falling Notes
+    var unhitCount = 0;
+    for (var i = 0; i < notes.length; i++) {
+      var note = notes[i];
+      if (note.hit) continue;
+
+      var dt = note.time - songTime;
+      var ny = judgmentLineY - (dt * speedPxPerSec);
+      note.y = ny;
+
+      // Missed note
+      if (dt < -0.22) {
+        note.hit = true;
+        combo = 0;
+        document.getElementById('comboDisplay').textContent = '0🔥';
+        showJudgment('MISS!', 'miss');
+        playNoteSound(note.lane, 'miss');
+        continue;
+      }
+
+      if (ny >= -30 && ny <= height + 30) {
+        unhitCount++;
+        var nx = note.lane * laneW + laneW * 0.5;
+
+        // Note circle
+        ctx.fillStyle = LANE_COLORS[note.lane];
+        ctx.beginPath();
+        ctx.arc(nx, ny, 20, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#FFF';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Note Emoji
+        ctx.font = '16px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(LANE_ICONS[note.lane], nx, ny);
+      }
+    }
+
+    // Check song finish
+    if (songTime > (60 / bpm * 64 + 2) && !isSongEnded) {
+      isSongEnded = true;
+      document.getElementById('finalScoreDisplay').textContent = currentScore;
+      document.getElementById('maxComboLabel').textContent = 'Max Combo: ' + maxCombo + '🔥';
+      document.getElementById('resultsModal').classList.add('active');
+
+      var best = parseInt(localStorage.getItem('moku_rhythm_best') || '0', 10);
+      if (currentScore > best) {
+        localStorage.setItem('moku_rhythm_best', currentScore);
+      }
+    }
+
+    // 5. Sparks
+    for (var s = sparks.length - 1; s >= 0; s--) {
+      var sp = sparks[s];
+      sp.x += sp.vx;
+      sp.y += sp.vy;
+      sp.alpha -= 0.05;
+      if (sp.alpha <= 0) { sparks.splice(s, 1); continue; }
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, sp.alpha);
+      ctx.fillStyle = sp.color;
+      ctx.beginPath();
+      ctx.arc(sp.x, sp.y, sp.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    requestAnimationFrame(loop);
+  }
+
+  // --- CONTROLS ---
+  for (var l = 0; l < 3; l++) {
+    (function(idx) {
+      var btn = document.getElementById('laneBtn' + idx);
+      btn.addEventListener('pointerdown', function(e) {
+        e.preventDefault();
+        btn.classList.add('active');
+        hitLane(idx);
+      });
+      btn.addEventListener('pointerup', function() { btn.classList.remove('active'); });
+      btn.addEventListener('pointercancel', function() { btn.classList.remove('active'); });
+    })(l);
+  }
+
+  document.getElementById('replayBtn').addEventListener('click', function() {
+    document.getElementById('resultsModal').classList.remove('active');
+    startSong();
+  });
+
+  var soundBtn = document.getElementById('soundToggleBtn');
+  soundBtn.addEventListener('click', function() {
+    soundEnabled = !soundEnabled;
+    soundBtn.textContent = soundEnabled ? '🔊' : '🔇';
+  });
+
+  // Start
+  startSong();
+  loop();
+})();
+</script>
+</body>
+</html>

@@ -4,9 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Moku Series</title>
-<link rel="apple-touch-icon" href="icons/moyomoyo-apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icons/moyomoyo-icon-192.png">
-<link rel="icon" type="image/png" sizes="512x512" href="icons/moyomoyo-icon-512.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
 <link rel="manifest" href="hub-manifest.json">
 <meta name="apple-mobile-web-app-title" content="Moku Series">
 <style>
@@ -217,6 +219,25 @@ body[data-band="morning"] #starsLayer { --star-opacity: 0.15; }
   background: rgba(255,255,255,0.045);
   border: 1px solid rgba(255,255,255,0.1);
 }
+.owl-badge {
+  position: relative;
+  width: 58px;
+  height: 58px;
+  flex: none;
+  border-radius: 50%;
+  padding: 2.5px;
+  background: conic-gradient(from 0deg, #7C3AED, #3B82F6, #22D3EE, #22C55E, #EAB308, #F97316, #EF4444, #EC4899, #7C3AED);
+  box-shadow: 0 0 18px rgba(110, 231, 168, 0.35);
+  animation: bob 3.2s ease-in-out infinite;
+}
+.owl-inner {
+  width: 100%; height: 100%; border-radius: 50%; overflow: hidden;
+  background: #1a1228; display: flex; align-items: center; justify-content: center;
+}
+.owl-inner img {
+  width: 100%; height: 100%; object-fit: cover; object-position: center; display: block;
+}
+@keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
 .profile-info {
   display: flex;
   flex-direction: column;
@@ -745,6 +766,14 @@ body[data-band="morning"] #starsLayer { --star-opacity: 0.15; }
 .card.so { --hi: #FF6B4A; --lo: #7A2E1A; }
 .card.mc { --hi: #4BC9C9; --lo: #1F6666; }
 .card.mr { --hi: #FF4B91; --lo: #6A1A40; }
+.card.md { --hi: #FFC94A; --lo: #7A5510; }
+.card.mb { --hi: #FF9F43; --lo: #7A4210; }
+.card.mf { --hi: #38BDF8; --lo: #0C2340; }
+.card.mkt { --hi: #6EE7A8; --lo: #153818; }
+.card.fm { --hi: #00E5FF; --lo: #005C8A; }
+.card.mrc { --hi: #C084FC; --lo: #4A1A40; }
+.card.mw { --hi: #A855F7; --lo: #3B0764; }
+.card.mfr { --hi: #EC4899; --lo: #831843; }
 
 .card.soon {
   --hi: rgba(237,238,246,0.22);
@@ -1007,8 +1036,119 @@ footer {
         <div class="progress-badge" data-game="mr">—</div>
       </div>
     </a>
+    <a class="card md" href="moku-drop.html" data-game="md">
+      <div class="card-header-row">
+        <div class="emoji">🍉</div>
+        <div class="card-status-badge" data-status-for="md"></div>
+      </div>
+      <div class="sub">Physics Merge</div>
+      <h2>Moku Drop</h2>
+      <p class="desc">Drop and merge bouncy Mokus to evolve them into giant King Moku!</p>
+      <div class="card-meter"><div class="card-meter-fill" data-meter-for="md"></div></div>
+      <div class="cta-row">
+        <div class="cta">Play ▶</div>
+        <div class="progress-badge" data-game="md">—</div>
+      </div>
+    </a>
+    <a class="card mb" href="moku-bento.html" data-game="mb">
+      <div class="card-header-row">
+        <div class="emoji">🍱</div>
+        <div class="card-status-badge" data-status-for="mb"></div>
+      </div>
+      <div class="sub">Kitchen Rush</div>
+      <h2>Moku Bento</h2>
+      <p class="desc">Quick-fire bento assembly rush! Fill orders for hungry forest customers.</p>
+      <div class="card-meter"><div class="card-meter-fill" data-meter-for="mb"></div></div>
+      <div class="cta-row">
+        <div class="cta">Play ▶</div>
+        <div class="progress-badge" data-game="mb">—</div>
+      </div>
+    </a>
+    <a class="card mf" href="moku-fishing.html" data-game="mf">
+      <div class="card-header-row">
+        <div class="emoji">🎣</div>
+        <div class="card-status-badge" data-status-for="mf"></div>
+      </div>
+      <div class="sub">Cozy Fishing ★ NEW</div>
+      <h2>Moku Fishing Pond</h2>
+      <p class="desc">Cast your line into the calm night lake and catch mysterious species!</p>
+      <div class="card-meter"><div class="card-meter-fill" data-meter-for="mf"></div></div>
+      <div class="cta-row">
+        <div class="cta">Play ▶</div>
+        <div class="progress-badge" data-game="mf">—</div>
+      </div>
+    </a>
+    <a class="card mkt" href="moku-kart.html" data-game="mkt">
+      <div class="card-header-row">
+        <div class="emoji">🏎️</div>
+        <div class="card-status-badge" data-status-for="mkt"></div>
+      </div>
+      <div class="sub">Circuit Race ★ NEW</div>
+      <h2>Moku Kart Dash</h2>
+      <p class="desc">Drift and dash across forest circuits using acorns and mini-turbos!</p>
+      <div class="card-meter"><div class="card-meter-fill" data-meter-for="mkt"></div></div>
+      <div class="cta-row">
+        <div class="cta">Play ▶</div>
+        <div class="progress-badge" data-game="mkt">—</div>
+      </div>
+    </a>
+    <a class="card fm" href="flying-moku.html" data-game="fm">
+      <div class="card-header-row">
+        <div class="emoji">🕊️</div>
+        <div class="card-status-badge" data-status-for="fm"></div>
+      </div>
+      <div class="sub">3D Sky Flight ★ NEW</div>
+      <h2>Flying Moku</h2>
+      <p class="desc">Peaceful sky flight, real-world town tours, and the magical Art World inspired by a child's imagination!</p>
+      <div class="card-meter"><div class="card-meter-fill" data-meter-for="fm"></div></div>
+      <div class="cta-row">
+        <div class="cta">Fly ▶</div>
+        <div class="progress-badge" data-game="fm">—</div>
+      </div>
+    </a>
+    <a class="card mrc" href="moku-rhythm.html" data-game="mrc">
+      <div class="card-header-row">
+        <div class="emoji">🎹</div>
+        <div class="card-status-badge" data-status-for="mrc"></div>
+      </div>
+      <div class="sub">Rhythm Beat ★ NEW</div>
+      <h2>Moku Rhythm Cafe</h2>
+      <p class="desc">Tap and brew to the lo-fi beat in a cozy forest musical cafe!</p>
+      <div class="card-meter"><div class="card-meter-fill" data-meter-for="mrc"></div></div>
+      <div class="cta-row">
+        <div class="cta">Play ▶</div>
+        <div class="progress-badge" data-game="mrc">—</div>
+      </div>
+    </a>
+    <a class="card mw" href="moku-wolf.html" data-game="mw">
+      <div class="card-header-row">
+        <div class="emoji">🐺</div>
+        <div class="card-status-badge" data-status-for="mw"></div>
+      </div>
+      <div class="sub">Party Game ★ NEW</div>
+      <h2>MokuWolf</h2>
+      <p class="desc">Pass the phone, talk it out, and find who has the secret WordMoku word!</p>
+      <div class="card-meter"><div class="card-meter-fill" data-meter-for="mw"></div></div>
+      <div class="cta-row">
+        <div class="cta">Play ▶</div>
+        <div class="progress-badge" data-game="mw">—</div>
+      </div>
+    </a>
+    <a class="card mfr" href="moku-future-run.html" data-game="mfr">
+      <div class="card-header-row">
+        <div class="emoji">🏃</div>
+        <div class="card-status-badge" data-status-for="mfr"></div>
+      </div>
+      <div class="sub">3D Lane Runner ★ NEW</div>
+      <h2>Moku Future Run</h2>
+      <p class="desc">Pitter-patter with cute feet through the dreamy art world! Jump, duck, boost, and collect berries across 3 lanes!</p>
+      <div class="card-meter"><div class="card-meter-fill" data-meter-for="mfr"></div></div>
+      <div class="cta-row">
+        <div class="cta">Run ▶</div>
+        <div class="progress-badge" data-game="mfr">—</div>
+      </div>
+    </a>
     <div class="card soon"><div class="emoji">🔒</div><h2>Mokuball</h2><div class="sub">TBA</div></div>
-    <div class="card soon"><div class="emoji">🔒</div><h2>Coming Soon</h2><div class="sub">TBA</div></div>
   </div>
 
   <footer>
@@ -1459,6 +1599,211 @@ footer {
           return 'Claw Master · ' + (p.prizesWon || 10) + ' Prizes';
         }
         return (p.prizesWon || 0) + ' Prizes · ' + (p.score || 0).toLocaleString() + ' pts';
+      }
+    },
+    {
+      name: 'Moku Drop',
+      card: 'md',
+      gameId: 'moku-drop',
+      isCompleted: function () {
+        if (isExplicitlyMarked('completed', 'md')) return true;
+        var best = readInt('moku_drop_best') || 0;
+        return best >= 2048;
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'md')) return true;
+        var best = readInt('moku_drop_best');
+        return best !== null && best > 0;
+      },
+      progress: function () {
+        if (this.isCompleted()) return 1;
+        var best = readInt('moku_drop_best') || 0;
+        return Math.min(1, best / 2048);
+      },
+      badge: function () {
+        var best = readInt('moku_drop_best');
+        if (!(best > 0) && !this.isPlayed()) return null;
+        if (this.isCompleted()) {
+          return 'King Moku · Best ' + (best || 2048).toLocaleString();
+        }
+        return 'Best ' + (best || 0).toLocaleString() + ' pts';
+      }
+    },
+    {
+      name: 'Moku Bento',
+      card: 'mb',
+      gameId: 'moku-bento',
+      isCompleted: function () {
+        if (isExplicitlyMarked('completed', 'mb')) return true;
+        var best = readInt('moku_bento_best') || 0;
+        return best >= 1500;
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'mb')) return true;
+        var best = readInt('moku_bento_best');
+        return best !== null && best > 0;
+      },
+      progress: function () {
+        if (this.isCompleted()) return 1;
+        var best = readInt('moku_bento_best') || 0;
+        return Math.min(1, best / 1500);
+      },
+      badge: function () {
+        var best = readInt('moku_bento_best');
+        if (!(best > 0) && !this.isPlayed()) return null;
+        if (this.isCompleted()) {
+          return 'Master Chef · ' + (best || 1500).toLocaleString() + ' pts';
+        }
+        return 'Best ' + (best || 0).toLocaleString() + ' pts';
+      }
+    },
+    {
+      name: 'Moku Fishing Pond',
+      card: 'mf',
+      gameId: 'moku-fishing',
+      isCompleted: function () {
+        if (isExplicitlyMarked('completed', 'mf')) return true;
+        var count = readInt('moku_fishing_count') || 0;
+        return count >= 10;
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'mf')) return true;
+        var count = readInt('moku_fishing_count');
+        return count !== null && count > 0;
+      },
+      progress: function () {
+        if (this.isCompleted()) return 1;
+        var count = readInt('moku_fishing_count') || 0;
+        return Math.min(1, count / 10);
+      },
+      badge: function () {
+        var count = readInt('moku_fishing_count');
+        if (!(count > 0) && !this.isPlayed()) return null;
+        return (count || 0) + ' Fish Caught';
+      }
+    },
+    {
+      name: 'Moku Kart Dash',
+      card: 'mkt',
+      gameId: 'moku-kart',
+      isCompleted: function () {
+        if (isExplicitlyMarked('completed', 'mkt')) return true;
+        var trophies = [];
+        try { trophies = JSON.parse(localStorage.getItem('moku_kart_trophies') || '[]'); } catch(e) {}
+        if (Array.isArray(trophies) && trophies.length >= 6) return true;
+        return localStorage.getItem('moku_kart_best_time') !== null;
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'mkt')) return true;
+        var trophies = [];
+        try { trophies = JSON.parse(localStorage.getItem('moku_kart_trophies') || '[]'); } catch(e) {}
+        if (Array.isArray(trophies) && trophies.length > 0) return true;
+        return localStorage.getItem('moku_kart_best_time') !== null || localStorage.getItem('moku_kart_char') !== null;
+      },
+      progress: function () {
+        if (this.isCompleted()) return 1;
+        var trophies = [];
+        try { trophies = JSON.parse(localStorage.getItem('moku_kart_trophies') || '[]'); } catch(e) {}
+        if (Array.isArray(trophies) && trophies.length > 0) return Math.min(1, trophies.length / 6);
+        return this.isPlayed() ? 0.2 : 0;
+      },
+      badge: function () {
+        var trophies = [];
+        try { trophies = JSON.parse(localStorage.getItem('moku_kart_trophies') || '[]'); } catch(e) {}
+        if (Array.isArray(trophies) && trophies.length > 0) {
+          return trophies.length + '/6 🏆 Trophies';
+        }
+        var timeStr = localStorage.getItem('moku_kart_best_time_str');
+        if (timeStr) return 'Best ' + timeStr;
+        if (this.isPlayed()) return 'Grand Prix Driver';
+        return null;
+      }
+    },
+    {
+      name: 'Flying Moku',
+      card: 'fm',
+      gameId: 'flying-moku',
+      isCompleted: function () {
+        if (isExplicitlyMarked('completed', 'fm')) return true;
+        try {
+          var data = JSON.parse(localStorage.getItem('moku:flying-moku:progress') || '{}');
+          return (data.acorns || 0) >= 12 || (data.perchesFound || 0) >= 4;
+        } catch(e) { return false; }
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'fm')) return true;
+        try {
+          var data = JSON.parse(localStorage.getItem('moku:flying-moku:progress') || '{}');
+          return (data.acorns > 0 || data.fruits > 0 || data.ringsPassed > 0 || data.perchesFound > 0);
+        } catch(e) { return false; }
+      },
+      progress: function () {
+        if (this.isCompleted()) return 1;
+        try {
+          var data = JSON.parse(localStorage.getItem('moku:flying-moku:progress') || '{}');
+          var sum = (data.acorns || 0) + (data.ringsPassed || 0) * 0.5 + (data.perchesFound || 0) * 2;
+          return Math.min(1, sum / 16);
+        } catch(e) { return 0; }
+      },
+      badge: function () {
+        try {
+          var data = JSON.parse(localStorage.getItem('moku:flying-moku:progress') || '{}');
+          if (data.acorns > 0 || data.ringsPassed > 0) {
+            return (data.acorns || 0) + ' 🌰 Acorns · ' + (data.ringsPassed || 0) + ' ⭕ Rings';
+          }
+          if (this.isPlayed()) return 'Sky Explorer';
+        } catch(e) {}
+        return null;
+      }
+    },
+    {
+      name: 'Moku Rhythm Cafe',
+      card: 'mrc',
+      gameId: 'moku-rhythm',
+      isCompleted: function () {
+        if (isExplicitlyMarked('completed', 'mrc')) return true;
+        var best = readInt('moku_rhythm_best') || 0;
+        return best >= 2000;
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'mrc')) return true;
+        var best = readInt('moku_rhythm_best');
+        return best !== null && best > 0;
+      },
+      progress: function () {
+        if (this.isCompleted()) return 1;
+        var best = readInt('moku_rhythm_best') || 0;
+        return Math.min(1, best / 2000);
+      },
+      badge: function () {
+        var best = readInt('moku_rhythm_best');
+        if (!(best > 0) && !this.isPlayed()) return null;
+        return 'Best ' + (best || 0).toLocaleString() + ' pts';
+      }
+    },
+    {
+      name: 'MokuWolf',
+      card: 'mw',
+      gameId: 'moku-wolf',
+      isCompleted: function () {
+        if (isExplicitlyMarked('completed', 'mw')) return true;
+        var count = readInt('moku_wolf_played') || 0;
+        return count >= 5;
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'mw')) return true;
+        var count = readInt('moku_wolf_played');
+        return count !== null && count > 0;
+      },
+      progress: function () {
+        if (this.isCompleted()) return 1;
+        var count = readInt('moku_wolf_played') || 0;
+        return Math.min(1, count / 5);
+      },
+      badge: function () {
+        var count = readInt('moku_wolf_played');
+        if (!(count > 0) && !this.isPlayed()) return null;
+        return (count || 0) + ' Rounds Played';
       }
     },
     {
