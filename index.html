@@ -4,9 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Moku Series</title>
-<link rel="apple-touch-icon" href="icons/moyomoyo-apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icons/moyomoyo-icon-192.png">
-<link rel="icon" type="image/png" sizes="512x512" href="icons/moyomoyo-icon-512.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
 <link rel="manifest" href="hub-manifest.json">
 <meta name="apple-mobile-web-app-title" content="Moku Series">
 <style>
@@ -159,7 +161,7 @@ body[data-band="morning"] #starsLayer { --star-opacity: 0.15; }
   width: 100%; height: 100%; border-radius: 50%; overflow: hidden;
   background: #1a1228; display: flex; align-items: center; justify-content: center;
 }
-.owl-inner img { width: 122%; height: 122%; object-fit: cover; object-position: center 30%; }
+.owl-inner img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; }
 @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 
 .stats-summary {
@@ -378,15 +380,25 @@ h1 .wm-series {
 .tagline .c1 { color: #6EE7A8; font-weight: 700; }
 .tagline .c2 { color: #FFC94A; font-weight: 700; }
 
+.cta-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
 #getStartedBtn {
-  display: inline-flex; align-items: center; gap: 8px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   appearance: none; text-decoration: none;
   border: 1.5px solid rgba(147,160,255,0.6);
   background: rgba(147,160,255,0.12);
   color: #EDEEF6; font-weight: 800; font-size: 16px;
-  padding: 14px 34px; border-radius: 999px;
+  padding: 14px 32px; border-radius: 999px;
   box-shadow: 0 0 24px rgba(147,160,255,0.35);
   outline: none;
+  cursor: pointer;
   transition: transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease;
 }
 #getStartedBtn:hover {
@@ -399,6 +411,81 @@ h1 .wm-series {
   box-shadow: 0 0 0 3px rgba(147,160,255,0.5), 0 0 32px rgba(147,160,255,0.6);
 }
 #getStartedBtn:active { transform: translateY(1px); }
+
+#shareHubBtn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  appearance: none;
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: #EDEEF6; font-weight: 700; font-size: 15px;
+  padding: 14px 22px; border-radius: 999px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  outline: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease, color .15s ease;
+}
+#shareHubBtn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 0 24px rgba(255, 255, 255, 0.18);
+}
+#shareHubBtn:focus-visible {
+  border-color: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35), 0 0 24px rgba(255, 255, 255, 0.25);
+}
+#shareHubBtn:active { transform: translateY(1px); }
+
+#shareHubBtn.is-copied {
+  background: rgba(34, 197, 94, 0.18);
+  border-color: #22C55E;
+  color: #86EFAC;
+  box-shadow: 0 0 24px rgba(34, 197, 94, 0.4);
+}
+
+.share-toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  opacity: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 22px;
+  border-radius: 999px;
+  background: rgba(18, 14, 32, 0.94);
+  border: 1.5px solid rgba(34, 197, 94, 0.6);
+  color: #EDEEF6;
+  font-size: 13.5px;
+  font-weight: 700;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), 0 0 20px rgba(34, 197, 94, 0.25);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  z-index: 9999;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s ease;
+}
+.share-toast.is-visible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+.share-toast-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #22C55E;
+  color: #0F172A;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+}
 
 #loginLink {
   font-size: 13px; font-weight: 700;
@@ -494,9 +581,26 @@ footer.page-footer {
   </div>
   <h1><span class="wm-moku">MOKU</span><span class="wm-series">SERIES</span></h1>
   <p class="tagline">Play <span class="c1">small</span>. Have <span class="c1">fun</span>. Get <span class="c2">better</span>.</p>
-  <a id="getStartedBtn" href="hub.html" role="button">▶ Get Started</a>
+  <div class="cta-group">
+    <a id="getStartedBtn" href="hub.html" role="button">▶ Get Started</a>
+    <button id="shareHubBtn" type="button" aria-label="Share Moku Series Hub (Copy Link)" title="Copy link to Moku Series Hub">
+      <svg class="share-btn-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="18" cy="5" r="3"></circle>
+        <circle cx="6" cy="12" r="3"></circle>
+        <circle cx="18" cy="19" r="3"></circle>
+        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+      </svg>
+      <span id="shareBtnLabel">Share</span>
+    </button>
+  </div>
   <div id="loginLink">Log In <span>(Coming Soon)</span></div>
-  <div class="quick-row" aria-hidden="true">🦉 🍬 ⚽ 🏆 💬 🎱</div>
+  <div class="quick-row" aria-hidden="true">🦉 🍬 ⚽ 🏆 💬 🕹️ 🍉 🍱 🎣 🏎️ 🎹 🏃</div>
+</div>
+
+<div id="shareToast" class="share-toast" role="status" aria-live="polite" aria-hidden="true">
+  <span class="share-toast-icon" aria-hidden="true">✓</span>
+  <span class="share-toast-msg">Hub link copied to clipboard!</span>
 </div>
 
 <footer class="page-footer">aohaus/Moku</footer>
@@ -681,7 +785,7 @@ footer.page-footer {
     }
 
     // 2. Total games and distinct games played
-    var gameKeys = ['am', 'mm', 'mk', 'br', 'so', 'mc', 'mb'];
+    var gameKeys = ['am', 'mm', 'mk', 'br', 'so', 'mc', 'mr', 'md', 'mb', 'mf', 'mkt', 'mrc'];
     var distinctCount = 0;
     var completedCount = 0;
 
@@ -723,6 +827,28 @@ footer.page-footer {
           if (mp && (mp.level > 1 || mp.coins > 0 || mp.updatedAt)) isPlayed = true;
           if (mp && (mp.level >= 10 || mp.completed)) isCompleted = true;
         } catch (e) {}
+      } else if (k === 'mr') {
+        var cranePlays = parseInt(localStorage.getItem('moku:mr:plays') || '0', 10);
+        if (cranePlays > 0) isPlayed = true;
+      } else if (k === 'md') {
+        var dropBest = parseInt(localStorage.getItem('moku_drop_best') || '0', 10);
+        if (dropBest > 0) isPlayed = true;
+        if (dropBest >= 2048) isCompleted = true;
+      } else if (k === 'mb') {
+        var bentoBest = parseInt(localStorage.getItem('moku_bento_best') || '0', 10);
+        if (bentoBest > 0) isPlayed = true;
+        if (bentoBest >= 1500) isCompleted = true;
+      } else if (k === 'mf') {
+        var fishCount = parseInt(localStorage.getItem('moku_fishing_count') || '0', 10);
+        if (fishCount > 0) isPlayed = true;
+        if (fishCount >= 10) isCompleted = true;
+      } else if (k === 'mkt') {
+        var kartTime = localStorage.getItem('moku_kart_best_time');
+        if (kartTime !== null) { isPlayed = true; isCompleted = true; }
+      } else if (k === 'mrc') {
+        var rhythmBest = parseInt(localStorage.getItem('moku_rhythm_best') || '0', 10);
+        if (rhythmBest > 0) isPlayed = true;
+        if (rhythmBest >= 2000) isCompleted = true;
       }
 
       if (isPlayed || isCompleted) distinctCount++;
@@ -803,6 +929,88 @@ footer.page-footer {
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'visible') updateStatsDisplay();
   });
+
+  // Share Hub Link to Clipboard Handler
+  var shareBtn = document.getElementById('shareHubBtn');
+  var shareBtnLabel = document.getElementById('shareBtnLabel');
+  var shareToast = document.getElementById('shareToast');
+  var toastTimer = null;
+  var btnResetTimer = null;
+
+  function showShareFeedback(msg) {
+    if (shareToast) {
+      var msgElem = shareToast.querySelector('.share-toast-msg');
+      if (msgElem && msg) msgElem.textContent = msg;
+      shareToast.classList.add('is-visible');
+      shareToast.setAttribute('aria-hidden', 'false');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () {
+        shareToast.classList.remove('is-visible');
+        shareToast.setAttribute('aria-hidden', 'true');
+      }, 2600);
+    }
+
+    if (shareBtn && shareBtnLabel) {
+      shareBtn.classList.add('is-copied');
+      shareBtnLabel.textContent = 'Copied!';
+      clearTimeout(btnResetTimer);
+      btnResetTimer = setTimeout(function () {
+        shareBtn.classList.remove('is-copied');
+        shareBtnLabel.textContent = 'Share';
+      }, 2400);
+    }
+  }
+
+  function getHubShareUrl() {
+    try {
+      return new URL('hub.html', window.location.href).href;
+    } catch (e) {
+      return window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/hub.html');
+    }
+  }
+
+  function copyTextFallback(text) {
+    var textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.top = '-9999px';
+    textArea.style.left = '-9999px';
+    textArea.setAttribute('readonly', '');
+    document.body.appendChild(textArea);
+    textArea.select();
+    var successful = false;
+    try {
+      successful = document.execCommand('copy');
+    } catch (err) {
+      successful = false;
+    }
+    document.body.removeChild(textArea);
+    return successful;
+  }
+
+  if (shareBtn) {
+    shareBtn.addEventListener('click', function () {
+      var hubUrl = getHubShareUrl();
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(hubUrl).then(function () {
+          showShareFeedback('Moku Series hub link copied!');
+        }).catch(function () {
+          if (copyTextFallback(hubUrl)) {
+            showShareFeedback('Moku Series hub link copied!');
+          } else {
+            showShareFeedback('Hub link: ' + hubUrl);
+          }
+        });
+      } else {
+        if (copyTextFallback(hubUrl)) {
+          showShareFeedback('Moku Series hub link copied!');
+        } else {
+          showShareFeedback('Hub link: ' + hubUrl);
+        }
+      }
+    });
+  }
 })();
 </script>
 </body>

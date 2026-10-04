@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>MOKU DROP - Physics Merge & Grow | Moku Series</title>
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@500;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg-top: #0F0C20;
+  --bg-bottom: #080611;
+  --container-border: rgba(147, 160, 255, 0.28);
+  --container-bg: rgba(16, 13, 33, 0.72);
+  --accent-gold: #FFC94A;
+  --accent-mint: #6EE7A8;
+  --accent-pink: #FF6B97;
+  --accent-purple: #9D7BFF;
+  --text-main: #EDEEF6;
+  --text-muted: rgba(237, 238, 246, 0.6);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: radial-gradient(circle at 50% 20%, #1A1538 0%, var(--bg-top) 50%, var(--bg-bottom) 100%);
+  color: var(--text-main);
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Canvas Container */
+#game-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 840px;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px 14px;
+  z-index: 2;
+}
+
+/* Header Bar */
+.game-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px 8px;
+  gap: 8px;
+  z-index: 10;
+}
+
+.hub-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: var(--text-main);
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-decoration: none;
+  backdrop-filter: blur(8px);
+  transition: all 0.15s ease;
+}
+.hub-link:active {
+  transform: scale(0.96);
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.score-pill {
+  background: rgba(147, 160, 255, 0.12);
+  border: 1px solid rgba(147, 160, 255, 0.35);
+  border-radius: 14px;
+  padding: 4px 14px;
+  text-align: center;
+  backdrop-filter: blur(8px);
+}
+.score-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  font-weight: 800;
+}
+.score-value {
+  font-family: 'Fredoka', cursive, sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: #FFF;
+  line-height: 1.1;
+}
+
+.next-preview-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  padding: 4px 10px;
+  min-width: 60px;
+  height: 48px;
+  justify-content: center;
+  position: relative;
+}
+.next-label {
+  font-size: 8.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--accent-mint);
+  letter-spacing: 0.06em;
+}
+.next-preview-canvas {
+  width: 32px;
+  height: 26px;
+}
+
+/* Header action buttons */
+.header-actions {
+  display: flex;
+  gap: 6px;
+}
+.action-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: var(--text-main);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: transform 0.15s ease;
+}
+.action-btn:active {
+  transform: scale(0.92);
+}
+
+/* Main Game Arena */
+.arena-container {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  overflow: hidden;
+}
+
+canvas#gameCanvas {
+  width: 100%;
+  height: 100%;
+  border-radius: 20px 20px 24px 24px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(147, 160, 255, 0.08);
+  background: rgba(14, 11, 28, 0.7);
+  border: 2px solid var(--container-border);
+}
+
+/* Evolution Chart Tray at Bottom */
+.evo-bar {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  padding: 6px 12px;
+  width: 100%;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.evo-circles {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.evo-dot {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  display: inline-block;
+}
+
+/* Shake / Action Bar */
+.controls-bar {
+  margin-top: 6px;
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+.shake-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(255, 201, 74, 0.15);
+  border: 1.5px solid rgba(255, 201, 74, 0.5);
+  color: var(--accent-gold);
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.shake-btn:active {
+  transform: scale(0.97);
+  background: rgba(255, 201, 74, 0.3);
+}
+.shake-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Overlay Modals */
+.modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 8, 22, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 100;
+  border-radius: 20px;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-title {
+  font-family: 'Fredoka', cursive, sans-serif;
+  font-size: 32px;
+  font-weight: 800;
+  color: #FFF;
+  margin-bottom: 6px;
+  text-shadow: 0 4px 16px rgba(157, 123, 255, 0.6);
+}
+.modal-title .accent {
+  color: var(--accent-gold);
+}
+.modal-sub {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+  max-width: 280px;
+  line-height: 1.5;
+}
+
+.modal-score-card {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  padding: 14px 24px;
+  width: 100%;
+  max-width: 260px;
+  margin-bottom: 20px;
+}
+.modal-score-val {
+  font-family: 'Fredoka', cursive, sans-serif;
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--accent-mint);
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #FF6B97, #9D7BFF);
+  border: none;
+  color: #FFF;
+  font-size: 16px;
+  font-weight: 800;
+  padding: 14px 32px;
+  border-radius: 999px;
+  box-shadow: 0 6px 20px rgba(157, 123, 255, 0.45);
+  cursor: pointer;
+  width: 100%;
+  max-width: 240px;
+  transition: transform 0.15s ease;
+}
+.btn-primary:active {
+  transform: scale(0.96);
+}
+
+/* Floating Particles & Combo Pop */
+.combo-badge {
+  position: absolute;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%) scale(0.8);
+  background: linear-gradient(135deg, #FFC94A, #FF6B97);
+  color: #0F0C20;
+  font-family: 'Fredoka', cursive, sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  padding: 4px 14px;
+  border-radius: 999px;
+  box-shadow: 0 4px 16px rgba(255, 107, 151, 0.5);
+  pointer-events: none;
+  opacity: 0;
+  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  z-index: 20;
+}
+.combo-badge.show {
+  opacity: 1;
+  transform: translateX(-50%) scale(1.1);
+}
+</style>
+</head>
+<body>
+
+<div id="game-wrapper">
+  <!-- Top Bar -->
+  <div class="game-header">
+    <a href="hub.html" class="hub-link" id="backToHubBtn" aria-label="Return to Moku Series Hub">
+      <span>◀ Hub</span>
+    </a>
+    
+    <div class="score-pill">
+      <div class="score-label">Score</div>
+      <div class="score-value" id="currentScore">0</div>
+    </div>
+
+    <div class="score-pill">
+      <div class="score-label">Best</div>
+      <div class="score-value" id="bestScore">0</div>
+    </div>
+
+    <div class="next-preview-box" title="Next Moku">
+      <div class="next-label">Next</div>
+      <canvas id="nextCanvas" class="next-preview-canvas" width="64" height="52"></canvas>
+    </div>
+
+    <div class="header-actions">
+      <button class="action-btn" id="soundToggleBtn" aria-label="Toggle Sound">🔊</button>
+      <button class="action-btn" id="restartBtn" aria-label="Restart Game">🔄</button>
+    </div>
+  </div>
+
+  <!-- Game Arena -->
+  <div class="arena-container">
+    <div id="comboBadge" class="combo-badge">Combo x2!</div>
+    <canvas id="gameCanvas"></canvas>
+  </div>
+
+  <!-- Evolution Tracker -->
+  <div class="evo-bar">
+    <span>Evolution:</span>
+    <div class="evo-circles" id="evoDots"></div>
+    <span>👑 King Moku</span>
+  </div>
+
+  <!-- Bottom Shake Tool -->
+  <div class="controls-bar">
+    <button class="shake-btn" id="shakeJarBtn" aria-label="Nudge Container (3 left)">
+      <span>🌀 Jar Nudge</span>
+      <span id="shakeCountBadge">(3)</span>
+    </button>
+  </div>
+
+  <!-- Game Over Modal -->
+  <div id="gameOverModal" class="modal-overlay">
+    <div class="modal-title">JAR <span class="accent">FULL!</span></div>
+    <div class="modal-sub">Your Mokus reached the ceiling! Awesome merging run.</div>
+    <div class="modal-score-card">
+      <div class="score-label">Final Score</div>
+      <div class="modal-score-val" id="finalScoreVal">0</div>
+      <div class="score-label" id="newBestLabel" style="color: var(--accent-gold); margin-top: 4px; display: none;">★ NEW HIGH SCORE! ★</div>
+    </div>
+    <button class="btn-primary" id="playAgainBtn">▶ Play Again</button>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // --- AUDIO SYNTHESIZER ---
+  var audioCtx = null;
+  var soundEnabled = true;
+
+  function getAudioContext() {
+    if (!audioCtx) {
+      var AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (AudioContextClass) audioCtx = new AudioContextClass();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    return audioCtx;
+  }
+
+  function playSound(type, freqMultiplier) {
+    if (!soundEnabled) return;
+    try {
+      var ctx = getAudioContext();
+      if (!ctx) return;
+      var mult = freqMultiplier || 1.0;
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      var now = ctx.currentTime;
+
+      if (type === 'drop') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(320 * mult, now);
+        osc.frequency.exponentialRampToValueAtTime(140 * mult, now + 0.12);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        osc.start(now);
+        osc.stop(now + 0.12);
+      } else if (type === 'merge') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(260 * mult, now);
+        osc.frequency.exponentialRampToValueAtTime(520 * mult, now + 0.18);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+        osc.start(now);
+        osc.stop(now + 0.18);
+      } else if (type === 'pop') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440 * mult, now);
+        osc.frequency.exponentialRampToValueAtTime(880 * mult, now + 0.08);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        osc.start(now);
+        osc.stop(now + 0.08);
+      } else if (type === 'shake') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(90, now);
+        osc.frequency.exponentialRampToValueAtTime(45, now + 0.25);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        osc.start(now);
+        osc.stop(now + 0.25);
+      } else if (type === 'gameover') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.exponentialRampToValueAtTime(70, now + 0.45);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+        osc.start(now);
+        osc.stop(now + 0.45);
+      }
+    } catch(e) {}
+  }
+
+  // --- MOKU EVOLUTION TIERS ---
+  var TIERS = [
+    { tier: 0, name: 'Sprout', radius: 15, color: '#A3E635', face: '˙ᵕ˙', score: 2 },
+    { tier: 1, name: 'Blueberry', radius: 20, color: '#38BDF8', face: '•‿•', score: 4 },
+    { tier: 2, name: 'Tangerine', radius: 26, color: '#FB923C', face: '˘▾˘', score: 8 },
+    { tier: 3, name: 'Grape', radius: 32, color: '#C084FC', face: '◕‿◕', score: 16 },
+    { tier: 4, name: 'Apple', radius: 39, color: '#F87171', face: 'ᵔᴥᵔ', score: 32 },
+    { tier: 5, name: 'Sun Moku', radius: 46, color: '#FBBF24', face: '★‿★', score: 64 },
+    { tier: 6, name: 'Sakura', radius: 54, color: '#F472B6', face: '♡‿♡', score: 128 },
+    { tier: 7, name: 'Cosmic', radius: 63, color: '#818CF8', face: '✧‿✧', score: 256 },
+    { tier: 8, name: 'Emerald', radius: 72, color: '#34D399', face: '⊙‿⊙', score: 512 },
+    { tier: 9, name: 'Ruby', radius: 82, color: '#E11D48', face: '▼‿▼', score: 1024 },
+    { tier: 10, name: 'King Moku', radius: 94, color: '#FFD700', face: '👑', score: 2048, isKing: true }
+  ];
+
+  // Render evolution circles UI
+  var evoDotsContainer = document.getElementById('evoDots');
+  if (evoDotsContainer) {
+    TIERS.forEach(function(t) {
+      var dot = document.createElement('span');
+      dot.className = 'evo-dot';
+      dot.style.background = t.color;
+      dot.title = t.name + ' (' + t.score + ' pts)';
+      evoDotsContainer.appendChild(dot);
+    });
+  }
+
+  // --- GAME STATE ---
+  var canvas = document.getElementById('gameCanvas');
+  var ctx = canvas.getContext('2d');
+  var nextCanvas = document.getElementById('nextCanvas');
+  var nextCtx = nextCanvas.getContext('2d');
+
+  var currentScore = 0;
+  var bestScore = parseInt(localStorage.getItem('moku_drop_best') || '0', 10);
+  var nudgesLeft = 3;
+  var isGameOver = false;
+  var dropCooldown = false;
+
+  var width = 360;
+  var height = 540;
+  var dpr = window.devicePixelRatio || 1;
+
+  var dangerLineY = 70;
+  var currentDropTier = 0;
+  var nextDropTier = 0;
+  var dropX = width / 2;
+  var isPointerDown = false;
+
+  var bodies = [];
+  var particles = [];
+  var comboCount = 0;
+  var comboTimer = null;
+
+  // Resize Canvas to Match CSS Box
+  function resizeCanvas() {
+    var rect = canvas.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+    width = rect.width;
+    height = rect.height;
+    dpr = window.devicePixelRatio || 1;
+
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    ctx.scale(dpr, dpr);
+
+    dangerLineY = height * 0.15;
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  // --- VERLET PHYSICS ENGINE ---
+  function Particle(x, y, tier) {
+    var t = TIERS[tier];
+    this.x = x;
+    this.y = y;
+    this.prevX = x;
+    this.prevY = y;
+    this.tier = tier;
+    this.radius = t.radius;
+    this.color = t.color;
+    this.face = t.face;
+    this.isKing = t.isKing || false;
+    this.merged = false;
+    this.spawnTime = Date.now();
+    this.rotation = 0;
+    this.rotSpeed = (Math.random() - 0.5) * 0.05;
+    this.squish = 1.0;
+  }
+
+  Particle.prototype.update = function(gravity) {
+    var vx = (this.x - this.prevX) * 0.985;
+    var vy = (this.y - this.prevY) * 0.985 + gravity;
+
+    this.prevX = this.x;
+    this.prevY = this.y;
+
+    this.x += vx;
+    this.y += vy;
+
+    this.rotation += this.rotSpeed;
+    if (this.squish < 1.0) this.squish = Math.min(1.0, this.squish + 0.05);
+  };
+
+  Particle.prototype.constrain = function(w, h) {
+    var r = this.radius;
+    var bounce = 0.3;
+
+    // Floor
+    if (this.y + r > h) {
+      var vy = (this.y - this.prevY) * bounce;
+      this.y = h - r;
+      this.prevY = this.y + vy;
+    }
+    // Left wall
+    if (this.x - r < 0) {
+      var vx = (this.x - this.prevX) * bounce;
+      this.x = r;
+      this.prevX = this.x + vx;
+    }
+    // Right wall
+    if (this.x + r > w) {
+      var vx = (this.x - this.prevX) * bounce;
+      this.x = w - r;
+      this.prevX = this.x + vx;
+    }
+  };
+
+  // Visual Spark Particles
+  function Spark(x, y, color) {
+    this.x = x;
+    this.y = y;
+    var angle = Math.random() * Math.PI * 2;
+    var speed = Math.random() * 4 + 2;
+    this.vx = Math.cos(angle) * speed;
+    this.vy = Math.sin(angle) * speed - 1;
+    this.color = color;
+    this.alpha = 1.0;
+    this.size = Math.random() * 4 + 3;
+  }
+  Spark.prototype.update = function() {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.vy += 0.15;
+    this.alpha -= 0.035;
+  };
+  Spark.prototype.draw = function(c) {
+    c.save();
+    c.globalAlpha = Math.max(0, this.alpha);
+    c.fillStyle = this.color;
+    c.beginPath();
+    c.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    c.fill();
+    c.restore();
+  };
+
+  function spawnSparks(x, y, color, count) {
+    var num = count || 12;
+    for (var i = 0; i < num; i++) {
+      particles.push(new Spark(x, y, color));
+    }
+  }
+
+  // --- COLLISION & MERGING ---
+  function solveCollisions() {
+    var len = bodies.length;
+    for (var i = 0; i < len; i++) {
+      var b1 = bodies[i];
+      if (b1.merged) continue;
+
+      for (var j = i + 1; j < len; j++) {
+        var b2 = bodies[j];
+        if (b2.merged) continue;
+
+        var dx = b2.x - b1.x;
+        var dy = b2.y - b1.y;
+        var distSq = dx * dx + dy * dy;
+        var minDist = b1.radius + b2.radius;
+
+        if (distSq < minDist * minDist) {
+          var dist = Math.sqrt(distSq) || 0.001;
+
+          // SAME TIER MERGE!
+          if (b1.tier === b2.tier && b1.tier < TIERS.length - 1) {
+            b1.merged = true;
+            b2.merged = true;
+
+            var midX = (b1.x + b2.x) / 2;
+            var midY = (b1.y + b2.y) / 2;
+            var nextTier = b1.tier + 1;
+
+            var pts = TIERS[nextTier].score;
+            addScore(pts);
+            triggerCombo();
+
+            playSound('merge', 1 + nextTier * 0.12);
+            spawnSparks(midX, midY, TIERS[nextTier].color, 16);
+
+            var newBody = new Particle(midX, midY, nextTier);
+            newBody.squish = 0.6;
+            bodies.push(newBody);
+            return;
+          }
+
+          var overlap = (minDist - dist) * 0.5;
+          var nx = dx / dist;
+          var ny = dy / dist;
+
+          b1.x -= nx * overlap;
+          b1.y -= ny * overlap;
+          b2.x += nx * overlap;
+          b2.y += ny * overlap;
+        }
+      }
+    }
+  }
+
+  // --- COMBO & SCORE ---
+  function triggerCombo() {
+    comboCount++;
+    clearTimeout(comboTimer);
+    var badge = document.getElementById('comboBadge');
+    if (badge && comboCount > 1) {
+      badge.textContent = 'COMBO x' + comboCount + '!';
+      badge.classList.add('show');
+    }
+    comboTimer = setTimeout(function() {
+      comboCount = 0;
+      if (badge) badge.classList.remove('show');
+    }, 1400);
+  }
+
+  function addScore(pts) {
+    currentScore += pts * (comboCount > 1 ? comboCount : 1);
+    var scoreEl = document.getElementById('currentScore');
+    if (scoreEl) scoreEl.textContent = currentScore;
+
+    if (currentScore > bestScore) {
+      bestScore = currentScore;
+      localStorage.setItem('moku_drop_best', bestScore);
+      var bestEl = document.getElementById('bestScore');
+      if (bestEl) bestEl.textContent = bestScore;
+    }
+  }
+
+  // --- SPAWNING & NEXT TIER ---
+  function getRandomSpawnTier() {
+    var r = Math.random();
+    if (r < 0.45) return 0;
+    if (r < 0.80) return 1;
+    if (r < 0.95) return 2;
+    return 3;
+  }
+
+  function renderNextPreview() {
+    nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+    var t = TIERS[nextDropTier];
+    var cx = nextCanvas.width / 2;
+    var cy = nextCanvas.height / 2;
+    var r = Math.min(18, t.radius * 0.65);
+
+    nextCtx.beginPath();
+    nextCtx.arc(cx, cy, r, 0, Math.PI * 2);
+    nextCtx.fillStyle = t.color;
+    nextCtx.fill();
+    nextCtx.strokeStyle = '#FFFFFF';
+    nextCtx.lineWidth = 2;
+    nextCtx.stroke();
+
+    nextCtx.fillStyle = '#0F0C20';
+    nextCtx.font = 'bold ' + (r * 0.9) + 'px sans-serif';
+    nextCtx.textAlign = 'center';
+    nextCtx.textBaseline = 'middle';
+    nextCtx.fillText(t.face, cx, cy);
+  }
+
+  function dropCurrentMoku() {
+    if (dropCooldown || isGameOver) return;
+    dropCooldown = true;
+
+    var p = new Particle(dropX, dangerLineY * 0.7, currentDropTier);
+    bodies.push(p);
+    playSound('drop', 1.0);
+
+    currentDropTier = nextDropTier;
+    nextDropTier = getRandomSpawnTier();
+    renderNextPreview();
+
+    setTimeout(function() {
+      dropCooldown = false;
+    }, 450);
+  }
+
+  // --- DRAWING MOKUS ---
+  function drawMoku(c, b) {
+    c.save();
+    c.translate(b.x, b.y);
+    c.rotate(b.rotation);
+    c.scale(1 / b.squish, b.squish);
+
+    var r = b.radius;
+
+    c.shadowColor = b.color;
+    c.shadowBlur = b.tier > 6 ? 16 : 6;
+
+    c.beginPath();
+    c.arc(0, 0, r, 0, Math.PI * 2);
+    c.fillStyle = b.color;
+    c.fill();
+
+    c.shadowBlur = 0;
+    c.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+    c.lineWidth = Math.max(2, r * 0.08);
+    c.stroke();
+
+    c.fillStyle = 'rgba(255, 105, 180, 0.45)';
+    c.beginPath();
+    c.arc(-r * 0.45, r * 0.15, r * 0.18, 0, Math.PI * 2);
+    c.arc(r * 0.45, r * 0.15, r * 0.18, 0, Math.PI * 2);
+    c.fill();
+
+    if (b.isKing) {
+      c.font = (r * 0.8) + 'px sans-serif';
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.fillText('👑', 0, -r * 0.1);
+    } else {
+      c.fillStyle = '#0F0C20';
+      c.font = '800 ' + (r * 0.5) + 'px "Plus Jakarta Sans", sans-serif';
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.fillText(b.face, 0, 0);
+    }
+
+    c.beginPath();
+    c.arc(-r * 0.3, -r * 0.35, r * 0.18, 0, Math.PI * 2);
+    c.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    c.fill();
+
+    c.restore();
+  }
+
+  // --- CHECK GAME OVER ---
+  function checkCeilingOverflow() {
+    if (isGameOver) return;
+    var now = Date.now();
+    for (var i = 0; i < bodies.length; i++) {
+      var b = bodies[i];
+      if (now - b.spawnTime > 2500) {
+        var topEdge = b.y - b.radius;
+        if (topEdge < dangerLineY) {
+          var vy = Math.abs(b.y - b.prevY);
+          if (vy < 0.5) {
+            triggerGameOver();
+            return;
+          }
+        }
+      }
+    }
+  }
+
+  function triggerGameOver() {
+    isGameOver = true;
+    playSound('gameover');
+
+    var modal = document.getElementById('gameOverModal');
+    var finalVal = document.getElementById('finalScoreVal');
+    var newBest = document.getElementById('newBestLabel');
+
+    if (finalVal) finalVal.textContent = currentScore;
+    if (newBest) newBest.style.display = (currentScore >= bestScore && currentScore > 0) ? 'block' : 'none';
+    if (modal) modal.classList.add('active');
+
+    try {
+      var total = parseInt(localStorage.getItem('moku_total_played') || '0', 10) + 1;
+      localStorage.setItem('moku_total_played', total);
+    } catch(e) {}
+  }
+
+  // --- MAIN RENDER LOOP ---
+  function loop() {
+    ctx.clearRect(0, 0, width, height);
+
+    // 1. Danger Limit Line
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255, 107, 151, 0.45)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6, 6]);
+    ctx.beginPath();
+    ctx.moveTo(0, dangerLineY);
+    ctx.lineTo(width, dangerLineY);
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(255, 107, 151, 0.6)';
+    ctx.font = '800 10px "Plus Jakarta Sans"';
+    ctx.fillText('CEILING LIMIT', width - 85, dangerLineY - 6);
+    ctx.restore();
+
+    // 2. Drop Guide Line & Preview
+    if (!isGameOver) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(dropX, 10);
+      ctx.lineTo(dropX, height);
+      ctx.stroke();
+      ctx.restore();
+
+      var t = TIERS[currentDropTier];
+      drawMoku(ctx, {
+        x: dropX,
+        y: dangerLineY * 0.6,
+        radius: t.radius,
+        color: t.color,
+        face: t.face,
+        rotation: 0,
+        squish: 1.0,
+        tier: currentDropTier
+      });
+    }
+
+    // 3. Physics update
+    var subSteps = 6;
+    var gravity = 0.42 / subSteps;
+    for (var step = 0; step < subSteps; step++) {
+      for (var i = 0; i < bodies.length; i++) {
+        bodies[i].update(gravity);
+        bodies[i].constrain(width, height);
+      }
+      solveCollisions();
+    }
+
+    bodies = bodies.filter(function(b) { return !b.merged; });
+
+    // 4. Draw Bodies
+    for (var k = 0; k < bodies.length; k++) {
+      drawMoku(ctx, bodies[k]);
+    }
+
+    // 5. Particles
+    for (var pIdx = particles.length - 1; pIdx >= 0; pIdx--) {
+      var sp = particles[pIdx];
+      sp.update();
+      sp.draw(ctx);
+      if (sp.alpha <= 0) particles.splice(pIdx, 1);
+    }
+
+    // 6. Check Game Over
+    checkCeilingOverflow();
+
+    requestAnimationFrame(loop);
+  }
+
+  // --- INPUT CONTROLS ---
+  function updateDropPosition(clientX) {
+    var rect = canvas.getBoundingClientRect();
+    var x = clientX - rect.left;
+    var minX = TIERS[currentDropTier].radius + 4;
+    var maxX = width - TIERS[currentDropTier].radius - 4;
+    dropX = Math.max(minX, Math.min(maxX, x));
+  }
+
+  canvas.addEventListener('pointerdown', function(e) {
+    isPointerDown = true;
+    updateDropPosition(e.clientX);
+  });
+
+  canvas.addEventListener('pointermove', function(e) {
+    if (isPointerDown) {
+      updateDropPosition(e.clientX);
+    }
+  });
+
+  window.addEventListener('pointerup', function(e) {
+    if (isPointerDown) {
+      isPointerDown = false;
+      dropCurrentMoku();
+    }
+  });
+
+  // --- SHAKE JAR TOOL ---
+  var shakeBtn = document.getElementById('shakeJarBtn');
+  var shakeBadge = document.getElementById('shakeCountBadge');
+  if (shakeBtn) {
+    shakeBtn.addEventListener('click', function() {
+      if (nudgesLeft <= 0 || isGameOver) return;
+      nudgesLeft--;
+      if (shakeBadge) shakeBadge.textContent = '(' + nudgesLeft + ')';
+      if (nudgesLeft <= 0) shakeBtn.disabled = true;
+
+      playSound('shake');
+
+      for (var i = 0; i < bodies.length; i++) {
+        var b = bodies[i];
+        b.prevX += (Math.random() - 0.5) * 16;
+        b.prevY += (Math.random() * 8 + 4);
+      }
+
+      canvas.style.transform = 'translateY(6px)';
+      setTimeout(function() { canvas.style.transform = 'translateY(-6px)'; }, 50);
+      setTimeout(function() { canvas.style.transform = 'translateY(0)'; }, 100);
+    });
+  }
+
+  // --- RESTART & SOUND ---
+  function resetGame() {
+    bodies = [];
+    particles = [];
+    currentScore = 0;
+    nudgesLeft = 3;
+    isGameOver = false;
+    dropCooldown = false;
+
+    var scoreEl = document.getElementById('currentScore');
+    if (scoreEl) scoreEl.textContent = '0';
+
+    var modal = document.getElementById('gameOverModal');
+    if (modal) modal.classList.remove('active');
+
+    if (shakeBtn) shakeBtn.disabled = false;
+    if (shakeBadge) shakeBadge.textContent = '(3)';
+
+    currentDropTier = getRandomSpawnTier();
+    nextDropTier = getRandomSpawnTier();
+    renderNextPreview();
+  }
+
+  var restartBtn = document.getElementById('restartBtn');
+  if (restartBtn) restartBtn.addEventListener('click', resetGame);
+
+  var playAgainBtn = document.getElementById('playAgainBtn');
+  if (playAgainBtn) playAgainBtn.addEventListener('click', resetGame);
+
+  var soundBtn = document.getElementById('soundToggleBtn');
+  if (soundBtn) {
+    soundBtn.addEventListener('click', function() {
+      soundEnabled = !soundEnabled;
+      soundBtn.textContent = soundEnabled ? '🔊' : '🔇';
+    });
+  }
+
+  // Init
+  var bestEl = document.getElementById('bestScore');
+  if (bestEl) bestEl.textContent = bestScore;
+
+  currentDropTier = getRandomSpawnTier();
+  nextDropTier = getRandomSpawnTier();
+  renderNextPreview();
+  loop();
+
+})();
+</script>
+</body>
+</html>

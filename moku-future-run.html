@@ -1,0 +1,2971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Moku Future Run — 3D Pitter-Patter Runner</title>
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="shared/moku-scores.js"></script>
+<style>
+  :root {
+    --hi: #A855F7;
+    --lo: #4C1D95;
+    --accent-cyan: #06B6D4;
+    --accent-amber: #F59E0B;
+    --accent-pink: #EC4899;
+    --accent-green: #10B981;
+    --bg-dark: #0A0B16;
+    --text-light: #EDEEF6;
+  }
+  * {
+    margin: 0; padding: 0; box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: var(--bg-dark);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--text-light);
+    user-select: none;
+    touch-action: none;
+  }
+  #webgl-canvas {
+    position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1;
+  }
+  #title-frame {
+    position: fixed; inset: 14px;
+    border: 3px solid var(--hi);
+    border-radius: 10px;
+    pointer-events: none;
+    z-index: 50;
+    transition: opacity 0.3s ease;
+  }
+  #title-frame::after {
+    content: ''; position: absolute; inset: 5px;
+    border: 1px solid var(--lo);
+    border-radius: 8px;
+    pointer-events: none;
+  }
+  #hub-link {
+    position: fixed; top: 22px; right: 26px; z-index: 60;
+    text-decoration: none; color: var(--hi); font-size: 13.5px; font-weight: 800;
+    padding: 6px 14px; background: rgba(10, 11, 22, 0.75);
+    border: 1px solid var(--hi); border-radius: 999px;
+    backdrop-filter: blur(8px);
+    animation: hubPulse 2.2s infinite ease-in-out;
+  }
+  @keyframes hubPulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 10px rgba(168,85,247,0.3); }
+    50% { transform: scale(1.04); box-shadow: 0 0 20px rgba(168,85,247,0.6); }
+  }
+  #buildInfo {
+    position: fixed; bottom: 20px; left: 24px; z-index: 60;
+    font-size: 10.5px; color: rgba(255,255,255,0.35); pointer-events: none;
+  }
+  .screen-overlay {
+    position: fixed; inset: 0; z-index: 40;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: radial-gradient(circle at center, rgba(30, 20, 50, 0.85) 0%, rgba(10, 11, 22, 0.95) 100%);
+    backdrop-filter: blur(6px);
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    padding: 20px;
+  }
+  .screen-overlay.hidden {
+    opacity: 0; visibility: hidden; pointer-events: none;
+  }
+  .title-logo-container {
+    text-align: center; margin-bottom: 24px; animation: floatLogo 3s ease-in-out infinite;
+  }
+  @keyframes floatLogo {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  .game-badge {
+    display: inline-block; padding: 4px 12px;
+    background: linear-gradient(90deg, #EC4899, #8B5CF6);
+    border-radius: 999px; font-size: 11px; font-weight: 800; letter-spacing: 1.5px;
+    text-transform: uppercase; margin-bottom: 8px; color: #fff;
+    box-shadow: 0 0 12px rgba(236,72,153,0.5);
+  }
+  .title-main {
+    font-size: clamp(34px, 8vw, 54px); font-weight: 900; letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #FFF 20%, #E9D5FF 60%, #C084FC 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 30px rgba(168,85,247,0.5);
+    line-height: 1.1;
+  }
+  .title-sub {
+    font-size: 13.5px; color: #D8B4FE; margin-top: 6px; font-weight: 600; letter-spacing: 0.5px;
+  }
+  .stage-select-box {
+    display: flex; gap: 12px; margin-bottom: 24px; width: 100%; max-width: 500px;
+    justify-content: center; flex-wrap: wrap;
+  }
+  .stage-card {
+    flex: 1 1 130px; max-width: 155px; background: rgba(255,255,255,0.06);
+    border: 2px solid rgba(255,255,255,0.15); border-radius: 14px;
+    padding: 12px 10px; cursor: pointer; text-align: center;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .stage-card:hover, .stage-card.selected {
+    background: rgba(168,85,247,0.22); border-color: var(--hi);
+    transform: translateY(-4px); box-shadow: 0 8px 24px rgba(168,85,247,0.4);
+  }
+  .stage-icon { font-size: 26px; margin-bottom: 4px; }
+  .stage-name { font-size: 12px; font-weight: 800; color: #FFF; }
+  .stage-target { font-size: 10px; color: #A78BFA; margin-top: 2px; }
+  .btn-start {
+    padding: 14px 44px; font-size: 18px; font-weight: 800;
+    color: #FFF; background: linear-gradient(135deg, #9333EA 0%, #C026D3 100%);
+    border: none; border-radius: 999px; cursor: pointer;
+    box-shadow: 0 6px 25px rgba(192,38,211,0.5);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-start:hover {
+    transform: scale(1.05); box-shadow: 0 8px 32px rgba(192,38,211,0.7);
+  }
+  .btn-start:active { transform: scale(0.96); }
+  .menu-actions-row {
+    display: flex; gap: 12px; margin-top: 16px;
+  }
+  .btn-secondary {
+    padding: 8px 18px; font-size: 12.5px; font-weight: 700;
+    color: #EDEEF6; background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.2); border-radius: 999px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn-secondary:hover { background: rgba(255,255,255,0.18); border-color: #FFF; }
+
+  /* In-Game HUD */
+  #hud {
+    position: fixed; inset: 0; z-index: 20; pointer-events: none;
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding: calc(env(safe-area-inset-top, 14px) + 12px) 16px calc(env(safe-area-inset-bottom, 14px) + 12px);
+    transition: opacity 0.3s ease;
+  }
+  #hud.hidden { opacity: 0; pointer-events: none; }
+  .hud-top-bar {
+    display: flex; justify-content: space-between; align-items: flex-start;
+  }
+  .hud-score-cluster {
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .hud-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(10, 11, 22, 0.7); border: 1px solid rgba(255,255,255,0.15);
+    padding: 6px 14px; border-radius: 999px; backdrop-filter: blur(8px);
+    font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums;
+  }
+  .hud-pill.berries-pill { border-color: rgba(236,72,153,0.5); color: #F472B6; }
+  .hud-pill.distance-pill { border-color: rgba(6,182,212,0.5); color: #22D3EE; }
+  .hud-pill.score-pill { border-color: rgba(245,158,11,0.5); color: #FBBF24; font-size: 15px; }
+  .hud-powerup-bar {
+    margin-top: 6px; display: none; align-items: center; gap: 8px;
+    background: rgba(10, 11, 22, 0.85); border: 1.5px solid var(--accent-amber);
+    padding: 4px 12px; border-radius: 999px; backdrop-filter: blur(8px);
+    font-size: 11.5px; font-weight: 800; color: #FFF;
+  }
+  .powerup-progress {
+    width: 70px; height: 6px; background: rgba(255,255,255,0.2);
+    border-radius: 999px; overflow: hidden;
+  }
+  .powerup-fill {
+    width: 100%; height: 100%; background: var(--accent-amber);
+    transition: width 0.1s linear;
+  }
+  .hud-top-right {
+    display: flex; gap: 8px; pointer-events: auto;
+  }
+  .hud-icon-btn {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: rgba(10, 11, 22, 0.75); border: 1px solid rgba(255,255,255,0.2);
+    color: #FFF; font-size: 15px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; backdrop-filter: blur(8px); transition: transform 0.1s;
+  }
+  .hud-icon-btn:active { transform: scale(0.92); }
+
+  /* Mobile On-Screen Action Controls */
+  .mobile-touch-bar {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    width: 100%; pointer-events: auto;
+  }
+  .touch-group-lanes {
+    display: flex; gap: 10px;
+  }
+  .touch-group-actions {
+    display: flex; gap: 10px;
+  }
+  .btn-touch-action {
+    width: 58px; height: 58px; border-radius: 18px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1.5px solid rgba(255, 255, 255, 0.25);
+    color: #FFF; font-size: 18px; font-weight: 900;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    cursor: pointer; backdrop-filter: blur(8px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    user-select: none; -webkit-user-select: none;
+    transition: transform 0.08s, background 0.08s;
+  }
+  .btn-touch-action:active, .btn-touch-action.pressed {
+    transform: scale(0.92); background: rgba(168,85,247,0.4); border-color: var(--hi);
+  }
+  .btn-touch-action span.label {
+    font-size: 9px; font-weight: 800; letter-spacing: 0.5px; opacity: 0.85; margin-top: 2px;
+  }
+
+  /* Modals & Dialogs */
+  .modal-dialog {
+    background: rgba(18, 14, 32, 0.95);
+    border: 2px solid rgba(168,85,247,0.5);
+    border-radius: 20px;
+    padding: 24px; max-width: 440px; width: 90%;
+    text-align: center;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.6), 0 0 30px rgba(168,85,247,0.3);
+  }
+  .modal-dialog h2 {
+    font-size: 26px; font-weight: 900; margin-bottom: 8px;
+    background: linear-gradient(135deg, #FFF, #C084FC);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .modal-stats-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 18px 0;
+  }
+  .modal-stat-box {
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px; padding: 10px;
+  }
+  .modal-stat-label { font-size: 10px; text-transform: uppercase; color: #A78BFA; font-weight: 800; }
+  .modal-stat-val { font-size: 20px; font-weight: 900; color: #FFF; margin-top: 2px; }
+  .modal-btn-row {
+    display: flex; gap: 10px; justify-content: center; margin-top: 18px;
+  }
+
+  /* Celebration Modal (Stage Clear - Full Celebration Mode!) */
+  #stageClearScreen {
+    background: radial-gradient(circle at 50% 30%, rgba(245, 158, 11, 0.25) 0%, rgba(30, 27, 75, 0.95) 50%, rgba(10, 8, 26, 0.99) 100%);
+    overflow: hidden;
+  }
+  .celebration-bg-rays {
+    position: absolute; inset: -50%;
+    background: repeating-conic-gradient(from 0deg, rgba(245, 158, 11, 0.08) 0deg 15deg, transparent 15deg 30deg);
+    animation: spinRays 40s linear infinite;
+    pointer-events: none; z-index: 0;
+  }
+  @keyframes spinRays {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  .celebration-canvas {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 1;
+  }
+  .modal-celebrate {
+    position: relative; z-index: 2;
+    background: radial-gradient(circle at 50% 15%, rgba(251, 191, 36, 0.28) 0%, rgba(30, 20, 55, 0.98) 100%);
+    border: 3.5px solid #F59E0B;
+    border-radius: 28px;
+    box-shadow: 0 0 60px rgba(245, 158, 11, 0.7), 0 0 100px rgba(16, 185, 129, 0.45), inset 0 0 35px rgba(245, 158, 11, 0.25);
+    animation: popCelebrate 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes popCelebrate {
+    0% { transform: scale(0.7) translateY(30px); opacity: 0; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+  }
+  .celebrate-trophy {
+    font-size: 58px; margin-bottom: 2px;
+    animation: bounceTrophy 1.6s ease-in-out infinite;
+    filter: drop-shadow(0 0 20px rgba(245, 158, 11, 0.9));
+  }
+  @keyframes bounceTrophy {
+    0%, 100% { transform: translateY(0) scale(1) rotate(0deg); }
+    25% { transform: translateY(-10px) scale(1.12) rotate(-4deg); }
+    75% { transform: translateY(-10px) scale(1.12) rotate(4deg); }
+  }
+  .celebrate-moku-avatar {
+    font-size: 34px; margin: 4px 0;
+    animation: mokuHappyJump 0.8s ease-in-out infinite alternate;
+  }
+  @keyframes mokuHappyJump {
+    0% { transform: translateY(0) scale(1, 0.92); }
+    100% { transform: translateY(-12px) scale(0.95, 1.08); }
+  }
+  .celebrate-badge {
+    display: inline-block; padding: 5px 18px;
+    background: linear-gradient(90deg, #F59E0B, #10B981);
+    border-radius: 999px; font-size: 11.5px; font-weight: 900; letter-spacing: 2px;
+    color: #FFF; box-shadow: 0 0 20px rgba(245, 158, 11, 0.8);
+    margin-bottom: 6px; text-transform: uppercase;
+  }
+  .celebrate-stars-row {
+    display: flex; justify-content: center; gap: 10px; font-size: 36px; color: #F59E0B;
+    margin: 8px 0; animation: starGlow 1.2s ease-in-out infinite alternate;
+  }
+  @keyframes starGlow {
+    0% { transform: scale(1); filter: drop-shadow(0 0 6px #F59E0B); }
+    100% { transform: scale(1.12); filter: drop-shadow(0 0 22px #FDE047); }
+  }
+  .btn-celebrate-next {
+    padding: 15px 42px; font-size: 17px; font-weight: 900;
+    color: #0F172A; background: linear-gradient(135deg, #FDE047 0%, #F59E0B 100%);
+    border: none; border-radius: 999px; cursor: pointer;
+    box-shadow: 0 8px 30px rgba(245, 158, 11, 0.7), 0 0 20px rgba(253, 224, 71, 0.5);
+    transition: transform 0.15s, box-shadow 0.15s;
+    letter-spacing: 0.5px;
+  }
+  .btn-celebrate-next:hover { transform: scale(1.06); box-shadow: 0 10px 40px rgba(245, 158, 11, 0.9); }
+
+  /* Fail / Game Over Modal (Gloomy & Disappointing Mode) */
+  #gameOverScreen {
+    background: radial-gradient(circle at center, rgba(30, 20, 30, 0.95) 0%, rgba(10, 10, 16, 0.99) 100%);
+    overflow: hidden;
+  }
+  .rain-canvas {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 1;
+  }
+  .modal-fail {
+    position: relative; z-index: 2;
+    background: linear-gradient(180deg, rgba(26, 16, 22, 0.98) 0%, rgba(14, 12, 18, 0.99) 100%);
+    border: 2px solid #EF4444;
+    border-radius: 24px;
+    box-shadow: 0 0 50px rgba(239, 68, 68, 0.35), inset 0 0 30px rgba(239, 68, 68, 0.15);
+    animation: droopFail 0.4s ease-out both;
+  }
+  @keyframes droopFail {
+    0% { transform: translateY(-30px) scale(0.92); opacity: 0; }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+  }
+  .fail-sad-moku-wrap {
+    display: inline-flex; align-items: center; justify-content: center;
+    position: relative; margin: 4px auto 8px; width: 100px; height: 75px;
+  }
+  .fail-sad-moku {
+    font-size: 52px; display: inline-block;
+    animation: sadShiver 1.8s ease-in-out infinite;
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
+  }
+  @keyframes sadShiver {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    25% { transform: translateY(2px) rotate(-3deg); }
+    75% { transform: translateY(2px) rotate(3deg); }
+  }
+  .falling-tear {
+    position: absolute; font-size: 18px; color: #60A5FA;
+    animation: tearFall 1.2s infinite ease-in;
+    opacity: 0;
+  }
+  .falling-tear.tear-left { left: 16px; top: 32px; animation-delay: 0.1s; }
+  .falling-tear.tear-right { right: 16px; top: 32px; animation-delay: 0.6s; }
+  @keyframes tearFall {
+    0% { transform: translateY(0) scale(0.6); opacity: 0; }
+    30% { opacity: 0.9; }
+    100% { transform: translateY(32px) scale(1.1); opacity: 0; }
+  }
+  .fail-title {
+    font-size: 26px; font-weight: 900; color: #EF4444;
+    text-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+    letter-spacing: 0.5px;
+  }
+  .fail-subtitle {
+    font-size: 13px; color: #FCA5A5; font-weight: 700; margin-top: 3px;
+  }
+  .fail-tip-box {
+    background: rgba(239, 68, 68, 0.12); border: 1.5px dashed rgba(239, 68, 68, 0.45);
+    border-radius: 12px; padding: 10px 14px; margin: 14px 0 8px;
+    font-size: 11.5px; color: #FECACA; text-align: left; line-height: 1.45;
+  }
+  .fail-tip-box strong { color: #FDE047; }
+
+  /* Banner Toast */
+  #bannerToast {
+    position: fixed; top: 75px; left: 50%; transform: translateX(-50%) translateY(-20px);
+    opacity: 0; pointer-events: none; z-index: 100;
+    padding: 10px 24px; border-radius: 999px;
+    background: rgba(18, 14, 32, 0.95); border: 2px solid var(--accent-amber);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5), 0 0 20px rgba(245,158,11,0.4);
+    font-size: 14px; font-weight: 800; color: #FFF;
+    display: flex; align-items: center; gap: 10px;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+  }
+  #bannerToast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  /* Info / Wardrobe Cards */
+  .info-guide-row {
+    display: flex; gap: 10px; align-items: center; margin: 10px 0; text-align: left;
+    background: rgba(255,255,255,0.04); padding: 8px 12px; border-radius: 10px;
+  }
+  .info-guide-icon { font-size: 24px; flex-shrink: 0; }
+  .info-guide-text h4 { font-size: 12.5px; font-weight: 800; color: #F59E0B; }
+  .info-guide-text p { font-size: 11px; color: #D1D5DB; margin-top: 2px; line-height: 1.3; }
+</style>
+</head>
+<body class="on-title">
+<canvas id="webgl-canvas"></canvas>
+
+<!-- Title Frame Elements per SPEC.md -->
+<div id="title-frame"></div>
+<a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
+<div id="buildInfo">Moku Future Run v1.0.0 · Updated Oct 3, 2026</div>
+
+<!-- Title Screen Overlay -->
+<div class="screen-overlay" id="titleScreen">
+  <div class="title-logo-container">
+    <div class="game-badge">3D Pitter-Patter Runner</div>
+    <h1 class="title-main">MOKU FUTURE RUN</h1>
+    <div class="title-sub">Pitter-patter with cute feet through the dreamy art world!</div>
+  </div>
+
+  <div class="stage-select-box" id="stageSelectContainer">
+    <div class="stage-card selected" data-stage="1">
+      <div class="stage-icon">🎨</div>
+      <div class="stage-name">Stage 1</div>
+      <div class="stage-target">Rainbow Plaza (1,500m)</div>
+    </div>
+    <div class="stage-card" data-stage="2">
+      <div class="stage-icon">⚡</div>
+      <div class="stage-name">Stage 2</div>
+      <div class="stage-target">Cyber Highway (2,500m)</div>
+    </div>
+    <div class="stage-card" data-stage="3">
+      <div class="stage-icon">🌌</div>
+      <div class="stage-name">Stage 3</div>
+      <div class="stage-target">Nebula Heights (4,000m)</div>
+    </div>
+    <div class="stage-card" data-stage="endless">
+      <div class="stage-icon">♾️</div>
+      <div class="stage-name">Endless</div>
+      <div class="stage-target">Infinite High Score</div>
+    </div>
+  </div>
+
+  <button class="btn-start" id="btnStartGame">RUN NOW ▶</button>
+
+  <div class="menu-actions-row">
+    <button class="btn-secondary" id="btnHowToPlay">❓ How to Play</button>
+    <button class="btn-secondary" id="btnWardrobe">🎨 Outfits</button>
+    <button class="btn-secondary" id="btnSoundToggleTitle">🔊 Audio: ON</button>
+  </div>
+</div>
+
+<!-- In-Game HUD -->
+<div id="hud" class="hidden">
+  <div class="hud-top-bar">
+    <div class="hud-score-cluster">
+      <div class="hud-pill score-pill"><span id="hudScore">0</span> <span style="font-size:10px; opacity:0.8;">PTS</span></div>
+      <div style="display:flex; gap:6px; margin-top:4px;">
+        <div class="hud-pill berries-pill">🫐 <span id="hudBerries">0</span></div>
+        <div class="hud-pill distance-pill">🏃 <span id="hudDistance">0</span>m</div>
+      </div>
+      <div class="hud-powerup-bar" id="hudPowerupBar">
+        <span id="powerupIcon">🚀</span>
+        <span id="powerupName">BOOST</span>
+        <div class="powerup-progress"><div class="powerup-fill" id="powerupFill"></div></div>
+      </div>
+    </div>
+
+    <div class="hud-top-right">
+      <button class="hud-icon-btn" id="btnMuteInGame" title="Toggle Sound">🔊</button>
+      <button class="hud-icon-btn" id="btnPauseGame" title="Pause Game">⏸</button>
+    </div>
+  </div>
+
+  <!-- Mobile On-Screen Action Controls -->
+  <div class="mobile-touch-bar">
+    <div class="touch-group-lanes">
+      <button class="btn-touch-action" id="btnTouchLeft">
+        ◀
+        <span class="label">LEFT</span>
+      </button>
+      <button class="btn-touch-action" id="btnTouchRight">
+        ▶
+        <span class="label">RIGHT</span>
+      </button>
+    </div>
+    <div class="touch-group-actions">
+      <button class="btn-touch-action" id="btnTouchJump" style="border-color:#F59E0B; background:rgba(245,158,11,0.18);">
+        ▲
+        <span class="label">JUMP</span>
+      </button>
+      <button class="btn-touch-action" id="btnTouchSlide" style="border-color:#06B6D4; background:rgba(6,182,212,0.18);">
+        ▼
+        <span class="label">SLIDE</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Game Over Screen (Gloomy & Disappointing Mode) -->
+<div class="screen-overlay hidden" id="gameOverScreen">
+  <canvas class="rain-canvas" id="rainCanvas"></canvas>
+  <div class="modal-dialog modal-fail">
+    <div class="fail-sad-moku-wrap">
+      <span class="fail-sad-moku">🦉</span>
+      <span class="falling-tear tear-left">💧</span>
+      <span class="falling-tear tear-right">💧</span>
+    </div>
+    <h2 class="fail-title">RUN FAILED... 🌧️</h2>
+    <div class="fail-subtitle">Aw, so close! Don't give up on Moku!</div>
+    <p id="gameOverReason" style="font-size:12.5px; color:#FCA5A5; margin-top:4px;">Bumped into an obstacle!</p>
+
+    <div class="fail-tip-box">
+      ⚠️ <strong>HOW TO IDENTIFY HAZARDS vs GOOD ITEMS:</strong><br>
+      • <strong>BLACK & HAZARD STRIPES = DANGER:</strong> Never touch! Jump over low barricades, slide under high overhead bars, or change lanes.<br>
+      • <strong>GLOWING COLORFUL = GOOD:</strong> Pink Berries 🫐, Mochi Shields 🍡, Boost Rockets 🚀, and Cyan Ramps ▲ are 100% safe to collect!
+    </div>
+
+    <div class="modal-stats-grid">
+      <div class="modal-stat-box" style="background:rgba(0,0,0,0.3); border-color:rgba(239,68,68,0.25);">
+        <div class="modal-stat-label" style="color:#F87171;">Final Score</div>
+        <div class="modal-stat-val" id="goFinalScore">0</div>
+      </div>
+      <div class="modal-stat-box" style="background:rgba(0,0,0,0.3); border-color:rgba(239,68,68,0.25);">
+        <div class="modal-stat-label" style="color:#F87171;">Distance Ran</div>
+        <div class="modal-stat-val" id="goDistance">0m</div>
+      </div>
+      <div class="modal-stat-box" style="background:rgba(0,0,0,0.3); border-color:rgba(239,68,68,0.25);">
+        <div class="modal-stat-label" style="color:#F87171;">Berries Picked</div>
+        <div class="modal-stat-val" id="goBerries">0</div>
+      </div>
+      <div class="modal-stat-box" style="background:rgba(0,0,0,0.3); border-color:rgba(239,68,68,0.25);">
+        <div class="modal-stat-label" style="color:#F59E0B;">Best Record</div>
+        <div class="modal-stat-val" id="goBestScore" style="color:#F59E0B;">0</div>
+      </div>
+    </div>
+
+    <div class="modal-btn-row">
+      <button class="btn-start" id="btnRetryRun" style="padding:12px 32px; font-size:15px; background:linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); box-shadow:0 6px 20px rgba(239,68,68,0.5);">TRY AGAIN ↺</button>
+      <button class="btn-secondary" id="btnGoHome" style="padding:12px 20px;">TITLE MENU</button>
+    </div>
+  </div>
+</div>
+
+<!-- Stage Clear Screen (Full Celebration Mode!) -->
+<div class="screen-overlay hidden" id="stageClearScreen">
+  <div class="celebration-bg-rays"></div>
+  <canvas class="celebration-canvas" id="celebrationCanvas"></canvas>
+  <div class="modal-dialog modal-celebrate">
+    <div class="celebrate-trophy">🏆</div>
+    <div class="celebrate-badge">★ VICTORY CELEBRATION ★</div>
+    <div class="celebrate-moku-avatar">🦉🎉✨</div>
+    <h2 style="font-size:30px; background:linear-gradient(135deg, #FFF, #FDE047, #F59E0B); -webkit-background-clip:text; -webkit-text-fill-color:transparent; text-shadow:0 0 25px rgba(245,158,11,0.6);">STAGE CLEAR!</h2>
+    <div class="celebrate-stars-row">★★★</div>
+    <p id="clearStageName" style="font-size:14px; color:#34D399; font-weight:800; letter-spacing:0.5px;">Rainbow Plaza Conquered!</p>
+
+    <div class="modal-stats-grid" style="margin:14px 0;">
+      <div class="modal-stat-box" style="background:rgba(245,158,11,0.12); border-color:rgba(245,158,11,0.45);">
+        <div class="modal-stat-label" style="color:#FDE047;">Stage Score</div>
+        <div class="modal-stat-val" id="scScore" style="color:#FFF;">0</div>
+      </div>
+      <div class="modal-stat-box" style="background:rgba(16,185,129,0.12); border-color:rgba(16,185,129,0.45);">
+        <div class="modal-stat-label" style="color:#6EE7B7;">Berries Gathered</div>
+        <div class="modal-stat-val" id="scBerries" style="color:#34D399;">0</div>
+      </div>
+    </div>
+
+    <div class="modal-btn-row">
+      <button class="btn-celebrate-next" id="btnNextStage">NEXT STAGE ▶</button>
+      <button class="btn-secondary" id="btnScHome" style="padding:12px 22px;">MENU</button>
+    </div>
+  </div>
+</div>
+
+<!-- How To Play Modal -->
+<div class="screen-overlay hidden" id="howToPlayScreen">
+  <div class="modal-dialog" style="max-width:480px;">
+    <h2>HOW TO PLAY</h2>
+    <p style="font-size:12px; color:#A78BFA; margin-bottom:14px;">Master the 3-lane rush with Moku's cute pitter-patter feet!</p>
+
+    <div class="info-guide-row">
+      <div class="info-guide-icon">👆</div>
+      <div class="info-guide-text">
+        <h4>SWIPE UP / [▲] / Space</h4>
+        <p>Hop & leap over low barriers, paint buckets, and hurdles with a cute squash bounce.</p>
+      </div>
+    </div>
+
+    <div class="info-guide-row">
+      <div class="info-guide-icon">👇</div>
+      <div class="info-guide-text">
+        <h4>SWIPE DOWN / [▼] / Down Arrow</h4>
+        <p>Duck & slide under high laser gates, neon beams, and low overhead arches.</p>
+      </div>
+    </div>
+
+    <div class="info-guide-row">
+      <div class="info-guide-icon">👈👉</div>
+      <div class="info-guide-text">
+        <h4>SWIPE LEFT & RIGHT / Arrow Keys</h4>
+        <p>Switch between the 3 lanes quickly to dodge tall roadblocks and grab items.</p>
+      </div>
+    </div>
+
+    <div class="info-guide-row">
+      <div class="info-guide-icon">🚄</div>
+      <div class="info-guide-text">
+        <h4>TRAIN ROOF RUNNING</h4>
+        <p>Use ramps or mochi springboards to run on top of trains for bonus points & berries!</p>
+      </div>
+    </div>
+
+    <div style="margin-top:14px; text-align:left; font-size:11.5px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:10px 12px; line-height:1.45;">
+      <strong style="color:#EF4444;">❌ DANGEROUS OBSTACLES (AVOID!):</strong><br>
+      • Heavy <b>BLACK</b> metal barricades with <b>YELLOW & BLACK HAZARD STRIPES</b> and red sirens.<br>
+      • Jump over low hurdles, slide under high overhead beams, or switch lanes to survive.<br><br>
+      <strong style="color:#34D399;">✅ HELPFUL ITEMS (TOUCH & COLLECT!):</strong><br>
+      • 🫐 <b>Glowing Berries:</b> Safe points, score multipliers, and wardrobe currency!<br>
+      • 🚀 <b>Boost Rocket:</b> Invincible smash speed + mega points!<br>
+      • 🍡 <b>Mochi:</b> Absorbs 1 hit + launches springboard super-jumps!<br>
+      • ▲ <b>Glowing Ramps:</b> Safe boarding paths onto train roofs!
+    </div>
+
+    <div class="modal-btn-row">
+      <button class="btn-start" id="btnCloseHowTo" style="padding:10px 32px; font-size:14px;">GOT IT!</button>
+    </div>
+  </div>
+</div>
+
+<!-- Wardrobe Modal -->
+<div class="screen-overlay hidden" id="wardrobeScreen">
+  <div class="modal-dialog">
+    <h2>MOKU WARDROBE</h2>
+    <p style="font-size:12px; color:#A78BFA; margin-bottom:14px;">Spend collected berries on stylish outfits!</p>
+    <div style="font-size:14px; font-weight:800; color:#F472B6; margin-bottom:16px;">
+      Total Berries: <span id="wardrobeBerryCount">0</span> 🫐
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:8px;" id="outfitListContainer">
+      <!-- Outfits populated dynamically -->
+    </div>
+
+    <div class="modal-btn-row">
+      <button class="btn-secondary" id="btnCloseWardrobe" style="padding:10px 30px;">CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<!-- Banner Toast -->
+<div id="bannerToast">
+  <span id="toastIcon">✨</span>
+  <span id="toastMsg">Ready!</span>
+</div>
+
+<script>
+/* ==========================================================================
+   MOKU FUTURE RUN — CORE GAME SCRIPT
+   - Talking Tom / Subway Surfers style 3-lane 3D runner
+   - Three.js procedural rendering
+   - 3 Stages + Endless Mode
+   - Items: Boost, Mochi, Berries
+   - Strict English UI compliance
+   ========================================================================== */
+
+// --- Audio Synthesizer (Web Audio API) ---
+class SoundController {
+  constructor() {
+    this.ctx = null;
+    this.muted = false;
+    this.bgmTimer = null;
+    this.step = 0;
+  }
+  init() {
+    if (!this.ctx) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (AudioContext) {
+        this.ctx = new AudioContext();
+      }
+    }
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+  }
+  toggleMute() {
+    this.muted = !this.muted;
+    if (this.muted && this.bgmTimer) {
+      clearInterval(this.bgmTimer);
+      this.bgmTimer = null;
+    }
+    return !this.muted;
+  }
+  play(type) {
+    if (this.muted || !this.ctx) return;
+    try {
+      const t = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      if (type === 'footstep') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(320 + Math.random() * 80, t);
+        osc.frequency.exponentialRampToValueAtTime(140, t + 0.05);
+        gain.gain.setValueAtTime(0.06, t);
+        gain.gain.linearRampToValueAtTime(0.001, t + 0.05);
+        osc.start(t);
+        osc.stop(t + 0.05);
+      } else if (type === 'jump') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(300, t);
+        osc.frequency.exponentialRampToValueAtTime(750, t + 0.22);
+        gain.gain.setValueAtTime(0.2, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+        osc.start(t);
+        osc.stop(t + 0.25);
+      } else if (type === 'slide') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(450, t);
+        osc.frequency.exponentialRampToValueAtTime(200, t + 0.25);
+        gain.gain.setValueAtTime(0.18, t);
+        gain.gain.linearRampToValueAtTime(0.001, t + 0.25);
+        osc.start(t);
+        osc.stop(t + 0.25);
+      } else if (type === 'lane') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(520, t);
+        osc.frequency.exponentialRampToValueAtTime(680, t + 0.1);
+        gain.gain.setValueAtTime(0.12, t);
+        gain.gain.linearRampToValueAtTime(0.001, t + 0.1);
+        osc.start(t);
+        osc.stop(t + 0.1);
+      } else if (type === 'berry') {
+        const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+        const pitch = notes[Math.floor(Math.random() * notes.length)];
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(pitch, t);
+        gain.gain.setValueAtTime(0.22, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+        osc.start(t);
+        osc.stop(t + 0.18);
+      } else if (type === 'boost') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(220, t);
+        osc.frequency.exponentialRampToValueAtTime(880, t + 0.4);
+        gain.gain.setValueAtTime(0.25, t);
+        gain.gain.linearRampToValueAtTime(0.001, t + 0.45);
+        osc.start(t);
+        osc.stop(t + 0.45);
+      } else if (type === 'mochi') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(200, t);
+        osc.frequency.exponentialRampToValueAtTime(950, t + 0.35);
+        gain.gain.setValueAtTime(0.25, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.38);
+        osc.start(t);
+        osc.stop(t + 0.38);
+      } else if (type === 'hit' || type === 'fail') {
+        // Comic sad trombone slide (Eb4 -> D4 -> Db4 -> C4 sliding down to Bb3 with sad vibrato)
+        const notes = [
+          { f: 311.13, delay: 0, dur: 0.28, drop: false },
+          { f: 293.66, delay: 0.28, dur: 0.28, drop: false },
+          { f: 277.18, delay: 0.56, dur: 0.28, drop: false },
+          { f: 261.63, delay: 0.84, dur: 0.65, drop: true }
+        ];
+        notes.forEach(({ f, delay, dur, drop }) => {
+          const o = this.ctx.createOscillator();
+          const g = this.ctx.createGain();
+          o.connect(g); g.connect(this.ctx.destination);
+          o.type = 'sawtooth';
+          const st = t + delay;
+          o.frequency.setValueAtTime(f, st);
+          if (drop) {
+            o.frequency.exponentialRampToValueAtTime(220, st + dur);
+          }
+          g.gain.setValueAtTime(0.2, st);
+          g.gain.exponentialRampToValueAtTime(0.001, st + dur);
+          o.start(st);
+          o.stop(st + dur);
+        });
+      } else if (type === 'clear') {
+        // Triumphal celebration victory fanfare (C-E-G-C-E with sparkly high chimes)
+        const trumpetNotes = [
+          { f: 392.00, delay: 0, dur: 0.12 },
+          { f: 523.25, delay: 0.12, dur: 0.12 },
+          { f: 659.25, delay: 0.24, dur: 0.14 },
+          { f: 783.99, delay: 0.38, dur: 0.3 },
+          { f: 659.25, delay: 0.70, dur: 0.12 },
+          { f: 783.99, delay: 0.82, dur: 0.14 },
+          { f: 1046.50, delay: 0.98, dur: 0.65 }
+        ];
+        trumpetNotes.forEach(({ f, delay, dur }) => {
+          const o = this.ctx.createOscillator();
+          const g = this.ctx.createGain();
+          o.connect(g); g.connect(this.ctx.destination);
+          o.type = 'triangle';
+          const st = t + delay;
+          o.frequency.setValueAtTime(f, st);
+          g.gain.setValueAtTime(0.25, st);
+          g.gain.exponentialRampToValueAtTime(0.001, st + dur);
+          o.start(st);
+          o.stop(st + dur);
+        });
+        // High sparkle arpeggios
+        [1046.50, 1318.51, 1567.98, 2093.00, 2637.02].forEach((freq, idx) => {
+          const o = this.ctx.createOscillator();
+          const g = this.ctx.createGain();
+          o.connect(g); g.connect(this.ctx.destination);
+          o.type = 'sine';
+          const st = t + 1.1 + idx * 0.08;
+          o.frequency.setValueAtTime(freq, st);
+          g.gain.setValueAtTime(0.18, st);
+          g.gain.exponentialRampToValueAtTime(0.001, st + 0.35);
+          o.start(st);
+          o.stop(st + 0.35);
+        });
+      }
+    } catch (e) {
+      // Audio safety fallback
+    }
+  }
+  startBGM() {
+    if (this.bgmTimer || this.muted) return;
+    this.init();
+    if (!this.ctx) return;
+    const bassline = [110, 110, 146.83, 130.81, 164.81, 146.83, 130.81, 110];
+    this.bgmTimer = setInterval(() => {
+      if (this.muted || !this.ctx) return;
+      try {
+        const t = this.ctx.currentTime;
+        const note = bassline[this.step % bassline.length];
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.connect(gain); gain.connect(this.ctx.destination);
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(note, t);
+        gain.gain.setValueAtTime(0.07, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+        osc.start(t);
+        osc.stop(t + 0.18);
+        this.step++;
+      } catch (e) {}
+    }, 200);
+  }
+  stopBGM() {
+    if (this.bgmTimer) {
+      clearInterval(this.bgmTimer);
+      this.bgmTimer = null;
+    }
+  }
+}
+
+const sounds = new SoundController();
+
+// --- Save & Progress Management ---
+const SAVE_KEY = 'moku:moku-future-run:progress';
+function getSavedProgress() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return {
+    version: 1,
+    highScore: 0,
+    totalBerries: 0,
+    unlockedStages: 1,
+    outfit: 'classic',
+    unlockedOutfits: ['classic']
+  };
+}
+function saveProgress(data) {
+  try {
+    data.updatedAt = new Date().toISOString();
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  } catch (e) {}
+}
+
+const progress = getSavedProgress();
+
+// --- Game Stages Configuration ---
+const STAGES = {
+  1: {
+    id: 1,
+    name: 'Rainbow Palette Plaza',
+    targetDist: 1500,
+    skyTop: 0x2A1052,
+    skyBottom: 0xF472B6,
+    fogColor: 0x4C1D95,
+    roadColor: 0x1E1435,
+    stripeColor: 0xF472B6,
+    theme: 'art_village',
+    baseSpeed: 18,
+    speedInc: 0.002
+  },
+  2: {
+    id: 2,
+    name: 'Cyber Starlight Highway',
+    targetDist: 2500,
+    skyTop: 0x050816,
+    skyBottom: 0x06B6D4,
+    fogColor: 0x0F172A,
+    roadColor: 0x0A0F1D,
+    stripeColor: 0x22D3EE,
+    theme: 'cyber_metropolis',
+    baseSpeed: 21,
+    speedInc: 0.0025
+  },
+  3: {
+    id: 3,
+    name: 'Dream Nebula Heights',
+    targetDist: 4000,
+    skyTop: 0x1E0533,
+    skyBottom: 0x9333EA,
+    fogColor: 0x2E1065,
+    roadColor: 0x140524,
+    stripeColor: 0xFBBF24,
+    theme: 'cosmic_nebula',
+    baseSpeed: 24,
+    speedInc: 0.003
+  },
+  endless: {
+    id: 'endless',
+    name: 'Endless Future Rush',
+    targetDist: Infinity,
+    skyTop: 0x18092B,
+    skyBottom: 0xEC4899,
+    fogColor: 0x2D0D45,
+    roadColor: 0x160B29,
+    stripeColor: 0xA855F7,
+    theme: 'endless',
+    baseSpeed: 20,
+    speedInc: 0.0035
+  }
+};
+
+// --- Outfits Data ---
+const OUTFITS = [
+  { id: 'classic', name: 'Classic Moku', cost: 0, color: 0xF6F3EB, wingColor: 0xC29B75 },
+  { id: 'neon_visor', name: 'Cyber Neon Visor', cost: 100, color: 0x38BDF8, wingColor: 0x0284C7, hasVisor: true },
+  { id: 'rainbow_runner', name: 'Rainbow Champion', cost: 250, color: 0xF472B6, wingColor: 0xA855F7, isRainbow: true },
+  { id: 'golden_legend', name: 'Golden Moku', cost: 500, color: 0xFBBF24, wingColor: 0xF59E0B, isGold: true }
+];
+
+// --- Lane Coordinates ---
+const LANES = [-2.4, 0, 2.4];
+
+// --- Game State Object ---
+const state = {
+  running: false,
+  paused: false,
+  stageKey: '1',
+  score: 0,
+  berriesCollected: 0,
+  distance: 0,
+  speed: 18,
+  targetLane: 1, // 0: left, 1: center, 2: right
+  currentX: 0,
+  playerY: 0,
+  playerVelY: 0,
+  isJumping: false,
+  isSliding: false,
+  slideTimer: 0,
+  hasMochiShield: false,
+  boostTimer: 0,
+  activePowerup: null,
+  berryMultiplier: 1,
+  berryStreak: 0,
+  footstepTimer: 0,
+  runCycle: 0,
+  onTrain: false
+};
+
+// --- Three.js Setup ---
+let scene, camera, renderer;
+let mokuGroup, mokuBody, leftWing, rightWing, leftFoot, rightFoot, headGroup, visorMesh, shieldMesh, tailGroup;
+let roadMesh, roadMaterial, skyMesh, starParticles;
+let environmentGroup, obstaclesGroup, itemsGroup, particleGroup, trainsGroup;
+const activeObstacles = [];
+const activeItems = [];
+const activeDeco = [];
+const activeTrains = [];
+
+function initThree() {
+  const canvas = document.getElementById('webgl-canvas');
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x4C1D95, 0.015);
+
+  camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 300);
+  camera.position.set(0, 3.6, 6.2);
+  camera.lookAt(0, 1.4, -6.0);
+
+  // Lights
+  const ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.7);
+  scene.add(ambientLight);
+
+  const dirLight = new THREE.DirectionalLight(0xFFE4E6, 0.9);
+  dirLight.position.set(10, 25, 15);
+  dirLight.castShadow = true;
+  dirLight.shadow.mapSize.width = 1024;
+  dirLight.shadow.mapSize.height = 1024;
+  dirLight.shadow.camera.near = 0.5;
+  dirLight.shadow.camera.far = 100;
+  dirLight.shadow.camera.left = -15;
+  dirLight.shadow.camera.right = 15;
+  dirLight.shadow.camera.top = 20;
+  dirLight.shadow.camera.bottom = -10;
+  scene.add(dirLight);
+
+  const rimLight = new THREE.DirectionalLight(0xA855F7, 0.6);
+  rimLight.position.set(-10, 15, -20);
+  scene.add(rimLight);
+
+  // Groups
+  environmentGroup = new THREE.Group(); scene.add(environmentGroup);
+  trainsGroup = new THREE.Group(); scene.add(trainsGroup);
+  obstaclesGroup = new THREE.Group(); scene.add(obstaclesGroup);
+  itemsGroup = new THREE.Group(); scene.add(itemsGroup);
+  particleGroup = new THREE.Group(); scene.add(particleGroup);
+
+  buildSkyAndRoad();
+  buildMokuCharacter();
+
+  window.addEventListener('resize', onWindowResize, false);
+}
+
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+// --- World & Road Generation ---
+function buildSkyAndRoad() {
+  // Road Plane (Long running track)
+  const roadGeo = new THREE.PlaneGeometry(8.2, 160, 1, 32);
+  roadMaterial = new THREE.MeshStandardMaterial({
+    color: 0x1E1435,
+    roughness: 0.7,
+    metalness: 0.2
+  });
+  roadMesh = new THREE.Mesh(roadGeo, roadMaterial);
+  roadMesh.rotation.x = -Math.PI / 2;
+  roadMesh.position.set(0, 0, -50);
+  roadMesh.receiveShadow = true;
+  scene.add(roadMesh);
+
+  // Road Lane Dividers
+  [-1.2, 1.2].forEach(x => {
+    const stripeGeo = new THREE.PlaneGeometry(0.12, 160);
+    const stripeMat = new THREE.MeshBasicMaterial({ color: 0xF472B6 });
+    const stripe = new THREE.Mesh(stripeGeo, stripeMat);
+    stripe.rotation.x = -Math.PI / 2;
+    stripe.position.set(x, 0.01, -50);
+    scene.add(stripe);
+  });
+
+  // Glowing Road Borders
+  [-4.1, 4.1].forEach(x => {
+    const borderGeo = new THREE.BoxGeometry(0.35, 0.25, 160);
+    const borderMat = new THREE.MeshStandardMaterial({
+      color: 0xA855F7,
+      emissive: 0x9333EA,
+      emissiveIntensity: 0.5
+    });
+    const border = new THREE.Mesh(borderGeo, borderMat);
+    border.position.set(x, 0.12, -50);
+    scene.add(border);
+  });
+
+  // Starry Nebula Background Dome
+  const skyGeo = new THREE.SphereGeometry(180, 24, 24);
+  const skyMat = new THREE.MeshBasicMaterial({
+    color: 0x2A1052,
+    side: THREE.BackSide
+  });
+  skyMesh = new THREE.Mesh(skyGeo, skyMat);
+  scene.add(skyMesh);
+
+  // Twinkling Star Clusters
+  const starGeo = new THREE.BufferGeometry();
+  const starCount = 350;
+  const starPos = new Float32Array(starCount * 3);
+  for (let i = 0; i < starCount; i++) {
+    starPos[i * 3] = (Math.random() - 0.5) * 200;
+    starPos[i * 3 + 1] = Math.random() * 80 + 10;
+    starPos[i * 3 + 2] = -Math.random() * 160;
+  }
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+  const starMat = new THREE.PointsMaterial({
+    color: 0xFFFFFF,
+    size: 1.4,
+    transparent: true,
+    opacity: 0.85
+  });
+  starParticles = new THREE.Points(starGeo, starMat);
+  scene.add(starParticles);
+
+  // Crescent Moon
+  const moonGroup = new THREE.Group();
+  const moonGeo = new THREE.SphereGeometry(6, 16, 16);
+  const moonMat = new THREE.MeshBasicMaterial({ color: 0xFDE047 });
+  const moonMesh = new THREE.Mesh(moonGeo, moonMat);
+  moonGroup.add(moonMesh);
+  moonGroup.position.set(35, 45, -120);
+  scene.add(moonGroup);
+}
+
+// --- Moku 3D Character (Facing Forward: Back & Tail visible to player) ---
+function buildMokuCharacter() {
+  mokuGroup = new THREE.Group();
+  scene.add(mokuGroup);
+
+  // Body: Round, fluffy, chubby owl body
+  const bodyGeo = new THREE.SphereGeometry(0.72, 24, 24);
+  bodyGeo.scale(1, 1.15, 0.95);
+  const curOutfit = OUTFITS.find(o => o.id === progress.outfit) || OUTFITS[0];
+  const bodyMat = new THREE.MeshStandardMaterial({
+    color: curOutfit.color,
+    roughness: 0.4,
+    metalness: curOutfit.isGold ? 0.8 : 0.1
+  });
+  mokuBody = new THREE.Mesh(bodyGeo, bodyMat);
+  mokuBody.castShadow = true;
+  mokuGroup.add(mokuBody);
+
+  // Tummy Patch (Warm cream) - on the FRONT facing forward (-Z)
+  const tummyGeo = new THREE.SphereGeometry(0.5, 16, 16);
+  tummyGeo.scale(0.85, 0.95, 0.3);
+  const tummyMat = new THREE.MeshStandardMaterial({ color: 0xFFFBEB, roughness: 0.5 });
+  const tummy = new THREE.Mesh(tummyGeo, tummyMat);
+  tummy.position.set(0, -0.05, -0.62);
+  mokuBody.add(tummy);
+
+  // Head group for eyes and beak - facing forward down the track (-Z)
+  headGroup = new THREE.Group();
+  headGroup.position.set(0, 0.3, -0.45);
+  mokuBody.add(headGroup);
+
+  // Big Cute Expressive Eyes (Left & Right) - facing forward (-Z)
+  [-0.26, 0.26].forEach(x => {
+    // Eye white
+    const eyeWhiteGeo = new THREE.SphereGeometry(0.2, 16, 16);
+    const eyeWhiteMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+    const eyeWhite = new THREE.Mesh(eyeWhiteGeo, eyeWhiteMat);
+    eyeWhite.position.set(x, 0.05, -0.15);
+    eyeWhite.scale.set(1, 1.1, 0.5);
+    headGroup.add(eyeWhite);
+
+    // Pupil (Dark with shine)
+    const pupilGeo = new THREE.SphereGeometry(0.11, 16, 16);
+    const pupilMat = new THREE.MeshBasicMaterial({ color: 0x1E1B4B });
+    const pupil = new THREE.Mesh(pupilGeo, pupilMat);
+    pupil.position.set(x, 0.05, -0.25);
+    pupil.scale.set(1, 1, 0.3);
+    headGroup.add(pupil);
+
+    // Eye catch reflection (Cute twinkle)
+    const shineGeo = new THREE.SphereGeometry(0.04, 8, 8);
+    const shineMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+    const shine = new THREE.Mesh(shineGeo, shineMat);
+    shine.position.set(x - 0.03, 0.09, -0.28);
+    headGroup.add(shine);
+  });
+
+  // Beak (Golden orange triangular pyramid) - pointing forward towards -Z
+  const beakGeo = new THREE.ConeGeometry(0.12, 0.24, 4);
+  const beakMat = new THREE.MeshStandardMaterial({ color: 0xF59E0B, roughness: 0.3 });
+  const beak = new THREE.Mesh(beakGeo, beakMat);
+  beak.rotation.x = -Math.PI / 2;
+  beak.position.set(0, -0.04, -0.38);
+  headGroup.add(beak);
+
+  // Feather Tufts / Cute Ears on top of head
+  [-0.42, 0.42].forEach((x, i) => {
+    const tuftGeo = new THREE.ConeGeometry(0.12, 0.32, 6);
+    const tuft = new THREE.Mesh(tuftGeo, bodyMat);
+    tuft.position.set(x, 0.46, 0.05);
+    tuft.rotation.z = i === 0 ? 0.35 : -0.35;
+    tuft.rotation.x = 0.15;
+    mokuBody.add(tuft);
+  });
+
+  // Cute Owl Tail Feathers on Moku's back (facing camera +Z, visible to the player!)
+  tailGroup = new THREE.Group();
+  tailGroup.position.set(0, -0.16, 0.62);
+  [-0.14, 0, 0.14].forEach((tx, idx) => {
+    const tailGeo = new THREE.ConeGeometry(idx === 1 ? 0.16 : 0.13, 0.42, 6);
+    tailGeo.scale(1, 0.35, 1.3);
+    const tailMat = new THREE.MeshStandardMaterial({
+      color: curOutfit.wingColor,
+      roughness: 0.4
+    });
+    const tailFeather = new THREE.Mesh(tailGeo, tailMat);
+    tailFeather.position.set(tx, 0, 0);
+    tailFeather.rotation.x = 0.55;
+    tailFeather.rotation.y = idx === 0 ? 0.25 : idx === 2 ? -0.25 : 0;
+    tailFeather.castShadow = true;
+    tailGroup.add(tailFeather);
+  });
+  mokuBody.add(tailGroup);
+
+  // Wings (Left & Right - flapping playfully while running)
+  const wingGeo = new THREE.ConeGeometry(0.24, 0.75, 8);
+  wingGeo.scale(0.3, 1, 0.8);
+  const wingMat = new THREE.MeshStandardMaterial({
+    color: curOutfit.wingColor,
+    roughness: 0.4
+  });
+
+  leftWing = new THREE.Mesh(wingGeo, wingMat);
+  leftWing.position.set(-0.76, 0.05, 0.0);
+  leftWing.rotation.z = 0.5;
+  leftWing.castShadow = true;
+  mokuBody.add(leftWing);
+
+  rightWing = new THREE.Mesh(wingGeo, wingMat);
+  rightWing.position.set(0.76, 0.05, 0.0);
+  rightWing.rotation.z = -0.5;
+  rightWing.castShadow = true;
+  mokuBody.add(rightWing);
+
+  // Cute Little Feet ("モクモクのかわいい小さな足でぴょこぴょこ走る")
+  const footGeo = new THREE.SphereGeometry(0.15, 12, 12);
+  footGeo.scale(0.85, 0.5, 1.4);
+  const footMat = new THREE.MeshStandardMaterial({ color: 0xF59E0B, roughness: 0.3 });
+
+  leftFoot = new THREE.Mesh(footGeo, footMat);
+  leftFoot.position.set(-0.28, -0.72, 0.0);
+  leftFoot.castShadow = true;
+  mokuGroup.add(leftFoot);
+
+  rightFoot = new THREE.Mesh(footGeo, footMat);
+  rightFoot.position.set(0.28, -0.72, 0.0);
+  rightFoot.castShadow = true;
+  mokuGroup.add(rightFoot);
+
+  // Visor (Optional outfit accessory)
+  const visorGeo = new THREE.TorusGeometry(0.42, 0.08, 8, 16, Math.PI);
+  const visorMat = new THREE.MeshBasicMaterial({ color: 0x06B6D4, wireframe: false });
+  visorMesh = new THREE.Mesh(visorGeo, visorMat);
+  visorMesh.rotation.x = -Math.PI / 2;
+  visorMesh.position.set(0, 0.08, -0.28);
+  visorMesh.visible = !!curOutfit.hasVisor;
+  headGroup.add(visorMesh);
+
+  // Mochi Protective Shield Bubble
+  const shieldGeo = new THREE.SphereGeometry(1.2, 20, 20);
+  const shieldMat = new THREE.MeshBasicMaterial({
+    color: 0x34D399,
+    transparent: true,
+    opacity: 0.45,
+    wireframe: true
+  });
+  shieldMesh = new THREE.Mesh(shieldGeo, shieldMat);
+  shieldMesh.visible = false;
+  mokuGroup.add(shieldMesh);
+
+  mokuGroup.position.set(0, 0.88, 0);
+}
+
+// --- Procedural Artwork Environment Spawning ---
+// Inspired by the child's masterpiece:
+// - Rainbow Palette Tree (purple trunk, cyan planter, multi-colored branches)
+// - Peaked Starlit Houses (cobalt, golden, ruby, magenta roofs, glowing windows)
+// - Giant Crayon Spires & Floating Brushstroke Ribbons
+function spawnDecorations() {
+  const currentStage = STAGES[state.stageKey] || STAGES[1];
+
+  // Spawn decorations on left and right sides of the road
+  for (let z = -120; z < 20; z += 18) {
+    [-1, 1].forEach(side => {
+      const x = side * (5.5 + Math.random() * 5);
+      const decoType = Math.floor(Math.random() * 3);
+
+      if (decoType === 0) {
+        // Rainbow Palette Tree with Purple Sculpted Trunk & Cyan Planter
+        const treeGroup = new THREE.Group();
+
+        // Cyan planter box
+        const potGeo = new THREE.CylinderGeometry(1.2, 0.9, 1.2, 8);
+        const potMat = new THREE.MeshStandardMaterial({ color: 0x06B6D4, roughness: 0.3 });
+        const pot = new THREE.Mesh(potGeo, potMat);
+        pot.position.y = 0.6;
+        treeGroup.add(pot);
+
+        // Purple trunk
+        const trunkGeo = new THREE.CylinderGeometry(0.4, 0.55, 3.2, 8);
+        const trunkMat = new THREE.MeshStandardMaterial({ color: 0x7E22CE, roughness: 0.6 });
+        const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+        trunk.position.y = 2.4;
+        treeGroup.add(trunk);
+
+        // Multicolored rainbow canopy layers
+        const rainbowColors = [0xEC4899, 0xF59E0B, 0x10B981, 0x3B82F6, 0x8B5CF6];
+        rainbowColors.forEach((col, i) => {
+          const leafGeo = new THREE.DodecahedronGeometry(1.4 - i * 0.18);
+          const leafMat = new THREE.MeshStandardMaterial({ color: col, roughness: 0.5 });
+          const leaf = new THREE.Mesh(leafGeo, leafMat);
+          leaf.position.set(
+            (Math.random() - 0.5) * 0.8,
+            3.6 + i * 0.8,
+            (Math.random() - 0.5) * 0.8
+          );
+          treeGroup.add(leaf);
+        });
+
+        treeGroup.position.set(x, 0, z);
+        environmentGroup.add(treeGroup);
+        activeDeco.push(treeGroup);
+      } else if (decoType === 1) {
+        // Starlit Peaked House (Cobalt, Ruby, or Gold roof)
+        const houseGroup = new THREE.Group();
+        const roofColors = [0x1D4ED8, 0xE11D48, 0xF59E0B, 0x9333EA];
+        const roofColor = roofColors[Math.floor(Math.random() * roofColors.length)];
+
+        // Base walls (Deep indigo with starlit pattern look)
+        const wallGeo = new THREE.BoxGeometry(3.2, 3.8, 3.2);
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x1E1B4B, roughness: 0.7 });
+        const wall = new THREE.Mesh(wallGeo, wallMat);
+        wall.position.y = 1.9;
+        houseGroup.add(wall);
+
+        // Peaked Pyramid Roof
+        const roofGeo = new THREE.ConeGeometry(2.7, 2.4, 4);
+        const roofMat = new THREE.MeshStandardMaterial({ color: roofColor, roughness: 0.4 });
+        const roof = new THREE.Mesh(roofGeo, roofMat);
+        roof.rotation.y = Math.PI / 4;
+        roof.position.y = 4.9;
+        houseGroup.add(roof);
+
+        // Star topper or cyber antenna
+        const starGeo = new THREE.OctahedronGeometry(0.35);
+        const starMat = new THREE.MeshBasicMaterial({ color: 0xFDE047 });
+        const star = new THREE.Mesh(starGeo, starMat);
+        star.position.y = 6.2;
+        houseGroup.add(star);
+
+        // Glowing Windows (Yellow or Mint)
+        const winGeo = new THREE.PlaneGeometry(0.6, 0.8);
+        const winMat = new THREE.MeshBasicMaterial({ color: 0xFEF08A });
+        const win = new THREE.Mesh(winGeo, winMat);
+        win.position.set(0, 2.2, 1.62);
+        houseGroup.add(win);
+
+        houseGroup.position.set(x, 0, z);
+        environmentGroup.add(houseGroup);
+        activeDeco.push(houseGroup);
+      } else {
+        // Giant Floating Crayon Spire / Brushstroke Monument
+        const crayonGroup = new THREE.Group();
+        const crayonColor = [0xEC4899, 0x06B6D4, 0xF59E0B, 0x8B5CF6][Math.floor(Math.random() * 4)];
+
+        const bodyGeo = new THREE.CylinderGeometry(0.6, 0.6, 5.0, 12);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: crayonColor, roughness: 0.4 });
+        const cBody = new THREE.Mesh(bodyGeo, bodyMat);
+        cBody.position.y = 2.5;
+        crayonGroup.add(cBody);
+
+        const tipGeo = new THREE.ConeGeometry(0.6, 1.4, 12);
+        const tip = new THREE.Mesh(tipGeo, bodyMat);
+        tip.position.y = 5.7;
+        crayonGroup.add(tip);
+
+        crayonGroup.position.set(x, 0, z);
+        environmentGroup.add(crayonGroup);
+        activeDeco.push(crayonGroup);
+      }
+    });
+  }
+}
+
+// --- Train / Subway Vehicle Generation & Spawning ---
+function spawnTrain(lane, atZ, hasRamp = true) {
+  const trainGroup = new THREE.Group();
+  const laneX = LANES[lane];
+  const trainLength = 20.0;
+  const trainWidth = 2.1;
+  const trainHeight = 1.75;
+  const st = STAGES[state.stageKey] || STAGES[1];
+
+  let bodyColor = 0x1E40AF;
+  let trimColor = 0xF59E0B;
+  let windowColor = 0xFEF08A;
+  let roofDeckColor = 0x312E81;
+  let stripeColor = 0xEC4899;
+
+  if (st.theme === 'cyber_metropolis') {
+    bodyColor = 0x0F172A;
+    trimColor = 0x06B6D4;
+    windowColor = 0x38BDF8;
+    roofDeckColor = 0x1E293B;
+    stripeColor = 0x00F0FF;
+  } else if (st.theme === 'cosmic_nebula') {
+    bodyColor = 0x4C1D95;
+    trimColor = 0xA855F7;
+    windowColor = 0xFDE047;
+    roofDeckColor = 0x2E1065;
+    stripeColor = 0xFBBF24;
+  }
+
+  // 1. Train Carriage Body
+  const bodyGeo = new THREE.BoxGeometry(trainWidth, trainHeight, trainLength);
+  const bodyMat = new THREE.MeshStandardMaterial({
+    color: bodyColor,
+    roughness: 0.35,
+    metalness: 0.3
+  });
+  const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
+  bodyMesh.position.y = trainHeight / 2;
+  bodyMesh.castShadow = true;
+  bodyMesh.receiveShadow = true;
+  trainGroup.add(bodyMesh);
+
+  // 2. Train Roof Running Deck (walkway with non-slip track)
+  const roofDeckGeo = new THREE.PlaneGeometry(trainWidth - 0.2, trainLength - 0.4);
+  const roofDeckMat = new THREE.MeshStandardMaterial({
+    color: roofDeckColor,
+    roughness: 0.8
+  });
+  const roofDeck = new THREE.Mesh(roofDeckGeo, roofDeckMat);
+  roofDeck.rotation.x = -Math.PI / 2;
+  roofDeck.position.y = trainHeight + 0.01;
+  roofDeck.receiveShadow = true;
+  trainGroup.add(roofDeck);
+
+  // Glowing Edge Rails along the roof
+  [-0.95, 0.95].forEach(rx => {
+    const railGeo = new THREE.BoxGeometry(0.08, 0.14, trainLength - 0.6);
+    const railMat = new THREE.MeshBasicMaterial({ color: stripeColor });
+    const rail = new THREE.Mesh(railGeo, railMat);
+    rail.position.set(rx, trainHeight + 0.08, 0);
+    trainGroup.add(rail);
+  });
+
+  // Glowing Side Passenger Windows
+  [-trainWidth / 2 - 0.02, trainWidth / 2 + 0.02].forEach(wx => {
+    for (let wz = -trainLength / 2 + 2.5; wz <= trainLength / 2 - 2.5; wz += 3.2) {
+      const winGeo = new THREE.PlaneGeometry(1.8, 0.65);
+      const winMat = new THREE.MeshBasicMaterial({ color: windowColor });
+      const win = new THREE.Mesh(winGeo, winMat);
+      win.position.set(wx, trainHeight * 0.58, wz);
+      if (wx < 0) win.rotation.y = -Math.PI / 2;
+      else win.rotation.y = Math.PI / 2;
+      trainGroup.add(win);
+    }
+  });
+
+  // Front Aerodynamic Windshield & Headlights (+Z facing oncoming runner)
+  const frontWindshieldGeo = new THREE.PlaneGeometry(trainWidth - 0.4, 0.7);
+  const frontWindshieldMat = new THREE.MeshBasicMaterial({ color: 0x06B6D4 });
+  const fWind = new THREE.Mesh(frontWindshieldGeo, frontWindshieldMat);
+  fWind.position.set(0, trainHeight * 0.68, trainLength / 2 + 0.02);
+  trainGroup.add(fWind);
+
+  [-0.65, 0.65].forEach(hx => {
+    const hlGeo = new THREE.SphereGeometry(0.16, 8, 8);
+    const hlMat = new THREE.MeshBasicMaterial({ color: 0xFEF08A });
+    const hl = new THREE.Mesh(hlGeo, hlMat);
+    hl.position.set(hx, 0.45, trainLength / 2 + 0.04);
+    trainGroup.add(hl);
+  });
+
+  // Hover Maglev Glow underneath
+  const hoverGeo = new THREE.BoxGeometry(trainWidth - 0.4, 0.15, trainLength - 1.5);
+  const hoverMat = new THREE.MeshBasicMaterial({ color: stripeColor, transparent: true, opacity: 0.6 });
+  const hoverPad = new THREE.Mesh(hoverGeo, hoverMat);
+  hoverPad.position.y = 0.08;
+  trainGroup.add(hoverPad);
+
+  // 3. Boarding Ramp OR Springboard
+  const rampLength = 4.8;
+  if (hasRamp) {
+    const rampAngle = Math.atan2(trainHeight - 0.08, rampLength);
+    const rampHypot = Math.hypot(rampLength, trainHeight - 0.08);
+    const rampGeo = new THREE.BoxGeometry(trainWidth - 0.1, 0.15, rampHypot);
+    const rampMat = new THREE.MeshStandardMaterial({
+      color: roofDeckColor,
+      roughness: 0.6
+    });
+    const ramp = new THREE.Mesh(rampGeo, rampMat);
+    ramp.rotation.x = rampAngle;
+    ramp.position.set(0, trainHeight / 2, trainLength / 2 + rampLength / 2);
+    trainGroup.add(ramp);
+
+    // Glowing Chevrons on Ramp (^ ^ ^)
+    for (let c = 1; c <= 3; c++) {
+      const chGeo = new THREE.PlaneGeometry(1.2, 0.2);
+      const chMat = new THREE.MeshBasicMaterial({ color: 0x22D3EE });
+      const ch = new THREE.Mesh(chGeo, chMat);
+      ch.rotation.x = -Math.PI / 2 + rampAngle;
+      ch.position.set(0, (trainHeight / 4) * c + 0.1, trainLength / 2 + rampLength - c * 1.2);
+      trainGroup.add(ch);
+    }
+  } else {
+    // Heavy Black & Yellow Hazard Cowcatcher / Bumper on train front to clearly signal DANGER!
+    const cowcatcher = new THREE.Group();
+    const ccGeo = new THREE.BoxGeometry(trainWidth - 0.1, 0.75, 0.35);
+    const ccMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.6 });
+    const cc = new THREE.Mesh(ccGeo, ccMat);
+    cc.position.set(0, 0.42, trainLength / 2 + 0.18);
+    cowcatcher.add(cc);
+
+    // Hazard yellow/black stripes
+    for (let s = -3; s <= 3; s++) {
+      const stGeo = new THREE.PlaneGeometry(0.18, 0.65);
+      const stMat = new THREE.MeshBasicMaterial({ color: s % 2 === 0 ? 0xFDE047 : 0x050505 });
+      const str = new THREE.Mesh(stGeo, stMat);
+      str.position.set(s * 0.25, 0.42, trainLength / 2 + 0.36);
+      cowcatcher.add(str);
+    }
+    // Red Flashing Siren Beacon on bumper
+    const sirenGeo = new THREE.CylinderGeometry(0.12, 0.14, 0.25, 8);
+    const sirenMat = new THREE.MeshBasicMaterial({ color: 0xEF4444 });
+    const siren = new THREE.Mesh(sirenGeo, sirenMat);
+    siren.position.set(0, 0.95, trainLength / 2 + 0.18);
+    cowcatcher.add(siren);
+    trainGroup.add(cowcatcher);
+
+    // Mochi Springboard Pad placed in front of train
+    const padGroup = new THREE.Group();
+    const padGeo = new THREE.CylinderGeometry(0.85, 0.95, 0.2, 16);
+    const padMat = new THREE.MeshStandardMaterial({
+      color: 0x10B981,
+      emissive: 0x059669,
+      emissiveIntensity: 0.6
+    });
+    const pad = new THREE.Mesh(padGeo, padMat);
+    pad.position.y = 0.1;
+    padGroup.add(pad);
+
+    const swirlGeo = new THREE.TorusGeometry(0.45, 0.08, 8, 16);
+    const swirlMat = new THREE.MeshBasicMaterial({ color: 0x6EE7B7 });
+    const swirl = new THREE.Mesh(swirlGeo, swirlMat);
+    swirl.rotation.x = Math.PI / 2;
+    swirl.position.y = 0.22;
+    padGroup.add(swirl);
+
+    padGroup.position.set(0, 0, trainLength / 2 + 4.0);
+    padGroup.userData = { isSpringboard: true };
+    trainGroup.add(padGroup);
+  }
+
+  // 4. Berries and Power-up on Top of the Train Roof!
+  for (let k = -4; k <= 4; k++) {
+    // Leave room around center if arch exists
+    if (k === 0) continue;
+
+    const berryGroup = new THREE.Group();
+    const berryGeo = new THREE.DodecahedronGeometry(0.24);
+    const berryMat = new THREE.MeshStandardMaterial({
+      color: 0xEC4899,
+      emissive: 0xFF1493,
+      emissiveIntensity: 0.85,
+      roughness: 0.2
+    });
+    const berry = new THREE.Mesh(berryGeo, berryMat);
+    berryGroup.add(berry);
+
+    const leafGeo = new THREE.ConeGeometry(0.08, 0.16, 4);
+    const leafMat = new THREE.MeshBasicMaterial({ color: 0x10B981 });
+    const leaf = new THREE.Mesh(leafGeo, leafMat);
+    leaf.position.y = 0.22;
+    berryGroup.add(leaf);
+
+    // Golden Sparkle Ring around berry (Clear Friendly Collectible!)
+    const ringGeo = new THREE.TorusGeometry(0.3, 0.025, 6, 16);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0xFDE047 });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = Math.PI / 2;
+    berryGroup.add(ring);
+
+    berryGroup.position.set(0, trainHeight + 0.6, k * 2.0);
+    berryGroup.userData = { type: 'item', subType: 'berry', lane };
+    trainGroup.add(berryGroup);
+  }
+
+  // Overhead Clearance Slide Arch on Train Roof (Thrilling duck/slide opportunity!)
+  const hasRoofArch = Math.random() < 0.65;
+  if (hasRoofArch) {
+    const archGroup = new THREE.Group();
+    [-0.95, 0.95].forEach(ax => {
+      const aPost = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.08, 0.08, 1.8, 8),
+        new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.7 })
+      );
+      aPost.position.set(ax, trainHeight + 0.9, 0);
+      archGroup.add(aPost);
+    });
+
+    // Low hanging black hazard bar across train roof at neck height (Y = trainHeight + 0.7)
+    const aBar = new THREE.Mesh(
+      new THREE.BoxGeometry(trainWidth - 0.1, 0.22, 0.2),
+      new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.6 })
+    );
+    aBar.position.set(0, trainHeight + 0.72, 0);
+    archGroup.add(aBar);
+
+    // Hazard stripes
+    for (let s = -2; s <= 2; s++) {
+      const st = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.12, 0.2),
+        new THREE.MeshBasicMaterial({ color: s % 2 === 0 ? 0xFDE047 : 0x050505 })
+      );
+      st.position.set(s * 0.28, trainHeight + 0.72, 0.11);
+      archGroup.add(st);
+    }
+
+    // Flashing red clearance beacon and downward yellow chevron sign
+    const rBeac = new THREE.Mesh(
+      new THREE.SphereGeometry(0.1, 8, 8),
+      new THREE.MeshBasicMaterial({ color: 0xEF4444 })
+    );
+    rBeac.position.set(0, trainHeight + 0.94, 0);
+    archGroup.add(rBeac);
+
+    const sArr = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.8, 0.18),
+      new THREE.MeshBasicMaterial({ color: 0xFDE047 })
+    );
+    sArr.position.set(0, trainHeight + 0.58, 0.11);
+    archGroup.add(sArr);
+
+    archGroup.userData = { isTrainRoofArch: true, passed: false };
+    trainGroup.add(archGroup);
+  }
+
+  // Chance for Boost Rocket or Mochi on train roof
+  if (Math.random() > 0.45) {
+    const isBoost = Math.random() > 0.5;
+    const roofItem = new THREE.Group();
+    if (isBoost) {
+      const rGeo = new THREE.ConeGeometry(0.35, 1.0, 8);
+      const rMat = new THREE.MeshStandardMaterial({ color: 0xEC4899, emissive: 0xDB2777, emissiveIntensity: 0.8 });
+      const r = new THREE.Mesh(rGeo, rMat);
+      r.rotation.x = Math.PI / 4;
+      roofItem.add(r);
+      roofItem.userData = { type: 'item', subType: 'boost', lane };
+    } else {
+      const mGeo = new THREE.SphereGeometry(0.42, 16, 16);
+      mGeo.scale(1.1, 0.8, 1.1);
+      const mMat = new THREE.MeshStandardMaterial({ color: 0x34D399, emissive: 0x10B981, emissiveIntensity: 0.6 });
+      const m = new THREE.Mesh(mGeo, mMat);
+      roofItem.add(m);
+      roofItem.userData = { type: 'item', subType: 'mochi', lane };
+    }
+    roofItem.position.set(0, trainHeight + 0.8, 4.0);
+    trainGroup.add(roofItem);
+  }
+
+  trainGroup.position.set(laneX, 0, atZ);
+  trainsGroup.add(trainGroup);
+
+  activeTrains.push({
+    group: trainGroup,
+    lane,
+    x: laneX,
+    length: trainLength,
+    halfLength: trainLength / 2,
+    roofY: trainHeight,
+    hasRamp,
+    rampLength,
+    passed: false
+  });
+}
+
+// --- Obstacles & Items Spawning ---
+let spawnZ = -30;
+let segmentCounter = 0;
+function spawnNextTrackSegment() {
+  segmentCounter++;
+
+  // Periodically spawn Trains / Subway Cars (every 3rd or 4th segment)
+  if (segmentCounter % 3 === 0 || Math.random() < 0.28) {
+    const trainLane = Math.floor(Math.random() * 3);
+    const hasRamp = Math.random() > 0.35;
+    spawnTrain(trainLane, spawnZ, hasRamp);
+
+    // Occasional double train on adjacent lane
+    if (Math.random() < 0.35) {
+      const adjacentLane = trainLane === 1 ? (Math.random() > 0.5 ? 0 : 2) : 1;
+      spawnTrain(adjacentLane, spawnZ - 12, true);
+    }
+
+    // Spawn berries in one of the open ground lanes
+    const openLane = (trainLane + 1) % 3;
+    const openLaneX = LANES[openLane];
+    for (let b = 0; b < 4; b++) {
+      const berryGroup = new THREE.Group();
+      const berryGeo = new THREE.DodecahedronGeometry(0.24);
+      const berryMat = new THREE.MeshStandardMaterial({
+        color: 0xEC4899,
+        emissive: 0xFF1493,
+        emissiveIntensity: 0.85,
+        roughness: 0.2
+      });
+      const berry = new THREE.Mesh(berryGeo, berryMat);
+      berryGroup.add(berry);
+
+      const leafGeo = new THREE.ConeGeometry(0.08, 0.16, 4);
+      const leafMat = new THREE.MeshBasicMaterial({ color: 0x10B981 });
+      const leaf = new THREE.Mesh(leafGeo, leafMat);
+      leaf.position.y = 0.22;
+      berryGroup.add(leaf);
+
+      const ringGeo = new THREE.TorusGeometry(0.3, 0.025, 6, 16);
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0xFDE047 });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = Math.PI / 2;
+      berryGroup.add(ring);
+
+      berryGroup.position.set(openLaneX, 0.6, spawnZ + b * 2.5);
+      berryGroup.userData = { type: 'item', subType: 'berry', lane: openLane };
+      itemsGroup.add(berryGroup);
+      activeItems.push(berryGroup);
+    }
+
+    // Chance for a high overhead arch in open ground lane next to train
+    if (Math.random() < 0.45) {
+      const arch = new THREE.Group();
+      [-0.95, 0.95].forEach(px => {
+        const p = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 2.5, 8), new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.7 }));
+        p.position.set(px, 1.25, 0);
+        arch.add(p);
+      });
+      const topBar = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.28, 0.2), new THREE.MeshStandardMaterial({ color: 0x050505 }));
+      topBar.position.set(0, 1.62, 0);
+      arch.add(topBar);
+      const chevron = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.2), new THREE.MeshBasicMaterial({ color: 0xFDE047 }));
+      chevron.position.set(0, 1.62, 0.11);
+      arch.add(chevron);
+      const redB = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), new THREE.MeshBasicMaterial({ color: 0xEF4444 }));
+      redB.position.set(0, 1.88, 0);
+      arch.add(redB);
+
+      arch.position.set(openLaneX, 0, spawnZ + 6);
+      arch.userData = { type: 'obstacle', subType: 'high', lane: openLane, passed: false };
+      obstaclesGroup.add(arch);
+      activeObstacles.push(arch);
+    }
+
+    spawnZ -= 28;
+    return;
+  }
+
+  const lane = Math.floor(Math.random() * 3);
+  const laneX = LANES[lane];
+  const typeRand = Math.random();
+
+  if (typeRand < 0.52) {
+    // High Obstacle: Duck/Slide Under (5 rich hazard varieties!)
+    const gate = new THREE.Group();
+    const slideVariant = Math.floor(Math.random() * 5);
+
+    if (slideVariant === 0) {
+      // 1. Hazard Laser Gate with intense glowing RED laser beam
+      [-0.96, 0.96].forEach(px => {
+        const postGeo = new THREE.BoxGeometry(0.18, 2.6, 0.22);
+        const postMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.6 });
+        const post = new THREE.Mesh(postGeo, postMat);
+        post.position.set(px, 1.3, 0);
+        gate.add(post);
+
+        // Hazard yellow/black stripe collars
+        const colGeo = new THREE.BoxGeometry(0.2, 0.4, 0.24);
+        const colMat = new THREE.MeshBasicMaterial({ color: 0xFDE047 });
+        const col = new THREE.Mesh(colGeo, colMat);
+        col.position.set(px, 1.3, 0);
+        gate.add(col);
+
+        // Red flashing beacon
+        const lampGeo = new THREE.SphereGeometry(0.12, 8, 8);
+        const lampMat = new THREE.MeshBasicMaterial({ color: 0xEF4444 });
+        const lamp = new THREE.Mesh(lampGeo, lampMat);
+        lamp.position.set(px, 2.65, 0);
+        gate.add(lamp);
+      });
+
+      // Intense Glowing RED Laser Beam across the lane at neck height (Y = 1.62)
+      const beamGeo = new THREE.CylinderGeometry(0.14, 0.14, 2.1, 8);
+      beamGeo.rotateZ(Math.PI / 2);
+      const beamMat = new THREE.MeshBasicMaterial({ color: 0xEF4444 });
+      const beam = new THREE.Mesh(beamGeo, beamMat);
+      beam.position.y = 1.62;
+      gate.add(beam);
+
+      // Overhead glowing caution arrow sign: ▼ SLIDE ▼
+      const signGeo = new THREE.PlaneGeometry(1.4, 0.36);
+      const signMat = new THREE.MeshBasicMaterial({ color: 0x050505 });
+      const sign = new THREE.Mesh(signGeo, signMat);
+      sign.position.set(0, 2.05, 0.05);
+      gate.add(sign);
+
+      const arrowGeo = new THREE.PlaneGeometry(1.2, 0.26);
+      const arrowMat = new THREE.MeshBasicMaterial({ color: 0xFDE047 });
+      const arrow = new THREE.Mesh(arrowGeo, arrowMat);
+      arrow.position.set(0, 2.05, 0.06);
+      gate.add(arrow);
+
+    } else if (slideVariant === 1) {
+      // 2. Heavy Black Overhead Highway Gantry Sign (LOW CLEARANCE - SLIDE!)
+      [-0.95, 0.95].forEach(px => {
+        const postGeo = new THREE.CylinderGeometry(0.09, 0.09, 2.6, 8);
+        const postMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.6 });
+        const post = new THREE.Mesh(postGeo, postMat);
+        post.position.set(px, 1.3, 0);
+        gate.add(post);
+      });
+
+      // Overhead black cross truss
+      const trussGeo = new THREE.BoxGeometry(2.1, 0.25, 0.3);
+      const trussMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.5 });
+      const truss = new THREE.Mesh(trussGeo, trussMat);
+      truss.position.set(0, 2.1, 0);
+      gate.add(truss);
+
+      // Low-hanging black & hazard yellow barrier plate at Y = 1.62
+      const barPlateGeo = new THREE.BoxGeometry(1.9, 0.55, 0.15);
+      const barPlateMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.7 });
+      const barPlate = new THREE.Mesh(barPlateGeo, barPlateMat);
+      barPlate.position.set(0, 1.62, 0);
+      gate.add(barPlate);
+
+      // Hazard diagonal yellow stripes on the plate
+      for (let s = -3; s <= 3; s++) {
+        const strGeo = new THREE.PlaneGeometry(0.14, 0.52);
+        const strMat = new THREE.MeshBasicMaterial({ color: s % 2 === 0 ? 0xFDE047 : 0x050505 });
+        const str = new THREE.Mesh(strGeo, strMat);
+        str.position.set(s * 0.24, 1.62, 0.08);
+        gate.add(str);
+      }
+
+      // Red flashing beacons
+      [-0.7, 0.7].forEach(rx => {
+        const rLamp = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), new THREE.MeshBasicMaterial({ color: 0xEF4444 }));
+        rLamp.position.set(rx, 2.05, 0.16);
+        gate.add(rLamp);
+      });
+
+    } else if (slideVariant === 2) {
+      // 3. Heavy Black Armored Cyber Steam Pipe (Height = 1.56)
+      [-0.95, 0.95].forEach(px => {
+        const pillarGeo = new THREE.BoxGeometry(0.25, 2.4, 0.25);
+        const pillarMat = new THREE.MeshStandardMaterial({ color: 0x050505 });
+        const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+        pillar.position.set(px, 1.2, 0);
+        gate.add(pillar);
+      });
+
+      // Thick black hazard pipe across the lane
+      const pipeGeo = new THREE.CylinderGeometry(0.22, 0.22, 2.1, 12);
+      pipeGeo.rotateZ(Math.PI / 2);
+      const pipeMat = new THREE.MeshStandardMaterial({ color: 0x080808, roughness: 0.4, metalness: 0.7 });
+      const pipe = new THREE.Mesh(pipeGeo, pipeMat);
+      pipe.position.set(0, 1.56, 0);
+      gate.add(pipe);
+
+      // Yellow hazard caution rings around pipe
+      [-0.5, 0, 0.5].forEach(rx => {
+        const ringGeo = new THREE.CylinderGeometry(0.24, 0.24, 0.18, 12);
+        ringGeo.rotateZ(Math.PI / 2);
+        const ringMat = new THREE.MeshBasicMaterial({ color: 0xFDE047 });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.position.set(rx, 1.56, 0);
+        gate.add(ring);
+      });
+
+      // Warning gauge with red light
+      const gaugeGeo = new THREE.SphereGeometry(0.12, 8, 8);
+      const gaugeMat = new THREE.MeshBasicMaterial({ color: 0xEF4444 });
+      const gauge = new THREE.Mesh(gaugeGeo, gaugeMat);
+      gauge.position.set(0, 1.84, 0.12);
+      gate.add(gauge);
+
+    } else if (slideVariant === 3) {
+      // 4. Suspended Black Cyber Cargo Crane with dangling container at Y = 1.62
+      const pCol = new THREE.Mesh(new THREE.BoxGeometry(0.22, 2.8, 0.22), new THREE.MeshStandardMaterial({ color: 0x050505 }));
+      pCol.position.set(-0.95, 1.4, 0);
+      gate.add(pCol);
+
+      const topArm = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.18, 0.25), new THREE.MeshStandardMaterial({ color: 0x050505 }));
+      topArm.position.set(0, 2.5, 0);
+      gate.add(topArm);
+
+      // Black shipping crate hanging above
+      const crate = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.7, 0.9), new THREE.MeshStandardMaterial({ color: 0x0A0A0A, roughness: 0.5 }));
+      crate.position.set(0, 1.65, 0);
+      gate.add(crate);
+
+      // Warning yellow hazard decal
+      const decal = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.25), new THREE.MeshBasicMaterial({ color: 0xFDE047 }));
+      decal.position.set(0, 1.5, 0.46);
+      gate.add(decal);
+
+      // Red flashing strobe lamps underneath
+      [-0.6, 0.6].forEach(cx => {
+        const sLamp = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), new THREE.MeshBasicMaterial({ color: 0xEF4444 }));
+        sLamp.position.set(cx, 1.25, 0.35);
+        gate.add(sLamp);
+      });
+
+    } else {
+      // 5. Heavy Black Underpass Clearance Arch (Y = 1.56)
+      const archFrame = new THREE.Mesh(
+        new THREE.TorusGeometry(1.0, 0.15, 8, 16, Math.PI),
+        new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.6 })
+      );
+      archFrame.position.set(0, 1.2, 0);
+      gate.add(archFrame);
+
+      const clearanceBar = new THREE.Mesh(
+        new THREE.BoxGeometry(1.9, 0.26, 0.16),
+        new THREE.MeshStandardMaterial({ color: 0x050505 })
+      );
+      clearanceBar.position.set(0, 1.56, 0);
+      gate.add(clearanceBar);
+
+      // Downward yellow caution arrows
+      const dSign = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.18), new THREE.MeshBasicMaterial({ color: 0xFDE047 }));
+      dSign.position.set(0, 1.56, 0.09);
+      gate.add(dSign);
+
+      const dSiren = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.22, 8), new THREE.MeshBasicMaterial({ color: 0xEF4444 }));
+      dSiren.position.set(0, 2.2, 0);
+      gate.add(dSiren);
+    }
+
+    gate.position.set(laneX, 0, spawnZ);
+    gate.userData = { type: 'obstacle', subType: 'high', lane, passed: false };
+    obstaclesGroup.add(gate);
+    activeObstacles.push(gate);
+
+  } else if (typeRand < 0.78) {
+    // Low Obstacle: Jump Over (Heavy Black Hazard Barricade)
+    const hurdle = new THREE.Group();
+    const barGeo = new THREE.BoxGeometry(2.0, 0.52, 0.42);
+    const barMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.6 });
+    const bar = new THREE.Mesh(barGeo, barMat);
+    bar.position.y = 0.26;
+    hurdle.add(bar);
+
+    // Hazard yellow/black diagonal warning stripes
+    for (let s = -3; s <= 3; s++) {
+      const stGeo = new THREE.PlaneGeometry(0.18, 0.46);
+      const stMat = new THREE.MeshBasicMaterial({ color: s % 2 === 0 ? 0xFDE047 : 0x050505 });
+      const stripe = new THREE.Mesh(stGeo, stMat);
+      stripe.position.set(s * 0.25, 0.26, 0.22);
+      hurdle.add(stripe);
+    }
+
+    // Left & Right Red Hazard Blinking Beacons
+    [-0.85, 0.85].forEach(lx => {
+      const lampGeo = new THREE.SphereGeometry(0.1, 8, 8);
+      const lampMat = new THREE.MeshBasicMaterial({ color: 0xEF4444 });
+      const lamp = new THREE.Mesh(lampGeo, lampMat);
+      lamp.position.set(lx, 0.56, 0);
+      hurdle.add(lamp);
+    });
+
+    hurdle.position.set(laneX, 0, spawnZ);
+    hurdle.userData = { type: 'obstacle', subType: 'low', lane, passed: false };
+    obstaclesGroup.add(hurdle);
+    activeObstacles.push(hurdle);
+
+  } else if (typeRand < 0.90) {
+    // Tall Obstacle: Dodge By Switching Lane (Heavy Black Bunker Transformer)
+    const tall = new THREE.Group();
+    const boxGeo = new THREE.BoxGeometry(1.85, 2.5, 1.4);
+    const boxMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.7 });
+    const box = new THREE.Mesh(boxGeo, boxMat);
+    box.position.y = 1.25;
+    tall.add(box);
+
+    // Warning Plate with Yellow/Black Chevrons
+    const plateGeo = new THREE.BoxGeometry(1.65, 0.7, 1.44);
+    const plateMat = new THREE.MeshBasicMaterial({ color: 0xFDE047 });
+    const plate = new THREE.Mesh(plateGeo, plateMat);
+    plate.position.y = 1.3;
+    tall.add(plate);
+
+    // Red Hazard Beacon Light on top
+    const beaconGeo = new THREE.CylinderGeometry(0.15, 0.18, 0.35, 8);
+    const beaconMat = new THREE.MeshBasicMaterial({ color: 0xEF4444 });
+    const beacon = new THREE.Mesh(beaconGeo, beaconMat);
+    beacon.position.y = 2.65;
+    tall.add(beacon);
+
+    tall.position.set(laneX, 0, spawnZ);
+    tall.userData = { type: 'obstacle', subType: 'tall', lane, passed: false };
+    obstaclesGroup.add(tall);
+    activeObstacles.push(tall);
+
+  } else {
+    // Spawn Power-Up Item: Boost (Rocket) or Mochi (Spring)
+    const isBoost = Math.random() > 0.5;
+    const itemGroup = new THREE.Group();
+
+    if (isBoost) {
+      // 🚀 Boost Rocket
+      const rocketGeo = new THREE.ConeGeometry(0.35, 1.0, 8);
+      const rocketMat = new THREE.MeshStandardMaterial({ color: 0xEC4899, emissive: 0xDB2777, emissiveIntensity: 0.6 });
+      const r = new THREE.Mesh(rocketGeo, rocketMat);
+      r.rotation.x = Math.PI / 4;
+      itemGroup.add(r);
+      itemGroup.userData = { type: 'item', subType: 'boost', lane };
+    } else {
+      // 🍡 Mochi Bouncy Treat
+      const mochiGeo = new THREE.SphereGeometry(0.42, 16, 16);
+      mochiGeo.scale(1.1, 0.8, 1.1);
+      const mochiMat = new THREE.MeshStandardMaterial({ color: 0x34D399, emissive: 0x10B981, emissiveIntensity: 0.5 });
+      const m = new THREE.Mesh(mochiGeo, mochiMat);
+      itemGroup.add(m);
+      itemGroup.userData = { type: 'item', subType: 'mochi', lane };
+    }
+
+    itemGroup.position.set(laneX, 0.8, spawnZ);
+    itemsGroup.add(itemGroup);
+    activeItems.push(itemGroup);
+  }
+
+  // Also spawn a trail of Berries in the other open lane!
+  const berryLane = (lane + (Math.random() > 0.5 ? 1 : 2)) % 3;
+  const berryX = LANES[berryLane];
+  for (let b = 0; b < 3; b++) {
+    const berryGroup = new THREE.Group();
+    const berryGeo = new THREE.DodecahedronGeometry(0.24);
+    const berryMat = new THREE.MeshStandardMaterial({
+      color: 0xEC4899,
+      emissive: 0xFF1493,
+      emissiveIntensity: 0.85,
+      roughness: 0.2
+    });
+    const berry = new THREE.Mesh(berryGeo, berryMat);
+    berryGroup.add(berry);
+
+    // Cute green leaf
+    const leafGeo = new THREE.ConeGeometry(0.08, 0.16, 4);
+    const leafMat = new THREE.MeshBasicMaterial({ color: 0x10B981 });
+    const leaf = new THREE.Mesh(leafGeo, leafMat);
+    leaf.position.y = 0.22;
+    berryGroup.add(leaf);
+
+    // Golden Sparkle Ring around berry (Clear Friendly Collectible!)
+    const ringGeo = new THREE.TorusGeometry(0.3, 0.025, 6, 16);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0xFDE047 });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = Math.PI / 2;
+    berryGroup.add(ring);
+
+    berryGroup.position.set(berryX, 0.6, spawnZ + b * 2.2);
+    berryGroup.userData = { type: 'item', subType: 'berry', lane: berryLane };
+    itemsGroup.add(berryGroup);
+    activeItems.push(berryGroup);
+  }
+
+  spawnZ -= 16;
+}
+
+// --- Player Actions & Controls ---
+function changeLane(dir) {
+  if (!state.running || state.paused) return;
+  const prev = state.targetLane;
+  state.targetLane = Math.max(0, Math.min(2, state.targetLane + dir));
+  if (state.targetLane !== prev) {
+    sounds.play('lane');
+  }
+}
+
+function jump() {
+  if (!state.running || state.paused || state.isJumping) return;
+  state.isJumping = true;
+  state.playerVelY = state.hasMochiShield ? 16.5 : 12.0; // Higher jump with mochi!
+  sounds.play(state.hasMochiShield ? 'mochi' : 'jump');
+  createJumpPuff(state.playerY);
+}
+
+function slide() {
+  if (!state.running || state.paused || state.isSliding) return;
+  state.isSliding = true;
+  state.slideTimer = 0.55; // 0.55 seconds slide
+  sounds.play('slide');
+  createSlideDust(state.playerY);
+}
+
+function createJumpPuff(yBase = 0) {
+  for (let i = 0; i < 6; i++) {
+    const puffGeo = new THREE.SphereGeometry(0.12, 8, 8);
+    const puffMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, transparent: true, opacity: 0.8 });
+    const puff = new THREE.Mesh(puffGeo, puffMat);
+    puff.position.set(state.currentX + (Math.random() - 0.5) * 0.4, yBase + 0.15, mokuGroup.position.z);
+    puff.userData = { vx: (Math.random() - 0.5) * 2, vy: Math.random() * 2, vz: Math.random() * 2, life: 0.3 };
+    particleGroup.add(puff);
+  }
+}
+
+function createSlideDust(yBase = 0) {
+  for (let i = 0; i < 8; i++) {
+    const dustGeo = new THREE.SphereGeometry(0.1, 8, 8);
+    const dustMat = new THREE.MeshBasicMaterial({ color: 0xA78BFA, transparent: true, opacity: 0.7 });
+    const dust = new THREE.Mesh(dustGeo, dustMat);
+    dust.position.set(state.currentX + (Math.random() - 0.5) * 0.6, yBase + 0.1, mokuGroup.position.z);
+    dust.userData = { vx: (Math.random() - 0.5) * 3, vy: Math.random() * 1.5, vz: 4, life: 0.35 };
+    particleGroup.add(dust);
+  }
+}
+
+// --- Swipe Gesture Detection ---
+let touchStartX = 0, touchStartY = 0, touchStartTime = 0;
+window.addEventListener('touchstart', e => {
+  if (e.touches.length > 0) {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touchStartTime = Date.now();
+  }
+}, { passive: true });
+
+window.addEventListener('touchend', e => {
+  if (!state.running || state.paused) return;
+  const touchEndX = e.changedTouches[0].clientX;
+  const touchEndY = e.changedTouches[0].clientY;
+  const dx = touchEndX - touchStartX;
+  const dy = touchEndY - touchStartY;
+  const dt = Date.now() - touchStartTime;
+
+  if (dt < 400) {
+    if (Math.abs(dx) > 35 && Math.abs(dx) > Math.abs(dy)) {
+      if (dx > 0) changeLane(1);
+      else changeLane(-1);
+    } else if (Math.abs(dy) > 35) {
+      if (dy < 0) jump();
+      else slide();
+    }
+  }
+}, { passive: true });
+
+// Keyboard Controls
+window.addEventListener('keydown', e => {
+  if (!state.running || state.paused) return;
+  if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') changeLane(-1);
+  else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') changeLane(1);
+  else if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') jump();
+  else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') slide();
+  else if (e.key === 'p' || e.key === 'P') togglePause();
+});
+
+// Touch Action Buttons
+document.getElementById('btnTouchLeft').addEventListener('pointerdown', () => changeLane(-1));
+document.getElementById('btnTouchRight').addEventListener('pointerdown', () => changeLane(1));
+document.getElementById('btnTouchJump').addEventListener('pointerdown', jump);
+document.getElementById('btnTouchSlide').addEventListener('pointerdown', slide);
+
+// --- Power-up Triggers ---
+function triggerBoost() {
+  state.boostTimer = 6.0;
+  state.activePowerup = 'boost';
+  sounds.play('boost');
+  showBanner('🚀 SUPER BOOST ACTIVATED!', '#F472B6');
+  document.getElementById('hudPowerupBar').style.display = 'flex';
+  document.getElementById('powerupIcon').textContent = '🚀';
+  document.getElementById('powerupName').textContent = 'BOOST';
+}
+
+function triggerMochi() {
+  state.hasMochiShield = true;
+  shieldMesh.visible = true;
+  sounds.play('mochi');
+  showBanner('🍡 BOUNCY MOCHI SHIELD ACTIVE!', '#34D399');
+  jump(); // Launch high into the air!
+}
+
+function showBanner(msg, col = '#F59E0B') {
+  const toast = document.getElementById('bannerToast');
+  const toastMsg = document.getElementById('toastMsg');
+  toast.style.borderColor = col;
+  toastMsg.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+// --- Collision & Game Loop ---
+let lastTime = performance.now();
+function animate(now) {
+  requestAnimationFrame(animate);
+
+  const dt = Math.min((now - lastTime) / 1000, 0.1);
+  lastTime = now;
+
+  if (state.running && !state.paused) {
+    updateGame(dt);
+  }
+
+  // Always animate idle decorations & character
+  renderScene(dt);
+  renderer.render(scene, camera);
+}
+
+function updateGame(dt) {
+  const currentStage = STAGES[state.stageKey] || STAGES[1];
+  const effectiveSpeed = state.speed * (state.boostTimer > 0 ? 1.6 : 1.0);
+
+  // Advance distance & score
+  state.distance += effectiveSpeed * dt;
+  state.score += Math.round(effectiveSpeed * dt * 5 * state.berryMultiplier);
+
+  // Speed scaling
+  state.speed += currentStage.speedInc * dt * 10;
+
+  // Boost timer countdown
+  if (state.boostTimer > 0) {
+    state.boostTimer -= dt;
+    const pct = Math.max(0, (state.boostTimer / 6.0) * 100);
+    document.getElementById('powerupFill').style.width = pct + '%';
+    if (state.boostTimer <= 0) {
+      document.getElementById('hudPowerupBar').style.display = 'none';
+      state.activePowerup = null;
+    }
+  }
+
+  // Smooth lane interpolation & body banking
+  const targetX = LANES[state.targetLane];
+  state.currentX += (targetX - state.currentX) * 14 * dt;
+  mokuGroup.position.x = state.currentX;
+
+  const laneDelta = targetX - state.currentX;
+  mokuGroup.rotation.y = -laneDelta * 0.15;
+  mokuGroup.rotation.z = -laneDelta * 0.12;
+
+  // --- Dynamic Ground & Train Physics ---
+  let currentGroundY = 0;
+  let onTrainThisFrame = false;
+
+  for (let i = 0; i < activeTrains.length; i++) {
+    const tr = activeTrains[i];
+    const sameLane = Math.abs(state.currentX - tr.x) < 1.15;
+
+    // Check springboard pad in front of train (when !tr.hasRamp)
+    if (!tr.hasRamp) {
+      const springZ = tr.group.position.z + tr.halfLength + 4.0;
+      if (Math.abs(springZ) < 1.4 && sameLane && state.playerY < 0.6) {
+        state.isJumping = true;
+        state.playerVelY = 16.5;
+        sounds.play('mochi');
+        showBanner('🍡 SPRINGBOARD SUPER JUMP!', '#34D399');
+        createJumpPuff(0.1);
+      }
+    }
+
+    if (sameLane) {
+      const tz = tr.group.position.z;
+      const frontRampZ = tz + tr.halfLength + (tr.hasRamp ? tr.rampLength : 0);
+      const frontBumperZ = tz + tr.halfLength;
+      const rearBumperZ = tz - tr.halfLength;
+
+      // 1. Is Moku on the Boarding Ramp?
+      if (tr.hasRamp && frontRampZ >= 0 && frontBumperZ <= 0) {
+        const rampProgress = (frontRampZ - 0) / tr.rampLength; // 0 to 1
+        const rampHeight = Math.max(0, Math.min(tr.roofY, rampProgress * tr.roofY));
+        currentGroundY = Math.max(currentGroundY, rampHeight);
+        onTrainThisFrame = true;
+      }
+      // 2. Is Moku along the Train Roof?
+      else if (frontBumperZ >= 0 && rearBumperZ <= 0) {
+        if (state.playerY >= tr.roofY - 0.4 || state.onTrain) {
+          // Running along train roof!
+          currentGroundY = Math.max(currentGroundY, tr.roofY);
+          onTrainThisFrame = true;
+
+          // Check if train has roof arch near center (Z=0)
+          if (Math.abs(tz) < 1.0) {
+            for (let c = 0; c < tr.group.children.length; c++) {
+              const child = tr.group.children[c];
+              if (child.userData && child.userData.isTrainRoofArch && !child.userData.passed) {
+                if (state.isSliding) {
+                  child.userData.passed = true;
+                  state.score += 150;
+                  showBanner('💨 TRAIN ROOF SLIDE! +150 PTS', '#06B6D4');
+                  sounds.play('slide');
+                } else if (state.boostTimer > 0) {
+                  child.userData.passed = true;
+                  sounds.play('hit');
+                  showBanner('💥 ROOF ARCH SMASHED BY BOOST!', '#F472B6');
+                } else if (state.hasMochiShield) {
+                  state.hasMochiShield = false;
+                  shieldMesh.visible = false;
+                  sounds.play('mochi');
+                  showBanner('🍡 MOCHI SHIELD BROKE! DUCK NEXT TIME!', '#34D399');
+                  child.userData.passed = true;
+                } else {
+                  triggerGameOver('Hit overhead clearance arch on train roof! Duck next time!');
+                  return;
+                }
+              }
+            }
+          }
+        } else if (state.playerY < tr.roofY - 0.4 && !tr.passed) {
+          // Hitting train bumper at ground level!
+          if (state.boostTimer > 0) {
+            sounds.play('hit');
+            state.score += 500;
+            showBanner('💥 TRAIN SMASHED BY BOOST! +500 PTS', '#F472B6');
+            tr.passed = true;
+          } else if (state.hasMochiShield) {
+            state.hasMochiShield = false;
+            shieldMesh.visible = false;
+            sounds.play('mochi');
+            showBanner('🍡 MOCHI SHIELD BOUNCED ONTO TRAIN!', '#34D399');
+            state.playerY = tr.roofY;
+            state.playerVelY = 3.5;
+            currentGroundY = tr.roofY;
+            onTrainThisFrame = true;
+            tr.passed = true;
+          } else {
+            triggerGameOver('Bumped into a train carriage!');
+            return;
+          }
+        }
+      }
+    }
+  }
+
+  // Detect when Moku first boards a train roof
+  if (onTrainThisFrame && !state.onTrain && currentGroundY >= 1.6) {
+    state.onTrain = true;
+    sounds.play('lane');
+    state.score += 150;
+    showBanner('🚄 TRAIN ROOF RUNNING! +150 PTS', '#06B6D4');
+    for (let s = 0; s < 8; s++) {
+      const spGeo = new THREE.SphereGeometry(0.12, 6, 6);
+      const spMat = new THREE.MeshBasicMaterial({ color: 0x22D3EE });
+      const sp = new THREE.Mesh(spGeo, spMat);
+      sp.position.set(state.currentX + (Math.random() - 0.5) * 0.8, 1.88, (Math.random() - 0.5) * 0.8);
+      sp.userData = { vx: (Math.random() - 0.5) * 3, vy: Math.random() * 2 + 1, vz: 3, life: 0.4 };
+      particleGroup.add(sp);
+    }
+  } else if (!onTrainThisFrame && state.onTrain) {
+    state.onTrain = false;
+  }
+
+  // Jump physics with dynamic ground height
+  if (state.isJumping) {
+    state.playerY += state.playerVelY * dt;
+    state.playerVelY -= 32 * dt; // Gravity
+    if (state.playerY <= currentGroundY) {
+      state.playerY = currentGroundY;
+      state.playerVelY = 0;
+      state.isJumping = false;
+      createJumpPuff(currentGroundY);
+    }
+  } else {
+    if (state.playerY < currentGroundY) {
+      // Climb ramp or step up
+      state.playerY += (currentGroundY - state.playerY) * 22 * dt;
+      if (Math.abs(state.playerY - currentGroundY) < 0.05) {
+        state.playerY = currentGroundY;
+      }
+    } else if (state.playerY > currentGroundY + 0.1) {
+      // Stepped off end of train roof or dropped down!
+      state.isJumping = true;
+      state.playerVelY = 0;
+    }
+  }
+  mokuGroup.position.y = 0.88 + state.playerY;
+
+  // Slide timer & posture
+  if (state.isSliding) {
+    state.slideTimer -= dt;
+    mokuBody.scale.set(1.3, 0.45, 1.3); // Flatten into cute slide puff!
+    if (state.slideTimer <= 0) {
+      state.isSliding = false;
+      mokuBody.scale.set(1, 1.15, 0.95);
+    }
+  } else if (!state.isJumping) {
+    // Cute running squash & stretch
+    state.runCycle += dt * 14;
+    const squash = Math.sin(state.runCycle) * 0.08;
+    mokuBody.scale.set(1 + squash, 1.15 - squash, 0.95 + squash);
+  }
+
+  // Cute Pitter-Patter Little Feet Animation! (Facing forward, kicking back & stepping forward)
+  state.footstepTimer += dt * (effectiveSpeed * 0.7);
+  const stepPhase = Math.sin(state.footstepTimer);
+  leftFoot.position.y = -0.72 + Math.max(0, stepPhase) * 0.24;
+  leftFoot.position.z = -stepPhase * 0.22;
+  rightFoot.position.y = -0.72 + Math.max(0, -stepPhase) * 0.24;
+  rightFoot.position.z = stepPhase * 0.22;
+
+  // Tail bobbing on back
+  if (tailGroup) {
+    tailGroup.rotation.x = 0.55 + Math.sin(state.footstepTimer * 2) * 0.12;
+    tailGroup.rotation.y = Math.sin(state.footstepTimer) * 0.1;
+  }
+
+  // Wing flapping
+  leftWing.rotation.z = 0.5 + Math.sin(state.footstepTimer * 2) * 0.25;
+  rightWing.rotation.z = -0.5 - Math.sin(state.footstepTimer * 2) * 0.25;
+
+  // Audio footsteps
+  if (Math.abs(stepPhase) > 0.95 && !state.isJumping) {
+    sounds.play('footstep');
+  }
+
+  // Move road, track items, trains, and obstacles forward towards camera
+  const moveZ = effectiveSpeed * dt;
+
+  // Move active trains
+  for (let i = activeTrains.length - 1; i >= 0; i--) {
+    const tr = activeTrains[i];
+    tr.group.position.z += moveZ;
+
+    // Check items attached to train roofs
+    const tg = tr.group;
+    for (let c = tg.children.length - 1; c >= 0; c--) {
+      const child = tg.children[c];
+      if (child.userData && child.userData.type === 'item') {
+        const itemWorldPos = new THREE.Vector3();
+        child.getWorldPosition(itemWorldPos);
+        const distToMoku = itemWorldPos.distanceTo(mokuGroup.position);
+        if (distToMoku < 1.4) {
+          if (child.userData.subType === 'berry') {
+            state.berriesCollected++;
+            state.score += 25 * state.berryMultiplier;
+            sounds.play('berry');
+            progress.totalBerries++;
+            saveProgress(progress);
+          } else if (child.userData.subType === 'boost') {
+            triggerBoost();
+          } else if (child.userData.subType === 'mochi') {
+            triggerMochi();
+          }
+          tg.remove(child);
+        }
+      }
+    }
+
+    if (tr.group.position.z > 35) {
+      trainsGroup.remove(tr.group);
+      activeTrains.splice(i, 1);
+    }
+  }
+
+  // Move active obstacles
+  for (let i = activeObstacles.length - 1; i >= 0; i--) {
+    const obs = activeObstacles[i];
+    obs.position.z += moveZ;
+
+    // Check collision with Moku (Moku is at Z=0)
+    if (Math.abs(obs.position.z) < 1.0 && !obs.userData.passed) {
+      const sameLane = Math.abs(obs.position.x - state.currentX) < 1.1;
+
+      if (sameLane) {
+        let isSafe = false;
+
+        // Boost breaks through everything!
+        if (state.boostTimer > 0) {
+          isSafe = true;
+          sounds.play('hit');
+          state.score += 200;
+          showBanner('💥 BARRIER SMASHED! +200 PTS', '#F472B6');
+          obstaclesGroup.remove(obs);
+          activeObstacles.splice(i, 1);
+          continue;
+        }
+
+        // Jump over low obstacles
+        if (obs.userData.subType === 'low' && state.playerY > 0.8) {
+          isSafe = true;
+        }
+        // Slide under high obstacles
+        if (obs.userData.subType === 'high' && state.isSliding) {
+          isSafe = true;
+          if (!obs.userData.slideScored) {
+            obs.userData.slideScored = true;
+            state.score += 100;
+            showBanner('💨 SLICK SLIDE DODGE! +100 PTS', '#38BDF8');
+          }
+        }
+
+        if (!isSafe) {
+          if (state.hasMochiShield) {
+            // Mochi shield absorbs hit!
+            state.hasMochiShield = false;
+            shieldMesh.visible = false;
+            sounds.play('mochi');
+            showBanner('🍡 MOCHI SHIELD BROKE! STAY FOCUSED!', '#34D399');
+            obs.userData.passed = true;
+          } else {
+            // Game Over Hit!
+            const hitReason = obs.userData.subType === 'high' ? 'Hit an overhead hazard! Slide to duck next time!' : 'Bumped into an obstacle!';
+            triggerGameOver(hitReason);
+            return;
+          }
+        }
+      }
+    }
+
+    if (obs.position.z > 10) {
+      obstaclesGroup.remove(obs);
+      activeObstacles.splice(i, 1);
+    }
+  }
+
+  // Move items (Berries, Boost, Mochi) - Fixed stationary coordinates, NO positional linkage to Moku!
+  for (let i = activeItems.length - 1; i >= 0; i--) {
+    const item = activeItems[i];
+    item.position.z += moveZ;
+    item.rotation.y += dt * 3;
+
+    // Collect item check (Radius expands slightly during boost, but items NEVER move with Moku jump)
+    const collectRadius = state.boostTimer > 0 ? 1.7 : 1.4;
+    const distToMoku = item.position.distanceTo(mokuGroup.position);
+    if (distToMoku < collectRadius) {
+      if (item.userData.subType === 'berry') {
+        state.berriesCollected++;
+        state.score += 25 * state.berryMultiplier;
+        sounds.play('berry');
+        progress.totalBerries++;
+        saveProgress(progress);
+      } else if (item.userData.subType === 'boost') {
+        triggerBoost();
+      } else if (item.userData.subType === 'mochi') {
+        triggerMochi();
+      }
+
+      itemsGroup.remove(item);
+      activeItems.splice(i, 1);
+      continue;
+    }
+
+    if (item.position.z > 10) {
+      itemsGroup.remove(item);
+      activeItems.splice(i, 1);
+    }
+  }
+
+  // Move background scenery
+  activeDeco.forEach((deco, idx) => {
+    deco.position.z += moveZ;
+    if (deco.position.z > 20) {
+      deco.position.z -= 140;
+    }
+  });
+
+  // Spawn new segments ahead
+  if (spawnZ > -100) {
+    spawnNextTrackSegment();
+  } else {
+    spawnZ += moveZ;
+  }
+
+  // Check stage clear condition
+  if (state.stageKey !== 'endless' && state.distance >= currentStage.targetDist) {
+    triggerStageClear();
+  }
+
+  // Update HUD values
+  updateHUD();
+}
+
+function renderScene(dt) {
+  // Update particles
+  for (let i = particleGroup.children.length - 1; i >= 0; i--) {
+    const p = particleGroup.children[i];
+    p.userData.life -= dt;
+    p.position.x += p.userData.vx * dt;
+    p.position.y += p.userData.vy * dt;
+    p.position.z += p.userData.vz * dt;
+    p.material.opacity = p.userData.life / 0.35;
+    if (p.userData.life <= 0) {
+      particleGroup.remove(p);
+    }
+  }
+
+  // Slight camera banking when lane switching
+  const targetCamX = state.currentX * 0.35;
+  camera.position.x += (targetCamX - camera.position.x) * 6 * dt;
+}
+
+function updateHUD() {
+  document.getElementById('hudScore').textContent = state.score.toLocaleString();
+  document.getElementById('hudBerries').textContent = state.berriesCollected;
+  document.getElementById('hudDistance').textContent = Math.round(state.distance);
+}
+
+// --- Game Life-cycle & Stage Transitions ---
+function startGame(stageKey) {
+  stopCelebrationEffect();
+  stopRainEffect();
+  sounds.init();
+  sounds.startBGM();
+
+  state.running = true;
+  state.paused = false;
+  state.stageKey = stageKey;
+  state.score = 0;
+  state.berriesCollected = 0;
+  state.distance = 0;
+  state.targetLane = 1;
+  state.currentX = 0;
+  state.playerY = 0;
+  state.playerVelY = 0;
+  state.isJumping = false;
+  state.isSliding = false;
+  state.hasMochiShield = false;
+  state.boostTimer = 0;
+  state.onTrain = false;
+  shieldMesh.visible = false;
+
+  const st = STAGES[stageKey] || STAGES[1];
+  state.speed = st.baseSpeed;
+
+  // Apply stage visual theme
+  skyMesh.material.color.setHex(st.skyTop);
+  scene.fog.color.setHex(st.fogColor);
+  roadMaterial.color.setHex(st.roadColor);
+
+  // Clear existing trains, obstacles and items
+  activeTrains.forEach(t => trainsGroup.remove(t.group));
+  activeTrains.length = 0;
+  activeObstacles.forEach(o => obstaclesGroup.remove(o));
+  activeObstacles.length = 0;
+  activeItems.forEach(item => itemsGroup.remove(item));
+  activeItems.length = 0;
+  activeDeco.forEach(d => environmentGroup.remove(d));
+  activeDeco.length = 0;
+
+  spawnZ = -30;
+  spawnDecorations();
+  for (let k = 0; k < 6; k++) {
+    spawnNextTrackSegment();
+  }
+
+  // Hide Title Screen & Overlays, Show HUD
+  document.body.classList.remove('on-title');
+  document.getElementById('title-frame').style.opacity = '0';
+  document.getElementById('titleScreen').classList.add('hidden');
+  document.getElementById('gameOverScreen').classList.add('hidden');
+  document.getElementById('stageClearScreen').classList.add('hidden');
+  document.getElementById('hud').classList.remove('hidden');
+
+  showBanner('RUN STARTED! DODGE & COLLECT!', '#A855F7');
+}
+
+function togglePause() {
+  if (!state.running) return;
+  state.paused = !state.paused;
+  document.getElementById('btnPauseGame').textContent = state.paused ? '▶' : '⏸';
+  if (state.paused) {
+    sounds.stopBGM();
+    showBanner('GAME PAUSED', '#F59E0B');
+  } else {
+    sounds.startBGM();
+    showBanner('RESUMED', '#10B981');
+  }
+}
+
+// --- Celebration and Rain Particle Canvases ---
+let celebrationAnimId = null;
+let rainAnimId = null;
+
+function startCelebrationEffect() {
+  stopCelebrationEffect();
+  const canvas = document.getElementById('celebrationCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const confetti = [];
+  const colors = ['#F59E0B', '#10B981', '#EC4899', '#06B6D4', '#8B5CF6', '#FDE047', '#FFFFFF'];
+  for (let i = 0; i < 120; i++) {
+    confetti.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height - canvas.height,
+      vx: (Math.random() - 0.5) * 3,
+      vy: 2.5 + Math.random() * 4,
+      size: 6 + Math.random() * 8,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      rot: Math.random() * 360,
+      vRot: (Math.random() - 0.5) * 10,
+      isStar: Math.random() > 0.65
+    });
+  }
+
+  function loop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    confetti.forEach(c => {
+      c.x += c.vx;
+      c.y += c.vy;
+      c.rot += c.vRot;
+      if (c.y > canvas.height) {
+        c.y = -20;
+        c.x = Math.random() * canvas.width;
+      }
+      ctx.save();
+      ctx.translate(c.x, c.y);
+      ctx.rotate((c.rot * Math.PI) / 180);
+      ctx.fillStyle = c.color;
+      if (c.isStar) {
+        ctx.beginPath();
+        for (let s = 0; s < 5; s++) {
+          ctx.lineTo(Math.cos(((18 + s * 72) * Math.PI) / 180) * c.size, -Math.sin(((18 + s * 72) * Math.PI) / 180) * c.size);
+          ctx.lineTo(Math.cos(((54 + s * 72) * Math.PI) / 180) * (c.size / 2), -Math.sin(((54 + s * 72) * Math.PI) / 180) * (c.size / 2));
+        }
+        ctx.closePath();
+        ctx.fill();
+      } else {
+        ctx.fillRect(-c.size / 2, -c.size / 2, c.size, c.size * 0.6);
+      }
+      ctx.restore();
+    });
+    celebrationAnimId = requestAnimationFrame(loop);
+  }
+  loop();
+}
+
+function stopCelebrationEffect() {
+  if (celebrationAnimId) {
+    cancelAnimationFrame(celebrationAnimId);
+    celebrationAnimId = null;
+  }
+}
+
+function startRainEffect() {
+  stopRainEffect();
+  const canvas = document.getElementById('rainCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const drops = [];
+  for (let i = 0; i < 90; i++) {
+    drops.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      len: 12 + Math.random() * 18,
+      speed: 12 + Math.random() * 10,
+      opacity: 0.25 + Math.random() * 0.4
+    });
+  }
+
+  function loop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = '#60A5FA';
+    ctx.lineWidth = 1.4;
+    drops.forEach(d => {
+      d.y += d.speed;
+      d.x -= 1.5;
+      if (d.y > canvas.height) {
+        d.y = -20;
+        d.x = Math.random() * canvas.width + 50;
+      }
+      ctx.globalAlpha = d.opacity;
+      ctx.beginPath();
+      ctx.moveTo(d.x, d.y);
+      ctx.lineTo(d.x - 2, d.y + d.len);
+      ctx.stroke();
+    });
+    ctx.globalAlpha = 1.0;
+    rainAnimId = requestAnimationFrame(loop);
+  }
+  loop();
+}
+
+function stopRainEffect() {
+  if (rainAnimId) {
+    cancelAnimationFrame(rainAnimId);
+    rainAnimId = null;
+  }
+}
+
+function triggerGameOver(reason) {
+  state.running = false;
+  sounds.play('fail');
+  sounds.stopBGM();
+  stopCelebrationEffect();
+  startRainEffect();
+
+  if (state.score > progress.highScore) {
+    progress.highScore = state.score;
+  }
+  progress.totalBerries += state.berriesCollected;
+  saveProgress(progress);
+
+  document.getElementById('hud').classList.add('hidden');
+  document.getElementById('gameOverReason').textContent = reason;
+  document.getElementById('goFinalScore').textContent = state.score.toLocaleString();
+  document.getElementById('goDistance').textContent = Math.round(state.distance) + 'm';
+  document.getElementById('goBerries').textContent = state.berriesCollected;
+  document.getElementById('goBestScore').textContent = progress.highScore.toLocaleString();
+  document.getElementById('gameOverScreen').classList.remove('hidden');
+}
+
+function triggerStageClear() {
+  state.running = false;
+  sounds.play('clear');
+  sounds.stopBGM();
+  stopRainEffect();
+  startCelebrationEffect();
+
+  const curStage = STAGES[state.stageKey];
+  if (typeof curStage.id === 'number' && curStage.id >= progress.unlockedStages) {
+    progress.unlockedStages = Math.min(3, curStage.id + 1);
+  }
+  if (state.score > progress.highScore) {
+    progress.highScore = state.score;
+  }
+  progress.totalBerries += state.berriesCollected;
+  saveProgress(progress);
+
+  document.getElementById('hud').classList.add('hidden');
+  document.getElementById('clearStageName').textContent = curStage.name + ' Cleared!';
+  document.getElementById('scScore').textContent = state.score.toLocaleString();
+  document.getElementById('scBerries').textContent = state.berriesCollected;
+  document.getElementById('stageClearScreen').classList.remove('hidden');
+}
+
+function returnToTitle() {
+  state.running = false;
+  state.paused = false;
+  sounds.stopBGM();
+  stopCelebrationEffect();
+  stopRainEffect();
+
+  document.body.classList.add('on-title');
+  document.getElementById('title-frame').style.opacity = '1';
+  document.getElementById('gameOverScreen').classList.add('hidden');
+  document.getElementById('stageClearScreen').classList.add('hidden');
+  document.getElementById('howToPlayScreen').classList.add('hidden');
+  document.getElementById('wardrobeScreen').classList.add('hidden');
+  document.getElementById('hud').classList.add('hidden');
+  document.getElementById('titleScreen').classList.remove('hidden');
+}
+
+// --- Wardrobe UI ---
+function openWardrobe() {
+  document.getElementById('wardrobeBerryCount').textContent = progress.totalBerries;
+  const container = document.getElementById('outfitListContainer');
+  container.innerHTML = '';
+
+  OUTFITS.forEach(outfit => {
+    const isUnlocked = progress.unlockedOutfits.includes(outfit.id);
+    const isEquipped = progress.outfit === outfit.id;
+
+    const row = document.createElement('div');
+    row.className = 'info-guide-row';
+    row.style.justifyContent = 'space-between';
+
+    row.innerHTML = `
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:22px;">🦉</span>
+        <div style="text-align:left;">
+          <h4 style="font-size:13px; color:#FFF;">${outfit.name}</h4>
+          <span style="font-size:11px; color:#A78BFA;">${isUnlocked ? 'Unlocked' : outfit.cost + ' 🫐'}</span>
+        </div>
+      </div>
+      <div>
+        ${isEquipped ?
+          `<span style="font-size:12px; font-weight:800; color:#10B981;">EQUIPPED</span>` :
+          isUnlocked ?
+          `<button class="btn-secondary" onclick="equipOutfit('${outfit.id}')" style="padding:6px 14px; font-size:11.5px;">EQUIP</button>` :
+          `<button class="btn-start" onclick="unlockOutfit('${outfit.id}', ${outfit.cost})" style="padding:6px 16px; font-size:11.5px;">BUY</button>`
+        }
+      </div>
+    `;
+    container.appendChild(row);
+  });
+
+  document.getElementById('wardrobeScreen').classList.remove('hidden');
+}
+
+window.equipOutfit = function(id) {
+  progress.outfit = id;
+  saveProgress(progress);
+  applyEquippedOutfit();
+  openWardrobe();
+};
+
+window.unlockOutfit = function(id, cost) {
+  if (progress.totalBerries >= cost) {
+    progress.totalBerries -= cost;
+    progress.unlockedOutfits.push(id);
+    progress.outfit = id;
+    saveProgress(progress);
+    applyEquippedOutfit();
+    sounds.play('clear');
+    openWardrobe();
+  } else {
+    showBanner('NOT ENOUGH BERRIES!', '#EF4444');
+  }
+};
+
+function applyEquippedOutfit() {
+  const outfit = OUTFITS.find(o => o.id === progress.outfit) || OUTFITS[0];
+  mokuBody.material.color.setHex(outfit.color);
+  mokuBody.material.metalness = outfit.isGold ? 0.8 : 0.1;
+  leftWing.material.color.setHex(outfit.wingColor);
+  rightWing.material.color.setHex(outfit.wingColor);
+  if (tailGroup) {
+    tailGroup.children.forEach(feather => feather.material.color.setHex(outfit.wingColor));
+  }
+  visorMesh.visible = !!outfit.hasVisor;
+}
+
+// --- Event Listeners Registration ---
+document.getElementById('btnStartGame').addEventListener('click', () => {
+  const selectedCard = document.querySelector('.stage-card.selected');
+  const stage = selectedCard ? selectedCard.dataset.stage : '1';
+  startGame(stage);
+});
+
+document.querySelectorAll('.stage-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.stage-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+  });
+});
+
+document.getElementById('btnHowToPlay').addEventListener('click', () => {
+  document.getElementById('howToPlayScreen').classList.remove('hidden');
+});
+document.getElementById('btnCloseHowTo').addEventListener('click', () => {
+  document.getElementById('howToPlayScreen').classList.add('hidden');
+});
+
+document.getElementById('btnWardrobe').addEventListener('click', openWardrobe);
+document.getElementById('btnCloseWardrobe').addEventListener('click', () => {
+  document.getElementById('wardrobeScreen').classList.add('hidden');
+});
+
+document.getElementById('btnSoundToggleTitle').addEventListener('click', function() {
+  const on = sounds.toggleMute();
+  this.textContent = on ? '🔊 Audio: ON' : '🔇 Audio: OFF';
+  document.getElementById('btnMuteInGame').textContent = on ? '🔊' : '🔇';
+});
+
+document.getElementById('btnMuteInGame').addEventListener('click', function() {
+  const on = sounds.toggleMute();
+  this.textContent = on ? '🔊' : '🔇';
+  document.getElementById('btnSoundToggleTitle').textContent = on ? '🔊 Audio: ON' : '🔇 Audio: OFF';
+});
+
+document.getElementById('btnPauseGame').addEventListener('click', togglePause);
+
+document.getElementById('btnRetryRun').addEventListener('click', () => {
+  startGame(state.stageKey);
+});
+document.getElementById('btnGoHome').addEventListener('click', returnToTitle);
+
+document.getElementById('btnNextStage').addEventListener('click', () => {
+  let next = 'endless';
+  if (state.stageKey === '1') next = '2';
+  else if (state.stageKey === '2') next = '3';
+  startGame(next);
+});
+document.getElementById('btnScHome').addEventListener('click', returnToTitle);
+
+// Initialize Scene on load
+window.addEventListener('load', () => {
+  initThree();
+  applyEquippedOutfit();
+  requestAnimationFrame(animate);
+});
+</script>
+</body>
+</html>

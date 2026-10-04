@@ -1,0 +1,2106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>MokuWolf — Wordwolf Party Game</title>
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+:root {
+  --bg: #0C0D18;
+  --panel: rgba(26, 27, 46, 0.78);
+  --panel-border: rgba(168, 85, 247, 0.35);
+  --text: #F3F4F6;
+  --text-muted: #9CA3AF;
+  --primary: #A855F7;
+  --primary-glow: rgba(168, 85, 247, 0.45);
+  --accent-gold: #FBBF24;
+  --accent-green: #34D399;
+  --accent-rose: #FB7185;
+  --accent-blue: #38BDF8;
+  --wolf-red: #F43F5E;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Background Atmosphere */
+#bg-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* App Container */
+#app {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 520px;
+  height: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px calc(env(safe-area-inset-bottom, 0px) + 12px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Header */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  flex-shrink: 0;
+}
+
+.brand-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: #fff;
+}
+
+.brand-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #7C3AED, #EC4899);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  box-shadow: 0 4px 14px var(--primary-glow);
+}
+
+.brand-title {
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  background: linear-gradient(135deg, #E9D5FF, #F472B6, #FBBF24);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.header-btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-header {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.btn-header:hover, .btn-header:active {
+  background: rgba(255, 255, 255, 0.18);
+  transform: scale(0.96);
+}
+
+/* Screens System */
+.screen {
+  display: none;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+  justify-content: space-between;
+  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.screen.active {
+  display: flex;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Cards & Panels */
+.panel {
+  background: var(--panel);
+  border: 1.5px solid var(--panel-border);
+  border-radius: 20px;
+  padding: 18px 16px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+}
+
+.panel-title {
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #C084FC;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Controls & Inputs */
+.setting-row {
+  margin-bottom: 16px;
+}
+.setting-row:last-child {
+  margin-bottom: 0;
+}
+
+.setting-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.setting-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #E2E8F0;
+}
+
+.setting-val-badge {
+  background: rgba(168, 85, 247, 0.25);
+  border: 1px solid rgba(168, 85, 247, 0.6);
+  color: #F5D0FE;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+/* Pill Selectors */
+.pill-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(42px, 1fr));
+  gap: 8px;
+}
+
+.pill-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  color: var(--text);
+  padding: 10px 4px;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  min-height: 48px;
+}
+
+.pill-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.pill-btn.selected {
+  background: linear-gradient(135deg, #9333EA, #C026D3);
+  border-color: #F472B6;
+  color: #FFFFFF;
+  box-shadow: 0 0 16px rgba(217, 70, 239, 0.5);
+  transform: scale(1.04);
+}
+
+.topic-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.topic-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  color: #E2E8F0;
+  padding: 12px 6px;
+  border-radius: 16px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 800;
+  transition: all 0.2s ease;
+  min-height: 80px;
+  justify-content: center;
+  text-align: center;
+}
+
+.topic-emoji {
+  font-size: 26px;
+}
+
+.topic-btn.selected {
+  background: linear-gradient(135deg, rgba(234, 88, 12, 0.3), rgba(217, 70, 239, 0.3));
+  border-color: var(--accent-gold);
+  color: #FFF;
+  box-shadow: 0 0 18px rgba(251, 191, 36, 0.4);
+  transform: translateY(-2px);
+}
+
+/* Player Name Tag List */
+.player-tags-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.player-tag {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.player-tag.is-edit {
+  cursor: pointer;
+  background: rgba(168, 85, 247, 0.18);
+  border-color: rgba(168, 85, 247, 0.4);
+}
+
+/* Big Action Buttons */
+.btn-primary {
+  width: 100%;
+  background: linear-gradient(135deg, #9333EA 0%, #DB2777 50%, #F59E0B 100%);
+  border: none;
+  color: #FFFFFF;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  padding: 16px 24px;
+  border-radius: 20px;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(219, 39, 119, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  min-height: 58px;
+}
+
+.btn-primary:active {
+  transform: scale(0.97);
+  box-shadow: 0 4px 14px rgba(219, 39, 119, 0.3);
+}
+
+.btn-secondary {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  color: #F3F4F6;
+  font-size: 15px;
+  font-weight: 800;
+  padding: 14px 20px;
+  border-radius: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  min-height: 52px;
+}
+
+.btn-secondary:active {
+  background: rgba(255, 255, 255, 0.16);
+  transform: scale(0.97);
+}
+
+/* Setup Screen Header Animation */
+.setup-hero {
+  text-align: center;
+  padding: 14px 0 10px;
+}
+
+.hero-mascot {
+  font-size: 48px;
+  display: inline-block;
+  animation: mascotBob 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 20px rgba(168, 85, 247, 0.5));
+}
+
+@keyframes mascotBob {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(-3deg); }
+}
+
+.hero-title {
+  font-size: 22px;
+  font-weight: 900;
+  margin-top: 4px;
+}
+
+.hero-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ==================== PASS & PLAY SCREEN ==================== */
+.pass-screen-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  text-align: center;
+  gap: 20px;
+}
+
+.pass-avatar-card {
+  width: 100%;
+  background: var(--panel);
+  border: 2px solid var(--primary);
+  border-radius: 28px;
+  padding: 32px 20px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 24px var(--primary-glow);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.pass-badge {
+  background: rgba(168, 85, 247, 0.2);
+  border: 1px solid var(--primary);
+  color: #E9D5FF;
+  padding: 4px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.pass-player-name {
+  font-size: 30px;
+  font-weight: 900;
+  color: #FFF;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.pass-prompt-text {
+  font-size: 16px;
+  color: #CBD5E1;
+  line-height: 1.5;
+}
+
+.btn-reveal-card {
+  width: 100%;
+  background: linear-gradient(135deg, #6366F1, #8B5CF6, #EC4899);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: #FFF;
+  font-size: 19px;
+  font-weight: 900;
+  padding: 22px 20px;
+  border-radius: 24px;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(139, 92, 246, 0.45);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: pulseCard 2.4s ease-in-out infinite;
+}
+
+@keyframes pulseCard {
+  0%, 100% { box-shadow: 0 10px 24px rgba(139, 92, 246, 0.4); }
+  50% { box-shadow: 0 12px 34px rgba(236, 72, 153, 0.6); }
+}
+
+.btn-reveal-card:active {
+  transform: scale(0.96);
+}
+
+/* ==================== SECRET WORD DISPLAY SCREEN ==================== */
+.secret-card {
+  width: 100%;
+  background: linear-gradient(165deg, rgba(30, 27, 75, 0.9), rgba(15, 23, 42, 0.9));
+  border: 2.5px solid var(--accent-gold);
+  border-radius: 28px;
+  padding: 30px 20px;
+  text-align: center;
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.6), 0 0 35px rgba(251, 191, 36, 0.35);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.secret-eyebrow {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: var(--accent-gold);
+  text-transform: uppercase;
+}
+
+.secret-word-box {
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px dashed rgba(251, 191, 36, 0.5);
+  border-radius: 22px;
+  padding: 22px 16px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.secret-word-emoji {
+  font-size: 52px;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.4));
+}
+
+.secret-word-text {
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  color: #FFF;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  word-break: break-word;
+}
+
+.secret-tip {
+  font-size: 14px;
+  color: #94A3B8;
+  line-height: 1.5;
+  padding: 0 8px;
+}
+
+.btn-hide-word {
+  width: 100%;
+  background: linear-gradient(135deg, #10B981, #059669);
+  border: none;
+  color: #FFF;
+  font-size: 18px;
+  font-weight: 900;
+  padding: 18px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 56px;
+}
+
+/* ==================== TALK PHASE / DISCUSSION SCREEN ==================== */
+.talk-header-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.phase-pill {
+  background: rgba(168, 85, 247, 0.2);
+  border: 1px solid var(--primary);
+  color: #F5D0FE;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.topic-pill-small {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #E2E8F0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Circular Timer Center */
+.timer-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 0;
+  position: relative;
+}
+
+.timer-circle-wrap {
+  position: relative;
+  width: 190px;
+  height: 190px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.timer-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.timer-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 10;
+}
+
+.timer-bar {
+  fill: none;
+  stroke: url(#timerGrad);
+  stroke-width: 10;
+  stroke-linecap: round;
+  stroke-dasharray: 534;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 1s linear, stroke 0.4s ease;
+}
+
+.timer-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.timer-display {
+  font-size: 46px;
+  font-weight: 900;
+  letter-spacing: -1px;
+  font-variant-numeric: tabular-nums;
+  color: #FFF;
+}
+
+.timer-sublabel {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+
+.timer-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.btn-time-adj {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 800;
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-time-adj:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/* Hint Question Card */
+.hint-roulette-panel {
+  background: rgba(30, 27, 75, 0.6);
+  border: 1.5px solid rgba(192, 132, 252, 0.35);
+  border-radius: 20px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.hint-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.hint-title {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #F472B6;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.hint-question-box {
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #FFF;
+  line-height: 1.45;
+  text-align: center;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.btn-hint-roll {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.25), rgba(168, 85, 247, 0.25));
+  border: 1px solid rgba(244, 114, 182, 0.4);
+  color: #FDF2F8;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 8px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-hint-roll:hover, .btn-hint-roll:active {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.5), rgba(168, 85, 247, 0.5));
+  transform: scale(0.97);
+}
+
+/* ==================== VOTE SCREEN (OPTION B) ==================== */
+.vote-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+}
+
+.point-countdown-box {
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.2), rgba(168, 85, 247, 0.2));
+  border: 2px solid var(--wolf-red);
+  border-radius: 24px;
+  padding: 24px 16px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.point-big-num {
+  font-size: 64px;
+  font-weight: 900;
+  color: #FFF;
+  text-shadow: 0 0 25px rgba(244, 63, 94, 0.7);
+  animation: numPop 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes numPop {
+  0% { transform: scale(0.5); opacity: 0; }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.point-instruct {
+  font-size: 17px;
+  font-weight: 800;
+  color: #FFE4E6;
+}
+
+.players-vote-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.btn-vote-player {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1.5px solid rgba(255, 255, 255, 0.16);
+  color: #FFF;
+  font-size: 17px;
+  font-weight: 800;
+  padding: 16px 12px;
+  border-radius: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  min-height: 60px;
+}
+
+.btn-vote-player:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.btn-vote-player.voted-selected {
+  background: linear-gradient(135deg, #E11D48, #9333EA);
+  border-color: #FDA4AF;
+  box-shadow: 0 0 20px rgba(225, 29, 72, 0.6);
+  transform: scale(1.03);
+}
+
+/* ==================== REVEAL & WOLF COUNTER-GUESS SCREEN ==================== */
+.result-box {
+  background: var(--panel);
+  border: 2px solid var(--primary);
+  border-radius: 26px;
+  padding: 24px 18px;
+  text-align: center;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+}
+
+.result-emoji {
+  font-size: 64px;
+  filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.3));
+}
+
+.result-title {
+  font-size: 26px;
+  font-weight: 900;
+  color: #FFF;
+}
+
+.result-sub {
+  font-size: 15px;
+  color: #CBD5E1;
+  line-height: 1.5;
+}
+
+.wolf-guess-banner {
+  background: rgba(244, 63, 94, 0.15);
+  border: 1.5px solid var(--wolf-red);
+  border-radius: 18px;
+  padding: 14px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: center;
+}
+
+.wolf-guess-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.btn-guess-correct {
+  background: linear-gradient(135deg, #059669, #10B981);
+  border: none;
+  color: #FFF;
+  font-size: 14px;
+  font-weight: 800;
+  padding: 12px;
+  border-radius: 14px;
+  cursor: pointer;
+}
+
+.btn-guess-wrong {
+  background: linear-gradient(135deg, #DC2626, #EF4444);
+  border: none;
+  color: #FFF;
+  font-size: 14px;
+  font-weight: 800;
+  padding: 12px;
+  border-radius: 14px;
+  cursor: pointer;
+}
+
+/* Final Summary Word Pair Breakdown */
+.words-summary-card {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 18px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.word-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.word-row.is-wolf {
+  background: rgba(244, 63, 94, 0.15);
+  border: 1px solid rgba(244, 63, 94, 0.4);
+}
+
+.word-row.is-citizen {
+  background: rgba(52, 211, 153, 0.12);
+  border: 1px solid rgba(52, 211, 153, 0.35);
+}
+
+.word-role-tag {
+  font-size: 11px;
+  font-weight: 900;
+  padding: 2px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+
+.role-citizen {
+  background: #059669;
+  color: #ECFDF5;
+}
+
+.role-wolf {
+  background: #E11D48;
+  color: #FFF1F2;
+}
+
+.word-name {
+  font-size: 16px;
+  font-weight: 800;
+  color: #FFF;
+}
+
+.word-players {
+  font-size: 12px;
+  color: #94A3B8;
+}
+
+/* Edit Names Modal */
+#namesModal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+#namesModal.open {
+  display: flex;
+}
+
+.names-dialog {
+  background: #181829;
+  border: 2px solid var(--primary);
+  border-radius: 24px;
+  padding: 22px 18px;
+  width: 100%;
+  max-width: 440px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.names-dialog-title {
+  font-size: 18px;
+  font-weight: 900;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.name-input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.name-input-label {
+  font-size: 14px;
+  font-weight: 800;
+  color: #C084FC;
+  width: 70px;
+  flex-shrink: 0;
+}
+
+.name-input-field {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 10px 14px;
+  color: #FFF;
+  font-size: 15px;
+  font-weight: 700;
+  outline: none;
+}
+
+.name-input-field:focus {
+  border-color: var(--primary);
+  background: rgba(168, 85, 247, 0.15);
+}
+
+/* Sound indicator button */
+#soundToggleBtn {
+  font-size: 16px;
+  padding: 6px 10px;
+}
+
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<div id="app">
+  <!-- App Header -->
+  <header>
+    <a href="hub.html" class="brand-badge">
+      <div class="brand-icon">🐺</div>
+      <span class="brand-title">MokuWolf</span>
+    </a>
+    <div class="header-btns">
+      <button id="soundToggleBtn" class="btn-header" title="Toggle Sound">🔊</button>
+      <a href="hub.html" class="btn-header">🏠 Hub</a>
+    </div>
+  </header>
+
+  <!-- ==================== SCREEN 1: QUICK SETUP ==================== -->
+  <div id="screenSetup" class="screen active">
+    <div class="setup-hero">
+      <div class="hero-mascot">🦉🐺</div>
+      <h1 class="hero-title">Who is the WordMoku?</h1>
+      <p class="hero-desc">Pass 1 phone around & talk it out!</p>
+    </div>
+
+    <div class="panel" style="margin-bottom: 12px;">
+      <!-- Player Count Setting -->
+      <div class="setting-row">
+        <div class="setting-label-row">
+          <span class="setting-label">👥 Number of Players</span>
+          <span class="setting-val-badge" id="playerCountBadge">4 Players</span>
+        </div>
+        <div class="pill-grid" id="playerCountGrid">
+          <button class="pill-btn" data-val="3">3</button>
+          <button class="pill-btn selected" data-val="4">4</button>
+          <button class="pill-btn" data-val="5">5</button>
+          <button class="pill-btn" data-val="6">6</button>
+          <button class="pill-btn" data-val="7">7</button>
+          <button class="pill-btn" data-val="8">8</button>
+          <button class="pill-btn" data-val="9">9</button>
+          <button class="pill-btn" data-val="10">10</button>
+        </div>
+      </div>
+
+      <!-- WordMoku Count Setting -->
+      <div class="setting-row">
+        <div class="setting-label-row">
+          <span class="setting-label">🐺 WordMoku (Wolves)</span>
+          <span class="setting-val-badge" id="wolfCountBadge">1 Wolf</span>
+        </div>
+        <div class="pill-grid" id="wolfCountGrid">
+          <button class="pill-btn selected" data-val="1">1</button>
+          <button class="pill-btn" data-val="2">2</button>
+          <button class="pill-btn" data-val="3">3</button>
+        </div>
+      </div>
+
+      <!-- Topic Selection -->
+      <div class="setting-row">
+        <div class="setting-label-row">
+          <span class="setting-label">🎯 Topic</span>
+          <span class="setting-val-badge" id="topicBadge">Food / Drink</span>
+        </div>
+        <div class="topic-grid">
+          <button class="topic-btn selected" data-topic="food">
+            <span class="topic-emoji">🍕</span>
+            <span>Food / Drink</span>
+          </button>
+          <button class="topic-btn" data-topic="sports">
+            <span class="topic-emoji">⚽</span>
+            <span>Sports</span>
+          </button>
+          <button class="topic-btn" data-topic="mix">
+            <span class="topic-emoji">🎲</span>
+            <span>Mix</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Players List & Optional Edit Names -->
+      <div class="setting-row">
+        <div class="setting-label-row">
+          <span class="setting-label">🏷️ Player Names</span>
+          <button id="btnOpenNameModal" class="btn-header" style="font-size: 11px; padding: 3px 10px;">✏️ Edit Names</button>
+        </div>
+        <div class="player-tags-wrap" id="setupPlayerTags">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Start Button -->
+    <button id="btnStartGame" class="btn-primary">
+      <span>START GAME</span>
+      <span>▶</span>
+    </button>
+  </div>
+
+  <!-- ==================== SCREEN 2: PASS PHONE HANDOFF ==================== -->
+  <div id="screenPass" class="screen">
+    <div class="pass-screen-wrap">
+      <div class="pass-avatar-card">
+        <div class="pass-badge" id="passStepBadge">PLAYER 1 OF 4</div>
+        <div style="font-size: 56px; margin: 4px 0;">📱</div>
+        <div class="pass-player-name" id="passPlayerName">Player A</div>
+        <p class="pass-prompt-text">
+          Are you <strong id="passPlayerPromptName" style="color: #FBBF24;">Player A</strong>?<br>
+          Take the phone to check your secret word!
+        </p>
+      </div>
+
+      <button id="btnRevealWord" class="btn-reveal-card">
+        <span>👀 TAP TO REVEAL WORD</span>
+        <span style="font-size: 13px; font-weight: 700; opacity: 0.85;">(Don't let others peek!)</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== SCREEN 3: SECRET WORD DISPLAY ==================== -->
+  <div id="screenReveal" class="screen">
+    <div class="pass-screen-wrap">
+      <div class="secret-card">
+        <div class="secret-eyebrow" id="revealPlayerTitle">PLAYER A'S SECRET WORD</div>
+        
+        <div class="secret-word-box">
+          <div class="secret-word-emoji" id="revealWordEmoji">🍕</div>
+          <div class="secret-word-text" id="revealWordText">Pizza</div>
+        </div>
+
+        <p class="secret-tip">
+          🤫 Remember this word!<br>
+          Talk with everyone to find out if your word is different from others.
+        </p>
+      </div>
+
+      <button id="btnHideWord" class="btn-hide-word">
+        <span>✅ OK, I Remember! (Hide Word)</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== SCREEN 4: TALK & DISCUSSION PHASE ==================== -->
+  <div id="screenTalk" class="screen">
+    <div>
+      <div class="talk-header-info">
+        <span class="phase-pill">🗣️ DISCUSSION TIME</span>
+        <span class="topic-pill-small" id="talkTopicPill">🍕 Food / Drink</span>
+      </div>
+
+      <!-- Animated Circular Timer -->
+      <div class="timer-container">
+        <div class="timer-circle-wrap">
+          <svg class="timer-svg" viewBox="0 0 190 190">
+            <defs>
+              <linearGradient id="timerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#34D399" />
+                <stop offset="60%" stop-color="#A855F7" />
+                <stop offset="100%" stop-color="#EC4899" />
+              </linearGradient>
+            </defs>
+            <circle class="timer-track" cx="95" cy="95" r="85" />
+            <circle id="timerBarCircle" class="timer-bar" cx="95" cy="95" r="85" />
+          </svg>
+          <div class="timer-content">
+            <div class="timer-display" id="timerDisplay">3:00</div>
+            <div class="timer-sublabel" id="timerStatusLabel">DISCUSS</div>
+          </div>
+        </div>
+
+        <div class="timer-controls-row">
+          <button id="btnTimerSub30" class="btn-time-adj">-30s</button>
+          <button id="btnTimerToggle" class="btn-time-adj" style="background: rgba(168,85,247,0.25); border-color: var(--primary);">⏸ Pause</button>
+          <button id="btnTimerAdd30" class="btn-time-adj">+30s</button>
+        </div>
+      </div>
+
+      <!-- Hint Question Roulette (9yo friendly conversational starters) -->
+      <div class="hint-roulette-panel">
+        <div class="hint-header">
+          <span class="hint-title">💡 Need an Idea to Ask?</span>
+          <button id="btnRollHint" class="btn-hint-roll">🎲 New Question</button>
+        </div>
+        <div class="hint-question-box" id="hintQuestionBox">
+          "What color is your item?"
+        </div>
+      </div>
+    </div>
+
+    <!-- Vote Button -->
+    <button id="btnGoToVote" class="btn-primary" style="background: linear-gradient(135deg, #E11D48, #9333EA);">
+      <span>🗳️ TIME TO VOTE!</span>
+      <span>👉</span>
+    </button>
+  </div>
+
+  <!-- ==================== SCREEN 5: VOTE (OPTION B: 3, 2, 1, POINT!) ==================== -->
+  <div id="screenVote" class="screen">
+    <div class="vote-panel">
+      <!-- Countdown Box -->
+      <div class="point-countdown-box" id="pointCountdownBox">
+        <div style="font-size: 14px; font-weight: 800; text-transform: uppercase; color: #FDA4AF; letter-spacing: 1px;">POINT TOGETHER ON 1!</div>
+        <div class="point-big-num" id="pointCountdownNum">3</div>
+        <div class="point-instruct" id="pointCountdownText">Ready...</div>
+      </div>
+
+      <!-- Selection List of who got the most votes -->
+      <div id="voteSelectionSection" style="width: 100%; display: none;">
+        <div class="panel-title" style="color: #FDA4AF; justify-content: center; font-size: 15px;">
+          👉 Who received the most votes?
+        </div>
+        <div class="players-vote-grid" id="votePlayersGrid">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <button id="btnConfirmVote" class="btn-primary" style="display: none; background: linear-gradient(135deg, #E11D48, #9333EA);">
+      <span>REVEAL RESULT</span>
+      <span>🐺</span>
+    </button>
+  </div>
+
+  <!-- ==================== SCREEN 6: RESULT & WOLF COUNTER-GUESS ==================== -->
+  <div id="screenResult" class="screen">
+    <div style="display: flex; flex-direction: column; gap: 14px; flex: 1;">
+      <!-- Result Announcement Box -->
+      <div class="result-box">
+        <div class="result-emoji" id="resultEmoji">🐺</div>
+        <div class="result-title" id="resultTitle">Result Title</div>
+        <p class="result-sub" id="resultSub">Result Subtitle</p>
+
+        <!-- Wolf Counter-Guess Section (If Wolf was Caught) -->
+        <div class="wolf-guess-banner" id="wolfGuessBanner" style="display: none;">
+          <div style="font-size: 13px; font-weight: 800; color: #FDA4AF;">🐺 WOLF REVERSAL CHANCE!</div>
+          <p style="font-size: 13.5px; color: #FDF2F8; line-height: 1.4;">
+            Can the WordMoku guess the <strong>Citizens' word</strong> to steal the victory?
+          </p>
+          <div class="wolf-guess-btns">
+            <button id="btnWolfGuessWin" class="btn-guess-correct">🎉 Wolf Guessed It!</button>
+            <button id="btnWolfGuessFail" class="btn-guess-wrong">❌ Wolf Failed</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Word Breakdown Summary -->
+      <div class="words-summary-card" id="wordsSummaryCard">
+        <div style="font-size: 12px; font-weight: 800; letter-spacing: 0.8px; color: #A78BFA; text-transform: uppercase;">
+          📖 Word Breakdown
+        </div>
+        <div class="word-row is-citizen" id="citizenWordRow">
+          <div>
+            <div class="word-role-tag role-citizen">Citizens (Majority)</div>
+            <div class="word-name" id="citizenWordName">🍕 Pizza</div>
+          </div>
+          <div class="word-players" id="citizenPlayersList">Player A, Player B, Player D</div>
+        </div>
+        <div class="word-row is-wolf" id="wolfWordRow">
+          <div>
+            <div class="word-role-tag role-wolf">WordMoku (Wolf)</div>
+            <div class="word-name" id="wolfWordName">🍔 Hamburger</div>
+          </div>
+          <div class="word-players" id="wolfPlayersList">Player C</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Replay Buttons -->
+    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+      <button id="btnPlayAgainSame" class="btn-primary">
+        <span>⚡ PLAY AGAIN (Same Players)</span>
+      </button>
+      <button id="btnChangeSettings" class="btn-secondary">
+        <span>⚙️ Change Settings</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== EDIT NAMES MODAL ==================== -->
+<div id="namesModal">
+  <div class="names-dialog">
+    <div class="names-dialog-title">
+      <span>✏️ Edit Player Names</span>
+      <button id="btnCloseNameModal" style="background: none; border: none; color: #9CA3AF; font-size: 20px; cursor: pointer;">✕</button>
+    </div>
+    <div id="nameInputsList" style="display: flex; flex-direction: column; gap: 10px;">
+      <!-- Populated by JS -->
+    </div>
+    <button id="btnSaveNames" class="btn-primary" style="margin-top: 6px; min-height: 48px; font-size: 16px;">
+      Save Names
+    </button>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // --- AUDIO SYNTHESIZER (Web Audio API) ---
+  var audioCtx = null;
+  var soundEnabled = true;
+
+  function getAudioCtx() {
+    if (!audioCtx) {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) audioCtx = new AC();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    return audioCtx;
+  }
+
+  function playSound(type) {
+    if (!soundEnabled) return;
+    try {
+      var ctx = getAudioCtx();
+      if (!ctx) return;
+      var now = ctx.currentTime;
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      if (type === 'tap') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(520, now);
+        osc.frequency.exponentialRampToValueAtTime(780, now + 0.07);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+        osc.start(now);
+        osc.stop(now + 0.07);
+      } else if (type === 'reveal') {
+        var o2 = ctx.createOscillator();
+        var g2 = ctx.createGain();
+        o2.connect(g2); g2.connect(ctx.destination);
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.setValueAtTime(660, now + 0.08);
+        osc.frequency.setValueAtTime(880, now + 0.16);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        osc.start(now);
+        osc.stop(now + 0.35);
+      } else if (type === 'hide') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.exponentialRampToValueAtTime(300, now + 0.12);
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        osc.start(now);
+        osc.stop(now + 0.12);
+      } else if (type === 'tick') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, now);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+        osc.start(now);
+        osc.stop(now + 0.04);
+      } else if (type === 'countdown') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(587.33, now); // D5
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        osc.start(now);
+        osc.stop(now + 0.15);
+      } else if (type === 'point') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(880, now); // A5
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        osc.start(now);
+        osc.stop(now + 0.4);
+      } else if (type === 'howl') {
+        // Playful synth howl
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(260, now);
+        osc.frequency.linearRampToValueAtTime(520, now + 0.3);
+        osc.frequency.linearRampToValueAtTime(360, now + 0.7);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.75);
+        osc.start(now);
+        osc.stop(now + 0.75);
+      } else if (type === 'fanfare') {
+        var notes = [523.25, 659.25, 783.99, 1046.50]; // C E G C
+        notes.forEach(function(freq, i) {
+          var o = ctx.createOscillator();
+          var g = ctx.createGain();
+          o.type = 'triangle';
+          o.frequency.setValueAtTime(freq, now + i * 0.09);
+          o.connect(g);
+          g.connect(ctx.destination);
+          g.gain.setValueAtTime(0.2, now + i * 0.09);
+          g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.09 + 0.25);
+          o.start(now + i * 0.09);
+          o.stop(now + i * 0.09 + 0.25);
+        });
+      } else if (type === 'roulette') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(700, now);
+        osc.frequency.exponentialRampToValueAtTime(1100, now + 0.09);
+        gain.gain.setValueAtTime(0.16, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+        osc.start(now);
+        osc.stop(now + 0.09);
+      }
+    } catch (e) {
+      console.warn('Audio error:', e);
+    }
+  }
+
+  // --- WORD PAIRS DATABASE (9-Year-Old Friendly English Pairs) ---
+  var WORD_PAIRS = {
+    food: [
+      { w1: "Pizza", e1: "🍕", w2: "Hamburger", e2: "🍔" },
+      { w1: "Apple", e1: "🍎", w2: "Peach", e2: "🍑" },
+      { w1: "Ice Cream", e1: "🍦", w2: "Frozen Yogurt", e2: "🍧" },
+      { w1: "Hot Dog", e1: "🌭", w2: "Sandwich", e2: "🥪" },
+      { w1: "Milk", e1: "🥛", w2: "Orange Juice", e2: "🧃" },
+      { w1: "Chocolate", e1: "🍫", w2: "Cookie", e2: "🍪" },
+      { w1: "French Fries", e1: "🍟", w2: "Potato Chips", e2: "🥔" },
+      { w1: "Pancake", e1: "🥞", w2: "Waffle", e2: "🧇" },
+      { w1: "Donut", e1: "🍩", w2: "Bagel", e2: "🥯" },
+      { w1: "Strawberry", e1: "🍓", w2: "Cherry", e2: "🍒" },
+      { w1: "Popcorn", e1: "🍿", w2: "Nachos", e2: "🧀" },
+      { w1: "Watermelon", e1: "🍉", w2: "Melon", e2: "🍈" },
+      { w1: "Ramen", e1: "🍜", w2: "Spaghetti", e2: "🍝" },
+      { w1: "Cheese", e1: "🧀", w2: "Butter", e2: "🧈" },
+      { w1: "Cupcake", e1: "🧁", w2: "Muffin", e2: "🧁" },
+      { w1: "Lemonade", e1: "🍋", w2: "Iced Tea", e2: "🧋" },
+      { w1: "Taco", e1: "🌮", w2: "Burrito", e2: "🌯" },
+      { w1: "Fried Chicken", e1: "🍗", w2: "Chicken Nuggets", e2: "🍗" },
+      { w1: "Banana", e1: "🍌", w2: "Mango", e2: "🥭" },
+      { w1: "Rice Ball (Onigiri)", e1: "🍙", w2: "Bread", e2: "🍞" }
+    ],
+    sports: [
+      { w1: "Soccer", e1: "⚽", w2: "Basketball", e2: "🏀" },
+      { w1: "Baseball", e1: "⚾", w2: "Cricket", e2: "🏏" },
+      { w1: "Swimming", e1: "🏊", w2: "Surfing", e2: "🏄" },
+      { w1: "Skateboarding", e1: "🛹", w2: "Rollerblading", e2: "🛼" },
+      { w1: "Running", e1: "🏃", w2: "Walking", e2: "🚶" },
+      { w1: "Tennis", e1: "🎾", w2: "Badminton", e2: "🏸" },
+      { w1: "Skiing", e1: "🎿", w2: "Snowboarding", e2: "🏂" },
+      { w1: "Dodgeball", e1: "🏐", w2: "Volleyball", e2: "🏐" },
+      { w1: "Karate", e1: "🥋", w2: "Judo", e2: "🥋" },
+      { w1: "Bowling", e1: "🎳", w2: "Golf", e2: "⛳" },
+      { w1: "Bicycle Racing", e1: "🚴", w2: "Scooter", e2: "🛴" },
+      { w1: "Table Tennis", e1: "🏓", w2: "Air Hockey", e2: "🏒" },
+      { w1: "Gymnastics", e1: "🤸", w2: "Dance", e2: "💃" },
+      { w1: "Ice Skating", e1: "⛸️", w2: "Roller Skating", e2: "🛼" },
+      { w1: "Rock Climbing", e1: "🧗", w2: "Tree Climbing", e2: "🌲" }
+    ],
+    mix: [
+      { w1: "Cat", e1: "🐱", w2: "Dog", e2: "🐶" },
+      { w1: "Lion", e1: "🦁", w2: "Tiger", e2: "🐯" },
+      { w1: "Penguin", e1: "🐧", w2: "Polar Bear", e2: "🐻‍❄️" },
+      { w1: "Dolphin", e1: "🐬", w2: "Whale", e2: "🐳" },
+      { w1: "Rabbit", e1: "🐰", w2: "Hamster", e2: "🐹" },
+      { w1: "Bicycle", e1: "🚲", w2: "Motorcycle", e2: "🏍️" },
+      { w1: "Pencil", e1: "✏️", w2: "Crayon", e2: "🖍️" },
+      { w1: "Backpack", e1: "🎒", w2: "Handbag", e2: "👜" },
+      { w1: "Pillow", e1: "🛌", w2: "Cushion", e2: "🛋️" },
+      { w1: "Sun", e1: "☀️", w2: "Moon", e2: "🌙" },
+      { w1: "Beach", e1: "🏖️", w2: "Swimming Pool", e2: "🏊" },
+      { w1: "Cinema", e1: "🎬", w2: "Living Room TV", e2: "📺" },
+      { w1: "Smartphone", e1: "📱", w2: "Tablet", e2: "💻" },
+      { w1: "Blanket", e1: "🛏️", w2: "Jacket", e2: "🧥" },
+      { w1: "Airplane", e1: "✈️", w2: "Helicopter", e2: "🚁" },
+      { w1: "Guitar", e1: "🎸", w2: "Ukulele", e2: "🪕" },
+      { w1: "Amusement Park", e1: "🎡", w2: "Playground", e2: "🛝" },
+      { w1: "Umbrella", e1: "☂️", w2: "Raincoat", e2: "🧥" },
+      { w1: "Glasses", e1: "👓", w2: "Sunglasses", e2: "🕶️" },
+      { w1: "Clock", e1: "⏰", w2: "Watch", e2: "⌚" }
+    ]
+  };
+
+  // --- HINT QUESTIONS (Fun, accessible for 9-year-olds) ---
+  var HINT_QUESTIONS = [
+    "What color is your item?",
+    "Is it big, small, or medium-sized?",
+    "Where do you usually see or do this?",
+    "Can you hold it with one hand?",
+    "Do you like it or love it?",
+    "Is it hot, cold, or normal temperature?",
+    "Is it used mostly inside or outside?",
+    "Is it soft, hard, or crunchy?",
+    "Can a 9-year-old easily carry or do this?",
+    "What time of day do you see or do this?",
+    "Does it make any noise?",
+    "How often do you see or do this in real life?",
+    "If your word was a superhero, what power would it have?",
+    "Give 1 word describing its texture or vibe!"
+  ];
+
+  // --- GAME STATE ---
+  var state = {
+    playerCount: 4,
+    wolfCount: 1,
+    topic: 'food',
+    playerNames: ['Player A', 'Player B', 'Player C', 'Player D'],
+    customNamesSet: false,
+
+    // Active Match State
+    currentPair: null,
+    majorityWord: null,
+    majorityEmoji: null,
+    wolfWord: null,
+    wolfEmoji: null,
+    playerRoles: [], // Array of { name, isWolf, word, emoji }
+    currentCheckingPlayerIndex: 0,
+
+    // Discussion Timer
+    timerSeconds: 180,
+    timerTotalSeconds: 180,
+    timerInterval: null,
+    timerRunning: false,
+
+    // Voting
+    selectedVotedPlayerIndex: null,
+    isWolfVotedOut: false,
+    wolfStealsWin: false
+  };
+
+  // --- DOM ELEMENTS ---
+  var screenSetup = document.getElementById('screenSetup');
+  var screenPass = document.getElementById('screenPass');
+  var screenReveal = document.getElementById('screenReveal');
+  var screenTalk = document.getElementById('screenTalk');
+  var screenVote = document.getElementById('screenVote');
+  var screenResult = document.getElementById('screenResult');
+
+  var playerCountBadge = document.getElementById('playerCountBadge');
+  var wolfCountBadge = document.getElementById('wolfCountBadge');
+  var topicBadge = document.getElementById('topicBadge');
+  var setupPlayerTags = document.getElementById('setupPlayerTags');
+
+  var passStepBadge = document.getElementById('passStepBadge');
+  var passPlayerName = document.getElementById('passPlayerName');
+  var passPlayerPromptName = document.getElementById('passPlayerPromptName');
+
+  var revealPlayerTitle = document.getElementById('revealPlayerTitle');
+  var revealWordEmoji = document.getElementById('revealWordEmoji');
+  var revealWordText = document.getElementById('revealWordText');
+
+  var talkTopicPill = document.getElementById('talkTopicPill');
+  var timerDisplay = document.getElementById('timerDisplay');
+  var timerBarCircle = document.getElementById('timerBarCircle');
+  var timerStatusLabel = document.getElementById('timerStatusLabel');
+  var hintQuestionBox = document.getElementById('hintQuestionBox');
+
+  var pointCountdownBox = document.getElementById('pointCountdownBox');
+  var pointCountdownNum = document.getElementById('pointCountdownNum');
+  var pointCountdownText = document.getElementById('pointCountdownText');
+  var voteSelectionSection = document.getElementById('voteSelectionSection');
+  var votePlayersGrid = document.getElementById('votePlayersGrid');
+  var btnConfirmVote = document.getElementById('btnConfirmVote');
+
+  var resultEmoji = document.getElementById('resultEmoji');
+  var resultTitle = document.getElementById('resultTitle');
+  var resultSub = document.getElementById('resultSub');
+  var wolfGuessBanner = document.getElementById('wolfGuessBanner');
+  var citizenWordName = document.getElementById('citizenWordName');
+  var citizenPlayersList = document.getElementById('citizenPlayersList');
+  var wolfWordName = document.getElementById('wolfWordName');
+  var wolfPlayersList = document.getElementById('wolfPlayersList');
+
+  var namesModal = document.getElementById('namesModal');
+  var nameInputsList = document.getElementById('nameInputsList');
+
+  // --- SCREEN SWITCHING ---
+  function showScreen(screen) {
+    [screenSetup, screenPass, screenReveal, screenTalk, screenVote, screenResult].forEach(function(s) {
+      s.classList.remove('active');
+    });
+    screen.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // --- HELPER: SYNC DEFAULT PLAYER NAMES ---
+  var LETTER_NAMES = ['Player A', 'Player B', 'Player C', 'Player D', 'Player E', 'Player F', 'Player G', 'Player H', 'Player I', 'Player J'];
+
+  function updatePlayerNamesArray() {
+    var newNames = [];
+    for (var i = 0; i < state.playerCount; i++) {
+      if (state.customNamesSet && state.playerNames[i]) {
+        newNames.push(state.playerNames[i]);
+      } else {
+        newNames.push(LETTER_NAMES[i]);
+      }
+    }
+    state.playerNames = newNames;
+    renderSetupPlayerTags();
+  }
+
+  function renderSetupPlayerTags() {
+    setupPlayerTags.innerHTML = '';
+    state.playerNames.forEach(function(name, i) {
+      var tag = document.createElement('div');
+      tag.className = 'player-tag';
+      tag.textContent = (i + 1) + '. ' + name;
+      setupPlayerTags.appendChild(tag);
+    });
+  }
+
+  // --- INITIAL SETUP SETUP LISTENERS ---
+  // Player Count selection
+  document.querySelectorAll('#playerCountGrid .pill-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      playSound('tap');
+      document.querySelectorAll('#playerCountGrid .pill-btn').forEach(function(b) { b.classList.remove('selected'); });
+      btn.classList.add('selected');
+      state.playerCount = parseInt(btn.dataset.val, 10);
+      playerCountBadge.textContent = state.playerCount + ' Players';
+
+      // Auto adjust wolf count max
+      var maxWolves = Math.floor((state.playerCount - 1) / 2);
+      if (state.wolfCount > maxWolves) {
+        state.wolfCount = Math.max(1, maxWolves);
+      }
+      updateWolfPills();
+      updatePlayerNamesArray();
+    });
+  });
+
+  function updateWolfPills() {
+    var maxWolves = Math.floor((state.playerCount - 1) / 2);
+    document.querySelectorAll('#wolfCountGrid .pill-btn').forEach(function(btn) {
+      var val = parseInt(btn.dataset.val, 10);
+      btn.style.display = val <= maxWolves ? 'flex' : 'none';
+      if (val === state.wolfCount) {
+        btn.classList.add('selected');
+      } else {
+        btn.classList.remove('selected');
+      }
+    });
+    wolfCountBadge.textContent = state.wolfCount + (state.wolfCount === 1 ? ' Wolf' : ' Wolves');
+  }
+
+  // Wolf Count selection
+  document.querySelectorAll('#wolfCountGrid .pill-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      playSound('tap');
+      document.querySelectorAll('#wolfCountGrid .pill-btn').forEach(function(b) { b.classList.remove('selected'); });
+      btn.classList.add('selected');
+      state.wolfCount = parseInt(btn.dataset.val, 10);
+      wolfCountBadge.textContent = state.wolfCount + (state.wolfCount === 1 ? ' Wolf' : ' Wolves');
+    });
+  });
+
+  // Topic Selection
+  document.querySelectorAll('.topic-grid .topic-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      playSound('tap');
+      document.querySelectorAll('.topic-grid .topic-btn').forEach(function(b) { b.classList.remove('selected'); });
+      btn.classList.add('selected');
+      state.topic = btn.dataset.topic;
+      if (state.topic === 'food') topicBadge.textContent = 'Food / Drink';
+      else if (state.topic === 'sports') topicBadge.textContent = 'Sports';
+      else topicBadge.textContent = 'Mix';
+    });
+  });
+
+  // Edit Names Modal
+  document.getElementById('btnOpenNameModal').addEventListener('click', function() {
+    playSound('tap');
+    renderNameInputs();
+    namesModal.classList.add('open');
+  });
+
+  document.getElementById('btnCloseNameModal').addEventListener('click', function() {
+    namesModal.classList.remove('open');
+  });
+
+  function renderNameInputs() {
+    nameInputsList.innerHTML = '';
+    for (var i = 0; i < state.playerCount; i++) {
+      var row = document.createElement('div');
+      row.className = 'name-input-row';
+      var lbl = document.createElement('span');
+      lbl.className = 'name-input-label';
+      lbl.textContent = 'Player ' + (i + 1);
+      var inp = document.createElement('input');
+      inp.className = 'name-input-field';
+      inp.value = state.playerNames[i] || LETTER_NAMES[i];
+      inp.dataset.idx = i;
+      row.appendChild(lbl);
+      row.appendChild(inp);
+      nameInputsList.appendChild(row);
+    }
+  }
+
+  document.getElementById('btnSaveNames').addEventListener('click', function() {
+    playSound('tap');
+    var inputs = nameInputsList.querySelectorAll('.name-input-field');
+    inputs.forEach(function(inp) {
+      var idx = parseInt(inp.dataset.idx, 10);
+      var val = inp.value.trim();
+      if (val) {
+        state.playerNames[idx] = val;
+      } else {
+        state.playerNames[idx] = LETTER_NAMES[idx];
+      }
+    });
+    state.customNamesSet = true;
+    renderSetupPlayerTags();
+    namesModal.classList.remove('open');
+  });
+
+  // Sound Toggle Button
+  document.getElementById('soundToggleBtn').addEventListener('click', function() {
+    soundEnabled = !soundEnabled;
+    this.textContent = soundEnabled ? '🔊' : '🔇';
+    if (soundEnabled) playSound('tap');
+  });
+
+  // --- START GAME FLOW ---
+  document.getElementById('btnStartGame').addEventListener('click', function() {
+    playSound('tap');
+    startNewGameMatch();
+  });
+
+  function startNewGameMatch() {
+    // 1. Pick a random word pair based on topic
+    var pool = [];
+    if (state.topic === 'mix') {
+      pool = WORD_PAIRS.food.concat(WORD_PAIRS.sports).concat(WORD_PAIRS.mix);
+    } else {
+      pool = WORD_PAIRS[state.topic] || WORD_PAIRS.food;
+    }
+    var pair = pool[Math.floor(Math.random() * pool.length)];
+    state.currentPair = pair;
+
+    // Randomize which word is majority vs wolf
+    var coinFlip = Math.random() < 0.5;
+    state.majorityWord = coinFlip ? pair.w1 : pair.w2;
+    state.majorityEmoji = coinFlip ? pair.e1 : pair.e2;
+    state.wolfWord = coinFlip ? pair.w2 : pair.w1;
+    state.wolfEmoji = coinFlip ? pair.e2 : pair.e1;
+
+    // 2. Assign wolf roles randomly
+    var indices = [];
+    for (var i = 0; i < state.playerCount; i++) indices.push(i);
+    // Shuffle
+    for (var j = indices.length - 1; j > 0; j--) {
+      var rand = Math.floor(Math.random() * (j + 1));
+      var temp = indices[j];
+      indices[j] = indices[rand];
+      indices[rand] = temp;
+    }
+    var wolfIndices = indices.slice(0, state.wolfCount);
+
+    state.playerRoles = state.playerNames.map(function(name, idx) {
+      var isWolf = wolfIndices.indexOf(idx) !== -1;
+      return {
+        name: name,
+        isWolf: isWolf,
+        word: isWolf ? state.wolfWord : state.majorityWord,
+        emoji: isWolf ? state.wolfEmoji : state.majorityEmoji
+      };
+    });
+
+    // 3. Begin Secret Pass Flow
+    state.currentCheckingPlayerIndex = 0;
+    showPassHandoffScreen();
+  }
+
+  // --- PASS & CHECK WORD STEP ---
+  function showPassHandoffScreen() {
+    var p = state.playerRoles[state.currentCheckingPlayerIndex];
+    passStepBadge.textContent = 'PLAYER ' + (state.currentCheckingPlayerIndex + 1) + ' OF ' + state.playerCount;
+    passPlayerName.textContent = p.name;
+    passPlayerPromptName.textContent = p.name;
+    showScreen(screenPass);
+  }
+
+  // Reveal Button
+  document.getElementById('btnRevealWord').addEventListener('click', function() {
+    playSound('reveal');
+    var p = state.playerRoles[state.currentCheckingPlayerIndex];
+    revealPlayerTitle.textContent = p.name.toUpperCase() + "'S SECRET WORD";
+    revealWordEmoji.textContent = p.emoji;
+    revealWordText.textContent = p.word;
+    showScreen(screenReveal);
+  });
+
+  // Hide Button & Pass Next
+  document.getElementById('btnHideWord').addEventListener('click', function() {
+    playSound('hide');
+    state.currentCheckingPlayerIndex++;
+    if (state.currentCheckingPlayerIndex < state.playerCount) {
+      showPassHandoffScreen();
+    } else {
+      // All players have checked! Start discussion phase.
+      startTalkPhase();
+    }
+  });
+
+  // --- DISCUSSION TALK PHASE ---
+  function startTalkPhase() {
+    // Set topic pill label
+    var topicStr = state.topic === 'food' ? '🍕 Food / Drink' : state.topic === 'sports' ? '⚽ Sports' : '🎲 Mix';
+    talkTopicPill.textContent = topicStr;
+
+    // Reset and start 3-minute timer
+    state.timerTotalSeconds = 180;
+    state.timerSeconds = 180;
+    state.timerRunning = true;
+    updateTimerVisuals();
+
+    clearInterval(state.timerInterval);
+    state.timerInterval = setInterval(timerTick, 1000);
+
+    // Roll initial hint question
+    rollNewHintQuestion();
+
+    showScreen(screenTalk);
+  }
+
+  function timerTick() {
+    if (!state.timerRunning) return;
+    state.timerSeconds--;
+    if (state.timerSeconds <= 0) {
+      state.timerSeconds = 0;
+      clearInterval(state.timerInterval);
+      state.timerRunning = false;
+      playSound('point');
+      timerStatusLabel.textContent = "TIME'S UP!";
+    } else if (state.timerSeconds <= 10) {
+      playSound('tick');
+    }
+    updateTimerVisuals();
+  }
+
+  function updateTimerVisuals() {
+    var mins = Math.floor(state.timerSeconds / 60);
+    var secs = state.timerSeconds % 60;
+    timerDisplay.textContent = (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs;
+
+    // Stroke Dash Offset
+    var circumference = 2 * Math.PI * 85; // 534
+    var progress = state.timerSeconds / state.timerTotalSeconds;
+    var offset = circumference * (1 - progress);
+    timerBarCircle.style.strokeDashoffset = offset;
+
+    if (state.timerSeconds <= 30) {
+      timerBarCircle.style.stroke = '#EF4444';
+      timerStatusLabel.style.color = '#EF4444';
+    } else {
+      timerBarCircle.style.stroke = 'url(#timerGrad)';
+      timerStatusLabel.style.color = 'var(--primary)';
+    }
+  }
+
+  // Timer Controls
+  document.getElementById('btnTimerToggle').addEventListener('click', function() {
+    playSound('tap');
+    state.timerRunning = !state.timerRunning;
+    this.textContent = state.timerRunning ? '⏸ Pause' : '▶ Resume';
+    timerStatusLabel.textContent = state.timerRunning ? 'DISCUSS' : 'PAUSED';
+  });
+
+  document.getElementById('btnTimerAdd30').addEventListener('click', function() {
+    playSound('tap');
+    state.timerSeconds += 30;
+    state.timerTotalSeconds = Math.max(state.timerTotalSeconds, state.timerSeconds);
+    updateTimerVisuals();
+  });
+
+  document.getElementById('btnTimerSub30').addEventListener('click', function() {
+    playSound('tap');
+    state.timerSeconds = Math.max(5, state.timerSeconds - 30);
+    updateTimerVisuals();
+  });
+
+  // Hint Question Roulette
+  function rollNewHintQuestion() {
+    var q = HINT_QUESTIONS[Math.floor(Math.random() * HINT_QUESTIONS.length)];
+    hintQuestionBox.textContent = '"' + q + '"';
+  }
+
+  document.getElementById('btnRollHint').addEventListener('click', function() {
+    playSound('roulette');
+    hintQuestionBox.style.opacity = '0.3';
+    setTimeout(function() {
+      rollNewHintQuestion();
+      hintQuestionBox.style.opacity = '1';
+    }, 150);
+  });
+
+  // Go To Vote
+  document.getElementById('btnGoToVote').addEventListener('click', function() {
+    playSound('tap');
+    clearInterval(state.timerInterval);
+    startVotePhase();
+  });
+
+  // --- VOTE PHASE (OPTION B: 3, 2, 1, POINT!) ---
+  function startVotePhase() {
+    showScreen(screenVote);
+
+    // Initial Countdown Display
+    pointCountdownBox.style.display = 'flex';
+    voteSelectionSection.style.display = 'none';
+    btnConfirmVote.style.display = 'none';
+    state.selectedVotedPlayerIndex = null;
+
+    var count = 3;
+    pointCountdownNum.textContent = '3';
+    pointCountdownText.textContent = 'Ready to point...';
+    playSound('countdown');
+
+    var countdownTimer = setInterval(function() {
+      count--;
+      if (count === 2) {
+        pointCountdownNum.textContent = '2';
+        pointCountdownText.textContent = 'Get set...';
+        playSound('countdown');
+      } else if (count === 1) {
+        pointCountdownNum.textContent = '1';
+        pointCountdownText.textContent = 'Almost...';
+        playSound('countdown');
+      } else if (count === 0) {
+        pointCountdownNum.textContent = '👉 POINT!';
+        pointCountdownNum.style.fontSize = '44px';
+        pointCountdownText.textContent = 'Point at the WordMoku!';
+        playSound('point');
+      } else {
+        clearInterval(countdownTimer);
+        // Show selection buttons for who got the most points
+        setTimeout(function() {
+          renderVoteSelectionGrid();
+        }, 800);
+      }
+    }, 900);
+  }
+
+  function renderVoteSelectionGrid() {
+    voteSelectionSection.style.display = 'block';
+    votePlayersGrid.innerHTML = '';
+    state.playerRoles.forEach(function(p, i) {
+      var btn = document.createElement('button');
+      btn.className = 'btn-vote-player';
+      btn.textContent = p.name;
+      btn.dataset.idx = i;
+      btn.addEventListener('click', function() {
+        playSound('tap');
+        document.querySelectorAll('.btn-vote-player').forEach(function(b) { b.classList.remove('voted-selected'); });
+        btn.classList.add('voted-selected');
+        state.selectedVotedPlayerIndex = i;
+        btnConfirmVote.style.display = 'flex';
+      });
+      votePlayersGrid.appendChild(btn);
+    });
+  }
+
+  // Confirm Vote -> Result Calculation
+  btnConfirmVote.addEventListener('click', function() {
+    if (state.selectedVotedPlayerIndex === null) return;
+    playSound('tap');
+    processVoteResult(state.selectedVotedPlayerIndex);
+  });
+
+  function recordMatchPlayed(winner) {
+    try {
+      var played = parseInt(localStorage.getItem('moku_wolf_played') || '0', 10) + 1;
+      localStorage.setItem('moku_wolf_played', String(played));
+      localStorage.setItem('moku:moku-wolf:progress', JSON.stringify({
+        played: played,
+        lastWinner: winner,
+        updatedAt: Date.now()
+      }));
+    } catch(e) {}
+  }
+
+  // --- RESULT PROCESSING & REVERSAL CHANCE ---
+  function processVoteResult(votedIndex) {
+    var votedPlayer = state.playerRoles[votedIndex];
+    state.isWolfVotedOut = votedPlayer.isWolf;
+    state.wolfStealsWin = false;
+
+    // Word Breakdown UI Population
+    citizenWordName.textContent = state.majorityEmoji + ' ' + state.majorityWord;
+    wolfWordName.textContent = state.wolfEmoji + ' ' + state.wolfWord;
+
+    var citizens = state.playerRoles.filter(function(p) { return !p.isWolf; }).map(function(p) { return p.name; });
+    var wolves = state.playerRoles.filter(function(p) { return p.isWolf; }).map(function(p) { return p.name; });
+    citizenPlayersList.textContent = citizens.join(', ');
+    wolfPlayersList.textContent = wolves.join(', ');
+
+    if (votedPlayer.isWolf) {
+      // WOLF CAUGHT!
+      playSound('howl');
+      resultEmoji.textContent = '🐺';
+      resultTitle.textContent = 'WordMoku Was Caught!';
+      resultSub.textContent = votedPlayer.name + ' was indeed the WordMoku!';
+      wolfGuessBanner.style.display = 'flex';
+      recordMatchPlayed('citizens_tentative');
+    } else {
+      // INNOCENT CITIZEN VOTED OUT! WOLF WINS!
+      playSound('fanfare');
+      resultEmoji.textContent = '👑🐺';
+      resultTitle.textContent = 'WordMoku Wins!';
+      resultSub.textContent = 'Oh no! ' + votedPlayer.name + ' was an innocent Citizen! The WordMoku tricked everyone.';
+      wolfGuessBanner.style.display = 'none';
+      recordMatchPlayed('wolf');
+    }
+
+    showScreen(screenResult);
+  }
+
+  // Wolf Reversal Buttons
+  document.getElementById('btnWolfGuessWin').addEventListener('click', function() {
+    playSound('fanfare');
+    resultEmoji.textContent = '🐺✨';
+    resultTitle.textContent = 'WordMoku Steals the Win!';
+    resultSub.textContent = 'Incredible! The WordMoku guessed the Citizens\' word (' + state.majorityWord + ') correctly!';
+    wolfGuessBanner.style.display = 'none';
+    recordMatchPlayed('wolf_reversal');
+  });
+
+  document.getElementById('btnWolfGuessFail').addEventListener('click', function() {
+    playSound('fanfare');
+    resultEmoji.textContent = '🎉🦉';
+    resultTitle.textContent = 'Citizens Win!';
+    resultSub.textContent = 'The WordMoku failed to guess the Citizens\' word (' + state.majorityWord + '). Great detective work!';
+    wolfGuessBanner.style.display = 'none';
+    recordMatchPlayed('citizens');
+  });
+
+  // Replay Buttons
+  document.getElementById('btnPlayAgainSame').addEventListener('click', function() {
+    playSound('tap');
+    startNewGameMatch();
+  });
+
+  document.getElementById('btnChangeSettings').addEventListener('click', function() {
+    playSound('tap');
+    showScreen(screenSetup);
+  });
+
+  // --- BACKGROUND CANVAS (Moonlit night with subtle stars & glowing fireflies) ---
+  var canvas = document.getElementById('bg-canvas');
+  var ctx = canvas.getContext('2d');
+  var particles = [];
+
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    initParticles();
+  }
+
+  function initParticles() {
+    particles = [];
+    var count = Math.min(30, Math.floor(window.innerWidth / 15));
+    for (var i = 0; i < count; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: Math.random() * 2 + 1,
+        speedX: (Math.random() - 0.5) * 0.3,
+        speedY: (Math.random() - 0.5) * 0.3,
+        alpha: Math.random() * 0.6 + 0.2,
+        pulse: Math.random() * 0.05
+      });
+    }
+  }
+
+  function renderBg() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Draw particles
+    for (var i = 0; i < particles.length; i++) {
+      var p = particles[i];
+      p.x += p.speedX;
+      p.y += p.speedY;
+      p.alpha += Math.sin(Date.now() * 0.002 + i) * 0.01;
+      p.alpha = Math.max(0.1, Math.min(0.8, p.alpha));
+
+      if (p.x < 0) p.x = canvas.width;
+      if (p.x > canvas.width) p.x = 0;
+      if (p.y < 0) p.y = canvas.height;
+      if (p.y > canvas.height) p.y = 0;
+
+      ctx.fillStyle = 'rgba(192, 132, 252, ' + p.alpha + ')';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    requestAnimationFrame(renderBg);
+  }
+
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+  renderBg();
+
+  // Initial Player Names Setup
+  updatePlayerNamesArray();
+
+})();
+</script>
+</body>
+</html>
