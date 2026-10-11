@@ -60,4 +60,5 @@
 | Moku Future Run | **Claude Code**(AI Studio / Gemini からは変更しない) |
 | Moku Fight | **Claude Code**(新規タイトル。AI Studio / Gemini からは変更しない) |
 | Moku Wolf | **Claude Code**(お題の追加作業中。AI Studio 側へ反映が済むまで AI Studio / Gemini からは変更しない) |
+| ハブ (`hub.html`) | **Claude Code**(Moku Fight のカード追加作業中。AI Studio 側へ反映が済むまで AI Studio / Gemini からは変更しない。反映後は AI Studio 担当に戻す) |
 | 上記以外 | AI Studio(Claude Code で触る場合はその都度ここを更新する) |

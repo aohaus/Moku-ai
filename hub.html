@@ -774,6 +774,7 @@ body[data-band="morning"] #starsLayer { --star-opacity: 0.15; }
 .card.mrc { --hi: #C084FC; --lo: #4A1A40; }
 .card.mw { --hi: #A855F7; --lo: #3B0764; }
 .card.mfr { --hi: #EC4899; --lo: #831843; }
+.card.mfg { --hi: #2EC4B6; --lo: #145A55; }
 
 .card.soon {
   --hi: rgba(237,238,246,0.22);
@@ -1146,6 +1147,20 @@ footer {
       <div class="cta-row">
         <div class="cta">Run ▶</div>
         <div class="progress-badge" data-game="mfr">—</div>
+      </div>
+    </a>
+    <a class="card mfg" href="moku-fight.html" data-game="mfg">
+      <div class="card-header-row">
+        <div class="emoji">🥊</div>
+        <div class="card-status-badge" data-status-for="mfg"></div>
+      </div>
+      <div class="sub">Fighting ★ NEW</div>
+      <h2>Moku Fight</h2>
+      <p class="desc">Moku vs Kon at the Sunset Arena! Peck, wing slap, guard, and unleash Leaf Storm!</p>
+      <div class="card-meter"><div class="card-meter-fill" data-meter-for="mfg"></div></div>
+      <div class="cta-row">
+        <div class="cta">Fight ▶</div>
+        <div class="progress-badge" data-game="mfg">—</div>
       </div>
     </a>
     <div class="card soon"><div class="emoji">🔒</div><h2>Mokuball</h2><div class="sub">TBA</div></div>
@@ -1804,6 +1819,31 @@ footer {
         var count = readInt('moku_wolf_played');
         if (!(count > 0) && !this.isPlayed()) return null;
         return (count || 0) + ' Rounds Played';
+      }
+    },
+    {
+      name: 'Moku Fight',
+      card: 'mfg',
+      gameId: 'moku-fight',
+      isCompleted: function () {
+        if (isExplicitlyMarked('completed', 'mfg')) return true;
+        var p = readJSON('moku:moku-fight:progress');
+        return Boolean(p && p.wins >= 5);
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'mfg')) return true;
+        var p = readJSON('moku:moku-fight:progress');
+        return Boolean(p && ((p.wins || 0) + (p.losses || 0) + (p.draws || 0)) > 0);
+      },
+      progress: function () {
+        if (this.isCompleted()) return 1;
+        var p = readJSON('moku:moku-fight:progress');
+        return p ? Math.min(1, (p.wins || 0) / 5) : 0;
+      },
+      badge: function () {
+        var p = readJSON('moku:moku-fight:progress');
+        if (!p || !this.isPlayed()) return null;
+        return (p.wins || 0) + 'W - ' + (p.losses || 0) + 'L';
       }
     },
     {
