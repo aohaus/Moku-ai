@@ -63,6 +63,7 @@ Mokuball は実装済みだがハブ未公開(準備中)。
     - Angry Moku Battle Royal: `#6E7BFF` / `#2B2F80`(藍)
     - Shiri of Moku: `#FF6B4A` / `#7A2E1A`(朱)
     - Mokuball: `#B98CFF` / `#4B2E7A`(紫)
+    - Moku Fight: `#2EC4B6` / `#145A55`(ティール。Mokuの蝶ネクタイの色)
     - 追加タイトルは新規ペアを定義(既存と被らない色相を選ぶ)
 - **タイポグラフィ**: `-apple-system, "Segoe UI", Roboto, sans-serif`。見出しは `font-weight: 800`、字間 `0.01〜0.04em`。
 - **タイトル画面メニューの統一(2026-08-14〜)**: フォント**ファミリー**はゲームごとの世界観を尊重して統一しない(Angry MokumokuはCourier New、他はArial/システムフォントのままでよい)。ただし**サイズ・太さ・揃え方・行間**は統一する。
