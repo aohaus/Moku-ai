@@ -18,7 +18,7 @@ code_files = glob.glob("**/*.html", recursive=True) + glob.glob(
     "**/*.js", recursive=True
 )
 # Claude Code 担当のタイトル(Gemini.md §5)と依存パッケージは自動改修の対象外
-EXCLUDED_PATTERNS = ("future-run", "moku-wolf", "node_modules/")
+EXCLUDED_PATTERNS = ("future-run", "moku-fight", "moku-wolf", "node_modules/")
 code_files = [
     f for f in code_files if not any(p in f for p in EXCLUDED_PATTERNS)
 ]
