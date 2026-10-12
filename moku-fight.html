@@ -107,7 +107,7 @@ canvas#c { display: block; width: 100%; height: 100%; }
 body.playing #controls { display: block; }
 #stickZone {
   position: absolute; left: 0; bottom: 0;
-  width: 44%; height: 74%;
+  width: 30%; height: 62%;
   pointer-events: auto;
   touch-action: none;
 }
@@ -123,14 +123,13 @@ body.playing #controls { display: block; }
   box-shadow: 0 6px 18px rgba(0,0,0,0.4), inset 0 2px 6px rgba(255,255,255,0.08);
   pointer-events: none;
 }
-#pad.floating { transition: none; }
 #padKnob {
   position: absolute; left: 50%; top: 50%;
   width: 46%; height: 46%;
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  background: radial-gradient(circle at 35% 30%, #ffffff 0%, #c9d2e0 35%, #6c7890 80%);
-  border: 2px solid rgba(255,255,255,0.5);
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.85) 0%, rgba(201,210,224,0.7) 35%, rgba(108,120,144,0.65) 80%);
+  border: 2px solid rgba(255,255,255,0.45);
   box-shadow: 0 6px 12px rgba(0,0,0,0.45), inset 0 -4px 8px rgba(0,0,0,0.25);
 }
 #pad.on #padKnob { box-shadow: 0 0 14px var(--hi), 0 6px 12px rgba(0,0,0,0.45), inset 0 -4px 8px rgba(0,0,0,0.25); }
@@ -146,14 +145,16 @@ body.playing #controls { display: block; }
   text-shadow: 0 2px 4px rgba(0,0,0,0.4);
   pointer-events: auto;
   touch-action: none;
-  border: 3px solid rgba(255,255,255,0.35);
-  box-shadow: 0 6px 14px rgba(0,0,0,0.45), inset 0 -6px 10px rgba(0,0,0,0.25), inset 0 4px 8px rgba(255,255,255,0.25);
+  border: 2px solid rgba(255,255,255,0.3);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.25), inset 0 -6px 10px rgba(0,0,0,0.15), inset 0 4px 8px rgba(255,255,255,0.18);
   transition: transform 0.06s;
 }
 .actBtn small { font-size: clamp(7px, 1vw, 11px); letter-spacing: 0.08em; margin-top: 3px; opacity: 0.9; }
-.actBtn.on { transform: scale(0.9); filter: brightness(1.2); }
-#btnPunch { right: 15.5%; bottom: 6%; background: radial-gradient(circle at 35% 30%, #ff6b6b, #c81e2a 70%); }
-#btnKick { right: 3%; bottom: 21%; background: radial-gradient(circle at 35% 30%, #5aa9ff, #1d4fc4 70%); }
+.actBtn.on { transform: scale(0.9); filter: brightness(1.25); }
+#btnPunch { right: 15.5%; bottom: 6%; background: radial-gradient(circle at 35% 30%, rgba(255,120,120,0.6), rgba(200,30,42,0.42) 70%); }
+#btnKick { right: 3%; bottom: 21%; background: radial-gradient(circle at 35% 30%, rgba(110,175,255,0.6), rgba(29,79,196,0.42) 70%); }
+#btnPunch.on { background: radial-gradient(circle at 35% 30%, rgba(255,120,120,0.85), rgba(200,30,42,0.7) 70%); }
+#btnKick.on { background: radial-gradient(circle at 35% 30%, rgba(110,175,255,0.85), rgba(29,79,196,0.7) 70%); }
 /* gauge full: both buttons glow to hint P + K */
 .actBtn.ready { animation: spPulse 0.9s ease-in-out infinite; border-color: #ffd86a; }
 @keyframes spPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,210,90,0.7), 0 6px 14px rgba(0,0,0,0.45); } 50% { box-shadow: 0 0 0 10px rgba(255,210,90,0), 0 6px 14px rgba(0,0,0,0.45); } }
@@ -284,7 +285,7 @@ body.playing #controls { display: block; }
 <div id="rotate-hint"><span>📱</span><p>Moku Fight is played in landscape.<br>Please rotate your device.</p></div>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.3.0 · Updated Oct 12, 2026</div>
+<div id="buildInfo">v0.3.1 · Updated Oct 12, 2026</div>
 
 <div id="wrapper">
   <canvas id="c"></canvas>
@@ -1751,7 +1752,8 @@ body.playing #controls { display: block; }
   });
   window.addEventListener('blur', function () { releaseAll(); });
 
-  // joystick: it appears under the thumb anywhere in the left zone; 8 directions (↙ = low guard)
+  // joystick: fixed in the bottom-left corner, 8 directions (↙ = low guard).
+  // It used to jump to wherever the thumb landed, which pushed its centre to the right.
   var stickZone = document.getElementById('stickZone');
   var pad = document.getElementById('pad');
   var padKnob = document.getElementById('padKnob');
@@ -1780,32 +1782,39 @@ body.playing #controls { display: block; }
     else if (oct === -1) { dir.right = true; dir.up = true; }
     setPad(dir);
   }
+  function padRelease() {
+    padPointer = null; setPad({});
+    pad.classList.remove('on');
+    padKnob.style.transform = 'translate(-50%, -50%)';
+  }
   stickZone.addEventListener('pointerdown', function (e) {
     e.preventDefault();
-    if (padPointer !== null) return;
+    // a new touch always takes over, so a touch the browser never ended can't leave the stick stuck
     padPointer = e.pointerId;
     try { stickZone.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
     audio();
-    // centre the joystick under the thumb
-    var wr = wrapper.getBoundingClientRect(), pr = pad.getBoundingClientRect();
-    var x = Math.min(Math.max(e.clientX - wr.left, pr.width / 2 + 6), wr.width * 0.44 - pr.width / 2);
-    var y = Math.min(Math.max(e.clientY - wr.top, wr.height * 0.3), wr.height - pr.height / 2 - 6);
-    pad.style.left = (x - pr.width / 2) + 'px';
-    pad.style.bottom = (wr.height - y - pr.height / 2) + 'px';
     pad.classList.add('on');
     padMove(e);
   });
   stickZone.addEventListener('pointermove', function (e) { if (e.pointerId === padPointer) padMove(e); });
-  function padEnd(e) {
-    if (e.pointerId !== padPointer) return;
-    padPointer = null; setPad({});
-    pad.classList.remove('on');
-    pad.style.left = pad.style.bottom = '';
-    padKnob.style.transform = 'translate(-50%, -50%)';
+  function padEnd(e) { if (e.pointerId === padPointer) padRelease(); }
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (ev) { stickZone.addEventListener(ev, padEnd); });
+  window.addEventListener('pointerup', padEnd);
+  window.addEventListener('pointercancel', padEnd);
+  // iOS can cut a touch short (e.g. a swipe on the home bar) without a pointer event;
+  // if no finger is left on the stick area, let go of the stick
+  function checkTouches(e) {
+    if (padPointer === null) return;
+    var z = stickZone.getBoundingClientRect();
+    for (var i = 0; i < e.touches.length; i++) {
+      var t = e.touches[i];
+      if (t.clientX >= z.left - 40 && t.clientX <= z.right + 80 && t.clientY >= z.top - 40) return;
+    }
+    padRelease();
   }
-  stickZone.addEventListener('pointerup', padEnd);
-  stickZone.addEventListener('pointercancel', padEnd);
-  stickZone.addEventListener('lostpointercapture', padEnd);
+  document.addEventListener('touchend', checkTouches);
+  document.addEventListener('touchcancel', checkTouches);
+  window.addEventListener('blur', padRelease);
 
   var btnPunch = document.getElementById('btnPunch'), btnKick = document.getElementById('btnKick');
   [[btnPunch, 'a'], [btnKick, 'b']].forEach(function (pair) {
