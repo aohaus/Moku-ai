@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="viewport" id="viewportMeta" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>Moku Fight</title>
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -146,6 +146,8 @@ body.playing #controls { display: block; }
 }
 .actBtn {
   position: absolute;
+  -webkit-user-select: none; user-select: none;
+  -webkit-touch-callout: none;
   width: 10.5%; aspect-ratio: 1;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
@@ -274,7 +276,7 @@ body.playing #controls { display: block; }
 <div id="rotate-hint"><span>📱</span><p>Moku Fight is played in landscape.<br>Please rotate your device.</p></div>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.1.0 · Updated Oct 11, 2026</div>
+<div id="buildInfo">v0.1.1 · Updated Oct 12, 2026</div>
 
 <div id="wrapper">
   <canvas id="c"></canvas>
@@ -1364,8 +1366,38 @@ body.playing #controls { display: block; }
     ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) { el.addEventListener(ev, function () { el.classList.remove('on'); }); });
   });
   var btnSP = document.getElementById('btnSP');
-  document.getElementById('pauseBtn').addEventListener('click', function () { pause(); });
+  // pointerdown, not click: touch defaults inside #controls are cancelled to block zoom, which also cancels click
+  document.getElementById('pauseBtn').addEventListener('pointerdown', function (e) { e.preventDefault(); pause(); });
   document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+  // ---------- block browser zoom ----------
+  // iOS Safari ignores user-scalable=no, so rapid taps on A/B were read as a
+  // double-tap zoom. Cancel the touch defaults ourselves (pointer events still fire).
+  var controlsEl = document.getElementById('controls');
+  controlsEl.addEventListener('touchstart', function (e) { e.preventDefault(); }, { passive: false });
+  controlsEl.addEventListener('touchend', function (e) { e.preventDefault(); }, { passive: false });
+  var lastTouchEnd = 0;
+  document.addEventListener('touchend', function (e) {
+    var now = Date.now();
+    if (now - lastTouchEnd < 350) e.preventDefault();
+    lastTouchEnd = now;
+  }, { passive: false });
+  document.addEventListener('touchstart', function (e) { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (ev) {
+    document.addEventListener(ev, function (e) { e.preventDefault(); }, { passive: false });
+  });
+  document.addEventListener('dblclick', function (e) { e.preventDefault(); }, { passive: false });
+  // Safari keeps the zoom level across reloads; rewriting the viewport tag snaps it back to 1x.
+  var viewportMeta = document.getElementById('viewportMeta');
+  function resetZoom() {
+    if (!window.visualViewport || window.visualViewport.scale <= 1.01) return;
+    var c = viewportMeta.getAttribute('content');
+    viewportMeta.setAttribute('content', c + ', shrink-to-fit=no');
+    setTimeout(function () { viewportMeta.setAttribute('content', c); }, 60);
+  }
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', function () { setTimeout(resetZoom, 250); });
+  window.addEventListener('pageshow', resetZoom);
+  setTimeout(resetZoom, 300);
 
   // ---------- game state ----------
   var game = {
@@ -1624,8 +1656,10 @@ body.playing #controls { display: block; }
       case 'rematch': startMatch(); break;
     }
   }
+  // pointerup rather than click: the double-tap zoom guard cancels the click of a quick second tap
   document.querySelectorAll('.titleMenuItem').forEach(function (el) {
-    el.addEventListener('click', function () {
+    el.addEventListener('pointerup', function (e) {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
       el.parentNode.querySelectorAll('.titleMenuItem').forEach(function (o) { o.classList.toggle('sel', o === el); });
       doAction(el.getAttribute('data-action'), el);
     });
