@@ -105,54 +105,44 @@ canvas#c { display: block; width: 100%; height: 100%; }
 /* ---------- touch controls ---------- */
 #controls { position: absolute; inset: 0; z-index: 20; pointer-events: none; display: none; }
 body.playing #controls { display: block; }
-#pad {
-  position: absolute;
-  left: 2.6%; bottom: 4.5%;
-  width: 22%; aspect-ratio: 1;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(40,44,60,0.55) 0%, rgba(20,22,32,0.7) 70%);
-  border: 2px solid rgba(255,255,255,0.22);
-  box-shadow: 0 6px 18px rgba(0,0,0,0.4), inset 0 2px 6px rgba(255,255,255,0.08);
+#stickZone {
+  position: absolute; left: 0; bottom: 0;
+  width: 44%; height: 74%;
   pointer-events: auto;
   touch-action: none;
 }
-#pad::before, #pad::after {
-  content: ''; position: absolute; left: 50%; top: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(255,255,255,0.08);
-  border-radius: 8px;
+#pad {
+  position: absolute;
+  left: 3%; bottom: 5%;
+  width: 21%; aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(255,255,255,0.05) 0 52%, rgba(255,255,255,0.16) 53% 55%, transparent 56%),
+    radial-gradient(circle, rgba(40,44,60,0.5) 0%, rgba(20,22,32,0.72) 70%);
+  border: 2px solid rgba(255,255,255,0.22);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.4), inset 0 2px 6px rgba(255,255,255,0.08);
+  pointer-events: none;
 }
-#pad::before { width: 34%; height: 86%; }
-#pad::after  { width: 86%; height: 34%; }
-#pad .arrow {
-  position: absolute; width: 0; height: 0;
-  border: 9px solid transparent;
-  opacity: 0.75;
-  z-index: 1;
-}
-#pad .arrow.up    { left: 50%; top: 11%; transform: translateX(-50%); border-bottom: 12px solid #fff; border-top: 0; }
-#pad .arrow.down  { left: 50%; bottom: 11%; transform: translateX(-50%); border-top: 12px solid #fff; border-bottom: 0; }
-#pad .arrow.left  { top: 50%; left: 11%; transform: translateY(-50%); border-right: 12px solid #fff; border-left: 0; }
-#pad .arrow.right { top: 50%; right: 11%; transform: translateY(-50%); border-left: 12px solid #fff; border-right: 0; }
-#pad .arrow.on { opacity: 1; filter: drop-shadow(0 0 6px var(--hi)); }
+#pad.floating { transition: none; }
 #padKnob {
   position: absolute; left: 50%; top: 50%;
-  width: 30%; height: 30%;
+  width: 46%; height: 46%;
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.35), rgba(255,255,255,0.08));
-  border: 1.5px solid rgba(255,255,255,0.25);
-  z-index: 2;
+  background: radial-gradient(circle at 35% 30%, #ffffff 0%, #c9d2e0 35%, #6c7890 80%);
+  border: 2px solid rgba(255,255,255,0.5);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.45), inset 0 -4px 8px rgba(0,0,0,0.25);
 }
+#pad.on #padKnob { box-shadow: 0 0 14px var(--hi), 0 6px 12px rgba(0,0,0,0.45), inset 0 -4px 8px rgba(0,0,0,0.25); }
 .actBtn {
   position: absolute;
   -webkit-user-select: none; user-select: none;
   -webkit-touch-callout: none;
-  width: 10.5%; aspect-ratio: 1;
+  width: 12%; aspect-ratio: 1;
   border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 800; color: #fff;
-  font-size: clamp(18px, 3.4vw, 40px);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-weight: 800; color: #fff; line-height: 1;
+  font-size: clamp(20px, 3.8vw, 44px);
   text-shadow: 0 2px 4px rgba(0,0,0,0.4);
   pointer-events: auto;
   touch-action: none;
@@ -160,24 +150,12 @@ body.playing #controls { display: block; }
   box-shadow: 0 6px 14px rgba(0,0,0,0.45), inset 0 -6px 10px rgba(0,0,0,0.25), inset 0 4px 8px rgba(255,255,255,0.25);
   transition: transform 0.06s;
 }
+.actBtn small { font-size: clamp(7px, 1vw, 11px); letter-spacing: 0.08em; margin-top: 3px; opacity: 0.9; }
 .actBtn.on { transform: scale(0.9); filter: brightness(1.2); }
-#btnA { right: 14.5%; bottom: 5%; width: 10%; background: radial-gradient(circle at 35% 30%, #ff6b6b, #c81e2a 70%); }
-#btnB { right: 3%; bottom: 11%; width: 10%; background: radial-gradient(circle at 35% 30%, #5aa9ff, #1d4fc4 70%); }
-#btnP { right: 16.5%; bottom: 29%; width: 8%; font-size: clamp(16px, 2.8vw, 32px); background: radial-gradient(circle at 35% 30%, #8fe07a, #2f8a3a 70%); }
-#btnP.cool { filter: grayscale(0.7) brightness(0.7); }
-#btnG { right: 5%; bottom: 34%; width: 8%; font-size: clamp(16px, 2.8vw, 32px); background: radial-gradient(circle at 35% 30%, #b9c2d0, #56606f 70%); }
-#btnSP {
-  right: 11%; bottom: 50%;
-  width: 7.5%;
-  font-size: clamp(11px, 1.7vw, 19px);
-  background: radial-gradient(circle at 35% 30%, #7a7f90, #3a3e4c 70%);
-  opacity: 0.5;
-}
-#btnSP.ready {
-  opacity: 1;
-  background: radial-gradient(circle at 35% 30%, #ffe58a, #e09a12 70%);
-  animation: spPulse 0.9s ease-in-out infinite;
-}
+#btnPunch { right: 15.5%; bottom: 6%; background: radial-gradient(circle at 35% 30%, #ff6b6b, #c81e2a 70%); }
+#btnKick { right: 3%; bottom: 21%; background: radial-gradient(circle at 35% 30%, #5aa9ff, #1d4fc4 70%); }
+/* gauge full: both buttons glow to hint P + K */
+.actBtn.ready { animation: spPulse 0.9s ease-in-out infinite; border-color: #ffd86a; }
 @keyframes spPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,210,90,0.7), 0 6px 14px rgba(0,0,0,0.45); } 50% { box-shadow: 0 0 0 10px rgba(255,210,90,0), 0 6px 14px rgba(0,0,0,0.45); } }
 #pauseBtn {
   position: absolute; left: 50%; top: 21%;
@@ -193,8 +171,6 @@ body.playing #controls { display: block; }
 }
 @media (hover: hover) and (pointer: fine) {
   #pad, .actBtn { opacity: 0.55; }
-  #btnSP { opacity: 0.35; }
-  #btnSP.ready { opacity: 0.85; }
 }
 
 /* ---------- screens (title / how-to / result / pause) ---------- */
@@ -262,13 +238,17 @@ body.playing #controls { display: block; }
 .titleMenuItem.sel { color: var(--hi); text-shadow: 0 0 14px rgba(46,196,182,0.6); }
 .titleMenuItem.sel::before { content: '▶ '; }
 .screenTitle { font-size: clamp(18px, 3vw, 26px); font-weight: 800; }
-.howGrid {
-  display: grid; grid-template-columns: auto auto; gap: 6px 18px;
-  text-align: left; font-size: clamp(11px, 1.6vw, 14px);
-  margin-top: 4px;
-}
-.howGrid b { color: var(--hi); font-weight: 800; white-space: nowrap; }
-.howNote { font-size: clamp(10px, 1.3vw, 12px); color: rgba(237,238,246,0.55); max-width: 560px; line-height: 1.6; }
+.moveCols { display: flex; gap: clamp(14px, 3vw, 34px); text-align: left; align-items: flex-start; }
+.moveList { display: grid; grid-template-columns: auto auto; gap: 5px 12px; align-items: center; font-size: clamp(11px, 1.5vw, 14px); }
+.moveList h3 { grid-column: 1 / -1; font-size: clamp(10px, 1.3vw, 12px); letter-spacing: 0.12em; color: var(--hi); margin-top: 4px; }
+.moveList .nm { font-weight: 700; color: rgba(237,238,246,0.85); }
+.moveList .nm i { font-style: normal; font-size: 0.8em; color: #ffd27a; margin-left: 4px; }
+.cmd { display: inline-flex; gap: 3px; align-items: center; white-space: nowrap; font-weight: 800; }
+.cmd .ar { display: inline-flex; align-items: center; justify-content: center; width: 1.6em; height: 1.6em; border-radius: 5px; background: rgba(255,255,255,0.12); font-size: 0.95em; }
+.cmd .bt { display: inline-flex; align-items: center; justify-content: center; width: 1.6em; height: 1.6em; border-radius: 50%; color: #fff; font-size: 0.9em; }
+.cmd .bt.p { background: #d83a3a; } .cmd .bt.k { background: #2f6fe0; }
+.cmd .pl { opacity: 0.7; margin: 0 1px; }
+.howNote { font-size: clamp(9.5px, 1.2vw, 12px); color: rgba(237,238,246,0.55); max-width: 620px; line-height: 1.5; }
 #selectMenu { margin-top: 4px; }
 .rivalRow { display: flex; gap: clamp(8px, 2vw, 18px); justify-content: center; }
 .titleMenuItem.rivalCard {
@@ -291,7 +271,8 @@ body.playing #controls { display: block; }
 @media (max-height: 430px) {
   .screen { padding: 14px 24px; gap: 4px; }
   .screenTitle { font-size: 18px; }
-  .howGrid { font-size: 11.5px; gap: 3px 14px; }
+  .moveList { font-size: 11px; gap: 3px 10px; }
+  .moveList h3 { margin-top: 1px; }
 }
 #resultTitle { font-size: clamp(28px, 5.4vw, 48px); font-weight: 800; letter-spacing: 0.02em; }
 #resultTitle.win { color: #FFD27A; text-shadow: 0 0 22px rgba(255,190,90,0.6); }
@@ -303,22 +284,16 @@ body.playing #controls { display: block; }
 <div id="rotate-hint"><span>📱</span><p>Moku Fight is played in landscape.<br>Please rotate your device.</p></div>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.2.0 · Updated Oct 12, 2026</div>
+<div id="buildInfo">v0.3.0 · Updated Oct 12, 2026</div>
 
 <div id="wrapper">
   <canvas id="c"></canvas>
 
   <div id="controls">
-    <div id="pad">
-      <div class="arrow up"></div><div class="arrow down"></div>
-      <div class="arrow left"></div><div class="arrow right"></div>
-      <div id="padKnob"></div>
-    </div>
-    <div class="actBtn" id="btnSP">SP</div>
-    <div class="actBtn" id="btnG" aria-label="Guard">🛡</div>
-    <div class="actBtn" id="btnP" aria-label="Razor Leaf">🍃</div>
-    <div class="actBtn" id="btnA">A</div>
-    <div class="actBtn" id="btnB">B</div>
+    <div id="stickZone"></div>
+    <div id="pad"><div id="padKnob"></div></div>
+    <div class="actBtn" id="btnPunch">P<small>PUNCH</small></div>
+    <div class="actBtn" id="btnKick">K<small>KICK</small></div>
     <button id="pauseBtn" type="button" aria-label="Pause">❚❚</button>
   </div>
 
@@ -334,7 +309,7 @@ body.playing #controls { display: block; }
     <nav class="menu" id="titleMenu">
       <div class="titleMenuItem sel" data-action="fight">Fight!</div>
       <div class="titleMenuItem" data-action="difficulty">CPU: Normal</div>
-      <div class="titleMenuItem" data-action="howto">How to Play</div>
+      <div class="titleMenuItem" data-action="howto">Move List</div>
       <div class="titleMenuItem" data-action="sound">Sound: ON</div>
     </nav>
   </section>
@@ -352,21 +327,14 @@ body.playing #controls { display: block; }
   </section>
 
   <section class="screen" id="howScreen">
-    <h2 class="screenTitle">How to Play</h2>
-    <div class="howGrid">
-      <b>◀ ▶</b><span>Walk</span>
-      <b>▲</b><span>Jump (hold ◀ / ▶ to jump forward or back)</span>
-      <b>▼</b><span>Crouch</span>
-      <b>A</b><span>Peck — quick and short</span>
-      <b>B</b><span>Wing Slap — slower but stronger</span>
-      <b>🍃</b><span>Razor Leaf — throw a spinning leaf (one at a time)</span>
-      <b>🛡</b><span>Guard — hold to block from any side (holding away works too). Add ▼ to block low attacks.</span>
-      <b>SP</b><span>Leaf Storm super move when the blue gauge is full</span>
-      <b>Combos</b><span>A → A → B = Owl Rush! · B → 🍃 = Leaf Cutter! Press the next button just as the hit lands.</span>
+    <h2 class="screenTitle">Move List — MOKU</h2>
+    <div class="moveCols">
+      <div class="moveList"><h3>BASICS</h3><span class="nm">Walk</span><span class="cmd"><span class="ar">←</span><span class="ar">→</span></span><span class="nm">Jump</span><span class="cmd"><span class="ar">↖</span><span class="ar">↑</span><span class="ar">↗</span></span><span class="nm">Crouch</span><span class="cmd"><span class="ar">↓</span></span><span class="nm">Guard <i>hold away</i></span><span class="cmd"><span class="ar">←</span></span><span class="nm">Low Guard</span><span class="cmd"><span class="ar">↙</span></span><span class="nm">Peck</span><span class="cmd"><span class="bt p">P</span></span><span class="nm">Wing Slap</span><span class="cmd"><span class="bt k">K</span></span><span class="nm">Low Attacks</span><span class="cmd"><span class="ar">↓</span><span class="pl">+</span><span class="bt p">P</span><span class="pl">/</span><span class="bt k">K</span></span><span class="nm">Air Attacks</span><span class="cmd"><span class="pl">in the air</span><span class="bt p">P</span><span class="pl">/</span><span class="bt k">K</span></span></div>
+      <div class="moveList"><h3>SPECIAL MOVES</h3><span class="nm">Razor Leaf 🍃</span><span class="cmd"><span class="ar">↓</span><span class="ar">↘</span><span class="ar">→</span><span class="pl">+</span><span class="bt p">P</span></span><span class="nm">Leaf Storm 🌪 <i>gauge full</i></span><span class="cmd"><span class="bt p">P</span><span class="pl">+</span><span class="bt k">K</span><span class="pl">together</span></span><h3>COMBOS</h3><span class="nm">Owl Rush!</span><span class="cmd"><span class="bt p">P</span><span class="pl">▸</span><span class="bt p">P</span><span class="pl">▸</span><span class="bt k">K</span></span><span class="nm">Low Owl Rush!</span><span class="cmd"><span class="ar">↓</span><span class="bt p">P</span><span class="pl">▸</span><span class="ar">↓</span><span class="bt p">P</span><span class="pl">▸</span><span class="ar">↓</span><span class="bt k">K</span></span><span class="nm">Leaf Cutter!</span><span class="cmd"><span class="bt k">K</span><span class="pl">▸</span><span class="ar">↓</span><span class="ar">↘</span><span class="ar">→</span><span class="pl">+</span><span class="bt p">P</span></span><span class="nm">Air Combo</span><span class="cmd"><span class="pl">jump</span><span class="bt p">P</span><span class="pl">▸</span><span class="bt k">K</span></span></div>
     </div>
-    <p class="howNote">Win 2 rounds to win the match. Keyboard: Arrows / WASD to move, J/Z = A, K/X = B, U/V = 🍃, hold I/G = 🛡, L/C = SP, P = Pause.</p>
+    <p class="howNote">→ means toward your rival (commands flip when you switch sides). ▸ = then: for combos, press the next button just as the hit lands. Win 2 rounds to win! Keyboard: Arrows / WASD + J = P, K = K, Esc = Pause.</p>
     <nav class="menu" id="howMenu">
-      <div class="titleMenuItem sel" data-action="back">Back</div>
+      <div class="titleMenuItem sel" data-action="howback">Back</div>
     </nav>
   </section>
 
@@ -374,6 +342,7 @@ body.playing #controls { display: block; }
     <h2 class="screenTitle">Paused</h2>
     <nav class="menu" id="pauseMenu">
       <div class="titleMenuItem sel" data-action="resume">Resume</div>
+      <div class="titleMenuItem" data-action="howto">Move List</div>
       <div class="titleMenuItem" data-action="quit">Quit to Title</div>
     </nav>
   </section>
@@ -862,6 +831,9 @@ body.playing #controls { display: block; }
     if (this.state === 'attack') {
       this.atkFrame++;
       var a = this.atk;
+      if (inp.buf.sp && this.meter >= 100 && this.chain.length === 1 && this.atkFrame <= 12 && /^c?[AB]$/.test(this.atkKey)) {
+        inp.buf.sp = 0; this.startAttack('SP'); return;
+      }
       if (a.special || a.proj) {
         if (this.atkFrame === a.startup) spawnProjectile(this, !!a.special);
       } else if (this.atkFrame > a.startup && this.atkFrame <= a.startup + a.active && !this.hasHit) {
@@ -950,8 +922,8 @@ body.playing #controls { display: block; }
     if (!(def.canAct() || def.state === 'block' || def.state === 'cblock')) return false;
     if (!def.onGround()) return false;
     if (!inp.guard) {
-      // fromDir is 1 when the attacker is on the defender's left, so guarding means holding left
-      var back = fromDir === 1 ? inp.left : inp.right;
+      // fromDir is 1 when the attacker is on the defender's left, so guarding means holding right (away)
+      var back = fromDir === 1 ? inp.right : inp.left;
       if (!back) return false;
     }
     if (height === 'low' && !inp.down) return false;
@@ -1570,7 +1542,7 @@ body.playing #controls { display: block; }
     if (f.meter >= 100) {
       c.font = '800 11px -apple-system, "Segoe UI", Roboto, sans-serif';
       c.fillStyle = '#ffd86a'; c.textAlign = left ? 'right' : 'left';
-      c.fillText('SP READY!', left ? mx - 8 : mx + mw + 10, my + 10);
+      c.fillText(left ? 'SP READY! P+K' : 'SP READY!', left ? mx - 8 : mx + mw + 10, my + 10);
     }
     // portrait + name
     var px = left ? 14 : W - 84;
@@ -1714,14 +1686,47 @@ body.playing #controls { display: block; }
   var KEYMAP = {
     ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
     ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down',
-    KeyJ: 'a', KeyZ: 'a', KeyK: 'b', KeyX: 'b', KeyU: 'p', KeyV: 'p', KeyI: 'guard', KeyG: 'guard', KeyL: 'sp', KeyC: 'sp'
+    KeyJ: 'a', KeyZ: 'a', KeyK: 'b', KeyX: 'b'
   };
-  function press(name) { if (game.in1 && game.in1.buf[name] !== undefined) game.in1.buf[name] = 8; }
-  function releaseAll() {
-    kb.left = kb.right = kb.up = kb.down = kb.guard = false;
-    touch.guard = false;
-    btnG.classList.remove('on');
+
+  // Only two buttons (P = punch 'a', K = kick 'b'); special moves come from simple commands:
+  //   ↓ ↘ → + P   Razor Leaf (the projectile)
+  //   P + K       super move, when the gauge is full
+  var motion = [];          // stick direction each frame, relative to the way Moku faces
+  var lastPress = { a: -99, b: -99 };
+  function recordMotion() {
+    var i = game.in1, f = game.p1;
+    if (!f) return;
+    var fwd = f.facing === 1 ? i.right : i.left, back = f.facing === 1 ? i.left : i.right;
+    motion.push(i.down ? (fwd ? 'df' : back ? 'db' : 'd') : i.up ? 'u' : fwd ? 'f' : back ? 'b' : 'n');
+    if (motion.length > 30) motion.shift();
   }
+  // ↓ then → (↘ in between is fine) within the last ~0.4s, still pointing forward
+  function quarterCircle() {
+    var seenFwd = false;
+    for (var n = motion.length - 1, i = n; i >= 0 && n - i < 24; i--) {
+      var m = motion[i];
+      if (!seenFwd) {
+        if (m === 'f' || m === 'df') { seenFwd = true; continue; }
+        if (n - i > 6) return false;
+      } else if (m === 'd' || m === 'db') return true;
+    }
+    return false;
+  }
+  function press(name) {
+    var i = game.in1, f = game.p1;
+    if (!i || i.buf[name] === undefined) return;
+    if (name === 'up') { i.buf.up = 8; return; }
+    var other = name === 'a' ? 'b' : 'a';
+    if (f && f.meter >= 100 && game.time - lastPress[other] <= 10) {
+      i.buf.a = i.buf.b = 0; i.buf.sp = 8; lastPress.a = lastPress.b = -99;
+      return;
+    }
+    lastPress[name] = game.time;
+    if (name === 'a' && f && f.onGround() && quarterCircle()) { i.buf.p = 8; motion.length = 0; return; }
+    i.buf[name] = 8;
+  }
+  function releaseAll() { kb.left = kb.right = kb.up = kb.down = kb.guard = false; }
 
   window.addEventListener('keydown', function (e) {
     if (activeMenu()) {
@@ -1736,7 +1741,7 @@ body.playing #controls { display: block; }
     if (!k) return;
     e.preventDefault();
     if (e.repeat) return;
-    if (k === 'a' || k === 'b' || k === 'p' || k === 'sp') { press(k); return; }
+    if (k === 'a' || k === 'b') { press(k); return; }
     kb[k] = true;
     if (k === 'up') press('up');
   });
@@ -1746,17 +1751,14 @@ body.playing #controls { display: block; }
   });
   window.addEventListener('blur', function () { releaseAll(); });
 
-  // d-pad: direction from the pointer position, diagonals allowed (back + down = low guard)
+  // joystick: it appears under the thumb anywhere in the left zone; 8 directions (↙ = low guard)
+  var stickZone = document.getElementById('stickZone');
   var pad = document.getElementById('pad');
   var padKnob = document.getElementById('padKnob');
-  var padArrows = { up: pad.querySelector('.up'), down: pad.querySelector('.down'), left: pad.querySelector('.left'), right: pad.querySelector('.right') };
   var padPointer = null;
   function setPad(dir) {
-    ['left', 'right', 'up', 'down'].forEach(function (k) {
-      if (dir[k] && !touch[k] && k === 'up') press('up');
-      touch[k] = !!dir[k];
-      padArrows[k].classList.toggle('on', !!dir[k]);
-    });
+    if (dir.up && !touch.up) press('up');
+    ['left', 'right', 'up', 'down'].forEach(function (k) { touch[k] = !!dir[k]; });
   }
   function padMove(e) {
     var r = pad.getBoundingClientRect();
@@ -1764,10 +1766,9 @@ body.playing #controls { display: block; }
     var dy = (e.clientY - (r.top + r.height / 2)) / (r.height / 2);
     var len = Math.sqrt(dx * dx + dy * dy);
     var kx = len > 1 ? dx / len : dx, ky = len > 1 ? dy / len : dy;
-    padKnob.style.transform = 'translate(' + (-50 + kx * 90).toFixed(1) + '%, ' + (-50 + ky * 90).toFixed(1) + '%)';
-    if (len < 0.25) { setPad({}); return; }
-    var ang = Math.atan2(dy, dx); // 0 = right, PI/2 = down
-    var oct = Math.round(ang / (Math.PI / 4));
+    padKnob.style.transform = 'translate(' + (-50 + kx * 60).toFixed(1) + '%, ' + (-50 + ky * 60).toFixed(1) + '%)';
+    if (len < 0.3) { setPad({}); return; }
+    var oct = Math.round(Math.atan2(dy, dx) / (Math.PI / 4)); // 0 = right, 2 = down
     var dir = {};
     if (oct === 0) dir.right = true;
     else if (oct === 1) { dir.right = true; dir.down = true; }
@@ -1779,40 +1780,39 @@ body.playing #controls { display: block; }
     else if (oct === -1) { dir.right = true; dir.up = true; }
     setPad(dir);
   }
-  pad.addEventListener('pointerdown', function (e) {
+  stickZone.addEventListener('pointerdown', function (e) {
     e.preventDefault();
+    if (padPointer !== null) return;
     padPointer = e.pointerId;
-    try { pad.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+    try { stickZone.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
     audio();
+    // centre the joystick under the thumb
+    var wr = wrapper.getBoundingClientRect(), pr = pad.getBoundingClientRect();
+    var x = Math.min(Math.max(e.clientX - wr.left, pr.width / 2 + 6), wr.width * 0.44 - pr.width / 2);
+    var y = Math.min(Math.max(e.clientY - wr.top, wr.height * 0.3), wr.height - pr.height / 2 - 6);
+    pad.style.left = (x - pr.width / 2) + 'px';
+    pad.style.bottom = (wr.height - y - pr.height / 2) + 'px';
+    pad.classList.add('on');
     padMove(e);
   });
-  pad.addEventListener('pointermove', function (e) { if (e.pointerId === padPointer) padMove(e); });
+  stickZone.addEventListener('pointermove', function (e) { if (e.pointerId === padPointer) padMove(e); });
   function padEnd(e) {
     if (e.pointerId !== padPointer) return;
     padPointer = null; setPad({});
+    pad.classList.remove('on');
+    pad.style.left = pad.style.bottom = '';
     padKnob.style.transform = 'translate(-50%, -50%)';
   }
-  pad.addEventListener('pointerup', padEnd);
-  pad.addEventListener('pointercancel', padEnd);
-  pad.addEventListener('lostpointercapture', padEnd);
+  stickZone.addEventListener('pointerup', padEnd);
+  stickZone.addEventListener('pointercancel', padEnd);
+  stickZone.addEventListener('lostpointercapture', padEnd);
 
-  [['btnA', 'a'], ['btnB', 'b'], ['btnP', 'p'], ['btnSP', 'sp']].forEach(function (pair) {
-    var el = document.getElementById(pair[0]);
+  var btnPunch = document.getElementById('btnPunch'), btnKick = document.getElementById('btnKick');
+  [[btnPunch, 'a'], [btnKick, 'b']].forEach(function (pair) {
+    var el = pair[0];
     el.addEventListener('pointerdown', function (e) { e.preventDefault(); audio(); press(pair[1]); el.classList.add('on'); });
     ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) { el.addEventListener(ev, function () { el.classList.remove('on'); }); });
   });
-  // the guard button is held, not tapped
-  var btnG = document.getElementById('btnG');
-  btnG.addEventListener('pointerdown', function (e) {
-    e.preventDefault(); audio();
-    try { btnG.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
-    touch.guard = true; btnG.classList.add('on');
-  });
-  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (ev) {
-    btnG.addEventListener(ev, function () { touch.guard = false; btnG.classList.remove('on'); });
-  });
-  var btnSP = document.getElementById('btnSP');
-  var btnP = document.getElementById('btnP');
   // pointerdown, not click: touch defaults inside #controls are cancelled to block zoom, which also cancels click
   document.getElementById('pauseBtn').addEventListener('pointerdown', function (e) { e.preventDefault(); pause(); });
   document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
@@ -1883,7 +1883,8 @@ body.playing #controls { display: block; }
     var i = game.in1;
     i.left = kb.left || touch.left; i.right = kb.right || touch.right;
     i.up = kb.up || touch.up; i.down = kb.down || touch.down;
-    i.guard = kb.guard || touch.guard;
+    i.guard = false;
+    recordMotion();
   }
   function decayBuffers(inp) { for (var k in inp.buf) if (inp.buf[k] > 0) inp.buf[k]--; }
 
@@ -2035,8 +2036,8 @@ body.playing #controls { display: block; }
         bigText(ctx, label, rr.perfect ? 'PERFECT!' : null, game.phaseT - 100, rr.winner === p1 ? '#5fe0d2' : hexA(p2.c.color, 1));
       }
     }
-    btnSP.classList.toggle('ready', p1.meter >= 100);
-    btnP.classList.toggle('cool', p1.hasProjectile());
+    btnPunch.classList.toggle('ready', p1.meter >= 100);
+    btnKick.classList.toggle('ready', p1.meter >= 100);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
 
@@ -2069,7 +2070,7 @@ body.playing #controls { display: block; }
     paused: document.getElementById('pauseScreen'),
     result: document.getElementById('resultScreen')
   };
-  var currentScreen = 'title';
+  var currentScreen = 'title', howReturn = 'title';
   function showScreen(name) {
     currentScreen = name;
     for (var k in screens) screens[k].classList.toggle('active', k === name);
@@ -2119,7 +2120,8 @@ body.playing #controls { display: block; }
         var order = ['easy', 'normal', 'hard'];
         save.difficulty = order[(order.indexOf(save.difficulty) + 1) % order.length];
         writeSave(); refreshTitle(); break;
-      case 'howto': showScreen('how'); break;
+      case 'howto': howReturn = currentScreen; showScreen('how'); break;
+      case 'howback': showScreen(howReturn || 'title'); break;
       case 'back': showScreen('title'); setTheme(CHARS[currentRival()].theme); break;
       case 'sound':
         save.sound = !save.sound; writeSave(); refreshTitle();
@@ -2155,7 +2157,7 @@ body.playing #controls { display: block; }
       if (r === currentRival()) selectItem(menu, card);
     });
   }
-  function pause() { if (game.mode === 'playing') { setMode('paused'); releaseAll(); setPad({}); } }
+  function pause() { if (game.mode === 'playing') { setMode('paused'); releaseAll(); setPad({}); motion.length = 0; } }
   function resume() { if (game.mode === 'paused') setMode('playing'); }
   document.addEventListener('visibilitychange', function () { if (document.hidden) pause(); });
 
