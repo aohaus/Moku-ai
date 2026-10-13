@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -144,6 +144,17 @@ header {
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Japanese sub-labels (EN / JA bilingual UI) */
+.ja {
+  display: block;
+  font-size: 0.72em;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  opacity: 0.82;
+  line-height: 1.35;
 }
 
 /* Cards & Panels */
@@ -671,8 +682,8 @@ header {
   letter-spacing: 0.8px;
   color: #F472B6;
   display: flex;
-  align-items: center;
-  gap: 5px;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 .hint-question-box {
@@ -686,6 +697,7 @@ header {
   text-align: center;
   min-height: 64px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -701,9 +713,10 @@ header {
   border-radius: 12px;
   cursor: pointer;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 0;
   transition: all 0.2s ease;
 }
 
@@ -1016,7 +1029,7 @@ header {
     </a>
     <div class="header-btns">
       <button id="soundToggleBtn" class="btn-header" title="Toggle Sound">🔊</button>
-      <a href="hub.html" class="btn-header">🏠 Hub</a>
+      <a href="hub.html" class="btn-header">🏠 Hub・ハブ</a>
     </div>
   </header>
 
@@ -1024,16 +1037,16 @@ header {
   <div id="screenSetup" class="screen active">
     <div class="setup-hero">
       <div class="hero-mascot">🦉🐺</div>
-      <h1 class="hero-title">Who is the WordMoku?</h1>
-      <p class="hero-desc">Pass 1 phone around & talk it out!</p>
+      <h1 class="hero-title">Who is the WordMoku?<span class="ja">ワードモクはだれだ？</span></h1>
+      <p class="hero-desc">Pass 1 phone around & talk it out!<span class="ja">1台のスマホをまわして、みんなで話そう！</span></p>
     </div>
 
     <div class="panel" style="margin-bottom: 12px;">
       <!-- Player Count Setting -->
       <div class="setting-row">
         <div class="setting-label-row">
-          <span class="setting-label">👥 Number of Players</span>
-          <span class="setting-val-badge" id="playerCountBadge">4 Players</span>
+          <span class="setting-label">👥 Number of Players・人数</span>
+          <span class="setting-val-badge" id="playerCountBadge">4 Players・4人</span>
         </div>
         <div class="pill-grid" id="playerCountGrid">
           <button class="pill-btn" data-val="3">3</button>
@@ -1050,8 +1063,8 @@ header {
       <!-- WordMoku Count Setting -->
       <div class="setting-row">
         <div class="setting-label-row">
-          <span class="setting-label">🐺 WordMoku (Wolves)</span>
-          <span class="setting-val-badge" id="wolfCountBadge">1 Wolf</span>
+          <span class="setting-label">🐺 WordMoku・ワードモク</span>
+          <span class="setting-val-badge" id="wolfCountBadge">1 Wolf・1人</span>
         </div>
         <div class="pill-grid" id="wolfCountGrid">
           <button class="pill-btn selected" data-val="1">1</button>
@@ -1063,21 +1076,21 @@ header {
       <!-- Topic Selection -->
       <div class="setting-row">
         <div class="setting-label-row">
-          <span class="setting-label">🎯 Topic</span>
-          <span class="setting-val-badge" id="topicBadge">Food / Drink</span>
+          <span class="setting-label">🎯 Topic・お題</span>
+          <span class="setting-val-badge" id="topicBadge">Food / Drink・食べもの</span>
         </div>
         <div class="topic-grid">
           <button class="topic-btn selected" data-topic="food">
             <span class="topic-emoji">🍕</span>
-            <span>Food / Drink</span>
+            <span>Food / Drink<span class="ja">食べもの・飲みもの</span></span>
           </button>
           <button class="topic-btn" data-topic="sports">
             <span class="topic-emoji">⚽</span>
-            <span>Sports</span>
+            <span>Sports<span class="ja">スポーツ・あそび</span></span>
           </button>
           <button class="topic-btn" data-topic="mix">
             <span class="topic-emoji">🎲</span>
-            <span>Mix</span>
+            <span>Mix<span class="ja">ミックス</span></span>
           </button>
         </div>
       </div>
@@ -1085,8 +1098,8 @@ header {
       <!-- Players List & Optional Edit Names -->
       <div class="setting-row">
         <div class="setting-label-row">
-          <span class="setting-label">🏷️ Player Names</span>
-          <button id="btnOpenNameModal" class="btn-header" style="font-size: 11px; padding: 3px 10px;">✏️ Edit Names</button>
+          <span class="setting-label">🏷️ Player Names・名前</span>
+          <button id="btnOpenNameModal" class="btn-header" style="font-size: 11px; padding: 3px 10px;">✏️ Edit Names・へんしゅう</button>
         </div>
         <div class="player-tags-wrap" id="setupPlayerTags">
           <!-- Populated by JS -->
@@ -1096,7 +1109,7 @@ header {
 
     <!-- Start Button -->
     <button id="btnStartGame" class="btn-primary">
-      <span>START GAME</span>
+      <span>START GAME<span class="ja">ゲームスタート</span></span>
       <span>▶</span>
     </button>
   </div>
@@ -1110,13 +1123,14 @@ header {
         <div class="pass-player-name" id="passPlayerName">Player A</div>
         <p class="pass-prompt-text">
           Are you <strong id="passPlayerPromptName" style="color: #FBBF24;">Player A</strong>?<br>
-          Take the phone to check your secret word!
+          Take the phone to check your secret word!<br>
+          <span class="ja" style="margin-top: 6px;">あなたの番です。スマホを持って、ひみつの言葉をたしかめよう！</span>
         </p>
       </div>
 
       <button id="btnRevealWord" class="btn-reveal-card">
-        <span>👀 TAP TO REVEAL WORD</span>
-        <span style="font-size: 13px; font-weight: 700; opacity: 0.85;">(Don't let others peek!)</span>
+        <span>👀 TAP TO REVEAL WORD<span class="ja">タップして言葉を見る</span></span>
+        <span style="font-size: 13px; font-weight: 700; opacity: 0.85;">(Don't let others peek!・ほかの人に見せないでね！)</span>
       </button>
     </div>
   </div>
@@ -1135,11 +1149,12 @@ header {
         <p class="secret-tip">
           🤫 Remember this word!<br>
           Talk with everyone to find out if your word is different from others.
+          <span class="ja" style="margin-top: 6px;">この言葉をおぼえてね！みんなと話して、自分の言葉がほかの人とちがうか見つけよう。</span>
         </p>
       </div>
 
       <button id="btnHideWord" class="btn-hide-word">
-        <span>✅ OK, I Remember! (Hide Word)</span>
+        <span>✅ OK, I Remember! (Hide Word)<span class="ja">おぼえた！(言葉をかくす)</span></span>
       </button>
     </div>
   </div>
@@ -1148,8 +1163,8 @@ header {
   <div id="screenTalk" class="screen">
     <div>
       <div class="talk-header-info">
-        <span class="phase-pill">🗣️ DISCUSSION TIME</span>
-        <span class="topic-pill-small" id="talkTopicPill">🍕 Food / Drink</span>
+        <span class="phase-pill">🗣️ TALK TIME・はなしあい</span>
+        <span class="topic-pill-small" id="talkTopicPill">🍕 Food・食べもの</span>
       </div>
 
       <!-- Animated Circular Timer -->
@@ -1168,13 +1183,13 @@ header {
           </svg>
           <div class="timer-content">
             <div class="timer-display" id="timerDisplay">3:00</div>
-            <div class="timer-sublabel" id="timerStatusLabel">DISCUSS</div>
+            <div class="timer-sublabel" id="timerStatusLabel">DISCUSS<span class="ja">はなしあい</span></div>
           </div>
         </div>
 
         <div class="timer-controls-row">
           <button id="btnTimerSub30" class="btn-time-adj">-30s</button>
-          <button id="btnTimerToggle" class="btn-time-adj" style="background: rgba(168,85,247,0.25); border-color: var(--primary);">⏸ Pause</button>
+          <button id="btnTimerToggle" class="btn-time-adj" style="background: rgba(168,85,247,0.25); border-color: var(--primary);">⏸ Pause・ていし</button>
           <button id="btnTimerAdd30" class="btn-time-adj">+30s</button>
         </div>
       </div>
@@ -1182,11 +1197,11 @@ header {
       <!-- Hint Question Roulette (9yo friendly conversational starters) -->
       <div class="hint-roulette-panel">
         <div class="hint-header">
-          <span class="hint-title">💡 Need an Idea to Ask?</span>
-          <button id="btnRollHint" class="btn-hint-roll">🎲 New Question</button>
+          <span class="hint-title">💡 Need an Idea to Ask?<span class="ja">しつもんのヒント</span></span>
+          <button id="btnRollHint" class="btn-hint-roll">🎲 New Question<span class="ja">つぎの質問</span></button>
         </div>
         <div class="hint-question-box" id="hintQuestionBox">
-          "What color is your item?"
+          "What color is your item?"<span class="ja">「それは何色？」</span>
         </div>
       </div>
     </div>
@@ -1194,11 +1209,11 @@ header {
     <!-- Vote Button + Restart (same settings) -->
     <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
       <button id="btnGoToVote" class="btn-primary" style="background: linear-gradient(135deg, #E11D48, #9333EA);">
-        <span>🗳️ TIME TO VOTE!</span>
+        <span>🗳️ TIME TO VOTE!<span class="ja">とうひょうへ！</span></span>
         <span>👉</span>
       </button>
       <button id="btnRestartSameSettings" class="btn-secondary">
-        <span>🔄 New Game (Same Settings)</span>
+        <span>🔄 New Game (Same Settings)<span class="ja">同じせっていで新しいゲーム</span></span>
       </button>
     </div>
   </div>
@@ -1208,15 +1223,15 @@ header {
     <div class="vote-panel">
       <!-- Countdown Box -->
       <div class="point-countdown-box" id="pointCountdownBox">
-        <div style="font-size: 14px; font-weight: 800; text-transform: uppercase; color: #FDA4AF; letter-spacing: 1px;">POINT TOGETHER ON 1!</div>
+        <div style="font-size: 14px; font-weight: 800; text-transform: uppercase; color: #FDA4AF; letter-spacing: 1px;">POINT TOGETHER ON 1!<span class="ja">「1」でいっせいにゆびさそう！</span></div>
         <div class="point-big-num" id="pointCountdownNum">3</div>
-        <div class="point-instruct" id="pointCountdownText">Ready...</div>
+        <div class="point-instruct" id="pointCountdownText">Ready...<span class="ja">じゅんびして…</span></div>
       </div>
 
       <!-- Selection List of who got the most votes -->
       <div id="voteSelectionSection" style="width: 100%; display: none;">
         <div class="panel-title" style="color: #FDA4AF; justify-content: center; font-size: 15px;">
-          👉 Who received the most votes?
+          👉 Who received the most votes?<span class="ja">いちばん多くゆびさされたのは？</span>
         </div>
         <div class="players-vote-grid" id="votePlayersGrid">
           <!-- Populated by JS -->
@@ -1225,7 +1240,7 @@ header {
     </div>
 
     <button id="btnConfirmVote" class="btn-primary" style="display: none; background: linear-gradient(135deg, #E11D48, #9333EA);">
-      <span>REVEAL RESULT</span>
+      <span>REVEAL RESULT<span class="ja">けっか発表</span></span>
       <span>🐺</span>
     </button>
   </div>
@@ -1241,13 +1256,14 @@ header {
 
         <!-- Wolf Counter-Guess Section (If Wolf was Caught) -->
         <div class="wolf-guess-banner" id="wolfGuessBanner" style="display: none;">
-          <div style="font-size: 13px; font-weight: 800; color: #FDA4AF;">🐺 WOLF REVERSAL CHANCE!</div>
+          <div style="font-size: 13px; font-weight: 800; color: #FDA4AF;">🐺 WOLF REVERSAL CHANCE!<span class="ja">ぎゃくてんチャンス！</span></div>
           <p style="font-size: 13.5px; color: #FDF2F8; line-height: 1.4;">
             Can the WordMoku guess the <strong>Citizens' word</strong> to steal the victory?
+            <span class="ja" style="margin-top: 4px;">ワードモクが<strong>市民の言葉</strong>を当てられたら、ぎゃくてん勝利！</span>
           </p>
           <div class="wolf-guess-btns">
-            <button id="btnWolfGuessWin" class="btn-guess-correct">🎉 Wolf Guessed It!</button>
-            <button id="btnWolfGuessFail" class="btn-guess-wrong">❌ Wolf Failed</button>
+            <button id="btnWolfGuessWin" class="btn-guess-correct">🎉 Wolf Guessed It!<span class="ja">当たった！</span></button>
+            <button id="btnWolfGuessFail" class="btn-guess-wrong">❌ Wolf Failed<span class="ja">はずれ…</span></button>
           </div>
         </div>
       </div>
@@ -1255,18 +1271,18 @@ header {
       <!-- Word Breakdown Summary -->
       <div class="words-summary-card" id="wordsSummaryCard">
         <div style="font-size: 12px; font-weight: 800; letter-spacing: 0.8px; color: #A78BFA; text-transform: uppercase;">
-          📖 Word Breakdown
+          📖 Word Breakdown・言葉のこたえあわせ
         </div>
         <div class="word-row is-citizen" id="citizenWordRow">
           <div>
-            <div class="word-role-tag role-citizen">Citizens (Majority)</div>
+            <div class="word-role-tag role-citizen">Citizens・市民(多数派)</div>
             <div class="word-name" id="citizenWordName">🍕 Pizza</div>
           </div>
           <div class="word-players" id="citizenPlayersList">Player A, Player B, Player D</div>
         </div>
         <div class="word-row is-wolf" id="wolfWordRow">
           <div>
-            <div class="word-role-tag role-wolf">WordMoku (Wolf)</div>
+            <div class="word-role-tag role-wolf">WordMoku・ワードモク(少数派)</div>
             <div class="word-name" id="wolfWordName">🍔 Hamburger</div>
           </div>
           <div class="word-players" id="wolfPlayersList">Player C</div>
@@ -1277,10 +1293,10 @@ header {
     <!-- Replay Buttons -->
     <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
       <button id="btnPlayAgainSame" class="btn-primary">
-        <span>⚡ PLAY AGAIN (Same Players)</span>
+        <span>⚡ PLAY AGAIN (Same Players)<span class="ja">同じメンバーでもう一回</span></span>
       </button>
       <button id="btnChangeSettings" class="btn-secondary">
-        <span>⚙️ Change Settings</span>
+        <span>⚙️ Change Settings<span class="ja">せっていを変える</span></span>
       </button>
     </div>
   </div>
@@ -1290,14 +1306,14 @@ header {
 <div id="namesModal">
   <div class="names-dialog">
     <div class="names-dialog-title">
-      <span>✏️ Edit Player Names</span>
+      <span>✏️ Edit Player Names・名前のへんしゅう</span>
       <button id="btnCloseNameModal" style="background: none; border: none; color: #9CA3AF; font-size: 20px; cursor: pointer;">✕</button>
     </div>
     <div id="nameInputsList" style="display: flex; flex-direction: column; gap: 10px;">
       <!-- Populated by JS -->
     </div>
     <button id="btnSaveNames" class="btn-primary" style="margin-top: 6px; min-height: 48px; font-size: 16px;">
-      Save Names
+      Save Names・ほぞん
     </button>
   </div>
 </div>
@@ -1419,142 +1435,142 @@ header {
     }
   }
 
-  // --- WORD PAIRS DATABASE (9-Year-Old Friendly English Pairs) ---
+  // --- WORD PAIRS DATABASE (9-Year-Old Friendly English Pairs, j1/j2 = Japanese) ---
   var WORD_PAIRS = {
     food: [
-      { w1: "Pizza", e1: "🍕", w2: "Hamburger", e2: "🍔" },
-      { w1: "Apple", e1: "🍎", w2: "Peach", e2: "🍑" },
-      { w1: "Ice Cream", e1: "🍦", w2: "Frozen Yogurt", e2: "🍧" },
-      { w1: "Hot Dog", e1: "🌭", w2: "Sandwich", e2: "🥪" },
-      { w1: "Milk", e1: "🥛", w2: "Orange Juice", e2: "🧃" },
-      { w1: "Chocolate", e1: "🍫", w2: "Cookie", e2: "🍪" },
-      { w1: "French Fries", e1: "🍟", w2: "Potato Chips", e2: "🥔" },
-      { w1: "Pancake", e1: "🥞", w2: "Waffle", e2: "🧇" },
-      { w1: "Donut", e1: "🍩", w2: "Bagel", e2: "🥯" },
-      { w1: "Strawberry", e1: "🍓", w2: "Cherry", e2: "🍒" },
-      { w1: "Popcorn", e1: "🍿", w2: "Nachos", e2: "🧀" },
-      { w1: "Watermelon", e1: "🍉", w2: "Melon", e2: "🍈" },
-      { w1: "Ramen", e1: "🍜", w2: "Spaghetti", e2: "🍝" },
-      { w1: "Cheese", e1: "🧀", w2: "Butter", e2: "🧈" },
-      { w1: "Cupcake", e1: "🧁", w2: "Muffin", e2: "🧁" },
-      { w1: "Lemonade", e1: "🍋", w2: "Iced Tea", e2: "🧋" },
-      { w1: "Taco", e1: "🌮", w2: "Burrito", e2: "🌯" },
-      { w1: "Fried Chicken", e1: "🍗", w2: "Chicken Nuggets", e2: "🍗" },
-      { w1: "Banana", e1: "🍌", w2: "Mango", e2: "🥭" },
-      { w1: "Rice Ball (Onigiri)", e1: "🍙", w2: "Bread", e2: "🍞" },
-      { w1: "Sushi", e1: "🍣", w2: "Rice Bowl", e2: "🍚" },
-      { w1: "Grapes", e1: "🍇", w2: "Blueberries", e2: "🫐" },
-      { w1: "Orange", e1: "🍊", w2: "Lemon", e2: "🍋" },
-      { w1: "Cake", e1: "🎂", w2: "Pie", e2: "🥧" },
-      { w1: "Curry Rice", e1: "🍛", w2: "Stew", e2: "🫕" },
-      { w1: "Dumplings", e1: "🥟", w2: "Spring Rolls", e2: "🥢" },
-      { w1: "Boiled Egg", e1: "🥚", w2: "Omelet", e2: "🍳" },
-      { w1: "Carrot", e1: "🥕", w2: "Corn", e2: "🌽" },
-      { w1: "Tomato", e1: "🍅", w2: "Bell Pepper", e2: "🫑" },
-      { w1: "Coffee", e1: "☕", w2: "Green Tea", e2: "🍵" },
-      { w1: "Soda", e1: "🥤", w2: "Sparkling Water", e2: "💧" },
-      { w1: "Candy", e1: "🍬", w2: "Lollipop", e2: "🍭" },
-      { w1: "Steak", e1: "🥩", w2: "Bacon", e2: "🥓" },
-      { w1: "Pineapple", e1: "🍍", w2: "Coconut", e2: "🥥" },
-      { w1: "Kiwi", e1: "🥝", w2: "Avocado", e2: "🥑" },
-      { w1: "Salad", e1: "🥗", w2: "Soup", e2: "🍲" },
-      { w1: "Croissant", e1: "🥐", w2: "Pretzel", e2: "🥨" },
-      { w1: "Honey", e1: "🍯", w2: "Maple Syrup", e2: "🍁" },
-      { w1: "Shrimp", e1: "🍤", w2: "Crab", e2: "🦀" },
-      { w1: "Mochi", e1: "🍡", w2: "Marshmallow", e2: "☁️" }
+      { w1: "Pizza", j1: "ピザ", e1: "🍕", w2: "Hamburger", j2: "ハンバーガー", e2: "🍔" },
+      { w1: "Apple", j1: "りんご", e1: "🍎", w2: "Peach", j2: "もも", e2: "🍑" },
+      { w1: "Ice Cream", j1: "アイスクリーム", e1: "🍦", w2: "Frozen Yogurt", j2: "フローズンヨーグルト", e2: "🍧" },
+      { w1: "Hot Dog", j1: "ホットドッグ", e1: "🌭", w2: "Sandwich", j2: "サンドイッチ", e2: "🥪" },
+      { w1: "Milk", j1: "ぎゅうにゅう", e1: "🥛", w2: "Orange Juice", j2: "オレンジジュース", e2: "🧃" },
+      { w1: "Chocolate", j1: "チョコレート", e1: "🍫", w2: "Cookie", j2: "クッキー", e2: "🍪" },
+      { w1: "French Fries", j1: "フライドポテト", e1: "🍟", w2: "Potato Chips", j2: "ポテトチップス", e2: "🥔" },
+      { w1: "Pancake", j1: "パンケーキ", e1: "🥞", w2: "Waffle", j2: "ワッフル", e2: "🧇" },
+      { w1: "Donut", j1: "ドーナツ", e1: "🍩", w2: "Bagel", j2: "ベーグル", e2: "🥯" },
+      { w1: "Strawberry", j1: "いちご", e1: "🍓", w2: "Cherry", j2: "さくらんぼ", e2: "🍒" },
+      { w1: "Popcorn", j1: "ポップコーン", e1: "🍿", w2: "Nachos", j2: "ナチョス", e2: "🧀" },
+      { w1: "Watermelon", j1: "すいか", e1: "🍉", w2: "Melon", j2: "メロン", e2: "🍈" },
+      { w1: "Ramen", j1: "ラーメン", e1: "🍜", w2: "Spaghetti", j2: "スパゲッティ", e2: "🍝" },
+      { w1: "Cheese", j1: "チーズ", e1: "🧀", w2: "Butter", j2: "バター", e2: "🧈" },
+      { w1: "Cupcake", j1: "カップケーキ", e1: "🧁", w2: "Muffin", j2: "マフィン", e2: "🧁" },
+      { w1: "Lemonade", j1: "レモネード", e1: "🍋", w2: "Iced Tea", j2: "アイスティー", e2: "🧋" },
+      { w1: "Taco", j1: "タコス", e1: "🌮", w2: "Burrito", j2: "ブリトー", e2: "🌯" },
+      { w1: "Fried Chicken", j1: "からあげ", e1: "🍗", w2: "Chicken Nuggets", j2: "チキンナゲット", e2: "🍗" },
+      { w1: "Banana", j1: "バナナ", e1: "🍌", w2: "Mango", j2: "マンゴー", e2: "🥭" },
+      { w1: "Rice Ball (Onigiri)", j1: "おにぎり", e1: "🍙", w2: "Bread", j2: "パン", e2: "🍞" },
+      { w1: "Sushi", j1: "おすし", e1: "🍣", w2: "Rice Bowl", j2: "どんぶり", e2: "🍚" },
+      { w1: "Grapes", j1: "ぶどう", e1: "🍇", w2: "Blueberries", j2: "ブルーベリー", e2: "🫐" },
+      { w1: "Orange", j1: "オレンジ", e1: "🍊", w2: "Lemon", j2: "レモン", e2: "🍋" },
+      { w1: "Cake", j1: "ケーキ", e1: "🎂", w2: "Pie", j2: "パイ", e2: "🥧" },
+      { w1: "Curry Rice", j1: "カレーライス", e1: "🍛", w2: "Stew", j2: "シチュー", e2: "🫕" },
+      { w1: "Dumplings", j1: "ぎょうざ", e1: "🥟", w2: "Spring Rolls", j2: "はるまき", e2: "🥢" },
+      { w1: "Boiled Egg", j1: "ゆでたまご", e1: "🥚", w2: "Omelet", j2: "オムレツ", e2: "🍳" },
+      { w1: "Carrot", j1: "にんじん", e1: "🥕", w2: "Corn", j2: "とうもろこし", e2: "🌽" },
+      { w1: "Tomato", j1: "トマト", e1: "🍅", w2: "Bell Pepper", j2: "ピーマン", e2: "🫑" },
+      { w1: "Coffee", j1: "コーヒー", e1: "☕", w2: "Green Tea", j2: "りょくちゃ", e2: "🍵" },
+      { w1: "Soda", j1: "ソーダ", e1: "🥤", w2: "Sparkling Water", j2: "たんさん水", e2: "💧" },
+      { w1: "Candy", j1: "あめ", e1: "🍬", w2: "Lollipop", j2: "ペロペロキャンディ", e2: "🍭" },
+      { w1: "Steak", j1: "ステーキ", e1: "🥩", w2: "Bacon", j2: "ベーコン", e2: "🥓" },
+      { w1: "Pineapple", j1: "パイナップル", e1: "🍍", w2: "Coconut", j2: "ココナッツ", e2: "🥥" },
+      { w1: "Kiwi", j1: "キウイ", e1: "🥝", w2: "Avocado", j2: "アボカド", e2: "🥑" },
+      { w1: "Salad", j1: "サラダ", e1: "🥗", w2: "Soup", j2: "スープ", e2: "🍲" },
+      { w1: "Croissant", j1: "クロワッサン", e1: "🥐", w2: "Pretzel", j2: "プレッツェル", e2: "🥨" },
+      { w1: "Honey", j1: "はちみつ", e1: "🍯", w2: "Maple Syrup", j2: "メープルシロップ", e2: "🍁" },
+      { w1: "Shrimp", j1: "エビ", e1: "🍤", w2: "Crab", j2: "カニ", e2: "🦀" },
+      { w1: "Mochi", j1: "おもち", e1: "🍡", w2: "Marshmallow", j2: "マシュマロ", e2: "☁️" }
     ],
     sports: [
-      { w1: "Soccer", e1: "⚽", w2: "Basketball", e2: "🏀" },
-      { w1: "Baseball", e1: "⚾", w2: "Cricket", e2: "🏏" },
-      { w1: "Swimming", e1: "🏊", w2: "Surfing", e2: "🏄" },
-      { w1: "Skateboarding", e1: "🛹", w2: "Rollerblading", e2: "🛼" },
-      { w1: "Running", e1: "🏃", w2: "Walking", e2: "🚶" },
-      { w1: "Tennis", e1: "🎾", w2: "Badminton", e2: "🏸" },
-      { w1: "Skiing", e1: "🎿", w2: "Snowboarding", e2: "🏂" },
-      { w1: "Dodgeball", e1: "🏐", w2: "Volleyball", e2: "🏐" },
-      { w1: "Karate", e1: "🥋", w2: "Judo", e2: "🥋" },
-      { w1: "Bowling", e1: "🎳", w2: "Golf", e2: "⛳" },
-      { w1: "Bicycle Racing", e1: "🚴", w2: "Scooter", e2: "🛴" },
-      { w1: "Table Tennis", e1: "🏓", w2: "Air Hockey", e2: "🏒" },
-      { w1: "Gymnastics", e1: "🤸", w2: "Dance", e2: "💃" },
-      { w1: "Ice Skating", e1: "⛸️", w2: "Roller Skating", e2: "🛼" },
-      { w1: "Rock Climbing", e1: "🧗", w2: "Tree Climbing", e2: "🌲" },
-      { w1: "Rugby", e1: "🏉", w2: "American Football", e2: "🏈" },
-      { w1: "Ice Hockey", e1: "🏒", w2: "Field Hockey", e2: "🏑" },
-      { w1: "Boxing", e1: "🥊", w2: "Wrestling", e2: "🤼" },
-      { w1: "Archery", e1: "🏹", w2: "Darts", e2: "🎯" },
-      { w1: "Scuba Diving", e1: "🤿", w2: "Snorkeling", e2: "🐠" },
-      { w1: "Sailing", e1: "⛵", w2: "Canoeing", e2: "🛶" },
-      { w1: "Horse Riding", e1: "🏇", w2: "Camel Riding", e2: "🐪" },
-      { w1: "Hiking", e1: "🥾", w2: "Camping", e2: "🏕️" },
-      { w1: "Jump Rope", e1: "🪢", w2: "Hula Hoop", e2: "⭕" },
-      { w1: "Marathon", e1: "🏅", w2: "Relay Race", e2: "🏃‍♀️" },
-      { w1: "Fencing", e1: "🤺", w2: "Kendo", e2: "⚔️" },
-      { w1: "Weightlifting", e1: "🏋️", w2: "Push-ups", e2: "💪" },
-      { w1: "Water Polo", e1: "🤽", w2: "Handball", e2: "🤾" },
-      { w1: "Tag", e1: "🏃‍♂️", w2: "Hide and Seek", e2: "🙈" },
-      { w1: "Sledding", e1: "🛷", w2: "Snowball Fight", e2: "❄️" }
+      { w1: "Soccer", j1: "サッカー", e1: "⚽", w2: "Basketball", j2: "バスケットボール", e2: "🏀" },
+      { w1: "Baseball", j1: "やきゅう", e1: "⚾", w2: "Cricket", j2: "クリケット", e2: "🏏" },
+      { w1: "Swimming", j1: "すいえい", e1: "🏊", w2: "Surfing", j2: "サーフィン", e2: "🏄" },
+      { w1: "Skateboarding", j1: "スケートボード", e1: "🛹", w2: "Rollerblading", j2: "インラインスケート", e2: "🛼" },
+      { w1: "Running", j1: "ランニング", e1: "🏃", w2: "Walking", j2: "さんぽ", e2: "🚶" },
+      { w1: "Tennis", j1: "テニス", e1: "🎾", w2: "Badminton", j2: "バドミントン", e2: "🏸" },
+      { w1: "Skiing", j1: "スキー", e1: "🎿", w2: "Snowboarding", j2: "スノーボード", e2: "🏂" },
+      { w1: "Dodgeball", j1: "ドッジボール", e1: "🏐", w2: "Volleyball", j2: "バレーボール", e2: "🏐" },
+      { w1: "Karate", j1: "からて", e1: "🥋", w2: "Judo", j2: "じゅうどう", e2: "🥋" },
+      { w1: "Bowling", j1: "ボウリング", e1: "🎳", w2: "Golf", j2: "ゴルフ", e2: "⛳" },
+      { w1: "Bicycle Racing", j1: "じてんしゃレース", e1: "🚴", w2: "Scooter", j2: "キックスケーター", e2: "🛴" },
+      { w1: "Table Tennis", j1: "たっきゅう", e1: "🏓", w2: "Air Hockey", j2: "エアホッケー", e2: "🏒" },
+      { w1: "Gymnastics", j1: "たいそう", e1: "🤸", w2: "Dance", j2: "ダンス", e2: "💃" },
+      { w1: "Ice Skating", j1: "アイススケート", e1: "⛸️", w2: "Roller Skating", j2: "ローラースケート", e2: "🛼" },
+      { w1: "Rock Climbing", j1: "ボルダリング", e1: "🧗", w2: "Tree Climbing", j2: "木のぼり", e2: "🌲" },
+      { w1: "Rugby", j1: "ラグビー", e1: "🏉", w2: "American Football", j2: "アメフト", e2: "🏈" },
+      { w1: "Ice Hockey", j1: "アイスホッケー", e1: "🏒", w2: "Field Hockey", j2: "フィールドホッケー", e2: "🏑" },
+      { w1: "Boxing", j1: "ボクシング", e1: "🥊", w2: "Wrestling", j2: "レスリング", e2: "🤼" },
+      { w1: "Archery", j1: "アーチェリー", e1: "🏹", w2: "Darts", j2: "ダーツ", e2: "🎯" },
+      { w1: "Scuba Diving", j1: "スキューバダイビング", e1: "🤿", w2: "Snorkeling", j2: "シュノーケリング", e2: "🐠" },
+      { w1: "Sailing", j1: "ヨット", e1: "⛵", w2: "Canoeing", j2: "カヌー", e2: "🛶" },
+      { w1: "Horse Riding", j1: "じょうば", e1: "🏇", w2: "Camel Riding", j2: "ラクダのり", e2: "🐪" },
+      { w1: "Hiking", j1: "ハイキング", e1: "🥾", w2: "Camping", j2: "キャンプ", e2: "🏕️" },
+      { w1: "Jump Rope", j1: "なわとび", e1: "🪢", w2: "Hula Hoop", j2: "フラフープ", e2: "⭕" },
+      { w1: "Marathon", j1: "マラソン", e1: "🏅", w2: "Relay Race", j2: "リレー", e2: "🏃‍♀️" },
+      { w1: "Fencing", j1: "フェンシング", e1: "🤺", w2: "Kendo", j2: "けんどう", e2: "⚔️" },
+      { w1: "Weightlifting", j1: "じゅうりょうあげ", e1: "🏋️", w2: "Push-ups", j2: "うでたてふせ", e2: "💪" },
+      { w1: "Water Polo", j1: "すいきゅう", e1: "🤽", w2: "Handball", j2: "ハンドボール", e2: "🤾" },
+      { w1: "Tag", j1: "おにごっこ", e1: "🏃‍♂️", w2: "Hide and Seek", j2: "かくれんぼ", e2: "🙈" },
+      { w1: "Sledding", j1: "そりあそび", e1: "🛷", w2: "Snowball Fight", j2: "雪がっせん", e2: "❄️" }
     ],
     mix: [
-      { w1: "Cat", e1: "🐱", w2: "Dog", e2: "🐶" },
-      { w1: "Lion", e1: "🦁", w2: "Tiger", e2: "🐯" },
-      { w1: "Penguin", e1: "🐧", w2: "Polar Bear", e2: "🐻‍❄️" },
-      { w1: "Dolphin", e1: "🐬", w2: "Whale", e2: "🐳" },
-      { w1: "Rabbit", e1: "🐰", w2: "Hamster", e2: "🐹" },
-      { w1: "Bicycle", e1: "🚲", w2: "Motorcycle", e2: "🏍️" },
-      { w1: "Pencil", e1: "✏️", w2: "Crayon", e2: "🖍️" },
-      { w1: "Backpack", e1: "🎒", w2: "Handbag", e2: "👜" },
-      { w1: "Pillow", e1: "🛌", w2: "Cushion", e2: "🛋️" },
-      { w1: "Sun", e1: "☀️", w2: "Moon", e2: "🌙" },
-      { w1: "Beach", e1: "🏖️", w2: "Swimming Pool", e2: "🏊" },
-      { w1: "Cinema", e1: "🎬", w2: "Living Room TV", e2: "📺" },
-      { w1: "Smartphone", e1: "📱", w2: "Tablet", e2: "💻" },
-      { w1: "Blanket", e1: "🛏️", w2: "Jacket", e2: "🧥" },
-      { w1: "Airplane", e1: "✈️", w2: "Helicopter", e2: "🚁" },
-      { w1: "Guitar", e1: "🎸", w2: "Ukulele", e2: "🪕" },
-      { w1: "Amusement Park", e1: "🎡", w2: "Playground", e2: "🛝" },
-      { w1: "Umbrella", e1: "☂️", w2: "Raincoat", e2: "🧥" },
-      { w1: "Glasses", e1: "👓", w2: "Sunglasses", e2: "🕶️" },
-      { w1: "Clock", e1: "⏰", w2: "Watch", e2: "⌚" },
-      { w1: "Owl", e1: "🦉", w2: "Eagle", e2: "🦅" },
-      { w1: "Frog", e1: "🐸", w2: "Turtle", e2: "🐢" },
-      { w1: "Elephant", e1: "🐘", w2: "Giraffe", e2: "🦒" },
-      { w1: "Monkey", e1: "🐵", w2: "Gorilla", e2: "🦍" },
-      { w1: "Shark", e1: "🦈", w2: "Octopus", e2: "🐙" },
-      { w1: "Butterfly", e1: "🦋", w2: "Bee", e2: "🐝" },
-      { w1: "Train", e1: "🚆", w2: "Bus", e2: "🚌" },
-      { w1: "Car", e1: "🚗", w2: "Taxi", e2: "🚕" },
-      { w1: "Rocket", e1: "🚀", w2: "UFO", e2: "🛸" },
-      { w1: "Ruler", e1: "📏", w2: "Scissors", e2: "✂️" },
-      { w1: "Notebook", e1: "📓", w2: "Sketchbook", e2: "🎨" },
-      { w1: "Rain", e1: "🌧️", w2: "Snow", e2: "🌨️" },
-      { w1: "Rainbow", e1: "🌈", w2: "Fireworks", e2: "🎆" },
-      { w1: "Mountain", e1: "⛰️", w2: "Volcano", e2: "🌋" },
-      { w1: "Piano", e1: "🎹", w2: "Drum", e2: "🥁" },
-      { w1: "Robot", e1: "🤖", w2: "Alien", e2: "👽" },
-      { w1: "Balloon", e1: "🎈", w2: "Bubble", e2: "🫧" },
-      { w1: "Castle", e1: "🏰", w2: "Tower", e2: "🗼" },
-      { w1: "Toothbrush", e1: "🪥", w2: "Toothpaste", e2: "🧴" },
-      { w1: "Teddy Bear", e1: "🧸", w2: "Doll", e2: "🪆" }
+      { w1: "Cat", j1: "ねこ", e1: "🐱", w2: "Dog", j2: "いぬ", e2: "🐶" },
+      { w1: "Lion", j1: "ライオン", e1: "🦁", w2: "Tiger", j2: "トラ", e2: "🐯" },
+      { w1: "Penguin", j1: "ペンギン", e1: "🐧", w2: "Polar Bear", j2: "シロクマ", e2: "🐻‍❄️" },
+      { w1: "Dolphin", j1: "イルカ", e1: "🐬", w2: "Whale", j2: "クジラ", e2: "🐳" },
+      { w1: "Rabbit", j1: "ウサギ", e1: "🐰", w2: "Hamster", j2: "ハムスター", e2: "🐹" },
+      { w1: "Bicycle", j1: "じてんしゃ", e1: "🚲", w2: "Motorcycle", j2: "バイク", e2: "🏍️" },
+      { w1: "Pencil", j1: "えんぴつ", e1: "✏️", w2: "Crayon", j2: "クレヨン", e2: "🖍️" },
+      { w1: "Backpack", j1: "リュック", e1: "🎒", w2: "Handbag", j2: "ハンドバッグ", e2: "👜" },
+      { w1: "Pillow", j1: "まくら", e1: "🛌", w2: "Cushion", j2: "クッション", e2: "🛋️" },
+      { w1: "Sun", j1: "たいよう", e1: "☀️", w2: "Moon", j2: "月", e2: "🌙" },
+      { w1: "Beach", j1: "ビーチ", e1: "🏖️", w2: "Swimming Pool", j2: "プール", e2: "🏊" },
+      { w1: "Cinema", j1: "えいがかん", e1: "🎬", w2: "Living Room TV", j2: "リビングのテレビ", e2: "📺" },
+      { w1: "Smartphone", j1: "スマホ", e1: "📱", w2: "Tablet", j2: "タブレット", e2: "💻" },
+      { w1: "Blanket", j1: "もうふ", e1: "🛏️", w2: "Jacket", j2: "ジャケット", e2: "🧥" },
+      { w1: "Airplane", j1: "ひこうき", e1: "✈️", w2: "Helicopter", j2: "ヘリコプター", e2: "🚁" },
+      { w1: "Guitar", j1: "ギター", e1: "🎸", w2: "Ukulele", j2: "ウクレレ", e2: "🪕" },
+      { w1: "Amusement Park", j1: "ゆうえんち", e1: "🎡", w2: "Playground", j2: "こうえん", e2: "🛝" },
+      { w1: "Umbrella", j1: "かさ", e1: "☂️", w2: "Raincoat", j2: "レインコート", e2: "🧥" },
+      { w1: "Glasses", j1: "めがね", e1: "👓", w2: "Sunglasses", j2: "サングラス", e2: "🕶️" },
+      { w1: "Clock", j1: "かけどけい", e1: "⏰", w2: "Watch", j2: "うでどけい", e2: "⌚" },
+      { w1: "Owl", j1: "フクロウ", e1: "🦉", w2: "Eagle", j2: "ワシ", e2: "🦅" },
+      { w1: "Frog", j1: "カエル", e1: "🐸", w2: "Turtle", j2: "カメ", e2: "🐢" },
+      { w1: "Elephant", j1: "ゾウ", e1: "🐘", w2: "Giraffe", j2: "キリン", e2: "🦒" },
+      { w1: "Monkey", j1: "サル", e1: "🐵", w2: "Gorilla", j2: "ゴリラ", e2: "🦍" },
+      { w1: "Shark", j1: "サメ", e1: "🦈", w2: "Octopus", j2: "タコ", e2: "🐙" },
+      { w1: "Butterfly", j1: "ちょうちょ", e1: "🦋", w2: "Bee", j2: "ハチ", e2: "🐝" },
+      { w1: "Train", j1: "でんしゃ", e1: "🚆", w2: "Bus", j2: "バス", e2: "🚌" },
+      { w1: "Car", j1: "くるま", e1: "🚗", w2: "Taxi", j2: "タクシー", e2: "🚕" },
+      { w1: "Rocket", j1: "ロケット", e1: "🚀", w2: "UFO", j2: "UFO", e2: "🛸" },
+      { w1: "Ruler", j1: "じょうぎ", e1: "📏", w2: "Scissors", j2: "はさみ", e2: "✂️" },
+      { w1: "Notebook", j1: "ノート", e1: "📓", w2: "Sketchbook", j2: "スケッチブック", e2: "🎨" },
+      { w1: "Rain", j1: "雨", e1: "🌧️", w2: "Snow", j2: "雪", e2: "🌨️" },
+      { w1: "Rainbow", j1: "にじ", e1: "🌈", w2: "Fireworks", j2: "はなび", e2: "🎆" },
+      { w1: "Mountain", j1: "山", e1: "⛰️", w2: "Volcano", j2: "かざん", e2: "🌋" },
+      { w1: "Piano", j1: "ピアノ", e1: "🎹", w2: "Drum", j2: "たいこ", e2: "🥁" },
+      { w1: "Robot", j1: "ロボット", e1: "🤖", w2: "Alien", j2: "うちゅう人", e2: "👽" },
+      { w1: "Balloon", j1: "ふうせん", e1: "🎈", w2: "Bubble", j2: "シャボン玉", e2: "🫧" },
+      { w1: "Castle", j1: "おしろ", e1: "🏰", w2: "Tower", j2: "タワー", e2: "🗼" },
+      { w1: "Toothbrush", j1: "はブラシ", e1: "🪥", w2: "Toothpaste", j2: "はみがきこ", e2: "🧴" },
+      { w1: "Teddy Bear", j1: "くまのぬいぐるみ", e1: "🧸", w2: "Doll", j2: "にんぎょう", e2: "🪆" }
     ]
   };
 
   // --- HINT QUESTIONS (Fun, accessible for 9-year-olds) ---
   var HINT_QUESTIONS = [
-    "What color is your item?",
-    "Is it big, small, or medium-sized?",
-    "Where do you usually see or do this?",
-    "Can you hold it with one hand?",
-    "Do you like it or love it?",
-    "Is it hot, cold, or normal temperature?",
-    "Is it used mostly inside or outside?",
-    "Is it soft, hard, or crunchy?",
-    "Can a 9-year-old easily carry or do this?",
-    "What time of day do you see or do this?",
-    "Does it make any noise?",
-    "How often do you see or do this in real life?",
-    "If your word was a superhero, what power would it have?",
-    "Give 1 word describing its texture or vibe!"
+    { en: "What color is your item?", ja: "それは何色？" },
+    { en: "Is it big, small, or medium-sized?", ja: "大きい？小さい？ふつう？" },
+    { en: "Where do you usually see or do this?", ja: "ふだんどこで見る？(どこでやる？)" },
+    { en: "Can you hold it with one hand?", ja: "かた手で持てる？" },
+    { en: "Do you like it or love it?", ja: "すき？それとも大すき？" },
+    { en: "Is it hot, cold, or normal temperature?", ja: "あつい？つめたい？ふつう？" },
+    { en: "Is it used mostly inside or outside?", ja: "おもに家の中？それとも外？" },
+    { en: "Is it soft, hard, or crunchy?", ja: "やわらかい？かたい？サクサク？" },
+    { en: "Can a 9-year-old easily carry or do this?", ja: "9さいでもかんたんに持てる？(できる？)" },
+    { en: "What time of day do you see or do this?", ja: "1日のうち、いつごろ見る？(やる？)" },
+    { en: "Does it make any noise?", ja: "音は出る？" },
+    { en: "How often do you see or do this in real life?", ja: "ふだん、どのくらい見る？(やる？)" },
+    { en: "If your word was a superhero, what power would it have?", ja: "もしヒーローだったら、どんなパワーをもってる？" },
+    { en: "Give 1 word describing its texture or vibe!", ja: "さわりごこちやふんいきを1語でいうと？" }
   ];
 
   // --- GAME STATE ---
@@ -1568,10 +1584,12 @@ header {
     // Active Match State
     currentPair: null,
     majorityWord: null,
+    majorityWordJa: null,
     majorityEmoji: null,
     wolfWord: null,
+    wolfWordJa: null,
     wolfEmoji: null,
-    playerRoles: [], // Array of { name, isWolf, word, emoji }
+    playerRoles: [], // Array of { name, isWolf, word, wordJa, emoji }
     currentCheckingPlayerIndex: 0,
 
     // Discussion Timer
@@ -1632,6 +1650,25 @@ header {
   var namesModal = document.getElementById('namesModal');
   var nameInputsList = document.getElementById('nameInputsList');
 
+  // --- BILINGUAL HELPERS (EN main line + JA sub line) ---
+  var TOPIC_LABELS = {
+    food:   { emoji: '🍕', en: 'Food / Drink', short: 'Food', ja: '食べもの' },
+    sports: { emoji: '⚽', en: 'Sports', ja: 'スポーツ' },
+    mix:    { emoji: '🎲', en: 'Mix', ja: 'ミックス' }
+  };
+
+  function setBi(el, en, ja) {
+    el.textContent = en;
+    var sub = document.createElement('span');
+    sub.className = 'ja';
+    sub.textContent = ja;
+    el.appendChild(sub);
+  }
+
+  function wordBi(en, ja) {
+    return en === ja ? en : en + '(' + ja + ')';
+  }
+
   // --- SCREEN SWITCHING ---
   function showScreen(screen) {
     [screenSetup, screenPass, screenReveal, screenTalk, screenVote, screenResult].forEach(function(s) {
@@ -1675,7 +1712,7 @@ header {
       document.querySelectorAll('#playerCountGrid .pill-btn').forEach(function(b) { b.classList.remove('selected'); });
       btn.classList.add('selected');
       state.playerCount = parseInt(btn.dataset.val, 10);
-      playerCountBadge.textContent = state.playerCount + ' Players';
+      playerCountBadge.textContent = state.playerCount + ' Players・' + state.playerCount + '人';
 
       // Auto adjust wolf count max
       var maxWolves = Math.floor((state.playerCount - 1) / 2);
@@ -1698,7 +1735,7 @@ header {
         btn.classList.remove('selected');
       }
     });
-    wolfCountBadge.textContent = state.wolfCount + (state.wolfCount === 1 ? ' Wolf' : ' Wolves');
+    wolfCountBadge.textContent = state.wolfCount + (state.wolfCount === 1 ? ' Wolf' : ' Wolves') + '・' + state.wolfCount + '人';
   }
 
   // Wolf Count selection
@@ -1708,7 +1745,7 @@ header {
       document.querySelectorAll('#wolfCountGrid .pill-btn').forEach(function(b) { b.classList.remove('selected'); });
       btn.classList.add('selected');
       state.wolfCount = parseInt(btn.dataset.val, 10);
-      wolfCountBadge.textContent = state.wolfCount + (state.wolfCount === 1 ? ' Wolf' : ' Wolves');
+      wolfCountBadge.textContent = state.wolfCount + (state.wolfCount === 1 ? ' Wolf' : ' Wolves') + '・' + state.wolfCount + '人';
     });
   });
 
@@ -1719,9 +1756,8 @@ header {
       document.querySelectorAll('.topic-grid .topic-btn').forEach(function(b) { b.classList.remove('selected'); });
       btn.classList.add('selected');
       state.topic = btn.dataset.topic;
-      if (state.topic === 'food') topicBadge.textContent = 'Food / Drink';
-      else if (state.topic === 'sports') topicBadge.textContent = 'Sports';
-      else topicBadge.textContent = 'Mix';
+      var t = TOPIC_LABELS[state.topic] || TOPIC_LABELS.food;
+      topicBadge.textContent = t.en + '・' + t.ja;
     });
   });
 
@@ -1743,7 +1779,7 @@ header {
       row.className = 'name-input-row';
       var lbl = document.createElement('span');
       lbl.className = 'name-input-label';
-      lbl.textContent = 'Player ' + (i + 1);
+      lbl.textContent = 'Player ' + (i + 1) + '・' + (i + 1) + '人目';
       var inp = document.createElement('input');
       inp.className = 'name-input-field';
       inp.value = state.playerNames[i] || LETTER_NAMES[i];
@@ -1798,8 +1834,10 @@ header {
     // Randomize which word is majority vs wolf
     var coinFlip = Math.random() < 0.5;
     state.majorityWord = coinFlip ? pair.w1 : pair.w2;
+    state.majorityWordJa = coinFlip ? pair.j1 : pair.j2;
     state.majorityEmoji = coinFlip ? pair.e1 : pair.e2;
     state.wolfWord = coinFlip ? pair.w2 : pair.w1;
+    state.wolfWordJa = coinFlip ? pair.j2 : pair.j1;
     state.wolfEmoji = coinFlip ? pair.e2 : pair.e1;
 
     // 2. Assign wolf roles randomly
@@ -1820,6 +1858,7 @@ header {
         name: name,
         isWolf: isWolf,
         word: isWolf ? state.wolfWord : state.majorityWord,
+        wordJa: isWolf ? state.wolfWordJa : state.majorityWordJa,
         emoji: isWolf ? state.wolfEmoji : state.majorityEmoji
       };
     });
@@ -1832,7 +1871,7 @@ header {
   // --- PASS & CHECK WORD STEP ---
   function showPassHandoffScreen() {
     var p = state.playerRoles[state.currentCheckingPlayerIndex];
-    passStepBadge.textContent = 'PLAYER ' + (state.currentCheckingPlayerIndex + 1) + ' OF ' + state.playerCount;
+    passStepBadge.textContent = 'PLAYER ' + (state.currentCheckingPlayerIndex + 1) + ' OF ' + state.playerCount + '・' + (state.currentCheckingPlayerIndex + 1) + '/' + state.playerCount + '人目';
     passPlayerName.textContent = p.name;
     passPlayerPromptName.textContent = p.name;
     showScreen(screenPass);
@@ -1842,9 +1881,10 @@ header {
   document.getElementById('btnRevealWord').addEventListener('click', function() {
     playSound('reveal');
     var p = state.playerRoles[state.currentCheckingPlayerIndex];
-    revealPlayerTitle.textContent = p.name.toUpperCase() + "'S SECRET WORD";
+    setBi(revealPlayerTitle, p.name.toUpperCase() + "'S SECRET WORD", p.name + 'のひみつの言葉');
     revealWordEmoji.textContent = p.emoji;
-    revealWordText.textContent = p.word;
+    if (p.wordJa && p.wordJa !== p.word) setBi(revealWordText, p.word, p.wordJa);
+    else revealWordText.textContent = p.word;
     showScreen(screenReveal);
   });
 
@@ -1863,15 +1903,15 @@ header {
   // --- DISCUSSION TALK PHASE ---
   function startTalkPhase() {
     // Set topic pill label
-    var topicStr = state.topic === 'food' ? '🍕 Food / Drink' : state.topic === 'sports' ? '⚽ Sports' : '🎲 Mix';
-    talkTopicPill.textContent = topicStr;
+    var t = TOPIC_LABELS[state.topic] || TOPIC_LABELS.food;
+    talkTopicPill.textContent = t.emoji + ' ' + (t.short || t.en) + '・' + t.ja;
 
     // Reset and start 3-minute timer
     state.timerTotalSeconds = 180;
     state.timerSeconds = 180;
     state.timerRunning = true;
-    document.getElementById('btnTimerToggle').textContent = '⏸ Pause';
-    timerStatusLabel.textContent = 'DISCUSS';
+    document.getElementById('btnTimerToggle').textContent = '⏸ Pause・ていし';
+    setBi(timerStatusLabel, 'DISCUSS', 'はなしあい');
     updateTimerVisuals();
 
     clearInterval(state.timerInterval);
@@ -1891,7 +1931,7 @@ header {
       clearInterval(state.timerInterval);
       state.timerRunning = false;
       playSound('point');
-      timerStatusLabel.textContent = "TIME'S UP!";
+      setBi(timerStatusLabel, "TIME'S UP!", 'じかんぎれ！');
     } else if (state.timerSeconds <= 10) {
       playSound('tick');
     }
@@ -1922,8 +1962,9 @@ header {
   document.getElementById('btnTimerToggle').addEventListener('click', function() {
     playSound('tap');
     state.timerRunning = !state.timerRunning;
-    this.textContent = state.timerRunning ? '⏸ Pause' : '▶ Resume';
-    timerStatusLabel.textContent = state.timerRunning ? 'DISCUSS' : 'PAUSED';
+    this.textContent = state.timerRunning ? '⏸ Pause・ていし' : '▶ Resume・さいかい';
+    if (state.timerRunning) setBi(timerStatusLabel, 'DISCUSS', 'はなしあい');
+    else setBi(timerStatusLabel, 'PAUSED', 'ていしちゅう');
   });
 
   document.getElementById('btnTimerAdd30').addEventListener('click', function() {
@@ -1942,7 +1983,7 @@ header {
   // Hint Question Roulette
   function rollNewHintQuestion() {
     var q = HINT_QUESTIONS[Math.floor(Math.random() * HINT_QUESTIONS.length)];
-    hintQuestionBox.textContent = '"' + q + '"';
+    setBi(hintQuestionBox, '"' + q.en + '"', '「' + q.ja + '」');
   }
 
   document.getElementById('btnRollHint').addEventListener('click', function() {
@@ -1964,7 +2005,7 @@ header {
   // Restart with the same settings (new word pair & new WordMoku)
   document.getElementById('btnRestartSameSettings').addEventListener('click', function() {
     playSound('tap');
-    if (!window.confirm('Start a new game with the same settings?\nThe current round will end and everyone gets a new word.')) return;
+    if (!window.confirm('Start a new game with the same settings?\nThe current round will end and everyone gets a new word.\n\n同じせっていで新しいゲームをはじめますか？\n今のラウンドはおわり、みんなに新しい言葉がくばられます。')) return;
     clearInterval(state.timerInterval);
     state.timerRunning = false;
     startNewGameMatch();
@@ -1982,23 +2023,24 @@ header {
 
     var count = 3;
     pointCountdownNum.textContent = '3';
-    pointCountdownText.textContent = 'Ready to point...';
+    pointCountdownNum.style.fontSize = '';
+    setBi(pointCountdownText, 'Ready to point...', 'ゆびさすじゅんび…');
     playSound('countdown');
 
     var countdownTimer = setInterval(function() {
       count--;
       if (count === 2) {
         pointCountdownNum.textContent = '2';
-        pointCountdownText.textContent = 'Get set...';
+        setBi(pointCountdownText, 'Get set...', 'よーい…');
         playSound('countdown');
       } else if (count === 1) {
         pointCountdownNum.textContent = '1';
-        pointCountdownText.textContent = 'Almost...';
+        setBi(pointCountdownText, 'Almost...', 'もうすぐ…');
         playSound('countdown');
       } else if (count === 0) {
         pointCountdownNum.textContent = '👉 POINT!';
         pointCountdownNum.style.fontSize = '44px';
-        pointCountdownText.textContent = 'Point at the WordMoku!';
+        setBi(pointCountdownText, 'Point at the WordMoku!', 'ワードモクをゆびさして！');
         playSound('point');
       } else {
         clearInterval(countdownTimer);
@@ -2055,8 +2097,8 @@ header {
     state.wolfStealsWin = false;
 
     // Word Breakdown UI Population
-    citizenWordName.textContent = state.majorityEmoji + ' ' + state.majorityWord;
-    wolfWordName.textContent = state.wolfEmoji + ' ' + state.wolfWord;
+    citizenWordName.textContent = state.majorityEmoji + ' ' + wordBi(state.majorityWord, state.majorityWordJa);
+    wolfWordName.textContent = state.wolfEmoji + ' ' + wordBi(state.wolfWord, state.wolfWordJa);
 
     var citizens = state.playerRoles.filter(function(p) { return !p.isWolf; }).map(function(p) { return p.name; });
     var wolves = state.playerRoles.filter(function(p) { return p.isWolf; }).map(function(p) { return p.name; });
@@ -2067,16 +2109,16 @@ header {
       // WOLF CAUGHT!
       playSound('howl');
       resultEmoji.textContent = '🐺';
-      resultTitle.textContent = 'WordMoku Was Caught!';
-      resultSub.textContent = votedPlayer.name + ' was indeed the WordMoku!';
+      setBi(resultTitle, 'WordMoku Was Caught!', 'ワードモクをつかまえた！');
+      setBi(resultSub, votedPlayer.name + ' was indeed the WordMoku!', votedPlayer.name + 'がワードモクだった！');
       wolfGuessBanner.style.display = 'flex';
       recordMatchPlayed('citizens_tentative');
     } else {
       // INNOCENT CITIZEN VOTED OUT! WOLF WINS!
       playSound('fanfare');
       resultEmoji.textContent = '👑🐺';
-      resultTitle.textContent = 'WordMoku Wins!';
-      resultSub.textContent = 'Oh no! ' + votedPlayer.name + ' was an innocent Citizen! The WordMoku tricked everyone.';
+      setBi(resultTitle, 'WordMoku Wins!', 'ワードモクの勝ち！');
+      setBi(resultSub, 'Oh no! ' + votedPlayer.name + ' was an innocent Citizen! The WordMoku tricked everyone.', 'ざんねん！' + votedPlayer.name + 'はふつうの市民だった！ワードモクにだまされた…');
       wolfGuessBanner.style.display = 'none';
       recordMatchPlayed('wolf');
     }
@@ -2088,8 +2130,8 @@ header {
   document.getElementById('btnWolfGuessWin').addEventListener('click', function() {
     playSound('fanfare');
     resultEmoji.textContent = '🐺✨';
-    resultTitle.textContent = 'WordMoku Steals the Win!';
-    resultSub.textContent = 'Incredible! The WordMoku guessed the Citizens\' word (' + state.majorityWord + ') correctly!';
+    setBi(resultTitle, 'WordMoku Steals the Win!', 'ワードモクのぎゃくてん勝利！');
+    setBi(resultSub, 'Incredible! The WordMoku guessed the Citizens\' word (' + state.majorityWord + ') correctly!', 'すごい！ワードモクが市民の言葉(' + state.majorityWordJa + ')を当てた！');
     wolfGuessBanner.style.display = 'none';
     recordMatchPlayed('wolf_reversal');
   });
@@ -2097,8 +2139,8 @@ header {
   document.getElementById('btnWolfGuessFail').addEventListener('click', function() {
     playSound('fanfare');
     resultEmoji.textContent = '🎉🦉';
-    resultTitle.textContent = 'Citizens Win!';
-    resultSub.textContent = 'The WordMoku failed to guess the Citizens\' word (' + state.majorityWord + '). Great detective work!';
+    setBi(resultTitle, 'Citizens Win!', '市民の勝ち！');
+    setBi(resultSub, 'The WordMoku failed to guess the Citizens\' word (' + state.majorityWord + '). Great detective work!', 'ワードモクは市民の言葉(' + state.majorityWordJa + ')を当てられなかった。名たんていだね！');
     wolfGuessBanner.style.display = 'none';
     recordMatchPlayed('citizens');
   });
