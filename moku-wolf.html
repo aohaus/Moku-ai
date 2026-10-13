@@ -1082,15 +1082,23 @@ header {
         <div class="topic-grid">
           <button class="topic-btn selected" data-topic="food">
             <span class="topic-emoji">🍕</span>
-            <span>Food / Drink<span class="ja">食べもの・飲みもの</span></span>
+            <span>Food / Drink<span class="ja">食べもの・飲みもの</span><span class="ja topic-count" data-topic-count="food"></span></span>
           </button>
           <button class="topic-btn" data-topic="sports">
             <span class="topic-emoji">⚽</span>
-            <span>Sports<span class="ja">スポーツ・あそび</span></span>
+            <span>Sports<span class="ja">スポーツ・あそび</span><span class="ja topic-count" data-topic-count="sports"></span></span>
+          </button>
+          <button class="topic-btn" data-topic="school">
+            <span class="topic-emoji">🏫</span>
+            <span>School<span class="ja">学校</span><span class="ja topic-count" data-topic-count="school"></span></span>
+          </button>
+          <button class="topic-btn" data-topic="fantasy">
+            <span class="topic-emoji">🐉</span>
+            <span>Fantasy<span class="ja">ファンタジー</span><span class="ja topic-count" data-topic-count="fantasy"></span></span>
           </button>
           <button class="topic-btn" data-topic="mix">
             <span class="topic-emoji">🎲</span>
-            <span>Mix<span class="ja">ミックス</span></span>
+            <span>Mix<span class="ja">ミックス</span><span class="ja topic-count" data-topic-count="mix"></span></span>
           </button>
         </div>
       </div>
@@ -1552,6 +1560,70 @@ header {
       { w1: "Castle", j1: "おしろ", e1: "🏰", w2: "Tower", j2: "タワー", e2: "🗼" },
       { w1: "Toothbrush", j1: "はブラシ", e1: "🪥", w2: "Toothpaste", j2: "はみがきこ", e2: "🧴" },
       { w1: "Teddy Bear", j1: "くまのぬいぐるみ", e1: "🧸", w2: "Doll", j2: "にんぎょう", e2: "🪆" }
+    ],
+    school: [
+      { w1: "Eraser", j1: "けしゴム", e1: "🧼", w2: "Pencil Sharpener", j2: "えんぴつけずり", e2: "✏️" },
+      { w1: "Glue", j1: "のり", e1: "🧴", w2: "Stapler", j2: "ホッチキス", e2: "📎" },
+      { w1: "Blackboard", j1: "こくばん", e1: "⬛", w2: "Whiteboard", j2: "ホワイトボード", e2: "⬜" },
+      { w1: "Principal", j1: "こうちょう先生", e1: "🧑‍💼", w2: "Teacher", j2: "たんにんの先生", e2: "👩‍🏫" },
+      { w1: "School Lunch", j1: "きゅうしょく", e1: "🍛", w2: "Packed Lunch", j2: "おべんとう", e2: "🍱" },
+      { w1: "Recess", j1: "休み時間", e1: "🛝", w2: "After School", j2: "ほうかご", e2: "🌇" },
+      { w1: "Library", j1: "としょしつ", e1: "📚", w2: "Music Room", j2: "おんがくしつ", e2: "🎼" },
+      { w1: "Gym", j1: "たいいくかん", e1: "🏀", w2: "Schoolyard", j2: "うんどうじょう", e2: "🏃" },
+      { w1: "Sports Day", j1: "うんどうかい", e1: "🏅", w2: "Field Trip", j2: "えんそく", e2: "🎒" },
+      { w1: "School Trip", j1: "しゅうがくりょこう", e1: "🗾", w2: "Museum Visit", j2: "はくぶつかん見学", e2: "🏛️" },
+      { w1: "Homework", j1: "しゅくだい", e1: "📝", w2: "Test", j2: "テスト", e2: "💯" },
+      { w1: "Report Card", j1: "つうしんぼ", e1: "📄", w2: "Award Certificate", j2: "しょうじょう", e2: "🏆" },
+      { w1: "Calculator", j1: "でんたく", e1: "🔢", w2: "Abacus", j2: "そろばん", e2: "🧮" },
+      { w1: "Globe", j1: "ちきゅうぎ", e1: "🌍", w2: "Map", j2: "ちず", e2: "🗺️" },
+      { w1: "Microscope", j1: "けんびきょう", e1: "🔬", w2: "Magnifying Glass", j2: "むしめがね", e2: "🔍" },
+      { w1: "Recorder", j1: "リコーダー", e1: "🎶", w2: "Melodica", j2: "けんばんハーモニカ", e2: "🎹" },
+      { w1: "Indoor Shoes", j1: "うわばき", e1: "👟", w2: "Rain Boots", j2: "ながぐつ", e2: "👢" },
+      { w1: "Name Tag", j1: "名ふだ", e1: "🏷️", w2: "Sticker", j2: "シール", e2: "⭐" },
+      { w1: "Chalk", j1: "チョーク", e1: "🖍️", w2: "Marker", j2: "マーカー", e2: "🖊️" },
+      { w1: "Lunch Duty", j1: "きゅうしょくとうばん", e1: "🥄", w2: "Cleaning Time", j2: "そうじの時間", e2: "🧹" },
+      { w1: "Class Photo", j1: "クラス写真", e1: "📸", w2: "Graduation Album", j2: "そつぎょうアルバム", e2: "📒" },
+      { w1: "School Bell", j1: "チャイム", e1: "🔔", w2: "Alarm Clock", j2: "めざましどけい", e2: "⏰" },
+      { w1: "Desk", j1: "つくえ", e1: "🗄️", w2: "Chair", j2: "いす", e2: "🪑" },
+      { w1: "Pencil Case", j1: "ふでばこ", e1: "🖋️", w2: "Pouch", j2: "ポーチ", e2: "👛" },
+      { w1: "Graduation", j1: "そつぎょうしき", e1: "🎓", w2: "Entrance Ceremony", j2: "にゅうがくしき", e2: "🌸" },
+      { w1: "Math", j1: "さんすう", e1: "➗", w2: "Science", j2: "りか", e2: "🧲" },
+      { w1: "Japanese Class", j1: "こくご", e1: "📕", w2: "English Class", j2: "えいご", e2: "🔤" },
+      { w1: "P.E.", j1: "たいいく", e1: "🤸", w2: "Art Class", j2: "ずこう", e2: "🎨" },
+      { w1: "Classroom", j1: "きょうしつ", e1: "🏫", w2: "Teachers' Room", j2: "しょくいんしつ", e2: "☕" },
+      { w1: "School Route", j1: "つうがくろ", e1: "🚸", w2: "School Bus", j2: "スクールバス", e2: "🚌" }
+    ],
+    fantasy: [
+      { w1: "Dragon", j1: "ドラゴン", e1: "🐉", w2: "Dinosaur", j2: "きょうりゅう", e2: "🦖" },
+      { w1: "Wizard", j1: "まほうつかい", e1: "🧙", w2: "Witch", j2: "まじょ", e2: "🧙‍♀️" },
+      { w1: "Ghost", j1: "おばけ", e1: "👻", w2: "Zombie", j2: "ゾンビ", e2: "🧟" },
+      { w1: "Mermaid", j1: "にんぎょ", e1: "🧜‍♀️", w2: "Fairy", j2: "ようせい", e2: "🧚" },
+      { w1: "Unicorn", j1: "ユニコーン", e1: "🦄", w2: "Pegasus", j2: "ペガサス", e2: "🐎" },
+      { w1: "Vampire", j1: "きゅうけつき", e1: "🧛", w2: "Werewolf", j2: "オオカミ男", e2: "🐺" },
+      { w1: "Pirate", j1: "かいぞく", e1: "🏴‍☠️", w2: "Ninja", j2: "にんじゃ", e2: "🥷" },
+      { w1: "Treasure Chest", j1: "たからばこ", e1: "💰", w2: "Magic Lamp", j2: "まほうのランプ", e2: "🪔" },
+      { w1: "Magic Wand", j1: "まほうのつえ", e1: "🪄", w2: "Crystal Ball", j2: "すいしょう玉", e2: "🔮" },
+      { w1: "Knight", j1: "きし", e1: "🛡️", w2: "Samurai", j2: "さむらい", e2: "⚔️" },
+      { w1: "King", j1: "王さま", e1: "👑", w2: "Prince", j2: "王子さま", e2: "🤴" },
+      { w1: "Princess", j1: "おひめさま", e1: "👸", w2: "Queen", j2: "女王さま", e2: "💎" },
+      { w1: "Superhero", j1: "スーパーヒーロー", e1: "🦸", w2: "Villain", j2: "わるもの", e2: "🦹" },
+      { w1: "Giant", j1: "きょじん", e1: "🧌", w2: "Dwarf", j2: "こびと", e2: "🍄" },
+      { w1: "Time Machine", j1: "タイムマシン", e1: "⏳", w2: "Warp Door", j2: "ワープのとびら", e2: "🚪" },
+      { w1: "Invisible Cloak", j1: "とうめいマント", e1: "🫥", w2: "Flying Shoes", j2: "空とぶくつ", e2: "🪽" },
+      { w1: "Magic Potion", j1: "まほうのくすり", e1: "🧪", w2: "Spell Book", j2: "まほうの本", e2: "📖" },
+      { w1: "Haunted House", j1: "おばけやしき", e1: "🏚️", w2: "Secret Base", j2: "ひみつきち", e2: "🛖" },
+      { w1: "Mummy", j1: "ミイラ", e1: "⚰️", w2: "Skeleton", j2: "ガイコツ", e2: "💀" },
+      { w1: "Santa Claus", j1: "サンタクロース", e1: "🎅", w2: "Snowman", j2: "ゆきだるま", e2: "⛄" },
+      { w1: "Monster", j1: "かいじゅう", e1: "👾", w2: "Giant Robot", j2: "きょだいロボ", e2: "🦾" },
+      { w1: "Oni", j1: "おに", e1: "👹", w2: "Kappa", j2: "かっぱ", e2: "🥒" },
+      { w1: "Treasure Map", j1: "たからのちず", e1: "📜", w2: "Secret Code", j2: "あんごう", e2: "🔐" },
+      { w1: "Phoenix", j1: "フェニックス", e1: "🪶", w2: "Griffin", j2: "グリフォン", e2: "🦅" },
+      { w1: "Shooting Star", j1: "ながれ星", e1: "🌠", w2: "Magic Mirror", j2: "まほうのかがみ", e2: "🪞" },
+      { w1: "Ice Magic", j1: "こおりのまほう", e1: "❄️", w2: "Fire Magic", j2: "ほのおのまほう", e2: "🔥" },
+      { w1: "Cinderella", j1: "シンデレラ", e1: "👠", w2: "Snow White", j2: "しらゆきひめ", e2: "🍎" },
+      { w1: "Momotaro", j1: "ももたろう", e1: "🍑", w2: "Urashima Taro", j2: "うらしまたろう", e2: "🐢" },
+      { w1: "Little Red Riding Hood", j1: "赤ずきん", e1: "🧺", w2: "Three Little Pigs", j2: "三びきのこぶた", e2: "🐷" },
+      { w1: "Jack and the Beanstalk", j1: "ジャックと豆の木", e1: "🌱", w2: "Pinocchio", j2: "ピノキオ", e2: "🤥" }
     ]
   };
 
@@ -1654,6 +1726,8 @@ header {
   var TOPIC_LABELS = {
     food:   { emoji: '🍕', en: 'Food / Drink', short: 'Food', ja: '食べもの' },
     sports: { emoji: '⚽', en: 'Sports', ja: 'スポーツ' },
+    school: { emoji: '🏫', en: 'School', ja: '学校' },
+    fantasy: { emoji: '🐉', en: 'Fantasy', ja: 'ファンタジー' },
     mix:    { emoji: '🎲', en: 'Mix', ja: 'ミックス' }
   };
 
@@ -1820,14 +1894,26 @@ header {
     startNewGameMatch();
   });
 
+  // Mix draws from every topic's pairs
+  function getTopicPool(topic) {
+    if (topic === 'mix') {
+      return Object.keys(WORD_PAIRS).reduce(function(all, key) {
+        return all.concat(WORD_PAIRS[key]);
+      }, []);
+    }
+    return WORD_PAIRS[topic] || WORD_PAIRS.food;
+  }
+
+  // Show the number of word pairs under each topic name, e.g. "(40問)"
+  function renderTopicCounts() {
+    document.querySelectorAll('.topic-count').forEach(function(el) {
+      el.textContent = '(' + getTopicPool(el.dataset.topicCount).length + '問)';
+    });
+  }
+
   function startNewGameMatch() {
     // 1. Pick a random word pair based on topic
-    var pool = [];
-    if (state.topic === 'mix') {
-      pool = WORD_PAIRS.food.concat(WORD_PAIRS.sports).concat(WORD_PAIRS.mix);
-    } else {
-      pool = WORD_PAIRS[state.topic] || WORD_PAIRS.food;
-    }
+    var pool = getTopicPool(state.topic);
     var pair = pool[Math.floor(Math.random() * pool.length)];
     state.currentPair = pair;
 
@@ -2211,6 +2297,7 @@ header {
   renderBg();
 
   // Initial Player Names Setup
+  renderTopicCounts();
   updatePlayerNamesArray();
 
 })();
