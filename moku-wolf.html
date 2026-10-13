@@ -1082,15 +1082,15 @@ header {
         <div class="topic-grid">
           <button class="topic-btn selected" data-topic="food">
             <span class="topic-emoji">🍕</span>
-            <span>Food / Drink<span class="ja">食べもの・飲みもの</span></span>
+            <span>Food / Drink<span class="ja">食べもの・飲みもの</span><span class="ja topic-count" data-topic-count="food"></span></span>
           </button>
           <button class="topic-btn" data-topic="sports">
             <span class="topic-emoji">⚽</span>
-            <span>Sports<span class="ja">スポーツ・あそび</span></span>
+            <span>Sports<span class="ja">スポーツ・あそび</span><span class="ja topic-count" data-topic-count="sports"></span></span>
           </button>
           <button class="topic-btn" data-topic="mix">
             <span class="topic-emoji">🎲</span>
-            <span>Mix<span class="ja">ミックス</span></span>
+            <span>Mix<span class="ja">ミックス</span><span class="ja topic-count" data-topic-count="mix"></span></span>
           </button>
         </div>
       </div>
@@ -1820,14 +1820,24 @@ header {
     startNewGameMatch();
   });
 
+  // Mix draws from every topic's pairs
+  function getTopicPool(topic) {
+    if (topic === 'mix') {
+      return WORD_PAIRS.food.concat(WORD_PAIRS.sports).concat(WORD_PAIRS.mix);
+    }
+    return WORD_PAIRS[topic] || WORD_PAIRS.food;
+  }
+
+  // Show the number of word pairs under each topic name, e.g. "(40問)"
+  function renderTopicCounts() {
+    document.querySelectorAll('.topic-count').forEach(function(el) {
+      el.textContent = '(' + getTopicPool(el.dataset.topicCount).length + '問)';
+    });
+  }
+
   function startNewGameMatch() {
     // 1. Pick a random word pair based on topic
-    var pool = [];
-    if (state.topic === 'mix') {
-      pool = WORD_PAIRS.food.concat(WORD_PAIRS.sports).concat(WORD_PAIRS.mix);
-    } else {
-      pool = WORD_PAIRS[state.topic] || WORD_PAIRS.food;
-    }
+    var pool = getTopicPool(state.topic);
     var pair = pool[Math.floor(Math.random() * pool.length)];
     state.currentPair = pair;
 
@@ -2211,6 +2221,7 @@ header {
   renderBg();
 
   // Initial Player Names Setup
+  renderTopicCounts();
   updatePlayerNamesArray();
 
 })();
