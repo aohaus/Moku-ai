@@ -290,6 +290,7 @@ body.playing #controls { display: block; }
 #unlockName { font-size: clamp(24px, 4.6vw, 40px); font-weight: 800; color: var(--hi); text-shadow: 0 0 18px rgba(46,196,182,0.5); }
 #unlockCmd { font-size: clamp(16px, 2.6vw, 24px); font-weight: 900; background: rgba(255,255,255,0.08); padding: 6px 16px; border-radius: 10px; }
 #unlockDesc, #practiceDoneDesc { font-size: 13px; color: rgba(237,238,246,0.7); }
+#unlockBonus { font-size: 13px; color: #ffd86a; max-width: 520px; line-height: 1.5; }
 .titleMenuItem.trainItem { display: flex; align-items: center; gap: 12px; text-align: left; font-size: 16px; min-width: min(380px, 80vw); border-radius: 10px; }
 .titleMenuItem.trainItem::before { content: none; }
 .titleMenuItem.trainItem.sel { background: rgba(46,196,182,0.12); }
@@ -308,7 +309,7 @@ body.playing #controls { display: block; }
 <div id="rotate-hint"><span>📱</span><p>Moku Fight is played in landscape.<br>Please rotate your device.</p></div>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.4.0 · Updated Oct 13, 2026</div>
+<div id="buildInfo">v0.4.1 · Updated Oct 13, 2026</div>
 
 <div id="wrapper">
   <canvas id="c"></canvas>
@@ -356,9 +357,9 @@ body.playing #controls { display: block; }
     <h2 class="screenTitle">Move List — MOKU</h2>
     <div class="moveCols">
       <div class="moveList"><h3>BASICS</h3><span class="nm">Walk</span><span class="cmd"><span class="ar">←</span><span class="ar">→</span></span><span class="nm">Jump</span><span class="cmd"><span class="ar">↖</span><span class="ar">↑</span><span class="ar">↗</span></span><span class="nm">Crouch</span><span class="cmd"><span class="ar">↓</span></span><span class="nm">Guard <i>hold away</i></span><span class="cmd"><span class="ar">←</span></span><span class="nm">Low Guard</span><span class="cmd"><span class="ar">↙</span></span><span class="nm">Peck</span><span class="cmd"><span class="bt p">P</span></span><span class="nm">Wing Slap</span><span class="cmd"><span class="bt k">K</span></span><span class="nm">Low Attacks</span><span class="cmd"><span class="ar">↓</span><span class="pl">+</span><span class="bt p">P</span><span class="pl">/</span><span class="bt k">K</span></span><span class="nm">Air Attacks</span><span class="cmd"><span class="pl">in the air</span><span class="bt p">P</span><span class="pl">/</span><span class="bt k">K</span></span></div>
-      <div class="moveList"><h3>NEW MOVES (win matches to learn)</h3><span class="nm" data-move="leaf">Razor Leaf 🍃</span><span class="cmd" data-move="leaf"><span class="ar">↓</span><span class="ar">↘</span><span class="ar">→</span><span class="pl">+</span><span class="bt p">P</span></span><span class="nm" data-move="throw">Owl Toss 🤼 <i>close</i></span><span class="cmd" data-move="throw"><span class="ar">→</span><span class="pl">+</span><span class="bt p">P</span></span><span class="nm" data-move="counter">Wing Counter ✨ <i>just before a hit</i></span><span class="cmd" data-move="counter"><span class="ar">←</span><span class="pl">+</span><span class="bt p">P</span></span><h3>COMBOS</h3><span class="nm">Owl Rush!</span><span class="cmd"><span class="bt p">P</span><span class="pl">▸</span><span class="bt p">P</span><span class="pl">▸</span><span class="bt k">K</span></span><span class="nm">Low Owl Rush!</span><span class="cmd"><span class="ar">↓</span><span class="bt p">P</span><span class="pl">▸</span><span class="ar">↓</span><span class="bt p">P</span><span class="pl">▸</span><span class="ar">↓</span><span class="bt k">K</span></span><span class="nm" data-move="leaf">Leaf Cutter!</span><span class="cmd" data-move="leaf"><span class="bt k">K</span><span class="pl">▸</span><span class="ar">↓</span><span class="ar">↘</span><span class="ar">→</span><span class="pl">+</span><span class="bt p">P</span></span><span class="nm">Air Combo</span><span class="cmd"><span class="pl">jump</span><span class="bt p">P</span><span class="pl">▸</span><span class="bt k">K</span></span></div>
+      <div class="moveList"><h3>NEW MOVES (win matches to learn)</h3><span class="nm" data-move="leaf">Razor Leaf 🍃</span><span class="cmd" data-move="leaf"><span class="ar">↓</span><span class="ar">↘</span><span class="ar">→</span><span class="pl">+</span><span class="bt p">P</span></span><span class="nm" data-move="throw">Owl Toss 🤼 <i>close</i></span><span class="cmd" data-move="throw"><span class="ar">→</span><span class="pl">+</span><span class="bt p">P</span></span><span class="nm" data-move="counter">Wing Counter ✨ <i>just before a hit</i></span><span class="cmd" data-move="counter"><span class="ar">←</span><span class="pl">+</span><span class="bt p">P</span></span><span class="nm" data-move="storm">Leaf Storm 🌪 <i>reward · gauge full</i></span><span class="cmd" data-move="storm"><span class="bt p">P</span><span class="pl">+</span><span class="bt k">K</span><span class="pl">together</span></span><h3>COMBOS</h3><span class="nm">Owl Rush!</span><span class="cmd"><span class="bt p">P</span><span class="pl">▸</span><span class="bt p">P</span><span class="pl">▸</span><span class="bt k">K</span></span><span class="nm">Low Owl Rush!</span><span class="cmd"><span class="ar">↓</span><span class="bt p">P</span><span class="pl">▸</span><span class="ar">↓</span><span class="bt p">P</span><span class="pl">▸</span><span class="ar">↓</span><span class="bt k">K</span></span><span class="nm" data-move="leaf">Leaf Cutter!</span><span class="cmd" data-move="leaf"><span class="bt k">K</span><span class="pl">▸</span><span class="ar">↓</span><span class="ar">↘</span><span class="ar">→</span><span class="pl">+</span><span class="bt p">P</span></span><span class="nm">Air Combo</span><span class="cmd"><span class="pl">jump</span><span class="bt p">P</span><span class="pl">▸</span><span class="bt k">K</span></span></div>
     </div>
-    <p class="howNote">→ means toward your rival (commands flip when you switch sides). ▸ = then: for combos, press the next button just as the hit lands. Win 2 rounds to win! Keyboard: Arrows / WASD + J = P, K = K, Esc = Pause.</p>
+    <p class="howNote">→ means toward your rival (commands flip when you switch sides). ▸ = then: for combos, press the next button just as the hit lands. Win 2 rounds to win! Keyboard: Arrows / WASD to move, P = Punch, K = Kick, Esc = Pause.</p>
     <nav class="menu" id="howMenu">
       <div class="titleMenuItem sel" data-action="howback">Back</div>
     </nav>
@@ -379,6 +380,7 @@ body.playing #controls { display: block; }
     <div id="unlockName">Razor Leaf</div>
     <div id="unlockCmd">↓ ↘ → + P</div>
     <p id="unlockDesc"></p>
+    <p id="unlockBonus" style="display:none">🎁 <b>REWARD!</b> You learned every move, so you also got 🌪 <b>Leaf Storm</b>: fill the blue gauge, then press P + K together!</p>
     <nav class="menu" id="unlockMenu">
       <div class="titleMenuItem sel" data-action="practice" data-move="leaf">Practice Now!</div>
       <div class="titleMenuItem" data-action="later">Later</div>
@@ -442,6 +444,8 @@ body.playing #controls { display: block; }
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) { /* ignore */ }
   }
   var save = loadSave();
+  if (!Array.isArray(save.moves)) save.moves = [];
+  if (['leaf', 'throw', 'counter'].every(function (id) { return save.moves.indexOf(id) !== -1; }) && save.moves.indexOf('storm') === -1) save.moves.push('storm');
 
   // ---------- audio (tiny WebAudio synth) ----------
   var actx = null, gestured = false;
@@ -792,10 +796,12 @@ body.playing #controls { display: block; }
     { id: 'throw', xp: 300, name: 'Owl Toss', icon: '🤼', cmd: 'Close to your rival:  → + P', desc: 'Grab and toss your rival. It even breaks their guard!', lesson: 'Toss the guarding rival 3 times!' },
     { id: 'counter', xp: 600, name: 'Wing Counter', icon: '✨', cmd: '← + P  just before a hit', desc: 'Catch an attack and strike right back!', lesson: 'Counter 3 attacks!' }
   ];
+  // the reward for learning all three: Moku's super move
+  var REWARD = { id: 'storm', xp: 600, name: 'Leaf Storm', icon: '🌪', cmd: 'P + K together (gauge full)', desc: 'Your reward for learning every move! Fill the blue gauge, then unleash a storm of leaves.', lesson: 'Unleash Leaf Storm 3 times!', reward: true };
   function hasMove(id) { return save.moves.indexOf(id) !== -1; }
-  // Leaf Storm (P + K) is kept for later; the plan allows only three learned moves for now.
   function superUnlocked() { return hasMove('storm'); }
-  function moveById(id) { return MOVES.filter(function (m) { return m.id === id; })[0]; }
+  function moveById(id) { return id === REWARD.id ? REWARD : MOVES.filter(function (m) { return m.id === id; })[0]; }
+  function allMovesLearned() { return MOVES.every(function (m) { return hasMove(m.id); }); }
   function nextMove() { return MOVES.filter(function (m) { return !hasMove(m.id); })[0]; }
 
   function makeInput() { return { left: false, right: false, up: false, down: false, guard: false, buf: { up: 0, a: 0, b: 0, p: 0, sp: 0, t: 0, c: 0 } }; }
@@ -1126,6 +1132,7 @@ body.playing #controls { display: block; }
       vx: f.facing * cfg.speed, vy: cfg.vy || 0, g: cfg.g || 0, r: cfg.r, t: 0, atk: atk
     });
     if (!isSuper) { sfx.toss(); practiceEvent('leaf', f); }
+    else practiceEvent('storm', f);
   }
   function stepProjectiles() {
     for (var i = projectiles.length - 1; i >= 0; i--) {
@@ -1869,7 +1876,7 @@ body.playing #controls { display: block; }
   var KEYMAP = {
     ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
     ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down',
-    KeyJ: 'a', KeyZ: 'a', KeyK: 'b', KeyX: 'b'
+    KeyP: 'a', KeyJ: 'a', KeyZ: 'a', KeyK: 'b', KeyX: 'b'
   };
 
   // Only two buttons (P = punch 'a', K = kick 'b'); special moves come from simple commands:
@@ -1882,7 +1889,7 @@ body.playing #controls { display: block; }
     inputLog.push({ s: sym, t: game.time });
     if (inputLog.length > 10) inputLog.shift();
   }
-  var lastPress = { a: -99, b: -99 };
+  var lastPress = { a: -1e9, b: -1e9 };
   function recordMotion() {
     var i = game.in1, f = game.p1;
     if (!f) return;
@@ -1904,17 +1911,19 @@ body.playing #controls { display: block; }
     }
     return false;
   }
-  function press(name) {
+  function press(name, when) {
     var i = game.in1, f = game.p1;
     if (!i || i.buf[name] === undefined) return;
     if (name === 'up') { i.buf.up = 8; return; }
     var other = name === 'a' ? 'b' : 'a';
     logInput(name === 'a' ? 'P' : 'K');
-    if (f && f.meter >= 100 && superUnlocked() && game.time - lastPress[other] <= 10) {
-      i.buf.a = i.buf.b = 0; i.buf.sp = 8; lastPress.a = lastPress.b = -99;
+    // P and K within ~0.17s of each other (wall-clock, so a slow frame during effects can't split them)
+    var now = when || performance.now();   // the event's own timestamp when we have it
+    if (f && f.meter >= 100 && superUnlocked() && now - lastPress[other] <= 170) {
+      i.buf.a = i.buf.b = 0; i.buf.sp = 8; lastPress.a = lastPress.b = -1e9;
       return;
     }
-    lastPress[name] = game.time;
+    lastPress[name] = now;
     if (name === 'a' && f && f.onGround()) {
       if (hasMove('leaf') && quarterCircle()) { i.buf.p = 8; motion.length = 0; return; }
       // read the stick directly: the per-frame input copy may not have caught up yet
@@ -1931,16 +1940,16 @@ body.playing #controls { display: block; }
     if (activeMenu()) {
       if (e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'ArrowLeft' || e.code === 'KeyA') { moveMenu(-1); e.preventDefault(); }
       else if (e.code === 'ArrowDown' || e.code === 'KeyS' || e.code === 'ArrowRight' || e.code === 'KeyD') { moveMenu(1); e.preventDefault(); }
-      else if (e.code === 'Enter' || e.code === 'Space' || e.code === 'KeyJ' || e.code === 'KeyZ') { activateMenu(); e.preventDefault(); }
+      else if (e.code === 'Enter' || e.code === 'Space' || e.code === 'KeyP' || e.code === 'KeyJ' || e.code === 'KeyZ') { activateMenu(); e.preventDefault(); }
       else if (e.code === 'Escape' && game.mode === 'paused') { resume(); }
       return;
     }
-    if (e.code === 'KeyP' || e.code === 'Escape') { if (game.mode === 'playing') pause(); return; }
+    if (e.code === 'Escape') { if (game.mode === 'playing') pause(); return; }
     var k = KEYMAP[e.code];
     if (!k) return;
     e.preventDefault();
     if (e.repeat) return;
-    if (k === 'a' || k === 'b') { press(k); return; }
+    if (k === 'a' || k === 'b') { press(k, e.timeStamp); return; }
     kb[k] = true;
     if (k === 'up') press('up');
   });
@@ -2017,7 +2026,7 @@ body.playing #controls { display: block; }
   var btnPunch = document.getElementById('btnPunch'), btnKick = document.getElementById('btnKick');
   [[btnPunch, 'a'], [btnKick, 'b']].forEach(function (pair) {
     var el = pair[0];
-    el.addEventListener('pointerdown', function (e) { e.preventDefault(); audio(); press(pair[1]); el.classList.add('on'); });
+    el.addEventListener('pointerdown', function (e) { e.preventDefault(); audio(); press(pair[1], e.timeStamp); el.classList.add('on'); });
     ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) { el.addEventListener(ev, function () { el.classList.remove('on'); }); });
   });
   // pointerdown, not click: touch defaults inside #controls are cancelled to block zoom, which also cancels click
@@ -2062,7 +2071,7 @@ body.playing #controls { display: block; }
     roundResult: null, time: 0, demo: /[?&]demo\b/.test(location.search)
   };
   // ?debug exposes the game state for automated tests
-  if (/[?&]debug\b/.test(location.search)) window.__mokuFight = { game: game, projectiles: function () { return projectiles; } };
+  if (/[?&]debug\b/.test(location.search)) window.__mokuFight = { game: game, projectiles: function () { return projectiles; }, lastPress: function () { return lastPress; } };
   function currentRival() { return CHARS[save.rival] && RIVALS.indexOf(save.rival) !== -1 ? save.rival : 'kon'; }
 
   // ---- practice: right after learning a move (or from Training) ----
@@ -2072,7 +2081,7 @@ body.playing #controls { display: block; }
     setTheme(CHARS[rival].theme);
     game.practice = { move: moveId, count: 0, doneT: 0 };
     game.p1 = new Fighter('moku', 300, 1);
-    game.p2 = new Fighter(rival, moveId === 'leaf' ? 690 : moveId === 'throw' ? 470 : 560, -1);
+    game.p2 = new Fighter(rival, moveId === 'leaf' || moveId === 'storm' ? 690 : moveId === 'throw' ? 470 : 560, -1);
     game.in1 = makeInput(); game.in2 = makeInput();
     game.ai1 = null; game.ai2 = { t: 0 };
     projectiles.length = 0; particles.length = 0; rings.length = 0; inputLog.length = 0;
@@ -2087,6 +2096,7 @@ body.playing #controls { display: block; }
     ai.t++;
     var dist = Math.abs(opp.x - me.x), toward = opp.x > me.x ? 'right' : 'left';
     if (pr.move === 'throw') { inp.guard = true; return; }
+    if (pr.move === 'storm') { if (!opp.hasProjectile() && opp.state !== 'attack') opp.meter = 100; return; }
     if (pr.move === 'counter') {
       if (dist > 78) { inp[toward] = true; return; }
       if (ai.t % 90 === 0) { if ((ai.t / 90) % 2) inp.buf.a = 6; else inp.buf.b = 6; }
@@ -2127,7 +2137,7 @@ body.playing #controls { display: block; }
   function renderXp(el, gained) {
     var nm = nextMove(), prevXp = 0;
     MOVES.forEach(function (m) { if (hasMove(m.id) && m.xp > prevXp) prevXp = m.xp; });
-    if (!nm) { el.innerHTML = (gained ? '+' + gained + ' XP · ' : '') + 'All 3 moves learned! ★'; return; }
+    if (!nm) { el.innerHTML = (gained ? '+' + gained + ' XP · ' : '') + 'All 3 moves learned! ★ Reward: 🌪 Leaf Storm (P + K)'; return; }
     var pct = Math.max(0, Math.min(1, (save.xp - prevXp) / (nm.xp - prevXp)));
     el.innerHTML = (gained ? '<b>+' + gained + ' XP</b> · ' : '') + 'Next move: ' + nm.icon + ' ' + nm.name + ' (' + Math.max(0, nm.xp - save.xp) + ' XP to go)' +
       '<span class="xpBar"><span style="width:' + Math.round(pct * 100) + '%"></span></span>';
@@ -2250,6 +2260,8 @@ body.playing #controls { display: block; }
       save.xp += gained;
       var nm = nextMove();
       if (nm && save.xp >= nm.xp) { save.moves.push(nm.id); learned = nm; }
+      var reward = learned && allMovesLearned() && !superUnlocked();
+      if (reward) save.moves.push(REWARD.id);
       var rec = save.rivals[rival] || (save.rivals[rival] = { w: 0, l: 0 });
       if (res === 'win') { save.wins++; save.streak++; save.bestStreak = Math.max(save.bestStreak, save.streak); rec.w++; }
       else if (res === 'lose') { save.losses++; save.streak = 0; rec.l++; }
@@ -2272,6 +2284,7 @@ body.playing #controls { display: block; }
       document.getElementById('unlockName').textContent = learned.name;
       document.getElementById('unlockCmd').textContent = learned.cmd;
       document.getElementById('unlockDesc').textContent = learned.desc;
+      document.getElementById('unlockBonus').style.display = reward ? '' : 'none';
       document.querySelector('#unlockMenu [data-action="practice"]').setAttribute('data-move', learned.id);
       showScreen('unlock');
       setTimeout(function () { sfx.win(); }, 500);
@@ -2440,10 +2453,10 @@ body.playing #controls { display: block; }
   });
   function refreshTrain() {
     var menu = document.getElementById('trainMenu');
-    menu.innerHTML = MOVES.map(function (m, k) {
+    menu.innerHTML = MOVES.concat([REWARD]).map(function (m, k) {
       var got = hasMove(m.id);
       return '<div class="titleMenuItem trainItem' + (k === 0 ? ' sel' : '') + (got ? '' : ' locked') + '" data-action="' + (got ? 'practice' : 'locked') + '" data-move="' + m.id + '">' +
-        '<span class="ti">' + (got ? m.icon : '🔒') + '</span><span><b>' + m.name + '</b><small>' + (got ? m.cmd : 'Unlocks at ' + m.xp + ' XP') + '</small></span></div>';
+        '<span class="ti">' + (got ? m.icon : '🔒') + '</span><span><b>' + m.name + '</b><small>' + (got ? m.cmd : m.reward ? 'Reward for learning all 3 moves' : 'Unlocks at ' + m.xp + ' XP') + '</small></span></div>';
     }).join('') + '<div class="titleMenuItem" data-action="back">Back</div>';
     renderXp(document.getElementById('trainXp'), 0);
   }
