@@ -34,6 +34,6 @@ GitHub 側の変更を AI Studio に自動で取り込む仕組みではない�
 
 - フレームワーク・バンドラーは導入しない。ライブラリは CDN 経由のみ。
 - `localStorage` のキーは `moku:<gameId>:<key>`。`gameId` はファイル名(拡張子なし)。
-- 新規タイトルを追加したら `index.html` / `hub.html` の `GAMES` 配列(stats / `progress()`)にも追加する。
+- 新規タイトルを追加したら `index.html` / `hub.html` の `GAMES` 配列(stats / `progress()`)にも追加する。`hub.html` は表示用の `CATALOG` / `SHELVES` と `icons/games/<gameId>.svg` / `screenshots/<gameId>.jpg` も必要(SPEC.md §7)。
 - 1回の変更は小さく、インパクトの大きいものに絞る(Gemini.md §4)。既存コードを省略・短縮しない。
 - 過去の履歴を追うときは `git log --full-history -- <file>` を使う(SPEC.md「開発履歴について」)。
