@@ -1191,11 +1191,16 @@ header {
       </div>
     </div>
 
-    <!-- Vote Button -->
-    <button id="btnGoToVote" class="btn-primary" style="background: linear-gradient(135deg, #E11D48, #9333EA);">
-      <span>🗳️ TIME TO VOTE!</span>
-      <span>👉</span>
-    </button>
+    <!-- Vote Button + Restart (same settings) -->
+    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+      <button id="btnGoToVote" class="btn-primary" style="background: linear-gradient(135deg, #E11D48, #9333EA);">
+        <span>🗳️ TIME TO VOTE!</span>
+        <span>👉</span>
+      </button>
+      <button id="btnRestartSameSettings" class="btn-secondary">
+        <span>🔄 New Game (Same Settings)</span>
+      </button>
+    </div>
   </div>
 
   <!-- ==================== SCREEN 5: VOTE (OPTION B: 3, 2, 1, POINT!) ==================== -->
@@ -1865,6 +1870,8 @@ header {
     state.timerTotalSeconds = 180;
     state.timerSeconds = 180;
     state.timerRunning = true;
+    document.getElementById('btnTimerToggle').textContent = '⏸ Pause';
+    timerStatusLabel.textContent = 'DISCUSS';
     updateTimerVisuals();
 
     clearInterval(state.timerInterval);
@@ -1952,6 +1959,15 @@ header {
     playSound('tap');
     clearInterval(state.timerInterval);
     startVotePhase();
+  });
+
+  // Restart with the same settings (new word pair & new WordMoku)
+  document.getElementById('btnRestartSameSettings').addEventListener('click', function() {
+    playSound('tap');
+    if (!window.confirm('Start a new game with the same settings?\nThe current round will end and everyone gets a new word.')) return;
+    clearInterval(state.timerInterval);
+    state.timerRunning = false;
+    startNewGameMatch();
   });
 
   // --- VOTE PHASE (OPTION B: 3, 2, 1, POINT!) ---
