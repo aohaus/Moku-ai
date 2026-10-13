@@ -271,10 +271,34 @@ body.playing #controls { display: block; }
 .rivalCard em { font-style: normal; font-size: 10px; font-weight: 700; color: #ffd27a; min-height: 1.2em; }
 @media (max-height: 430px) {
   .screen { padding: 14px 24px; gap: 4px; }
+  #titleMenu { margin-top: 2px; gap: 0; }
+  #titleMenu .titleMenuItem { padding: 2px 18px; }
+  #titleHero, #titleRival { width: 58px; height: 58px; }
+  #titleSub { display: none; }
+  .xpBar { margin-top: 2px; }
+  #titleLogo { font-size: 26px; }
   .screenTitle { font-size: 18px; }
   .moveList { font-size: 11px; gap: 3px 10px; }
   .moveList h3 { margin-top: 1px; }
 }
+.xpLine { font-size: 11px; font-weight: 700; color: rgba(237,238,246,0.7); min-height: 1em; max-width: 520px; line-height: 1.5; }
+.xpLine b { color: #ffd86a; }
+.xpBar { display: block; height: 7px; margin: 4px auto 0; width: min(320px, 80%); border-radius: 4px; background: rgba(255,255,255,0.12); overflow: hidden; }
+.xpBar span { display: block; height: 100%; background: linear-gradient(90deg, #2EC4B6, #9ff0e6); border-radius: 4px; }
+#unlockIcon { font-size: clamp(40px, 8vw, 72px); animation: heroFloat 2.4s ease-in-out infinite; }
+#unlockTag { font-size: 12px; font-weight: 800; letter-spacing: 0.16em; color: #ffd86a; }
+#unlockName { font-size: clamp(24px, 4.6vw, 40px); font-weight: 800; color: var(--hi); text-shadow: 0 0 18px rgba(46,196,182,0.5); }
+#unlockCmd { font-size: clamp(16px, 2.6vw, 24px); font-weight: 900; background: rgba(255,255,255,0.08); padding: 6px 16px; border-radius: 10px; }
+#unlockDesc, #practiceDoneDesc { font-size: 13px; color: rgba(237,238,246,0.7); }
+#unlockBonus { font-size: 13px; color: #ffd86a; max-width: 520px; line-height: 1.5; }
+.titleMenuItem.trainItem { display: flex; align-items: center; gap: 12px; text-align: left; font-size: 16px; min-width: min(380px, 80vw); border-radius: 10px; }
+.titleMenuItem.trainItem::before { content: none; }
+.titleMenuItem.trainItem.sel { background: rgba(46,196,182,0.12); }
+.trainItem .ti { font-size: 24px; width: 32px; text-align: center; }
+.trainItem small { display: block; font-size: 11px; font-weight: 700; opacity: 0.75; margin-top: 2px; }
+.trainItem.locked { opacity: 0.4; }
+.moveList .locked { opacity: 0.3; }
+.moveList .nm.locked::after { content: ' 🔒'; }
 #resultTitle { font-size: clamp(28px, 5.4vw, 48px); font-weight: 800; letter-spacing: 0.02em; }
 #resultTitle.win { color: #FFD27A; text-shadow: 0 0 22px rgba(255,190,90,0.6); }
 #resultTitle.lose { color: #C4B5FD; text-shadow: 0 0 22px rgba(167,139,250,0.5); }
@@ -285,7 +309,7 @@ body.playing #controls { display: block; }
 <div id="rotate-hint"><span>📱</span><p>Moku Fight is played in landscape.<br>Please rotate your device.</p></div>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.3.1 · Updated Oct 12, 2026</div>
+<div id="buildInfo">v0.4.1 · Updated Oct 13, 2026</div>
 
 <div id="wrapper">
   <canvas id="c"></canvas>
@@ -307,8 +331,10 @@ body.playing #controls { display: block; }
     <h1 id="titleLogo">MOKU<span>FIGHT</span></h1>
     <p id="titleSub">Moku vs Rivals — Showdown at the Sunset Arena</p>
     <div id="titleRecord"></div>
+    <div class="xpLine" id="titleXp"></div>
     <nav class="menu" id="titleMenu">
       <div class="titleMenuItem sel" data-action="fight">Fight!</div>
+      <div class="titleMenuItem" data-action="train">Training</div>
       <div class="titleMenuItem" data-action="difficulty">CPU: Normal</div>
       <div class="titleMenuItem" data-action="howto">Move List</div>
       <div class="titleMenuItem" data-action="sound">Sound: ON</div>
@@ -331,9 +357,9 @@ body.playing #controls { display: block; }
     <h2 class="screenTitle">Move List — MOKU</h2>
     <div class="moveCols">
       <div class="moveList"><h3>BASICS</h3><span class="nm">Walk</span><span class="cmd"><span class="ar">←</span><span class="ar">→</span></span><span class="nm">Jump</span><span class="cmd"><span class="ar">↖</span><span class="ar">↑</span><span class="ar">↗</span></span><span class="nm">Crouch</span><span class="cmd"><span class="ar">↓</span></span><span class="nm">Guard <i>hold away</i></span><span class="cmd"><span class="ar">←</span></span><span class="nm">Low Guard</span><span class="cmd"><span class="ar">↙</span></span><span class="nm">Peck</span><span class="cmd"><span class="bt p">P</span></span><span class="nm">Wing Slap</span><span class="cmd"><span class="bt k">K</span></span><span class="nm">Low Attacks</span><span class="cmd"><span class="ar">↓</span><span class="pl">+</span><span class="bt p">P</span><span class="pl">/</span><span class="bt k">K</span></span><span class="nm">Air Attacks</span><span class="cmd"><span class="pl">in the air</span><span class="bt p">P</span><span class="pl">/</span><span class="bt k">K</span></span></div>
-      <div class="moveList"><h3>SPECIAL MOVES</h3><span class="nm">Razor Leaf 🍃</span><span class="cmd"><span class="ar">↓</span><span class="ar">↘</span><span class="ar">→</span><span class="pl">+</span><span class="bt p">P</span></span><span class="nm">Leaf Storm 🌪 <i>gauge full</i></span><span class="cmd"><span class="bt p">P</span><span class="pl">+</span><span class="bt k">K</span><span class="pl">together</span></span><h3>COMBOS</h3><span class="nm">Owl Rush!</span><span class="cmd"><span class="bt p">P</span><span class="pl">▸</span><span class="bt p">P</span><span class="pl">▸</span><span class="bt k">K</span></span><span class="nm">Low Owl Rush!</span><span class="cmd"><span class="ar">↓</span><span class="bt p">P</span><span class="pl">▸</span><span class="ar">↓</span><span class="bt p">P</span><span class="pl">▸</span><span class="ar">↓</span><span class="bt k">K</span></span><span class="nm">Leaf Cutter!</span><span class="cmd"><span class="bt k">K</span><span class="pl">▸</span><span class="ar">↓</span><span class="ar">↘</span><span class="ar">→</span><span class="pl">+</span><span class="bt p">P</span></span><span class="nm">Air Combo</span><span class="cmd"><span class="pl">jump</span><span class="bt p">P</span><span class="pl">▸</span><span class="bt k">K</span></span></div>
+      <div class="moveList"><h3>NEW MOVES (win matches to learn)</h3><span class="nm" data-move="leaf">Razor Leaf 🍃</span><span class="cmd" data-move="leaf"><span class="ar">↓</span><span class="ar">↘</span><span class="ar">→</span><span class="pl">+</span><span class="bt p">P</span></span><span class="nm" data-move="throw">Owl Toss 🤼 <i>close</i></span><span class="cmd" data-move="throw"><span class="ar">→</span><span class="pl">+</span><span class="bt p">P</span></span><span class="nm" data-move="counter">Wing Counter ✨ <i>just before a hit</i></span><span class="cmd" data-move="counter"><span class="ar">←</span><span class="pl">+</span><span class="bt p">P</span></span><span class="nm" data-move="storm">Leaf Storm 🌪 <i>reward · gauge full</i></span><span class="cmd" data-move="storm"><span class="bt p">P</span><span class="pl">+</span><span class="bt k">K</span><span class="pl">together</span></span><h3>COMBOS</h3><span class="nm">Owl Rush!</span><span class="cmd"><span class="bt p">P</span><span class="pl">▸</span><span class="bt p">P</span><span class="pl">▸</span><span class="bt k">K</span></span><span class="nm">Low Owl Rush!</span><span class="cmd"><span class="ar">↓</span><span class="bt p">P</span><span class="pl">▸</span><span class="ar">↓</span><span class="bt p">P</span><span class="pl">▸</span><span class="ar">↓</span><span class="bt k">K</span></span><span class="nm" data-move="leaf">Leaf Cutter!</span><span class="cmd" data-move="leaf"><span class="bt k">K</span><span class="pl">▸</span><span class="ar">↓</span><span class="ar">↘</span><span class="ar">→</span><span class="pl">+</span><span class="bt p">P</span></span><span class="nm">Air Combo</span><span class="cmd"><span class="pl">jump</span><span class="bt p">P</span><span class="pl">▸</span><span class="bt k">K</span></span></div>
     </div>
-    <p class="howNote">→ means toward your rival (commands flip when you switch sides). ▸ = then: for combos, press the next button just as the hit lands. Win 2 rounds to win! Keyboard: Arrows / WASD + J = P, K = K, Esc = Pause.</p>
+    <p class="howNote">→ means toward your rival (commands flip when you switch sides). ▸ = then: for combos, press the next button just as the hit lands. Win 2 rounds to win! Keyboard: Arrows / WASD to move, P = Punch, K = Kick, Esc = Pause.</p>
     <nav class="menu" id="howMenu">
       <div class="titleMenuItem sel" data-action="howback">Back</div>
     </nav>
@@ -348,9 +374,39 @@ body.playing #controls { display: block; }
     </nav>
   </section>
 
+  <section class="screen" id="unlockScreen">
+    <div id="unlockTag">★ NEW MOVE LEARNED! ★</div>
+    <div id="unlockIcon">🍃</div>
+    <div id="unlockName">Razor Leaf</div>
+    <div id="unlockCmd">↓ ↘ → + P</div>
+    <p id="unlockDesc"></p>
+    <p id="unlockBonus" style="display:none">🎁 <b>REWARD!</b> You learned every move, so you also got 🌪 <b>Leaf Storm</b>: fill the blue gauge, then press P + K together!</p>
+    <nav class="menu" id="unlockMenu">
+      <div class="titleMenuItem sel" data-action="practice" data-move="leaf">Practice Now!</div>
+      <div class="titleMenuItem" data-action="later">Later</div>
+    </nav>
+  </section>
+
+  <section class="screen" id="trainScreen">
+    <h2 class="screenTitle">Training</h2>
+    <div class="xpLine" id="trainXp"></div>
+    <nav class="menu" id="trainMenu"></nav>
+  </section>
+
+  <section class="screen" id="practiceDoneScreen">
+    <h1 id="resultTitle2" class="screenTitle" style="font-size:clamp(26px,5vw,44px);color:#ffd86a">GREAT JOB!</h1>
+    <p id="practiceDoneDesc"></p>
+    <nav class="menu" id="practiceDoneMenu">
+      <div class="titleMenuItem sel" data-action="select">Fight!</div>
+      <div class="titleMenuItem" data-action="train">Training</div>
+      <div class="titleMenuItem" data-action="title">Title Menu</div>
+    </nav>
+  </section>
+
   <section class="screen" id="resultScreen">
     <h1 id="resultTitle">YOU WIN!</h1>
     <p id="resultDesc"></p>
+    <div class="xpLine" id="resultXp"></div>
     <nav class="menu" id="resultMenu">
       <div class="titleMenuItem sel" data-action="rematch">Rematch</div>
       <div class="titleMenuItem" data-action="select">Change Rival</div>
@@ -373,7 +429,7 @@ body.playing #controls { display: block; }
 
   // ---------- save data ----------
   function loadSave() {
-    var d = { version: 1, gameId: GAME_ID, wins: 0, losses: 0, draws: 0, streak: 0, bestStreak: 0, rival: 'kon', rivals: {}, difficulty: 'normal', sound: true, updatedAt: null };
+    var d = { version: 1, gameId: GAME_ID, wins: 0, losses: 0, draws: 0, streak: 0, bestStreak: 0, rival: 'kon', rivals: {}, xp: 0, moves: [], difficulty: 'normal', sound: true, updatedAt: null };
     try {
       var raw = localStorage.getItem(SAVE_KEY);
       if (raw) {
@@ -388,6 +444,8 @@ body.playing #controls { display: block; }
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) { /* ignore */ }
   }
   var save = loadSave();
+  if (!Array.isArray(save.moves)) save.moves = [];
+  if (['leaf', 'throw', 'counter'].every(function (id) { return save.moves.indexOf(id) !== -1; }) && save.moves.indexOf('storm') === -1) save.moves.push('storm');
 
   // ---------- audio (tiny WebAudio synth) ----------
   var actx = null, gestured = false;
@@ -684,7 +742,7 @@ body.playing #controls { display: block; }
       proj: { kind: 'wisp', speed: 7, r: 16 }, superProj: { kind: 'foxfire', speed: 7.2, r: 30 },
       portrait: { dy: 70, s: 0.9, bg: ['#6a4fb0', '#2a1c4c'] }, titleScale: 1.45,
       ai: { aggr: 1, jump: 1, proj: 1 },
-      loseTip: 'Kon\'s foxfire is tricky. Hold 🛡 to guard, then strike back!',
+      loseTip: 'Kon\'s foxfire is tricky. Hold ← (away) to guard, then strike back!',
       attacks: attacks({
         A:  { recovery: 10, range: 64, yOff: 62 },
         B:  { startup: 10, active: 6, recovery: 16, range: 100, push: 8, yOff: 58 },
@@ -702,7 +760,7 @@ body.playing #controls { display: block; }
       proj: { kind: 'acorn', speed: 6, r: 14, vy: -7.5, g: 0.42 }, superProj: { kind: 'quake', speed: 8, r: 34, y: 18, height: 'low' },
       portrait: { dy: 58, s: 0.78, bg: ['#9fd0a0', '#4c7a4e'] }, titleScale: 1.25,
       ai: { aggr: 1.15, jump: 0.5, proj: 0.7 },
-      loseTip: 'Ponta hits hard! Guard low (🛡 + ▼) against the Belly Drum Quake.',
+      loseTip: 'Ponta hits hard! Guard low (↙) against the Belly Drum Quake.',
       attacks: attacks({
         A:  { startup: 6, recovery: 11, dmg: 7, range: 66, yOff: 60 },
         B:  { startup: 12, active: 6, recovery: 18, dmg: 12, range: 96, push: 9, yOff: 52, lunge: 5 },
@@ -720,7 +778,7 @@ body.playing #controls { display: block; }
       proj: { kind: 'sonic', speed: 10, r: 18 }, superProj: { kind: 'screech', speed: 8, r: 36 },
       portrait: { dy: 62, s: 0.9, bg: ['#3d3478', '#15112e'] }, titleScale: 1.45,
       ai: { aggr: 1, jump: 2, proj: 1.3 },
-      loseTip: 'Nox is fast! Guard the Sonic Waves, then punish with A → A → B.',
+      loseTip: 'Nox is fast! Guard the Sonic Waves, then punish with P ▸ P ▸ K.',
       attacks: attacks({
         A:  { startup: 4, recovery: 8, dmg: 5, range: 60, yOff: 66 },
         B:  { startup: 8, recovery: 14, dmg: 9, range: 98, yOff: 64 },
@@ -732,7 +790,21 @@ body.playing #controls { display: block; }
   };
   var RIVALS = ['kon', 'ponta', 'nox'];
 
-  function makeInput() { return { left: false, right: false, up: false, down: false, guard: false, buf: { up: 0, a: 0, b: 0, p: 0, sp: 0 } }; }
+  // Moku starts with only P and K; every match earns XP and new moves unlock in this order.
+  var MOVES = [
+    { id: 'leaf', xp: 100, name: 'Razor Leaf', icon: '🍃', cmd: '↓ ↘ → + P', desc: 'Throw a spinning leaf from far away.', lesson: 'Throw 3 Razor Leaves!' },
+    { id: 'throw', xp: 300, name: 'Owl Toss', icon: '🤼', cmd: 'Close to your rival:  → + P', desc: 'Grab and toss your rival. It even breaks their guard!', lesson: 'Toss the guarding rival 3 times!' },
+    { id: 'counter', xp: 600, name: 'Wing Counter', icon: '✨', cmd: '← + P  just before a hit', desc: 'Catch an attack and strike right back!', lesson: 'Counter 3 attacks!' }
+  ];
+  // the reward for learning all three: Moku's super move
+  var REWARD = { id: 'storm', xp: 600, name: 'Leaf Storm', icon: '🌪', cmd: 'P + K together (gauge full)', desc: 'Your reward for learning every move! Fill the blue gauge, then unleash a storm of leaves.', lesson: 'Unleash Leaf Storm 3 times!', reward: true };
+  function hasMove(id) { return save.moves.indexOf(id) !== -1; }
+  function superUnlocked() { return hasMove('storm'); }
+  function moveById(id) { return id === REWARD.id ? REWARD : MOVES.filter(function (m) { return m.id === id; })[0]; }
+  function allMovesLearned() { return MOVES.every(function (m) { return hasMove(m.id); }); }
+  function nextMove() { return MOVES.filter(function (m) { return !hasMove(m.id); })[0]; }
+
+  function makeInput() { return { left: false, right: false, up: false, down: false, guard: false, buf: { up: 0, a: 0, b: 0, p: 0, sp: 0, t: 0, c: 0 } }; }
 
   function Fighter(charId, x, facing) {
     this.c = CHARS[charId];
@@ -821,6 +893,13 @@ body.playing #controls { display: block; }
     if (this.state === 'ko' || this.state === 'win') {
       this.physics(); return;
     }
+    if (this.state === 'thrown') return;          // the thrower moves us
+    if (this.state === 'throw') { this.stepThrow(); return; }
+    if (this.state === 'counter') {
+      this.physics();
+      if (this.t > 30) this.state = 'idle';
+      return;
+    }
     if (this.state === 'hit' || this.state === 'block' || this.state === 'cblock') {
       this.stun--;
       this.physics();
@@ -866,6 +945,12 @@ body.playing #controls { display: block; }
     this.facing = opp.x >= this.x ? 1 : -1;
     if (inp.guard) { this.state = inp.down ? 'cguard' : 'guard'; this.vx = 0; this.physics(); return; }
     if (inp.buf.sp && this.meter >= 100) { inp.buf.sp = 0; this.vx = 0; this.startAttack('SP'); return; }
+    if (inp.buf.t) {
+      inp.buf.t = 0; this.vx = 0;
+      if (canGrab(this, opp)) this.startThrow(opp); else this.startAttack('A');
+      return;
+    }
+    if (inp.buf.c) { inp.buf.c = 0; this.vx = 0; this.state = 'counter'; this.t = 0; sfx.swing(); return; }
     if (inp.buf.p) {
       inp.buf.p = 0;
       if (!this.hasProjectile()) { this.vx = 0; this.startAttack('P'); return; }
@@ -886,6 +971,40 @@ body.playing #controls { display: block; }
     else if (backHeld) { this.state = 'walk'; this.vx = -this.facing * this.c.back; }
     else { this.state = 'idle'; this.vx = 0; }
     this.physics();
+  };
+
+  // ---- Owl Toss: grab, lift, toss forward ----
+  function canGrab(me, opp) {
+    var free = ['idle', 'walk', 'crouch', 'guard', 'cguard', 'block', 'cblock', 'attack', 'counter'];
+    return opp.onGround() && me.onGround() && free.indexOf(opp.state) !== -1 && Math.abs(opp.x - me.x) <= 92;
+  }
+  Fighter.prototype.startThrow = function (opp) {
+    this.state = 'throw'; this.t = 0; this.grabbed = opp;
+    opp.state = 'thrown'; opp.vx = 0; opp.vy = 0;
+    projectiles.forEach(function (p) { if (p.owner === opp && !p.super) p.x = -999; });
+    sfx.block();
+  };
+  Fighter.prototype.stepThrow = function () {
+    var o = this.grabbed;
+    if (this.t <= 14 && o) {
+      var k = this.t / 14;
+      o.x = this.x + this.facing * (52 - k * 10);
+      o.y = GROUND - k * 46;
+      o.flash = this.t % 4 < 2 ? 2 : 0;
+    } else if (this.t === 15 && o) {
+      o.state = 'hit'; o.stun = 44; o.vx = this.facing * 8; o.vy = -9; o.flash = 8;
+      var dmg = Math.round(13 * (this.c.power || 1) * (o.c.defense || 1));
+      o.hp = Math.max(0, o.hp - dmg);
+      this.comboName = 'OWL TOSS!'; this.comboNameT = 80;
+      this.meter = Math.min(100, this.meter + 12);
+      game.hitstop = 10; game.shake = 12;
+      burst(o.x, o.y - 50, this.charId);
+      sfx.heavy(); sfx.combo();
+      this.grabbed = null;
+      practiceEvent('throw', this);
+    }
+    this.physics();
+    if (this.t > 30) this.state = 'idle';
   };
 
   Fighter.prototype.physics = function () {
@@ -934,6 +1053,11 @@ body.playing #controls { display: block; }
 
   function landHit(att, def, a, hx, hy) {
     var fromDir = att.x < def.x ? 1 : -1;
+    if (def.state === 'throw' || def.state === 'thrown') return;
+    if (def.state === 'counter' && def.t >= 2 && def.t <= 22) {
+      counterStrike(def, att, hx, hy);
+      return;
+    }
     var guard = isGuarding(def, a.height, fromDir);
     if (guard) {
       var crouchGuard = (def === game.p1 ? game.in1 : game.in2).down;
@@ -970,6 +1094,30 @@ body.playing #controls { display: block; }
     if (!a.special && !a.proj && (def.x <= 47 || def.x >= W - 47)) att.vx = -fromDir * a.push * 0.6;
   }
 
+  function counterStrike(def, att, hx, hy) {
+    def.flash = 0; def.guardFlash = 14;
+    def.comboName = 'COUNTER!'; def.comboNameT = 80;
+    game.hitstop = 14; game.shake = 8;
+    burst(hx, hy, 'block');
+    sfx.combo();
+    practiceEvent('counter', def);
+    // strike back if the attacker is in reach (a projectile from far away is just parried)
+    if (Math.abs(att.x - def.x) < 150 && att.state !== 'ko') {
+      def.facing = att.x >= def.x ? 1 : -1;
+      def.startAttack('B');
+      def.hasHit = true; def.atkFrame = def.atk.startup;
+      var dmg = Math.round(12 * (def.c.power || 1) * (att.c.defense || 1));
+      att.hp = Math.max(0, att.hp - dmg);
+      att.state = 'hit'; att.stun = 30; att.flash = 8;
+      att.vx = def.facing * 8; att.vy = -7;
+      def.meter = Math.min(100, def.meter + 10);
+      burst(att.x, att.y - 50, def.charId);
+      sfx.heavy();
+    } else {
+      def.state = 'idle';
+    }
+  }
+
   var projectiles = [];
   var TRAIL = { razor: 'leaf', storm: 'leaf', wisp: 'flame', foxfire: 'flame', quake: 'dust', sonic: 'sonic', screech: 'sonic' };
   function spawnProjectile(f, isSuper) {
@@ -983,7 +1131,8 @@ body.playing #controls { display: block; }
       x: f.x + f.facing * 44, y: f.y - (cfg.y || 54 * (f.c.scale || 1)),
       vx: f.facing * cfg.speed, vy: cfg.vy || 0, g: cfg.g || 0, r: cfg.r, t: 0, atk: atk
     });
-    if (!isSuper) sfx.toss();
+    if (!isSuper) { sfx.toss(); practiceEvent('leaf', f); }
+    else practiceEvent('storm', f);
   }
   function stepProjectiles() {
     for (var i = projectiles.length - 1; i >= 0; i--) {
@@ -1078,7 +1227,9 @@ body.playing #controls { display: block; }
       case 'walk': P.dy = -Math.abs(Math.sin(t * 0.28)) * 4; P.legPhase = Math.sin(t * 0.28); P.lean = 0.06 * Math.sign(f.vx * f.facing); break;
       case 'crouch': P.sy = 0.74; P.sx = 1.1; break;
       case 'jump': P.armF = -2.5; P.armB = 2.5; P.sy = f.vy < 0 ? 1.06 : 0.98; break;
-      case 'hit': P.lean = -0.28; P.eyes = 'hurt'; P.armF = -0.9; P.armB = 0.9; break;
+      case 'hit': case 'thrown': P.lean = -0.28; P.eyes = 'hurt'; P.armF = -0.9; P.armB = 0.9; break;
+      case 'throw': P.armF = t <= 14 ? -1.3 : -2.7; P.armB = t <= 14 ? 1.3 : 2.4; P.lean = t <= 14 ? -0.12 : 0.2; P.armLen = 1.2; break;
+      case 'counter': P.armF = 1.1; P.armB = -0.4; P.lean = -0.12; P.sy = 0.94; break;
       case 'block': case 'guard': P.armF = 1.0; P.eyes = 'angry'; P.lean = -0.08; break;
       case 'cblock': case 'cguard': P.armF = 1.0; P.sy = 0.74; P.sx = 1.1; break;
       case 'ko': P.eyes = 'ko'; P.lean = -Math.min(1.5, t * 0.06); P.dy = -36 * Math.min(1, t * 0.04); P.armF = -0.6; P.armB = 0.6; break;
@@ -1421,6 +1572,11 @@ body.playing #controls { display: block; }
     DRAW[f.charId](c, f, P, time);
     c.restore();
     if ('filter' in c) c.filter = 'none';
+    if (f.state === 'counter' && f.t <= 22) {
+      var cyc = f.y - f.height() / 2;
+      c.strokeStyle = 'rgba(255,216,106,' + (0.9 - f.t * 0.03).toFixed(2) + ')'; c.lineWidth = 4;
+      c.beginPath(); c.arc(f.x, cyc, 50 + f.t * 0.8, 0, Math.PI * 2); c.stroke();
+    }
     // guard bubble
     if (f.state === 'guard' || f.state === 'cguard' || f.state === 'block' || f.state === 'cblock') {
       var cy = f.y - f.height() / 2 - (f.charId === 'nox' ? 12 : 0);
@@ -1531,6 +1687,8 @@ body.playing #controls { display: block; }
     c.restore();
     // super meter
     var mx = left ? 150 : 540, mw = 270, my = 50, mh = 10;
+    if (left && f.charId === 'moku' && !superUnlocked() && !game.ai1) mh = 0;
+    if (mh) {
     c.fillStyle = 'rgba(10,8,16,0.8)'; slantBar(c, mx - 3, my - 3, mw + 6, mh + 6, 4); c.fill();
     var m = f.meter / 100;
     var mg = c.createLinearGradient(mx, 0, mx + mw, 0);
@@ -1545,6 +1703,7 @@ body.playing #controls { display: block; }
       c.fillStyle = '#ffd86a'; c.textAlign = left ? 'right' : 'left';
       c.fillText(left ? 'SP READY! P+K' : 'SP READY!', left ? mx - 8 : mx + mw + 10, my + 10);
     }
+    }
     // portrait + name
     var px = left ? 14 : W - 84;
     drawPortrait(c, f.charId, px, 10, 70, 58, time, !left);
@@ -1553,7 +1712,7 @@ body.playing #controls { display: block; }
     c.fillStyle = '#fff'; c.textAlign = left ? 'left' : 'right';
     c.fillText(f.c.name, left ? 98 : W - 98, 78);
     // round win dots
-    for (var i = 0; i < ROUNDS_TO_WIN; i++) {
+    for (var i = 0; i < (game.practice ? 0 : ROUNDS_TO_WIN); i++) {
       var dx = left ? 446 - i * 20 : 514 + i * 20;
       c.fillStyle = 'rgba(10,8,16,0.85)'; c.beginPath(); c.arc(dx, 70, 8, 0, Math.PI * 2); c.fill();
       c.strokeStyle = '#c9cbd6'; c.lineWidth = 1.5; c.stroke();
@@ -1571,6 +1730,36 @@ body.playing #controls { display: block; }
     c.fillStyle = tm <= 10 && game.phase === 'fight' ? '#ff8a7a' : '#ffffff';
     c.fillText(String(Math.max(0, tm)), cx, cy + 2);
     c.textBaseline = 'alphabetic';
+  }
+  function drawPracticeHud(c) {
+    var pr = game.practice, m = moveById(pr.move);
+    c.save();
+    c.fillStyle = 'rgba(12,10,20,0.78)';
+    c.beginPath(); c.roundRect ? c.roundRect(290, 150, 380, 86, 14) : c.rect(290, 150, 380, 86); c.fill();
+    c.strokeStyle = 'rgba(46,196,182,0.7)'; c.lineWidth = 2; c.stroke();
+    c.textAlign = 'center';
+    c.font = '800 12px -apple-system, "Segoe UI", Roboto, sans-serif'; c.fillStyle = '#2EC4B6';
+    c.fillText('PRACTICE · ' + m.icon + ' ' + m.name.toUpperCase(), 480, 170);
+    c.font = '900 22px -apple-system, "Segoe UI", Roboto, sans-serif'; c.fillStyle = '#fff';
+    c.fillText(m.cmd, 480, 198);
+    c.font = '700 12px -apple-system, "Segoe UI", Roboto, sans-serif'; c.fillStyle = 'rgba(237,238,246,0.75)';
+    c.fillText(pr.count >= PRACTICE_GOAL ? 'GREAT! You got it!' : m.lesson, 400, 222);
+    for (var i = 0; i < PRACTICE_GOAL; i++) {
+      c.fillStyle = i < pr.count ? '#ffd86a' : 'rgba(255,255,255,0.18)';
+      c.beginPath(); c.arc(560 + i * 24, 218, 8, 0, Math.PI * 2); c.fill();
+    }
+    // what you just pressed, newest on the right
+    var recent = inputLog.filter(function (e) { return game.time - e.t < 150; });
+    if (recent.length) {
+      c.font = '800 20px -apple-system, "Segoe UI", Roboto, sans-serif';
+      var x = 480 - (recent.length - 1) * 15;
+      recent.forEach(function (e, k) {
+        c.globalAlpha = 0.45 + 0.55 * (k + 1) / recent.length;
+        c.fillStyle = e.s === 'P' ? '#ff7a7a' : e.s === 'K' ? '#7ab4ff' : '#ffffff';
+        c.fillText(e.s, x + k * 30, 268);
+      });
+    }
+    c.restore();
   }
   function drawCombo(c, f, left) {
     if ((f.comboShow <= 0 || f.combo < 2) && f.comboNameT <= 0) return;
@@ -1687,19 +1876,27 @@ body.playing #controls { display: block; }
   var KEYMAP = {
     ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
     ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down',
-    KeyJ: 'a', KeyZ: 'a', KeyK: 'b', KeyX: 'b'
+    KeyP: 'a', KeyJ: 'a', KeyZ: 'a', KeyK: 'b', KeyX: 'b'
   };
 
   // Only two buttons (P = punch 'a', K = kick 'b'); special moves come from simple commands:
   //   ↓ ↘ → + P   Razor Leaf (the projectile)
   //   P + K       super move, when the gauge is full
   var motion = [];          // stick direction each frame, relative to the way Moku faces
-  var lastPress = { a: -99, b: -99 };
+  var ARROW = { f: '→', b: '←', d: '↓', df: '↘', db: '↙', u: '↑' };
+  var inputLog = [];        // recent inputs, shown while practising
+  function logInput(sym) {
+    inputLog.push({ s: sym, t: game.time });
+    if (inputLog.length > 10) inputLog.shift();
+  }
+  var lastPress = { a: -1e9, b: -1e9 };
   function recordMotion() {
     var i = game.in1, f = game.p1;
     if (!f) return;
     var fwd = f.facing === 1 ? i.right : i.left, back = f.facing === 1 ? i.left : i.right;
-    motion.push(i.down ? (fwd ? 'df' : back ? 'db' : 'd') : i.up ? 'u' : fwd ? 'f' : back ? 'b' : 'n');
+    var code = i.down ? (fwd ? 'df' : back ? 'db' : 'd') : i.up ? 'u' : fwd ? 'f' : back ? 'b' : 'n';
+    if (code !== motion[motion.length - 1] && code !== 'n') logInput(ARROW[code]);
+    motion.push(code);
     if (motion.length > 30) motion.shift();
   }
   // ↓ then → (↘ in between is fine) within the last ~0.4s, still pointing forward
@@ -1714,17 +1911,27 @@ body.playing #controls { display: block; }
     }
     return false;
   }
-  function press(name) {
+  function press(name, when) {
     var i = game.in1, f = game.p1;
     if (!i || i.buf[name] === undefined) return;
     if (name === 'up') { i.buf.up = 8; return; }
     var other = name === 'a' ? 'b' : 'a';
-    if (f && f.meter >= 100 && game.time - lastPress[other] <= 10) {
-      i.buf.a = i.buf.b = 0; i.buf.sp = 8; lastPress.a = lastPress.b = -99;
+    logInput(name === 'a' ? 'P' : 'K');
+    // P and K within ~0.17s of each other (wall-clock, so a slow frame during effects can't split them)
+    var now = when || performance.now();   // the event's own timestamp when we have it
+    if (f && f.meter >= 100 && superUnlocked() && now - lastPress[other] <= 170) {
+      i.buf.a = i.buf.b = 0; i.buf.sp = 8; lastPress.a = lastPress.b = -1e9;
       return;
     }
-    lastPress[name] = game.time;
-    if (name === 'a' && f && f.onGround() && quarterCircle()) { i.buf.p = 8; motion.length = 0; return; }
+    lastPress[name] = now;
+    if (name === 'a' && f && f.onGround()) {
+      if (hasMove('leaf') && quarterCircle()) { i.buf.p = 8; motion.length = 0; return; }
+      // read the stick directly: the per-frame input copy may not have caught up yet
+      var L = kb.left || touch.left, R = kb.right || touch.right, D = kb.down || touch.down;
+      var fwd = f.facing === 1 ? R : L, back = f.facing === 1 ? L : R;
+      if (fwd && !D && hasMove('throw')) { i.buf.t = 8; return; }
+      if (back && !D && hasMove('counter')) { i.buf.c = 8; return; }
+    }
     i.buf[name] = 8;
   }
   function releaseAll() { kb.left = kb.right = kb.up = kb.down = kb.guard = false; }
@@ -1733,16 +1940,16 @@ body.playing #controls { display: block; }
     if (activeMenu()) {
       if (e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'ArrowLeft' || e.code === 'KeyA') { moveMenu(-1); e.preventDefault(); }
       else if (e.code === 'ArrowDown' || e.code === 'KeyS' || e.code === 'ArrowRight' || e.code === 'KeyD') { moveMenu(1); e.preventDefault(); }
-      else if (e.code === 'Enter' || e.code === 'Space' || e.code === 'KeyJ' || e.code === 'KeyZ') { activateMenu(); e.preventDefault(); }
+      else if (e.code === 'Enter' || e.code === 'Space' || e.code === 'KeyP' || e.code === 'KeyJ' || e.code === 'KeyZ') { activateMenu(); e.preventDefault(); }
       else if (e.code === 'Escape' && game.mode === 'paused') { resume(); }
       return;
     }
-    if (e.code === 'KeyP' || e.code === 'Escape') { if (game.mode === 'playing') pause(); return; }
+    if (e.code === 'Escape') { if (game.mode === 'playing') pause(); return; }
     var k = KEYMAP[e.code];
     if (!k) return;
     e.preventDefault();
     if (e.repeat) return;
-    if (k === 'a' || k === 'b') { press(k); return; }
+    if (k === 'a' || k === 'b') { press(k, e.timeStamp); return; }
     kb[k] = true;
     if (k === 'up') press('up');
   });
@@ -1819,7 +2026,7 @@ body.playing #controls { display: block; }
   var btnPunch = document.getElementById('btnPunch'), btnKick = document.getElementById('btnKick');
   [[btnPunch, 'a'], [btnKick, 'b']].forEach(function (pair) {
     var el = pair[0];
-    el.addEventListener('pointerdown', function (e) { e.preventDefault(); audio(); press(pair[1]); el.classList.add('on'); });
+    el.addEventListener('pointerdown', function (e) { e.preventDefault(); audio(); press(pair[1], e.timeStamp); el.classList.add('on'); });
     ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) { el.addEventListener(ev, function () { el.classList.remove('on'); }); });
   });
   // pointerdown, not click: touch defaults inside #controls are cancelled to block zoom, which also cancels click
@@ -1864,10 +2071,56 @@ body.playing #controls { display: block; }
     roundResult: null, time: 0, demo: /[?&]demo\b/.test(location.search)
   };
   // ?debug exposes the game state for automated tests
-  if (/[?&]debug\b/.test(location.search)) window.__mokuFight = { game: game, projectiles: function () { return projectiles; } };
+  if (/[?&]debug\b/.test(location.search)) window.__mokuFight = { game: game, projectiles: function () { return projectiles; }, lastPress: function () { return lastPress; } };
   function currentRival() { return CHARS[save.rival] && RIVALS.indexOf(save.rival) !== -1 ? save.rival : 'kon'; }
 
+  // ---- practice: right after learning a move (or from Training) ----
+  var PRACTICE_GOAL = 3;
+  function startPractice(moveId) {
+    var rival = currentRival();
+    setTheme(CHARS[rival].theme);
+    game.practice = { move: moveId, count: 0, doneT: 0 };
+    game.p1 = new Fighter('moku', 300, 1);
+    game.p2 = new Fighter(rival, moveId === 'leaf' || moveId === 'storm' ? 690 : moveId === 'throw' ? 470 : 560, -1);
+    game.in1 = makeInput(); game.in2 = makeInput();
+    game.ai1 = null; game.ai2 = { t: 0 };
+    projectiles.length = 0; particles.length = 0; rings.length = 0; inputLog.length = 0;
+    game.timer = ROUND_TIME; game.phase = 'fight'; game.phaseT = 0;
+    game.hitstop = 0; game.shake = 0; game.superFreeze = 0; game.roundResult = null;
+    setMode('playing');
+  }
+  // the practice partner: stands still for Razor Leaf, guards for Owl Toss, attacks for Wing Counter
+  function practiceThink(me, opp, inp) {
+    var pr = game.practice, ai = game.ai2;
+    inp.left = inp.right = inp.down = false; inp.guard = false;
+    ai.t++;
+    var dist = Math.abs(opp.x - me.x), toward = opp.x > me.x ? 'right' : 'left';
+    if (pr.move === 'throw') { inp.guard = true; return; }
+    if (pr.move === 'storm') { if (!opp.hasProjectile() && opp.state !== 'attack') opp.meter = 100; return; }
+    if (pr.move === 'counter') {
+      if (dist > 78) { inp[toward] = true; return; }
+      if (ai.t % 90 === 0) { if ((ai.t / 90) % 2) inp.buf.a = 6; else inp.buf.b = 6; }
+    }
+  }
+  function practiceEvent(kind, f) {
+    var pr = game.practice;
+    if (!pr || f !== game.p1 || pr.move !== kind || pr.count >= PRACTICE_GOAL) return;
+    pr.count++;
+    sfx.select();
+    if (pr.count >= PRACTICE_GOAL) { pr.doneT = 1; sfx.win(); }
+  }
+  function finishPractice() {
+    var pr = game.practice, m = moveById(pr.move);
+    save.practiced = save.practiced || {};
+    save.practiced[pr.move] = true; writeSave();
+    document.getElementById('practiceDoneDesc').textContent = 'You can use ' + m.name + ' in battle now!  ' + m.cmd;
+    game.phase = 'done';
+    setMode('result');
+    showScreen('practiceDone');
+  }
+
   function startMatch() {
+    game.practice = null;
     var rival = currentRival();
     setTheme(CHARS[rival].theme);
     game.p1 = new Fighter('moku', 300, 1);
@@ -1880,6 +2133,16 @@ body.playing #controls { display: block; }
     startRound();
     setMode('playing');
   }
+  // XP bar towards the next move
+  function renderXp(el, gained) {
+    var nm = nextMove(), prevXp = 0;
+    MOVES.forEach(function (m) { if (hasMove(m.id) && m.xp > prevXp) prevXp = m.xp; });
+    if (!nm) { el.innerHTML = (gained ? '+' + gained + ' XP · ' : '') + 'All 3 moves learned! ★ Reward: 🌪 Leaf Storm (P + K)'; return; }
+    var pct = Math.max(0, Math.min(1, (save.xp - prevXp) / (nm.xp - prevXp)));
+    el.innerHTML = (gained ? '<b>+' + gained + ' XP</b> · ' : '') + 'Next move: ' + nm.icon + ' ' + nm.name + ' (' + Math.max(0, nm.xp - save.xp) + ' XP to go)' +
+      '<span class="xpBar"><span style="width:' + Math.round(pct * 100) + '%"></span></span>';
+  }
+
   function startRound() {
     game.p1.reset(300, 1); game.p2.reset(660, -1);
     projectiles.length = 0; particles.length = 0; rings.length = 0;
@@ -1916,6 +2179,17 @@ body.playing #controls { display: block; }
       p1.t++; p2.t++;
       if (game.phaseT >= 100) { game.phase = 'fight'; game.phaseT = 0; }
       decayBuffers(game.in1);
+      return;
+    }
+    if (game.phase === 'fight' && game.practice) {
+      practiceThink(p2, p1, game.in2);
+      p1.step(game.in1, p2);
+      p2.step(game.in2, p1);
+      separate(p1, p2);
+      stepProjectiles();
+      decayBuffers(game.in1); decayBuffers(game.in2);
+      p1.hp = p2.hp = 100;   // nobody gets hurt while practising
+      if (game.practice.doneT && ++game.practice.doneT > 100) finishPractice();
       return;
     }
     if (game.phase === 'fight') {
@@ -1980,7 +2254,14 @@ body.playing #controls { display: block; }
   function finishMatch() {
     var p1 = game.p1, p2 = game.p2, rival = p2.charId;
     var res = p1.rounds > p2.rounds ? 'win' : p2.rounds > p1.rounds ? 'lose' : 'draw';
+    var gained = 0, learned = null;
     if (!game.demo) {
+      gained = res === 'win' ? (save.difficulty === 'hard' ? 150 : 100) : res === 'draw' ? 60 : 40;
+      save.xp += gained;
+      var nm = nextMove();
+      if (nm && save.xp >= nm.xp) { save.moves.push(nm.id); learned = nm; }
+      var reward = learned && allMovesLearned() && !superUnlocked();
+      if (reward) save.moves.push(REWARD.id);
       var rec = save.rivals[rival] || (save.rivals[rival] = { w: 0, l: 0 });
       if (res === 'win') { save.wins++; save.streak++; save.bestStreak = Math.max(save.bestStreak, save.streak); rec.w++; }
       else if (res === 'lose') { save.losses++; save.streak = 0; rec.l++; }
@@ -1995,8 +2276,19 @@ body.playing #controls { display: block; }
       : res === 'lose' ? p2.c.loseTip
       : 'An even match!';
     document.getElementById('resultDesc').innerHTML = msg + '<br>Record: ' + save.wins + 'W - ' + save.losses + 'L' + (save.streak > 1 ? ' · ' + save.streak + ' win streak!' : '');
+    renderXp(document.getElementById('resultXp'), gained);
     if (res === 'win') sfx.win(); else sfx.lose();
     setMode('result');
+    if (learned) {
+      document.getElementById('unlockIcon').textContent = learned.icon;
+      document.getElementById('unlockName').textContent = learned.name;
+      document.getElementById('unlockCmd').textContent = learned.cmd;
+      document.getElementById('unlockDesc').textContent = learned.desc;
+      document.getElementById('unlockBonus').style.display = reward ? '' : 'none';
+      document.querySelector('#unlockMenu [data-action="practice"]').setAttribute('data-move', learned.id);
+      showScreen('unlock');
+      setTimeout(function () { sfx.win(); }, 500);
+    }
   }
 
   // ---------- rendering ----------
@@ -2021,7 +2313,7 @@ body.playing #controls { display: block; }
     ctx.setTransform(scale, 0, 0, scale, 0, 0);
     drawHpBar(ctx, p1, true, game.time);
     drawHpBar(ctx, p2, false, game.time);
-    drawTimer(ctx);
+    if (game.practice) drawPracticeHud(ctx); else drawTimer(ctx);
     drawCombo(ctx, p1, true);
     drawCombo(ctx, p2, false);
     if (game.superFreeze > 0 && game.superOwner) {
@@ -2034,6 +2326,7 @@ body.playing #controls { display: block; }
       ctx.strokeText(so.c.specialName, tx, 200); ctx.fillStyle = so.c.color; ctx.fillText(so.c.specialName, tx, 200);
       ctx.restore();
     }
+    if (game.practice && game.practice.doneT) bigText(ctx, 'GREAT!', moveById(game.practice.move).name + ' learned!', game.practice.doneT, '#5fe0d2');
     if (game.phase === 'intro') {
       if (game.phaseT < 70) bigText(ctx, 'ROUND ' + game.round, game.round >= 3 ? 'FINAL ROUND' : 'MOKU vs ' + p2.c.name, game.phaseT);
       else bigText(ctx, 'FIGHT!', null, game.phaseT - 70, '#ff7a4a');
@@ -2077,7 +2370,10 @@ body.playing #controls { display: block; }
     select: document.getElementById('selectScreen'),
     how: document.getElementById('howScreen'),
     paused: document.getElementById('pauseScreen'),
-    result: document.getElementById('resultScreen')
+    result: document.getElementById('resultScreen'),
+    unlock: document.getElementById('unlockScreen'),
+    train: document.getElementById('trainScreen'),
+    practiceDone: document.getElementById('practiceDoneScreen')
   };
   var currentScreen = 'title', howReturn = 'title';
   function showScreen(name) {
@@ -2124,12 +2420,12 @@ body.playing #controls { display: block; }
       case 'rival':
         save.rival = el.getAttribute('data-rival'); writeSave();
         startMatch(); break;
-      case 'select': setMode('title'); game.p1 = null; showScreen('select'); break;
+      case 'select': setMode('title'); game.p1 = null; game.practice = null; showScreen('select'); break;
       case 'difficulty':
         var order = ['easy', 'normal', 'hard'];
         save.difficulty = order[(order.indexOf(save.difficulty) + 1) % order.length];
         writeSave(); refreshTitle(); break;
-      case 'howto': howReturn = currentScreen; showScreen('how'); break;
+      case 'howto': howReturn = currentScreen; refreshMoveList(); showScreen('how'); break;
       case 'howback': showScreen(howReturn || 'title'); break;
       case 'back': showScreen('title'); setTheme(CHARS[currentRival()].theme); break;
       case 'sound':
@@ -2137,22 +2433,43 @@ body.playing #controls { display: block; }
         if (save.sound) sfx.select();
         break;
       case 'resume': resume(); break;
-      case 'quit': case 'title': setMode('title'); game.p1 = null; break;
+      case 'quit': case 'title': setMode('title'); game.p1 = null; game.practice = null; break;
+      case 'practice': startPractice(el.getAttribute('data-move')); break;
+      case 'later': showScreen('result'); break;
+      case 'train':
+        if (game.mode !== 'title') { setMode('title'); game.p1 = null; game.practice = null; }
+        refreshTrain(); showScreen('train'); break;
+      case 'locked': break;
       case 'rematch': startMatch(); break;
     }
   }
   // pointerup rather than click: the double-tap zoom guard cancels the click of a quick second tap
-  document.querySelectorAll('.titleMenuItem').forEach(function (el) {
-    el.addEventListener('pointerup', function (e) {
-      if (e.pointerType === 'mouse' && e.button !== 0) return;
-      selectItem(el.closest('.menu'), el);
-      doAction(el.getAttribute('data-action'), el);
-    });
+  document.addEventListener('pointerup', function (e) {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    var el = e.target.closest && e.target.closest('.titleMenuItem');
+    if (!el || !el.closest('.screen.active')) return;
+    selectItem(el.closest('.menu'), el);
+    doAction(el.getAttribute('data-action'), el);
   });
+  function refreshTrain() {
+    var menu = document.getElementById('trainMenu');
+    menu.innerHTML = MOVES.concat([REWARD]).map(function (m, k) {
+      var got = hasMove(m.id);
+      return '<div class="titleMenuItem trainItem' + (k === 0 ? ' sel' : '') + (got ? '' : ' locked') + '" data-action="' + (got ? 'practice' : 'locked') + '" data-move="' + m.id + '">' +
+        '<span class="ti">' + (got ? m.icon : '🔒') + '</span><span><b>' + m.name + '</b><small>' + (got ? m.cmd : m.reward ? 'Reward for learning all 3 moves' : 'Unlocks at ' + m.xp + ' XP') + '</small></span></div>';
+    }).join('') + '<div class="titleMenuItem" data-action="back">Back</div>';
+    renderXp(document.getElementById('trainXp'), 0);
+  }
+  function refreshMoveList() {
+    document.querySelectorAll('#howScreen [data-move]').forEach(function (el) {
+      el.classList.toggle('locked', !hasMove(el.getAttribute('data-move')));
+    });
+  }
   function refreshTitle() {
     if (!DIFF[save.difficulty]) save.difficulty = 'normal';
     document.querySelector('[data-action="difficulty"]').textContent = 'CPU: ' + DIFF[save.difficulty].label;
     document.querySelector('[data-action="sound"]').textContent = 'Sound: ' + (save.sound ? 'ON' : 'OFF');
+    renderXp(document.getElementById('titleXp'), 0);
     var played = save.wins + save.losses + save.draws;
     document.getElementById('titleRecord').textContent = played
       ? 'Record ' + save.wins + 'W - ' + save.losses + 'L' + (save.bestStreak > 1 ? ' · Best streak ' + save.bestStreak : '')
