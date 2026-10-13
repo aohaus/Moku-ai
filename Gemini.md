@@ -60,4 +60,5 @@
 | Moku Future Run | **Claude Code**(AI Studio / Gemini からは変更しない) |
 | Moku Fight | **Claude Code**(新規タイトル。AI Studio / Gemini からは変更しない) |
 | Moku Wolf | AI Studio(2026-10-13 に Claude Code で「New Game (Same Settings)」ボタンを部分追加。AI Studio で触る前に `main` を取り込むこと) |
+| ハブ(`hub.html`)のゲーム一覧 | AI Studio(2026-10-13 に Claude Code でゲーム一覧を Today's Pick / Continue / ジャンル棚 / 詳細シートに刷新。`icons/games/` `screenshots/` を新設。AI Studio で触る前に `main` を取り込むこと。仕様は SPEC.md §7) |
 | 上記以外 | AI Studio(Claude Code で触る場合はその都度ここを更新する) |

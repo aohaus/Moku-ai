@@ -594,114 +594,491 @@ body[data-band="morning"] #starsLayer { --star-opacity: 0.15; }
   cursor: pointer;
   margin-bottom: 14px;
 }
-.cards {
-  width: 100%;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 14px;
+/* ---------- game catalog: Today's Pick / Continue / genre shelves / detail sheet ----------
+   Each game is shown as one per-game object icon (icons/games/<gameId>.svg)
+   on its accent color, grouped into genre shelves. Tapping a tile opens a
+   detail sheet with a real screenshot (screenshots/<gameId>.jpg), the
+   player's local progress and the Play button. Colors come from CATALOG in
+   the script below (--hi / --lo per game, SPEC.md §3 values where defined). */
+.game-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
-@media (min-width: 560px) {
-  .cards { grid-template-columns: repeat(2, 1fr); }
+.game-section[hidden] { display: none; }
+.section-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.75);
 }
-@media (min-width: 860px) {
-  .cards { grid-template-columns: repeat(4, 1fr); }
+.section-head h2 {
+  font-size: clamp(17px, 3.4vw, 20px);
+  font-weight: 800;
+  letter-spacing: 0.01em;
 }
-.card {
+.section-head .section-sub {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(237,238,246,0.55);
+}
+.new-pill {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  background: #FFF4D6;
+  color: #7A4A00;
+  padding: 3px 8px;
+  border-radius: 999px;
+  line-height: 1.2;
+}
+.new-pill[hidden] { display: none; }
+
+.game-icon {
   --hi: #888;
   --lo: #444;
   position: relative;
+  flex: none;
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 22px 20px 20px;
-  border-radius: 16px;
-  text-decoration: none;
-  color: inherit;
-  background: linear-gradient(165deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015));
-  border: 2px solid var(--hi);
-  box-shadow: 0 12px 30px rgba(0,0,0,0.35);
-  transition: transform .18s ease, box-shadow .18s ease;
+  align-items: center;
+  justify-content: center;
+  border-radius: 26%;
+  background: linear-gradient(150deg, var(--hi), var(--lo));
+  box-shadow: 0 10px 22px rgba(0,0,0,0.38), inset 0 0 0 1px rgba(255,255,255,0.18);
   overflow: hidden;
 }
-.card::before {
+.game-icon::after {
   content: '';
-  position: absolute; inset: 5px;
-  border: 1px solid var(--lo);
-  border-radius: 11px;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.28);
   pointer-events: none;
 }
-.card:hover, .card:focus-visible {
-  transform: translateY(-4px);
-  box-shadow: 0 18px 40px rgba(0,0,0,0.45), 0 0 0 1px var(--hi);
+.game-icon img {
+  width: 84%;
+  height: 84%;
+  display: block;
+  transition: transform .25s ease;
 }
-.card:focus-visible { outline: 2px solid var(--hi); outline-offset: 3px; }
-.card .emoji { font-size: 34px; line-height: 1; }
-.card-header-row {
+
+/* Today's Pick: one featured game per day, shown with its real screenshot. */
+#todayPick {
+  --hi: #2EC4B6;
+  --lo: #145A55;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  min-height: clamp(280px, 42vw, 380px);
+  border-radius: 22px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.16);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+  background: var(--lo);
+}
+#todayPick .pick-shot {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 40%;
+}
+#todayPick .pick-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(8,10,20,0.92) 0%, rgba(8,10,20,0.68) 40%, rgba(8,10,20,0) 72%);
+}
+.pick-body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: clamp(20px, 4vw, 40px);
+  max-width: 540px;
+}
+.pick-eyebrow {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
-}
-.card-status-badge {
-  display: none;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
+  gap: 8px;
+  font-size: 11.5px;
   font-weight: 800;
-  letter-spacing: 0.04em;
-  padding: 4px 10px;
+  letter-spacing: 0.18em;
+  color: rgba(237,238,246,0.85);
+}
+.pick-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.pick-title .game-icon { width: 64px; height: 64px; }
+.pick-title h2 {
+  font-size: clamp(30px, 6vw, 50px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+.pick-tag {
+  font-size: clamp(15px, 2.6vw, 18px);
+  font-weight: 700;
+  color: rgba(237,238,246,0.92);
+}
+.pick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+.btn-play {
+  appearance: none;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 24px;
   border-radius: 999px;
-  text-transform: uppercase;
+  background: #EDEEF6;
+  color: #10111A;
+  font: inherit;
+  font-weight: 800;
+  font-size: 16px;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+}
+.btn-ghost {
+  appearance: none;
+  min-height: 46px;
+  padding: 0 20px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(255,255,255,0.5);
+  background: rgba(0,0,0,0.2);
+  color: #EDEEF6;
+  font: inherit;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+}
+.btn-play:focus-visible, .btn-ghost:focus-visible { outline: 2px solid #EDEEF6; outline-offset: 3px; }
+@media (max-width: 600px) {
+  #todayPick .pick-shade {
+    background: linear-gradient(180deg, rgba(8,10,20,0) 18%, rgba(8,10,20,0.75) 58%, rgba(8,10,20,0.95) 100%);
+  }
+}
+
+/* Continue: the most recently opened games (moku:played:<card> timestamps). */
+#continueList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+.cont-card {
+  --hi: #888;
+  --lo: #444;
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px 10px 10px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background .18s ease;
+}
+.cont-card:hover, .cont-card:focus-visible { background: rgba(255,255,255,0.1); }
+.cont-card:focus-visible, .tile:focus-visible { outline: 2px solid #EDEEF6; outline-offset: 3px; }
+.cont-shot {
+  width: 100px;
+  height: 62px;
+  flex: none;
+  border-radius: 11px;
+  object-fit: cover;
+  display: block;
+  background: var(--lo);
+}
+.cont-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.cont-name {
+  font-weight: 800;
+  font-size: 15px;
   white-space: nowrap;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.card-status-badge.status-completed {
-  display: inline-flex;
-  background: rgba(110, 231, 168, 0.18);
-  border: 1.5px solid #6EE7A8;
-  color: #6EE7A8;
-  box-shadow: 0 0 14px rgba(110, 231, 168, 0.35);
-  animation: pulseCompleted 2.4s ease-in-out infinite;
-}
-@keyframes pulseCompleted {
-  0%, 100% { box-shadow: 0 0 10px rgba(110, 231, 168, 0.25); }
-  50% { box-shadow: 0 0 18px rgba(110, 231, 168, 0.5); }
-}
-.card-status-badge.status-played {
-  display: inline-flex;
-  background: rgba(147, 160, 255, 0.14);
-  border: 1px solid rgba(147, 160, 255, 0.45);
-  color: #93A0FF;
-}
-.card.is-completed {
-  border-color: #6EE7A8;
-  box-shadow: 0 12px 30px rgba(0,0,0,0.35), 0 0 20px rgba(110, 231, 168, 0.18);
-}
-.card.is-completed::before {
-  border-color: rgba(110, 231, 168, 0.3);
-}
-.card.is-completed .cta {
-  color: #6EE7A8;
-}
-.card-meter {
-  width: 100%;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 999px;
   overflow: hidden;
-  margin-top: auto;
-  margin-bottom: 2px;
+  text-overflow: ellipsis;
 }
-.card-meter-fill {
+.cont-stat {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: rgba(237,238,246,0.66);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cont-go {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 50%;
+  background: #EDEEF6;
+  color: #10111A;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
+.meter {
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.12);
+  overflow: hidden;
+}
+.meter-fill {
   height: 100%;
   width: 0%;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--hi), #6EE7A8);
+  background: var(--hi);
   transition: width 0.6s ease;
 }
-.card.is-completed .card-meter-fill {
+
+/* Genre shelves: icon tiles. Phones scroll sideways; wider screens wrap. */
+.shelf-row {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding: 4px 2px 10px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+@media (min-width: 700px) {
+  .shelf-row { flex-wrap: wrap; overflow: visible; gap: 22px 16px; }
+}
+.tile {
+  appearance: none;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  padding: 0;
+  width: 112px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  scroll-snap-align: start;
+  border-radius: 24px;
+}
+.tile .game-icon {
+  width: 112px;
+  height: 112px;
+  transition: transform .18s ease;
+}
+@media (min-width: 700px) {
+  .tile { width: 150px; }
+  .tile .game-icon { width: 150px; height: 150px; }
+}
+.tile:hover .game-icon { transform: translateY(-4px); }
+.tile:hover .game-icon img { transform: scale(1.07) rotate(-3deg); }
+.tile:active .game-icon { transform: scale(.95); }
+.tile .new-pill {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  z-index: 1;
+}
+.tile-check {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  z-index: 1;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
   background: #6EE7A8;
-  box-shadow: 0 0 6px #6EE7A8;
+  color: #0F172A;
+  font-size: 13px;
+  font-weight: 900;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 10px rgba(110,231,168,0.6);
+}
+.tile.is-completed .tile-check { display: flex; }
+.tile-name {
+  font-weight: 800;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.85);
+  font-size: 14.5px;
+  line-height: 1.2;
+}
+.tile-tag {
+  font-size: 12.5px;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.85);
+  line-height: 1.35;
+  color: rgba(237,238,246,0.72);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.soon-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px 14px 14px;
+  border-radius: 18px;
+  border: 1.5px dashed rgba(255,255,255,0.26);
+  max-width: 460px;
+}
+.soon-card .game-icon {
+  width: 72px;
+  height: 72px;
+  background: rgba(185,140,255,0.16);
+  box-shadow: none;
+}
+.soon-card .game-icon img { opacity: 0.45; }
+.soon-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: rgba(237,238,246,0.55);
+}
+.soon-name { font-size: 17px; font-weight: 800; }
+.soon-desc { font-size: 13px; color: rgba(237,238,246,0.6); margin-top: 2px; }
+
+/* Detail sheet (dialog). Bottom sheet on phones, centered card on wider screens. */
+#gameSheetOverlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(5,6,12,0.7);
+  backdrop-filter: blur(3px);
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+#gameSheetOverlay.open { display: flex; }
+#gameSheet {
+  --hi: #888;
+  --lo: #444;
+  position: relative;
+  width: min(560px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 24px;
+  background: #16171F;
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.55);
+}
+@media (max-width: 600px) {
+  #gameSheetOverlay { align-items: flex-end; padding: 0; }
+  #gameSheet {
+    width: 100%;
+    max-height: 92vh;
+    border-radius: 24px 24px 0 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+.sheet-banner {
+  position: relative;
+  height: clamp(180px, 40vw, 250px);
+  background: var(--lo);
+}
+.sheet-shot {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.sheet-banner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(22,23,31,0) 55%, rgba(22,23,31,0.95) 100%);
+  pointer-events: none;
+}
+.sheet-banner .game-icon {
+  position: absolute;
+  left: 22px;
+  bottom: -34px;
+  z-index: 1;
+  width: 84px;
+  height: 84px;
+}
+#gameSheetClose {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0,0,0,0.5);
+  color: #EDEEF6;
+  font-size: 16px;
+  cursor: pointer;
+}
+#gameSheetClose:focus-visible { outline: 2px solid #EDEEF6; outline-offset: 2px; }
+.sheet-body {
+  padding: 46px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sheet-genre {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--hi);
+}
+.sheet-body h2 {
+  font-size: clamp(24px, 5vw, 30px);
+  font-weight: 800;
+  line-height: 1.1;
+}
+.sheet-tag { font-size: 16px; font-weight: 700; }
+.sheet-desc {
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(237,238,246,0.75);
+}
+.sheet-progress {
+  display: none;
+  flex-direction: column;
+  gap: 7px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.06);
+}
+.sheet-progress.has-progress { display: flex; }
+.sheet-progress-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(237,238,246,0.82);
+}
+.sheet-progress .meter { height: 7px; }
+.sheet-play {
+  margin-top: 6px;
+  min-height: 52px;
+  width: 100%;
+  background: var(--hi);
+  font-size: 17px;
 }
 .completed-summary-pill {
   font-size: 12px;
@@ -713,85 +1090,6 @@ body[data-band="morning"] #starsLayer { --star-opacity: 0.15; }
   border-radius: 999px;
   white-space: nowrap;
 }
-.card h2 {
-  font-size: 19px;
-  font-weight: 800;
-  letter-spacing: 0.01em;
-}
-.card .sub {
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--hi);
-  text-transform: uppercase;
-}
-.card p.desc {
-  font-size: 13.5px;
-  line-height: 1.6;
-  color: rgba(237,238,246,0.7);
-  flex: 1;
-}
-.card .cta {
-  margin-top: 4px;
-  font-size: 13.5px;
-  font-weight: 800;
-  color: var(--hi);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.card .cta-row {
-  margin-top: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-.card .progress-badge {
-  display: none;
-  align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  font-weight: 700;
-  color: rgba(237,238,246,0.5);
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  white-space: nowrap;
-}
-.card .progress-badge.has-progress { display: flex; }
-.card.am { --hi: #4CBE55; --lo: #1A5020; }
-.card.mm { --hi: #E98FC7; --lo: #7A3D63; }
-.card.mk { --hi: #FFC94A; --lo: #8A6218; }
-.card.br { --hi: #6E7BFF; --lo: #2B2F80; }
-.card.so { --hi: #FF6B4A; --lo: #7A2E1A; }
-.card.mc { --hi: #4BC9C9; --lo: #1F6666; }
-.card.mr { --hi: #FF4B91; --lo: #6A1A40; }
-.card.md { --hi: #FFC94A; --lo: #7A5510; }
-.card.mb { --hi: #FF9F43; --lo: #7A4210; }
-.card.mf { --hi: #38BDF8; --lo: #0C2340; }
-.card.mkt { --hi: #6EE7A8; --lo: #153818; }
-.card.fm { --hi: #00E5FF; --lo: #005C8A; }
-.card.mrc { --hi: #C084FC; --lo: #4A1A40; }
-.card.mw { --hi: #A855F7; --lo: #3B0764; }
-.card.mfr { --hi: #EC4899; --lo: #831843; }
-.card.mfg { --hi: #2EC4B6; --lo: #145A55; }
-
-.card.soon {
-  --hi: rgba(237,238,246,0.22);
-  --lo: rgba(237,238,246,0.1);
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  border-style: dashed;
-  background: rgba(255,255,255,0.02);
-  box-shadow: none;
-  cursor: default;
-  min-height: 150px;
-}
-.card.soon:hover, .card.soon:focus-visible { transform: none; box-shadow: none; }
-.card.soon .emoji { font-size: 26px; opacity: 0.5; }
-.card.soon h2 { font-size: 14px; font-weight: 700; color: rgba(237,238,246,0.4); letter-spacing: 0.04em; }
-.card.soon .sub { color: rgba(237,238,246,0.28); }
 
 footer {
   margin-top: auto;
@@ -936,235 +1234,41 @@ footer {
     <div class="hub-achievement-hint" id="hubAchievementHint" aria-live="polite">Hover or tap a badge to view unlock requirements</div>
   </div>
 
-  <div class="section-label">🎮 PICK A GAME</div>
+  <section id="todayPick" aria-label="Today's pick">
+    <img class="pick-shot" id="pickShot" src="screenshots/moku-fight.jpg" alt="">
+    <div class="pick-shade" aria-hidden="true"></div>
+    <div class="pick-body">
+      <div class="pick-eyebrow"><span>TODAY'S PICK</span><span class="new-pill" id="pickNew" hidden>NEW</span></div>
+      <div class="pick-title">
+        <div class="game-icon" id="pickIcon"><img src="icons/games/moku-fight.svg" alt=""></div>
+        <h2 id="pickName">Moku Fight</h2>
+      </div>
+      <p class="pick-tag" id="pickTag">Peck, combo, Leaf Storm!</p>
+      <div class="pick-actions">
+        <a class="btn-play" id="pickPlay" href="moku-fight.html" data-play-game="mfg">▶ Play now</a>
+        <button class="btn-ghost" id="pickDetails" type="button">Details</button>
+      </div>
+    </div>
+  </section>
 
-  <div class="cards">
-    <a class="card am" href="angry-mokumoku.html" data-game="am">
-      <div class="card-header-row">
-        <div class="emoji">🦉</div>
-        <div class="card-status-badge" data-status-for="am"></div>
+  <section class="game-section" id="continueSection" aria-labelledby="continueHead" hidden>
+    <div class="section-head"><h2 id="continueHead">Continue</h2></div>
+    <div id="continueList"></div>
+  </section>
+
+  <div id="shelves" class="game-section" style="gap: 28px"></div>
+
+  <section class="game-section" aria-labelledby="soonHead">
+    <div class="section-head"><h2 id="soonHead">Coming Soon</h2></div>
+    <div class="soon-card">
+      <div class="game-icon"><img src="icons/games/mokuball.svg" alt=""></div>
+      <div>
+        <div class="soon-label">COMING SOON</div>
+        <div class="soon-name">Mokuball</div>
+        <div class="soon-desc">A pinball journey around the world</div>
       </div>
-      <div class="sub">Action / Puzzle</div>
-      <h2>Angry Mokumoku</h2>
-      <p class="desc">Launch an owl to take down enemies in this slingshot action game. 30 stages.</p>
-      <div class="card-meter"><div class="card-meter-fill" data-meter-for="am"></div></div>
-      <div class="cta-row">
-        <div class="cta">Play ▶</div>
-        <div class="progress-badge" data-game="am">—</div>
-      </div>
-    </a>
-    <a class="card mm" href="moyomoyo.html" data-game="mm">
-      <div class="card-header-row">
-        <div class="emoji">🍬</div>
-        <div class="card-status-badge" data-status-for="mm"></div>
-      </div>
-      <div class="sub">Falling Block</div>
-      <h2>Moyomoyo</h2>
-      <p class="desc">Match 4 or more gummies of the same stage to evolve them in this falling-block puzzle.</p>
-      <div class="card-meter"><div class="card-meter-fill" data-meter-for="mm"></div></div>
-      <div class="cta-row">
-        <div class="cta">Play ▶</div>
-        <div class="progress-badge" data-game="mm">—</div>
-      </div>
-    </a>
-    <a class="card mk" href="mk-mobile.html" data-game="mk">
-      <div class="card-header-row">
-        <div class="emoji">⚽</div>
-        <div class="card-status-badge" data-status-for="mk"></div>
-      </div>
-      <div class="sub">Sports</div>
-      <h2>MK Mobile</h2>
-      <p class="desc">Score more goals than your opponent before time runs out in this quick soccer match.</p>
-      <div class="card-meter"><div class="card-meter-fill" data-meter-for="mk"></div></div>
-      <div class="cta-row">
-        <div class="cta">Play ▶</div>
-        <div class="progress-badge" data-game="mk">—</div>
-      </div>
-    </a>
-    <a class="card br" href="angry-moku-battle-royal.html" data-game="br">
-      <div class="card-header-row">
-        <div class="emoji">🏆</div>
-        <div class="card-status-badge" data-status-for="br"></div>
-      </div>
-      <div class="sub">Battle Royal</div>
-      <h2>Angry Moku Battle Royal</h2>
-      <p class="desc">4v4 slingshot showdown — team up and knock out the rival owls first.</p>
-      <div class="card-meter"><div class="card-meter-fill" data-meter-for="br"></div></div>
-      <div class="cta-row">
-        <div class="cta">Play ▶</div>
-        <div class="progress-badge" data-game="br">—</div>
-      </div>
-    </a>
-    <a class="card so" href="shiri-of-moku.html" data-game="so">
-      <div class="card-header-row">
-        <div class="emoji">💬</div>
-        <div class="card-status-badge" data-status-for="so"></div>
-      </div>
-      <div class="sub">Chat / Quiz</div>
-      <h2>Shiri of Moku</h2>
-      <p class="desc">Talk with Moku without setting him off. Pick your reply carefully — one wrong word and he blows up.</p>
-      <div class="card-meter"><div class="card-meter-fill" data-meter-for="so"></div></div>
-      <div class="cta-row">
-        <div class="cta">Play ▶</div>
-        <div class="progress-badge" data-game="so">—</div>
-      </div>
-    </a>
-    <a class="card mc" href="mokucity.html" data-game="mc">
-      <div class="card-header-row">
-        <div class="emoji">🏘️</div>
-        <div class="card-status-badge" data-status-for="mc"></div>
-      </div>
-      <div class="sub">Town Builder</div>
-      <h2>MokuCity</h2>
-      <p class="desc">Grow Moku's town from the forest — build houses, shops, and parks without losing Nature.</p>
-      <div class="card-meter"><div class="card-meter-fill" data-meter-for="mc"></div></div>
-      <div class="cta-row">
-        <div class="cta">Play ▶</div>
-        <div class="progress-badge" data-game="mc">—</div>
-      </div>
-    </a>
-    <a class="card mr" href="moku-rane.html" data-game="mr">
-      <div class="card-header-row">
-        <div class="emoji">🕹️</div>
-        <div class="card-status-badge" data-status-for="mr"></div>
-      </div>
-      <div class="sub">3D Arcade / Physics</div>
-      <h2>Moku-rane</h2>
-      <p class="desc">Real-physics 3D arcade claw machine — aim, drop, and grab cute Moku prizes for your collection.</p>
-      <div class="card-meter"><div class="card-meter-fill" data-meter-for="mr"></div></div>
-      <div class="cta-row">
-        <div class="cta">Play ▶</div>
-        <div class="progress-badge" data-game="mr">—</div>
-      </div>
-    </a>
-    <a class="card md" href="moku-drop.html" data-game="md">
-      <div class="card-header-row">
-        <div class="emoji">🍉</div>
-        <div class="card-status-badge" data-status-for="md"></div>
-      </div>
-      <div class="sub">Physics Merge</div>
-      <h2>Moku Drop</h2>
-      <p class="desc">Drop and merge bouncy Mokus to evolve them into giant King Moku!</p>
-      <div class="card-meter"><div class="card-meter-fill" data-meter-for="md"></div></div>
-      <div class="cta-row">
-        <div class="cta">Play ▶</div>
-        <div class="progress-badge" data-game="md">—</div>
-      </div>
-    </a>
-    <a class="card mb" href="moku-bento.html" data-game="mb">
-      <div class="card-header-row">
-        <div class="emoji">🍱</div>
-        <div class="card-status-badge" data-status-for="mb"></div>
-      </div>
-      <div class="sub">Kitchen Rush</div>
-      <h2>Moku Bento</h2>
-      <p class="desc">Quick-fire bento assembly rush! Fill orders for hungry forest customers.</p>
-      <div class="card-meter"><div class="card-meter-fill" data-meter-for="mb"></div></div>
-      <div class="cta-row">
-        <div class="cta">Play ▶</div>
-        <div class="progress-badge" data-game="mb">—</div>
-      </div>
-    </a>
-    <a class="card mf" href="moku-fishing.html" data-game="mf">
-      <div class="card-header-row">
-        <div class="emoji">🎣</div>
-        <div class="card-status-badge" data-status-for="mf"></div>
-      </div>
-      <div class="sub">Cozy Fishing ★ NEW</div>
-      <h2>Moku Fishing Pond</h2>
-      <p class="desc">Cast your line into the calm night lake and catch mysterious species!</p>
-      <div class="card-meter"><div class="card-meter-fill" data-meter-for="mf"></div></div>
-      <div class="cta-row">
-        <div class="cta">Play ▶</div>
-        <div class="progress-badge" data-game="mf">—</div>
-      </div>
-    </a>
-    <a class="card mkt" href="moku-kart.html" data-game="mkt">
-      <div class="card-header-row">
-        <div class="emoji">🏎️</div>
-        <div class="card-status-badge" data-status-for="mkt"></div>
-      </div>
-      <div class="sub">Circuit Race ★ NEW</div>
-      <h2>Moku Kart Dash</h2>
-      <p class="desc">Drift and dash across forest circuits using acorns and mini-turbos!</p>
-      <div class="card-meter"><div class="card-meter-fill" data-meter-for="mkt"></div></div>
-      <div class="cta-row">
-        <div class="cta">Play ▶</div>
-        <div class="progress-badge" data-game="mkt">—</div>
-      </div>
-    </a>
-    <a class="card fm" href="flying-moku.html" data-game="fm">
-      <div class="card-header-row">
-        <div class="emoji">🕊️</div>
-        <div class="card-status-badge" data-status-for="fm"></div>
-      </div>
-      <div class="sub">3D Sky Flight ★ NEW</div>
-      <h2>Flying Moku</h2>
-      <p class="desc">Peaceful sky flight, real-world town tours, and the magical Art World inspired by a child's imagination!</p>
-      <div class="card-meter"><div class="card-meter-fill" data-meter-for="fm"></div></div>
-      <div class="cta-row">
-        <div class="cta">Fly ▶</div>
-        <div class="progress-badge" data-game="fm">—</div>
-      </div>
-    </a>
-    <a class="card mrc" href="moku-rhythm.html" data-game="mrc">
-      <div class="card-header-row">
-        <div class="emoji">🎹</div>
-        <div class="card-status-badge" data-status-for="mrc"></div>
-      </div>
-      <div class="sub">Rhythm Beat ★ NEW</div>
-      <h2>Moku Rhythm Cafe</h2>
-      <p class="desc">Tap and brew to the lo-fi beat in a cozy forest musical cafe!</p>
-      <div class="card-meter"><div class="card-meter-fill" data-meter-for="mrc"></div></div>
-      <div class="cta-row">
-        <div class="cta">Play ▶</div>
-        <div class="progress-badge" data-game="mrc">—</div>
-      </div>
-    </a>
-    <a class="card mw" href="moku-wolf.html" data-game="mw">
-      <div class="card-header-row">
-        <div class="emoji">🐺</div>
-        <div class="card-status-badge" data-status-for="mw"></div>
-      </div>
-      <div class="sub">Party Game ★ NEW</div>
-      <h2>MokuWolf</h2>
-      <p class="desc">Pass the phone, talk it out, and find who has the secret WordMoku word!</p>
-      <div class="card-meter"><div class="card-meter-fill" data-meter-for="mw"></div></div>
-      <div class="cta-row">
-        <div class="cta">Play ▶</div>
-        <div class="progress-badge" data-game="mw">—</div>
-      </div>
-    </a>
-    <a class="card mfr" href="moku-future-run.html" data-game="mfr">
-      <div class="card-header-row">
-        <div class="emoji">🏃</div>
-        <div class="card-status-badge" data-status-for="mfr"></div>
-      </div>
-      <div class="sub">3D Lane Runner ★ NEW</div>
-      <h2>Moku Future Run</h2>
-      <p class="desc">Pitter-patter with cute feet through the dreamy art world! Jump, duck, boost, and collect berries across 3 lanes!</p>
-      <div class="card-meter"><div class="card-meter-fill" data-meter-for="mfr"></div></div>
-      <div class="cta-row">
-        <div class="cta">Run ▶</div>
-        <div class="progress-badge" data-game="mfr">—</div>
-      </div>
-    </a>
-    <a class="card mfg" href="moku-fight.html" data-game="mfg">
-      <div class="card-header-row">
-        <div class="emoji">🥊</div>
-        <div class="card-status-badge" data-status-for="mfg"></div>
-      </div>
-      <div class="sub">Fighting ★ NEW</div>
-      <h2>Moku Fight</h2>
-      <p class="desc">Moku vs Rivals! Take on Kon, Ponta and Nox with pecks, Razor Leaf, combos and Leaf Storm!</p>
-      <div class="card-meter"><div class="card-meter-fill" data-meter-for="mfg"></div></div>
-      <div class="cta-row">
-        <div class="cta">Fight ▶</div>
-        <div class="progress-badge" data-game="mfg">—</div>
-      </div>
-    </a>
-    <div class="card soon"><div class="emoji">🔒</div><h2>Mokuball</h2><div class="sub">TBA</div></div>
-  </div>
+    </div>
+  </section>
 
   <footer>
     <div class="tag-line"></div>
@@ -1205,6 +1309,27 @@ footer {
     <div class="a2hs-panel" id="a2hsDesktop" hidden>
       <h2>📲 Add to Home Screen</h2>
       <p class="a2hs-sub">This feature is available in iPhone, iPad, and Android browsers. Please open this page on one of those devices and follow the instructions.</p>
+    </div>
+  </div>
+</div>
+
+<div id="gameSheetOverlay">
+  <div id="gameSheet" role="dialog" aria-modal="true" aria-labelledby="sheetName">
+    <div class="sheet-banner">
+      <img class="sheet-shot" id="sheetShot" src="screenshots/moku-fight.jpg" alt="">
+      <div class="game-icon" id="sheetIcon"><img src="icons/games/moku-fight.svg" alt=""></div>
+      <button id="gameSheetClose" type="button" aria-label="Close">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="sheet-genre" id="sheetGenre"></div>
+      <h2 id="sheetName"></h2>
+      <p class="sheet-tag" id="sheetTag"></p>
+      <p class="sheet-desc" id="sheetDesc"></p>
+      <div class="sheet-progress" id="sheetProgress">
+        <div class="sheet-progress-label" id="sheetProgressLabel"></div>
+        <div class="meter"><div class="meter-fill" id="sheetMeter"></div></div>
+      </div>
+      <a class="btn-play sheet-play" id="sheetPlay" href="#">▶ Play</a>
     </div>
   </div>
 </div>
@@ -1930,11 +2055,292 @@ footer {
     }, 1800);
   }
 
+  // ---------- Game catalog UI ----------
+  // Display data for the hub's game list (Today's Pick, Continue, genre
+  // shelves, detail sheet). Save/progress logic stays in GAMES above, keyed
+  // by the same `card`. To add a title: add its GAMES entry, a CATALOG entry,
+  // put its key in one of SHELVES, and add icons/games/<gameId>.svg and
+  // screenshots/<gameId>.jpg. `newUntil` shows a NEW pill until that date.
+  var CATALOG = {
+    am:  { name: 'Angry Mokumoku', gameId: 'angry-mokumoku', genre: 'Slingshot Action', cta: 'Play', hi: '#4CBE55', lo: '#1A5020',
+           tag: 'Fling Moku. Topple the fort.',
+           desc: 'Launch an owl to take down enemies in this slingshot action game. 30 stages.' },
+    br:  { name: 'Angry Moku Battle Royal', gameId: 'angry-moku-battle-royal', genre: 'Team Battle', cta: 'Play', hi: '#6E7BFF', lo: '#2B2F80',
+           tag: '4v4 slingshot showdown.',
+           desc: '4v4 slingshot showdown — team up and knock out the rival owls first.' },
+    mk:  { name: 'MK Mobile', gameId: 'mk-mobile', genre: 'Soccer', cta: 'Play', hi: '#FFC94A', lo: '#8A6218',
+           tag: 'Out-score them before time runs out!',
+           desc: 'Score more goals than your opponent before time runs out in this quick soccer match.' },
+    mfg: { name: 'Moku Fight', gameId: 'moku-fight', genre: 'Fighting', cta: 'Fight', hi: '#2EC4B6', lo: '#145A55', newUntil: '2026-11-10',
+           tag: 'Peck, combo, Leaf Storm!',
+           desc: 'Moku vs Rivals! Take on Kon, Ponta and Nox with pecks, Razor Leaf, combos and Leaf Storm!' },
+    mkt: { name: 'Moku Kart Dash', gameId: 'moku-kart', genre: 'Circuit Race', cta: 'Race', hi: '#9BD770', lo: '#2F5A1A',
+           tag: 'Drift through forest circuits.',
+           desc: 'Drift and dash across forest circuits using acorns and mini-turbos!' },
+    mfr: { name: 'Moku Future Run', gameId: 'moku-future-run', genre: '3-Lane Runner', cta: 'Run', hi: '#EC6FA8', lo: '#831843', newUntil: '2026-11-10',
+           tag: 'Jump, duck and dash for berries!',
+           desc: 'Pitter-patter with cute feet through the dreamy art world! Jump, duck, boost, and collect berries across 3 lanes!' },
+    mm:  { name: 'Moyomoyo', gameId: 'moyomoyo', genre: 'Falling Puzzle', cta: 'Play', hi: '#E98FC7', lo: '#7A3D63',
+           tag: 'Match 4 gummies. Watch them evolve.',
+           desc: 'Match 4 or more gummies of the same stage to evolve them in this falling-block puzzle.' },
+    md:  { name: 'Moku Drop', gameId: 'moku-drop', genre: 'Merge Puzzle', cta: 'Play', hi: '#EF6F6C', lo: '#7A2A2A',
+           tag: 'Drop, merge, grow a King Moku!',
+           desc: 'Drop and merge bouncy Mokus to evolve them into giant King Moku!' },
+    so:  { name: 'Shiri of Moku', gameId: 'shiri-of-moku', genre: 'Chat Quiz', cta: 'Chat', hi: '#FF6B4A', lo: '#7A2E1A',
+           tag: 'Say the right thing. Don’t pop Moku!',
+           desc: 'Talk with Moku without setting him off. Pick your reply carefully — one wrong word and he blows up.' },
+    mc:  { name: 'Moku City', gameId: 'mokucity', genre: 'Town Builder', cta: 'Build', hi: '#6CC4A1', lo: '#1F5C45',
+           tag: 'Build a town. Keep it green.',
+           desc: 'Grow Moku’s town from the forest — build houses, shops, and parks without losing Nature.' },
+    mf:  { name: 'Moku Fishing Pond', gameId: 'moku-fishing', genre: 'Cozy Fishing', cta: 'Fish', hi: '#5AA9E6', lo: '#173E63',
+           tag: 'Cast into the calm night lake.',
+           desc: 'Cast your line into the calm night lake and catch mysterious species!' },
+    mrc: { name: 'Moku Rhythm Cafe', gameId: 'moku-rhythm', genre: 'Rhythm', cta: 'Play', hi: '#C9A0F5', lo: '#4A2A73',
+           tag: 'Tap and brew to the lo-fi beat.',
+           desc: 'Tap and brew to the lo-fi beat in a cozy forest musical cafe!' },
+    mb:  { name: 'Moku Bento', gameId: 'moku-bento', genre: 'Kitchen Rush', cta: 'Cook', hi: '#D9925B', lo: '#6A3A16',
+           tag: 'Pack bentos for hungry friends.',
+           desc: 'Quick-fire bento assembly rush! Fill orders for hungry forest customers.' },
+    fm:  { name: 'Flying Moku', gameId: 'flying-moku', genre: '3D Sky Flight', cta: 'Fly', hi: '#7EC8E3', lo: '#1E5670',
+           tag: 'Soar over towns and the Art World.',
+           desc: 'Peaceful sky flight, real-world town tours, and the magical Art World inspired by a child’s imagination!' },
+    mw:  { name: 'Moku Wolf', gameId: 'moku-wolf', genre: 'Party · Pass & Play', cta: 'Play', hi: '#9B6CD9', lo: '#3B1F66',
+           tag: 'Find who has the secret word!',
+           desc: 'Pass the phone, talk it out, and find who has the secret WordMoku word!' },
+    mr:  { name: 'Moku-rane', gameId: 'moku-rane', genre: '3D Claw Machine', cta: 'Play', hi: '#FF9EAA', lo: '#7A3046',
+           tag: 'Aim, drop, grab a prize!',
+           desc: 'Real-physics 3D arcade claw machine — aim, drop, and grab cute Moku prizes for your collection.' }
+  };
+  var SHELVES = [
+    { title: 'Action & Sports', sub: 'Fling, kick, fight, race', cards: ['am', 'br', 'mk', 'mfg', 'mkt', 'mfr'] },
+    { title: 'Puzzle & Brain',  sub: 'Think, match, merge',      cards: ['mm', 'md', 'so'] },
+    { title: 'Cozy & Create',   sub: 'Take it slow',             cards: ['mc', 'mf', 'mrc', 'mb', 'fm'] },
+    { title: 'Party & Arcade',  sub: 'Play with friends',        cards: ['mw', 'mr'] }
+  ];
+  // Today's Pick rotates daily through titles whose screenshot shows real gameplay.
+  var FEATURED = ['mfg', 'mkt', 'am', 'mc'];
+
+  var lastGameState = {};
+  var tileNodes = {};
+  var sheetOverlay = document.getElementById('gameSheetOverlay');
+  var sheetElem = document.getElementById('gameSheet');
+  var sheetOpenKey = null;
+  var sheetLastFocus = null;
+
+  function isNewTitle(c) {
+    return Boolean(c.newUntil) && new Date() < new Date(c.newUntil + 'T00:00:00');
+  }
+  function el(tag, cls, text) {
+    var node = document.createElement(tag);
+    if (cls) node.className = cls;
+    if (text != null) node.textContent = text;
+    return node;
+  }
+  function setGameColors(node, c) {
+    node.style.setProperty('--hi', c.hi);
+    node.style.setProperty('--lo', c.lo);
+  }
+  function setIcon(iconElem, c) {
+    setGameColors(iconElem, c);
+    var img = iconElem.querySelector('img');
+    if (img) img.src = 'icons/games/' + c.gameId + '.svg';
+  }
+  function makeIcon(c) {
+    var icon = el('div', 'game-icon');
+    var img = el('img');
+    img.alt = '';
+    icon.appendChild(img);
+    setIcon(icon, c);
+    return icon;
+  }
+  function playedAt(key) {
+    try {
+      var t = Date.parse(localStorage.getItem('moku:played:' + key) || '');
+      return isNaN(t) ? null : t;
+    } catch (e) { return null; }
+  }
+
+  function buildShelves() {
+    var host = document.getElementById('shelves');
+    if (!host) return;
+    SHELVES.forEach(function (shelf, i) {
+      var section = el('section', 'game-section');
+      var head = el('div', 'section-head');
+      var h = el('h2', null, shelf.title);
+      h.id = 'shelfHead' + i;
+      section.setAttribute('aria-labelledby', h.id);
+      head.appendChild(h);
+      head.appendChild(el('span', 'section-sub', shelf.sub));
+      section.appendChild(head);
+
+      var row = el('div', 'shelf-row');
+      shelf.cards.forEach(function (key) {
+        var c = CATALOG[key];
+        if (!c) return;
+        var tile = el('button', 'tile');
+        tile.type = 'button';
+        tile.setAttribute('data-game', key);
+        tile.setAttribute('aria-label', c.name + ': ' + c.tag);
+        var icon = makeIcon(c);
+        if (isNewTitle(c)) icon.appendChild(el('span', 'new-pill', 'NEW'));
+        var check = el('span', 'tile-check', '✓');
+        check.setAttribute('aria-hidden', 'true');
+        icon.appendChild(check);
+        tile.appendChild(icon);
+        tile.appendChild(el('span', 'tile-name', c.name));
+        tile.appendChild(el('span', 'tile-tag', c.tag));
+        tile.addEventListener('click', function () { openSheet(key, tile); });
+        row.appendChild(tile);
+        tileNodes[key] = tile;
+      });
+      section.appendChild(row);
+      host.appendChild(section);
+    });
+  }
+
+  function setupTodayPick() {
+    var now = new Date();
+    var day = Math.floor(new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() / 86400000);
+    var key = FEATURED[((day % FEATURED.length) + FEATURED.length) % FEATURED.length];
+    var c = CATALOG[key];
+    var section = document.getElementById('todayPick');
+    if (!c || !section) return;
+    setGameColors(section, c);
+    var shot = document.getElementById('pickShot');
+    shot.src = 'screenshots/' + c.gameId + '.jpg';
+    shot.alt = c.name + ' screenshot';
+    setIcon(document.getElementById('pickIcon'), c);
+    document.getElementById('pickName').textContent = c.name;
+    document.getElementById('pickTag').textContent = c.tag;
+    document.getElementById('pickNew').hidden = !isNewTitle(c);
+    var play = document.getElementById('pickPlay');
+    play.href = c.gameId + '.html';
+    play.setAttribute('data-play-game', key);
+    var details = document.getElementById('pickDetails');
+    details.onclick = function () { openSheet(key, details); };
+  }
+
+  function renderContinue() {
+    var section = document.getElementById('continueSection');
+    var list = document.getElementById('continueList');
+    if (!section || !list) return;
+    var recent = [];
+    Object.keys(CATALOG).forEach(function (key) {
+      var t = playedAt(key);
+      if (t !== null) recent.push({ key: key, t: t });
+    });
+    recent.sort(function (a, b) { return b.t - a.t; });
+    recent = recent.slice(0, 3);
+
+    list.textContent = '';
+    section.hidden = recent.length === 0;
+    recent.forEach(function (r) {
+      var c = CATALOG[r.key];
+      var st = lastGameState[r.key] || {};
+      var card = el('button', 'cont-card');
+      card.type = 'button';
+      setGameColors(card, c);
+      var shot = el('img', 'cont-shot');
+      shot.src = 'screenshots/' + c.gameId + '.jpg';
+      shot.alt = '';
+      var info = el('span', 'cont-info');
+      info.appendChild(el('span', 'cont-name', c.name));
+      info.appendChild(el('span', 'cont-stat', st.badge || 'Played recently'));
+      var meter = el('span', 'meter');
+      var fill = el('span', 'meter-fill');
+      fill.style.display = 'block';
+      fill.style.width = Math.round((st.progress || 0) * 100) + '%';
+      meter.style.display = 'block';
+      meter.appendChild(fill);
+      info.appendChild(meter);
+      var go = el('span', 'cont-go', '▶');
+      go.setAttribute('aria-hidden', 'true');
+      card.appendChild(shot);
+      card.appendChild(info);
+      card.appendChild(go);
+      card.addEventListener('click', function () { openSheet(r.key, card); });
+      list.appendChild(card);
+    });
+  }
+
+  function fillSheet(key) {
+    var c = CATALOG[key];
+    if (!c || !sheetElem) return;
+    var st = lastGameState[key] || {};
+    setGameColors(sheetElem, c);
+    var shot = document.getElementById('sheetShot');
+    shot.src = 'screenshots/' + c.gameId + '.jpg';
+    shot.alt = c.name + ' screenshot';
+    setIcon(document.getElementById('sheetIcon'), c);
+    document.getElementById('sheetGenre').textContent = c.genre;
+    document.getElementById('sheetName').textContent = c.name;
+    document.getElementById('sheetTag').textContent = c.tag;
+    document.getElementById('sheetDesc').textContent = c.desc;
+
+    var prog = document.getElementById('sheetProgress');
+    var hasProgress = Boolean(st.played || st.completed);
+    prog.classList.toggle('has-progress', hasProgress);
+    if (hasProgress) {
+      document.getElementById('sheetProgressLabel').textContent =
+        (st.completed ? '✓ Completed · ' : 'Your progress · ') + (st.badge || 'Played');
+      document.getElementById('sheetMeter').style.width = Math.round((st.progress || 0) * 100) + '%';
+    }
+
+    var play = document.getElementById('sheetPlay');
+    play.href = c.gameId + '.html';
+    play.setAttribute('data-play-game', key);
+    play.textContent = '▶ ' + c.cta;
+  }
+
+  function openSheet(key, opener) {
+    if (!sheetOverlay) return;
+    sheetOpenKey = key;
+    sheetLastFocus = opener || document.activeElement;
+    fillSheet(key);
+    sheetOverlay.classList.add('open');
+    sheetElem.scrollTop = 0;
+    var closeBtn = document.getElementById('gameSheetClose');
+    if (closeBtn) closeBtn.focus();
+  }
+
+  function closeSheet() {
+    if (!sheetOverlay || !sheetOverlay.classList.contains('open')) return;
+    sheetOverlay.classList.remove('open');
+    sheetOpenKey = null;
+    if (sheetLastFocus && sheetLastFocus.focus) sheetLastFocus.focus();
+  }
+
+  if (sheetOverlay) {
+    document.getElementById('gameSheetClose').addEventListener('click', closeSheet);
+    sheetOverlay.addEventListener('click', function (e) {
+      if (e.target === sheetOverlay) closeSheet();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeSheet();
+    });
+  }
+
+  function renderGameUI(state) {
+    lastGameState = state || {};
+    Object.keys(tileNodes).forEach(function (key) {
+      var st = lastGameState[key] || {};
+      var c = CATALOG[key];
+      tileNodes[key].classList.toggle('is-completed', Boolean(st.completed));
+      tileNodes[key].setAttribute('aria-label', c.name + ': ' + c.tag + (st.completed ? ' (Completed)' : ''));
+    });
+    renderContinue();
+    if (sheetOpenKey) fillSheet(sheetOpenKey);
+  }
+
+  buildShelves();
+  setupTodayPick();
+
   function renderProgress() {
     var totalXp = 0;
     var completedCount = 0;
     var playedDistinctCount = 0;
     var playableCount = 0;
+    var gameState = {};
 
     GAMES.forEach(function (g) {
       var isPlayable = Boolean(g.card);
@@ -1954,46 +2360,18 @@ footer {
 
       if (!g.card) return;
 
-      // Update status pill badge on card header
-      var statusBadge = document.querySelector('.card-status-badge[data-status-for="' + g.card + '"]');
-      var cardElem = document.querySelector('.card[data-game="' + g.card + '"]');
-      var meterFill = document.querySelector('.card-meter-fill[data-meter-for="' + g.card + '"]');
-      var detailBadge = document.querySelector('.progress-badge[data-game="' + g.card + '"]');
-
-      if (statusBadge) {
-        statusBadge.className = 'card-status-badge';
-        if (completed) {
-          statusBadge.classList.add('status-completed');
-          statusBadge.innerHTML = '✓ Completed';
-        } else if (played) {
-          statusBadge.classList.add('status-played');
-          statusBadge.innerHTML = '🎮 Played';
-        } else {
-          statusBadge.innerHTML = '';
-        }
-      }
-
-      if (cardElem) {
-        cardElem.classList.toggle('is-completed', completed);
-      }
-
-      if (meterFill) {
-        var pct = Math.max(0, Math.min(100, Math.round(pr * 100)));
-        meterFill.style.width = pct + '%';
-      }
-
-      if (detailBadge) {
-        var val = null;
-        try { val = g.badge ? g.badge() : null; } catch (e) { val = null; }
-        if (val) {
-          detailBadge.textContent = val;
-          detailBadge.classList.add('has-progress');
-        } else {
-          detailBadge.textContent = '—';
-          detailBadge.classList.remove('has-progress');
-        }
-      }
+      // Per-game status for the catalog UI (tiles / Continue / detail sheet)
+      var val = null;
+      try { val = g.badge ? g.badge() : null; } catch (e) { val = null; }
+      gameState[g.card] = {
+        completed: completed,
+        played: played,
+        progress: Math.max(0, Math.min(1, pr || 0)),
+        badge: val
+      };
     });
+
+    renderGameUI(gameState);
 
     // Update XP and Level
     var level = Math.floor(totalXp / XP_PER_LEVEL) + 1;
@@ -2077,19 +2455,21 @@ footer {
     }
   }
 
-  // Auto-record interaction when a user clicks a game card
-  document.querySelectorAll('.card[data-game]').forEach(function (card) {
-    card.addEventListener('click', function () {
-      var gameKey = card.getAttribute('data-game');
-      if (gameKey) {
-        try {
-          localStorage.setItem('moku:played:' + gameKey, new Date().toISOString());
-          var curCount = parseInt(localStorage.getItem('moku:stats:total_games_played'), 10) || 0;
-          localStorage.setItem('moku:stats:total_games_played', String(curCount + 1));
-        } catch (e) {}
-        renderProgress();
-      }
-    });
+  // Auto-record interaction when a user starts a game from any Play link
+  // (Today's Pick, the detail sheet). Delegated because the catalog is
+  // rendered from CATALOG at runtime.
+  document.addEventListener('click', function (e) {
+    var link = e.target.closest ? e.target.closest('[data-play-game]') : null;
+    if (!link) return;
+    var gameKey = link.getAttribute('data-play-game');
+    if (gameKey) {
+      try {
+        localStorage.setItem('moku:played:' + gameKey, new Date().toISOString());
+        var curCount = parseInt(localStorage.getItem('moku:stats:total_games_played'), 10) || 0;
+        localStorage.setItem('moku:stats:total_games_played', String(curCount + 1));
+      } catch (err) {}
+      renderProgress();
+    }
   });
 
   // Maintain streak when visiting hub directly
