@@ -299,6 +299,14 @@ body.playing #controls { display: block; }
 .trainItem.locked { opacity: 0.4; }
 .moveList .locked { opacity: 0.3; }
 .moveList .nm.locked::after { content: ' 🔒'; }
+#challengerScreen { background: radial-gradient(circle at 50% 40%, rgba(255,210,60,0.18), transparent 60%), rgba(10,10,20,0.9); }
+#challengerTag { font-size: clamp(16px, 3vw, 28px); font-weight: 900; font-style: italic; color: #ffd23f; letter-spacing: 0.04em;
+  text-shadow: 0 0 18px rgba(255,200,40,0.7); animation: challengerBlink 0.6s steps(2) infinite; }
+@keyframes challengerBlink { 50% { opacity: 0.35; } }
+#challengerArt { width: clamp(110px, 22vw, 200px); height: auto; aspect-ratio: 1; filter: drop-shadow(0 0 18px rgba(255,210,60,0.55)); }
+#challengerName { font-size: clamp(22px, 4vw, 36px); font-weight: 800; color: #fff; }
+#challengerDesc { font-size: 12.5px; color: rgba(237,238,246,0.7); max-width: 480px; line-height: 1.5; }
+.bossCard { border-color: rgba(255,210,60,0.5) !important; }
 #resultTitle { font-size: clamp(28px, 5.4vw, 48px); font-weight: 800; letter-spacing: 0.02em; }
 #resultTitle.win { color: #FFD27A; text-shadow: 0 0 22px rgba(255,190,90,0.6); }
 #resultTitle.lose { color: #C4B5FD; text-shadow: 0 0 22px rgba(167,139,250,0.5); }
@@ -309,7 +317,7 @@ body.playing #controls { display: block; }
 <div id="rotate-hint"><span>📱</span><p>Moku Fight is played in landscape.<br>Please rotate your device.</p></div>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.4.1 · Updated Oct 13, 2026</div>
+<div id="buildInfo">v0.5.0 · Updated Oct 14, 2026</div>
 
 <div id="wrapper">
   <canvas id="c"></canvas>
@@ -348,6 +356,7 @@ body.playing #controls { display: block; }
         <div class="titleMenuItem rivalCard sel" data-action="rival" data-rival="kon"><canvas width="200" height="200"></canvas><b>KON</b><span>Trickster Fox · Balanced</span><em></em></div>
         <div class="titleMenuItem rivalCard" data-action="rival" data-rival="ponta"><canvas width="200" height="200"></canvas><b>PONTA</b><span>Tanuki Bruiser · Power</span><em></em></div>
         <div class="titleMenuItem rivalCard" data-action="rival" data-rival="nox"><canvas width="200" height="200"></canvas><b>NOX</b><span>Moonlight Bat · Speed</span><em></em></div>
+        <div class="titleMenuItem rivalCard bossCard" data-action="rival" data-rival="goro" style="display:none"><canvas width="200" height="200"></canvas><b>GORO</b><span>Thunder Beast · Mid-Boss</span><em></em></div>
       </div>
       <div class="titleMenuItem" data-action="back">Back</div>
     </nav>
@@ -371,6 +380,17 @@ body.playing #controls { display: block; }
       <div class="titleMenuItem sel" data-action="resume">Resume</div>
       <div class="titleMenuItem" data-action="howto">Move List</div>
       <div class="titleMenuItem" data-action="quit">Quit to Title</div>
+    </nav>
+  </section>
+
+  <section class="screen" id="challengerScreen">
+    <div id="challengerTag">A NEW CHALLENGER APPROACHES!</div>
+    <canvas id="challengerArt" width="256" height="256"></canvas>
+    <div id="challengerName">???</div>
+    <p id="challengerDesc">You beat Kon, Ponta and Nox... and someone noticed. A crackle of thunder fills the arena!</p>
+    <nav class="menu" id="challengerMenu">
+      <div class="titleMenuItem sel" data-action="boss">Accept the Challenge!</div>
+      <div class="titleMenuItem" data-action="bosslater">Not now</div>
     </nav>
   </section>
 
@@ -429,7 +449,7 @@ body.playing #controls { display: block; }
 
   // ---------- save data ----------
   function loadSave() {
-    var d = { version: 1, gameId: GAME_ID, wins: 0, losses: 0, draws: 0, streak: 0, bestStreak: 0, rival: 'kon', rivals: {}, xp: 0, moves: [], difficulty: 'normal', sound: true, updatedAt: null };
+    var d = { version: 1, gameId: GAME_ID, wins: 0, losses: 0, draws: 0, streak: 0, bestStreak: 0, rival: 'kon', rivals: {}, xp: 0, moves: [], bossMet: false, bossPending: false, bossBeaten: false, difficulty: 'normal', sound: true, updatedAt: null };
     try {
       var raw = localStorage.getItem(SAVE_KEY);
       if (raw) {
@@ -527,7 +547,9 @@ body.playing #controls { display: block; }
     day: { sky: ['#5f9fd6', '#8cc3e6', '#bfe0ee', '#ffe9bf', '#ffe0a0'], cloud: '255,252,248', sun: { x: 240, y: 100, r: 36, fill: '#fffbe6', glow: '255,250,220' }, late: true,
       overlay: ['source-over', 'rgba(255,246,228,0.14)'], banner: '#a83444' },
     night: { sky: ['#14112b', '#272152', '#3d3170', '#5b4682', '#7a5a8a'], cloud: '120,100,170', sun: { x: 250, y: 105, r: 34, fill: '#fff6d6', glow: '255,244,200' }, late: true, stars: true,
-      overlay: ['multiply', '#6f69b4'], banner: '#5e2a48', fireflies: true }
+      overlay: ['multiply', '#6f69b4'], banner: '#5e2a48', fireflies: true },
+    storm: { sky: ['#161b29', '#262d45', '#3a405c', '#565672', '#706a80'], cloud: '70,78,105', sun: null, late: true,
+      overlay: ['multiply', '#8a90b4'], banner: '#5a2633', rain: true }
   };
   var stageTheme = 'sunset';
   function drawBackground() {
@@ -560,7 +582,7 @@ body.playing #controls { display: block; }
     var sky = c.createLinearGradient(0, 0, 0, 340);
     [0, 0.32, 0.58, 0.8, 1].forEach(function (stop, i) { sky.addColorStop(stop, T.sky[i]); });
     c.fillStyle = sky; c.fillRect(0, 0, W, 345);
-    if (!T.late) drawSun(c, T.sun);
+    if (T.sun && !T.late) drawSun(c, T.sun);
     // cloud streaks
     var rnd = seeded(7);
     for (var i = 0; i < 14; i++) {
@@ -649,7 +671,7 @@ body.playing #controls { display: block; }
         c.fillRect(st() * W, st() * 230, 1.5, 1.5);
       }
     }
-    if (T.late) drawSun(c, T.sun);
+    if (T.sun && T.late) drawSun(c, T.sun);
   }
 
   // ---------- dynamic scenery (banners, torches, drifting leaves) ----------
@@ -689,6 +711,23 @@ body.playing #controls { display: block; }
       c.fillStyle = '#ffe08a';
       c.beginPath(); c.moveTo(x - 4, 298); c.quadraticCurveTo(x, 284 - 4 * fl, x + 4, 298); c.fill();
     });
+    if (stageTheme === 'storm') {
+      // rain, and a lightning flash every few seconds
+      c.strokeStyle = 'rgba(190,205,235,0.35)'; c.lineWidth = 1.2;
+      for (var r = 0; r < 60; r++) {
+        var rx = (r * 97 + t * 9) % (W + 60) - 30, ry = (r * 53 + t * 14) % H;
+        c.beginPath(); c.moveTo(rx, ry); c.lineTo(rx - 5, ry + 14); c.stroke();
+      }
+      var ph = t % 260;
+      if (ph < 10) {
+        var lx = 120 + ((Math.floor(t / 260) * 337) % 720);
+        c.strokeStyle = 'rgba(255,250,220,' + (1 - ph / 10).toFixed(2) + ')'; c.lineWidth = 3;
+        c.beginPath(); c.moveTo(lx, 0);
+        for (var b2 = 1; b2 <= 6; b2++) c.lineTo(lx + ((b2 * 37 + Math.floor(t / 260) * 13) % 50) - 25, b2 * 45);
+        c.stroke();
+        c.fillStyle = 'rgba(230,235,255,' + (0.28 * (1 - ph / 10)).toFixed(2) + ')'; c.fillRect(0, 0, W, H);
+      }
+    }
     ambient.forEach(function (a) {
       a.x += a.s; a.y += Math.sin(t * 0.02 + a.p) * 0.3 + (a.leaf ? 0.15 : -0.1);
       if (a.x > W + 10) { a.x = -10; a.y = Math.random() * 330; }
@@ -788,7 +827,27 @@ body.playing #controls { display: block; }
       })
     }
   };
+  // Hidden mid-boss: an original thunder beast from Japanese folklore (raijū).
+  // Kids' idea: a little electric fighter in a martial-arts gi that powers up with a golden mane.
+  CHARS.goro = {
+    name: 'GORO', title: 'Thunder Beast', style: 'Mid-Boss', theme: 'storm', boss: true,
+    walk: 3.5, back: 2.9, jumpV: -15, power: 1.1, defense: 0.8, scale: 1.05,
+    color: '#FFD23F', specialName: 'THUNDERCLAP!',
+    combos: { AAB: 'STORM RUSH!', BP: 'THUNDER TRAP!' },
+    proj: { kind: 'tball', speed: 8.5, r: 17 }, superProj: { kind: 'bolt', speed: 7, r: 30 },
+    portrait: { dy: 62, s: 0.85, bg: ['#4a5a7a', '#1a2236'] }, titleScale: 1.3,
+    ai: { aggr: 1.2, jump: 1.2, proj: 1.2 },
+    loseTip: 'Goro powers up at half health! Guard (←), wait for an opening, then strike back.',
+    attacks: attacks({
+      A:  { startup: 4, recovery: 9, dmg: 6, range: 64, yOff: 64 },
+      B:  { startup: 9, recovery: 15, dmg: 11, range: 100, yOff: 56 },
+      cB: { range: 104 },
+      jB: { range: 88, dmg: 10 },
+      P:  { startup: 10, recovery: 16 }
+    })
+  };
   var RIVALS = ['kon', 'ponta', 'nox'];
+  function bossTime() { return RIVALS.every(function (r) { return save.rivals[r] && save.rivals[r].w > 0; }); }
 
   // Moku starts with only P and K; every match earns XP and new moves unlock in this order.
   var MOVES = [
@@ -822,6 +881,7 @@ body.playing #controls { display: block; }
     this.stun = 0; this.flash = 0; this.combo = 0; this.comboShow = 0;
     this.chain = []; this.comboName = ''; this.comboNameT = 0; this.aiChained = false;
     this.airAttacked = false;
+    this.powered = false;
   };
   Fighter.prototype.onGround = function () { return this.y >= GROUND - 0.01; };
   Fighter.prototype.crouching = function () {
@@ -857,7 +917,7 @@ body.playing #controls { display: block; }
     if (a.lunge) this.vx = this.facing * a.lunge;
     if (key === 'SP') {
       this.meter = 0;
-      game.superFreeze = 40; game.superOwner = this;
+      game.superFreeze = 40; game.superOwner = this; game.superText = null;
       sfx.special();
     } else if (key !== 'P') {
       sfx.swing();
@@ -967,8 +1027,8 @@ body.playing #controls { display: block; }
       return;
     }
     if (inp.down) { this.state = 'crouch'; this.vx = 0; }
-    else if (fwdHeld) { this.state = 'walk'; this.vx = this.facing * this.c.walk; }
-    else if (backHeld) { this.state = 'walk'; this.vx = -this.facing * this.c.back; }
+    else if (fwdHeld) { this.state = 'walk'; this.vx = this.facing * this.c.walk * (this.powered ? 1.2 : 1); }
+    else if (backHeld) { this.state = 'walk'; this.vx = -this.facing * this.c.back * (this.powered ? 1.2 : 1); }
     else { this.state = 'idle'; this.vx = 0; }
     this.physics();
   };
@@ -1076,7 +1136,7 @@ body.playing #controls { display: block; }
       att.combo = wasStunned ? att.combo + 1 : 1;
       // long combos deal a little less per hit
       var scaling = att.combo >= 3 ? Math.max(0.5, 1 - 0.12 * (att.combo - 2)) : 1;
-      var dmg = Math.max(1, Math.round(a.dmg * (att.c.power || 1) * (def.c.defense || 1) * scaling));
+      var dmg = Math.max(1, Math.round(a.dmg * (att.c.power || 1) * (att.powered ? 1.15 : 1) * (def.c.defense || 1) * scaling));
       def.hp = Math.max(0, def.hp - dmg);
       def.state = 'hit'; def.stun = a.stun; def.flash = 8;
       def.vx = fromDir * a.push;
@@ -1119,7 +1179,7 @@ body.playing #controls { display: block; }
   }
 
   var projectiles = [];
-  var TRAIL = { razor: 'leaf', storm: 'leaf', wisp: 'flame', foxfire: 'flame', quake: 'dust', sonic: 'sonic', screech: 'sonic' };
+  var TRAIL = { razor: 'leaf', storm: 'leaf', wisp: 'flame', foxfire: 'flame', quake: 'dust', sonic: 'sonic', screech: 'sonic', tball: 'spark', bolt: 'spark' };
   function spawnProjectile(f, isSuper) {
     var cfg = isSuper ? f.c.superProj : f.c.proj;
     var atk = isSuper
@@ -1179,6 +1239,7 @@ body.playing #controls { display: block; }
     kon: { parts: ['flame', 'spark'], ring: '#d8c4ff', n: 16 },
     ponta: { parts: ['dust', 'spark'], ring: '#f2d29a', n: 16 },
     nox: { parts: ['sonic', 'spark'], ring: '#b9bdff', n: 16 },
+    goro: { parts: ['spark', 'spark'], ring: '#ffe066', n: 18 },
     dust: { parts: ['dust'], ring: null, n: 10 }
   };
   function burst(x, y, kind) {
@@ -1551,7 +1612,88 @@ body.playing #controls { display: block; }
     c.restore();
   }
 
-  var DRAW = { moku: drawMoku, kon: drawKon, ponta: drawPonta, nox: drawNox };
+  function drawGoro(c, f, P, time) {
+    var gold = !!f.powered;
+    var fur = '#dfe6f2', gi = '#c0392b', giDark = '#8e2a20', band = '#f4f1ea';
+    var lp = P.legPhase * 5;
+    function tail() {
+      // a fluffy storm-cloud tail with a little spark at the tip
+      c.save(); c.translate(-24, -36); c.rotate(-0.4 + P.tail * 0.8);
+      ell(c, -12, -8, 16, 13, 0, '#c9d3e6'); ell(c, -24, -22, 14, 12, 0, '#d6deee'); ell(c, -28, -40, 12, 11, 0, '#e8edf7');
+      c.strokeStyle = gold ? '#ffe066' : '#9fd8ff'; c.lineWidth = 2.5; c.lineJoin = 'round';
+      c.beginPath(); c.moveTo(-28, -50); c.lineTo(-22, -58); c.lineTo(-30, -62); c.lineTo(-24, -72); c.stroke();
+      c.restore();
+    }
+    ell(c, -13 + lp, -4, 11, 6, 0, '#9aa6bc');
+    ell(c, 13 - lp, -4, 11, 6, 0, '#9aa6bc');
+    c.save();
+    c.translate(0, P.dy);
+    c.rotate(P.lean);
+    c.scale(P.sx, P.sy);
+    var tailFront = P.tail > 1.4;
+    if (!tailFront) tail();
+    // gi trousers
+    c.fillStyle = gi;
+    c.beginPath(); c.moveTo(-22, -42); c.lineTo(22, -42); c.lineTo(23 - lp * 0.5, -8); c.lineTo(5, -8); c.lineTo(0, -24);
+    c.lineTo(-5, -8); c.lineTo(-23 + lp * 0.5, -8); c.closePath(); c.fill();
+    // back arm
+    c.save(); c.translate(-22, -68); c.rotate(P.armB);
+    ell(c, 0, 14, 7, 15, 0, '#c9d3e6'); c.fillStyle = band; c.fillRect(-7, 20, 14, 5); ell(c, 0, 30, 7, 6, 0, '#c9d3e6');
+    c.restore();
+    // gi top, fur V-neck, sash
+    ell(c, 0, -58, 26, 22, 0, gi);
+    c.fillStyle = fur; c.beginPath(); c.moveTo(-10, -77); c.lineTo(10, -77); c.lineTo(0, -60); c.closePath(); c.fill();
+    c.strokeStyle = giDark; c.lineWidth = 2; c.beginPath(); c.moveTo(-12, -76); c.lineTo(3, -52); c.stroke();
+    c.fillStyle = band; c.fillRect(-25, -46, 50, 7); c.fillRect(7, -42, 6, 13);
+    // spiky mane: silver, turning golden in THUNDER MODE
+    var cx = 2, cy = -102, n = 12;
+    c.fillStyle = gold ? '#ffd23f' : '#eef2fa';
+    c.strokeStyle = gold ? '#ffae00' : '#b8c3d9'; c.lineWidth = 2;
+    c.beginPath();
+    for (var i = 0; i <= n; i++) {
+      var ang = (150 + i * (230 / n)) * Math.PI / 180;
+      var rr = i % 2 ? 28 : 46 + (gold ? Math.sin(time * 0.5 + i) * 4 : 0);
+      var px = cx + Math.cos(ang) * rr, py = cy + Math.sin(ang) * rr;
+      if (i) c.lineTo(px, py); else c.moveTo(px, py);
+    }
+    c.closePath(); c.fill(); c.stroke();
+    // round ears (no dark tips)
+    ell(c, -15, -128, 9, 14, -0.35, fur); ell(c, 19, -128, 9, 14, 0.35, fur);
+    ell(c, -15, -127, 4.5, 8, -0.35, '#9fc4ef'); ell(c, 19, -127, 4.5, 8, 0.35, '#9fc4ef');
+    // head and face
+    ell(c, 2, -100, 26, 24, 0, fur);
+    ell(c, 12, -91, 12, 8, 0, '#f7f9fd');
+    ell(c, 22, -94, 3.5, 2.8, 0, '#3a3550');
+    if (P.eyes === 'angry') { ell(c, -6, -103, 6.5, 6.5, 0, '#ffffff'); ell(c, 12, -103, 6.5, 6.5, 0, '#ffffff'); }
+    drawEyes(c, P, -5, 13, -103, 4.2, gold ? '#1f7ae0' : '#e08a00', '#ffffff', '#3a3550');
+    if (P.eyes === 'angry') {
+      c.strokeStyle = '#3a3550'; c.lineWidth = 3; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(-14, -115); c.lineTo(-1, -110); c.stroke();
+      c.beginPath(); c.moveTo(21, -115); c.lineTo(8, -110); c.stroke();
+    }
+    // light-blue zigzag cheek marks
+    c.strokeStyle = gold ? '#ffcf3f' : '#7fc4ff'; c.lineWidth = 2; c.lineJoin = 'round';
+    [[-16, -93], [26, -96]].forEach(function (m) {
+      c.beginPath(); c.moveTo(m[0] - 4, m[1] - 3); c.lineTo(m[0], m[1] - 1); c.lineTo(m[0] - 2, m[1] + 1); c.lineTo(m[0] + 3, m[1] + 3); c.stroke();
+    });
+    // front arm
+    c.save(); c.translate(22, -68); c.rotate(P.armF);
+    ell(c, 0, 14 * P.armLen, 7, 15 * P.armLen, 0, fur); c.fillStyle = band; c.fillRect(-7, 20 * P.armLen, 14, 5);
+    ell(c, 0, 30 * P.armLen, 7.5, 6.5, 0, fur);
+    c.restore();
+    if (tailFront) tail();
+    if (P.beak > 0) {
+      c.strokeStyle = 'rgba(255,236,140,0.9)'; c.lineWidth = 3; c.lineCap = 'round';
+      for (var s2 = 0; s2 < 3; s2++) { c.beginPath(); c.moveTo(48, -76 + s2 * 8); c.lineTo(70, -80 + s2 * 8); c.stroke(); }
+    }
+    if (P.slash) {
+      c.strokeStyle = 'rgba(255,220,90,0.85)'; c.lineWidth = 5; c.lineCap = 'round';
+      c.beginPath(); c.arc(14, -56, 80, -1.0, 0.7); c.stroke();
+    }
+    c.restore();
+  }
+
+  var DRAW = { moku: drawMoku, kon: drawKon, ponta: drawPonta, nox: drawNox, goro: drawGoro };
 
   function hexA(hex, a) {
     var n = parseInt(hex.slice(1), 16);
@@ -1572,6 +1714,17 @@ body.playing #controls { display: block; }
     DRAW[f.charId](c, f, P, time);
     c.restore();
     if ('filter' in c) c.filter = 'none';
+    if (f.powered && f.state !== 'ko') {
+      var ay = f.y - f.height() / 2;
+      var ag = c.createRadialGradient(f.x, ay, 10, f.x, ay, 90 * s);
+      ag.addColorStop(0, 'rgba(255,220,80,0.22)'); ag.addColorStop(1, 'rgba(255,200,40,0)');
+      c.fillStyle = ag; c.beginPath(); c.arc(f.x, ay, 90 * s, 0, Math.PI * 2); c.fill();
+      c.strokeStyle = 'rgba(255,240,150,0.85)'; c.lineWidth = 2;
+      for (var z = 0; z < 3; z++) {
+        var zx = f.x + (Math.random() - 0.5) * 90, zy = ay + (Math.random() - 0.5) * 110;
+        c.beginPath(); c.moveTo(zx, zy); c.lineTo(zx + 8, zy + 10); c.lineTo(zx - 2, zy + 14); c.lineTo(zx + 6, zy + 26); c.stroke();
+      }
+    }
     if (f.state === 'counter' && f.t <= 22) {
       var cyc = f.y - f.height() / 2;
       c.strokeStyle = 'rgba(255,216,106,' + (0.9 - f.t * 0.03).toFixed(2) + ')'; c.lineWidth = 4;
@@ -1628,6 +1781,29 @@ body.playing #controls { display: block; }
         c.strokeStyle = 'rgba(255,232,180,0.9)'; c.lineWidth = 4;
         for (var w = 0; w < 2; w++) { c.beginPath(); c.arc(-dir * w * 14, 14, p.r - w * 8, Math.PI * 1.1, Math.PI * 1.9); c.stroke(); }
         for (var k = 0; k < 5; k++) ell(c, -dir * k * 10 + 6 * dir, -((k * 7 + time * 1.4) % 26), 5, 4, 0, '#8a6a4c');
+      } else if (p.kind === 'tball') {
+        var gt = c.createRadialGradient(0, 0, 2, 0, 0, p.r + 12);
+        gt.addColorStop(0, 'rgba(255,255,255,1)'); gt.addColorStop(0.4, 'rgba(255,224,90,0.95)'); gt.addColorStop(1, 'rgba(255,190,40,0)');
+        c.fillStyle = gt; c.beginPath(); c.arc(0, 0, p.r + 12, 0, Math.PI * 2); c.fill();
+        c.strokeStyle = '#fff7c2'; c.lineWidth = 2;
+        for (var z = 0; z < 3; z++) {
+          var za = Math.random() * Math.PI * 2;
+          c.beginPath(); c.moveTo(0, 0);
+          c.lineTo(Math.cos(za) * 10 + (Math.random() - 0.5) * 6, Math.sin(za) * 10 + (Math.random() - 0.5) * 6);
+          c.lineTo(Math.cos(za) * (p.r + 6), Math.sin(za) * (p.r + 6)); c.stroke();
+        }
+      } else if (p.kind === 'bolt') {
+        // a lightning strike falling from the sky and marching forward
+        var top = -p.y - 20, bottom = GROUND - p.y + 4;
+        var gb = c.createRadialGradient(0, bottom - 6, 4, 0, bottom - 6, 60);
+        gb.addColorStop(0, 'rgba(255,240,170,0.9)'); gb.addColorStop(1, 'rgba(255,210,60,0)');
+        c.fillStyle = gb; c.beginPath(); c.ellipse(0, bottom - 6, 60, 26, 0, 0, Math.PI * 2); c.fill();
+        var pts = [], segs = 12;
+        for (var q2 = 0; q2 <= segs; q2++) pts.push([q2 === 0 || q2 === segs ? 0 : (Math.random() - 0.5) * 28, top + (bottom - top) * q2 / segs]);
+        [[14, 'rgba(255,214,60,0.35)'], [6, '#fff3a8'], [2.5, '#ffffff']].forEach(function (st) {
+          c.strokeStyle = st[1]; c.lineWidth = st[0]; c.lineJoin = 'round';
+          c.beginPath(); pts.forEach(function (pt, k) { if (k) c.lineTo(pt[0], pt[1]); else c.moveTo(pt[0], pt[1]); }); c.stroke();
+        });
       } else if (p.kind === 'sonic' || p.kind === 'screech') {
         var loud = p.kind === 'screech', n = loud ? 4 : 3, sz = loud ? 1.5 : 1;
         if (loud) {
@@ -1807,7 +1983,7 @@ body.playing #controls { display: block; }
 
   function cpuThink(ai, me, opp, inp) {
     var d = ai.d, pers = me.c.ai || { aggr: 1, jump: 1, proj: 1 };
-    var aggr = Math.min(0.92, d.aggr * pers.aggr);
+    var aggr = Math.min(0.95, d.aggr * pers.aggr * (me.powered ? 1.3 : 1));
     var dx = opp.x - me.x, dist = Math.abs(dx);
     var toward = dx > 0 ? 'right' : 'left', away = dx > 0 ? 'left' : 'right';
     var oppAttacking = opp.state === 'attack' && opp.atk && !opp.atk.special && !opp.atk.proj && opp.atkFrame <= opp.atk.startup + opp.atk.active;
@@ -2072,7 +2248,10 @@ body.playing #controls { display: block; }
   };
   // ?debug exposes the game state for automated tests
   if (/[?&]debug\b/.test(location.search)) window.__mokuFight = { game: game, projectiles: function () { return projectiles; }, lastPress: function () { return lastPress; } };
-  function currentRival() { return CHARS[save.rival] && RIVALS.indexOf(save.rival) !== -1 ? save.rival : 'kon'; }
+  function currentRival() {
+    if (save.rival === 'goro' && save.bossMet) return 'goro';
+    return RIVALS.indexOf(save.rival) !== -1 ? save.rival : 'kon';
+  }
 
   // ---- practice: right after learning a move (or from Training) ----
   var PRACTICE_GOAL = 3;
@@ -2196,6 +2375,7 @@ body.playing #controls { display: block; }
       cpuThink(game.ai2, p2, p1, game.in2);
       p1.step(game.in1, p2);
       p2.step(game.in2, p1);
+      if (p2.c.boss && !p2.powered && p2.hp > 0 && p2.hp <= 50) powerUp(p2);
       separate(p1, p2);
       stepProjectiles();
       decayBuffers(game.in1); decayBuffers(game.in2);
@@ -2216,6 +2396,14 @@ body.playing #controls { display: block; }
         else { game.round++; startRound(); }
       }
     }
+  }
+
+  function powerUp(f) {
+    f.powered = true;
+    game.superFreeze = 55; game.superOwner = f; game.superText = 'THUNDER MODE!';
+    game.shake = 10;
+    burst(f.x, f.y - 60, f.charId); burst(f.x, f.y - 60, 'block');
+    sfx.special(); sfx.ko();
   }
 
   function separate(a, b) {
@@ -2257,6 +2445,7 @@ body.playing #controls { display: block; }
     var gained = 0, learned = null;
     if (!game.demo) {
       gained = res === 'win' ? (save.difficulty === 'hard' ? 150 : 100) : res === 'draw' ? 60 : 40;
+      if (res === 'win' && rival === 'goro') { gained += 100; save.bossBeaten = true; }
       save.xp += gained;
       var nm = nextMove();
       if (nm && save.xp >= nm.xp) { save.moves.push(nm.id); learned = nm; }
@@ -2266,13 +2455,16 @@ body.playing #controls { display: block; }
       if (res === 'win') { save.wins++; save.streak++; save.bestStreak = Math.max(save.bestStreak, save.streak); rec.w++; }
       else if (res === 'lose') { save.losses++; save.streak = 0; rec.l++; }
       else save.draws++;
+      // beating all three rivals once calls out the hidden mid-boss
+      if (res === 'win' && !save.bossMet && bossTime()) save.bossPending = true;
       writeSave();
     }
     game.phase = 'done';
     var t = document.getElementById('resultTitle');
     t.textContent = res === 'win' ? 'YOU WIN!' : res === 'lose' ? 'YOU LOSE...' : 'DRAW';
     t.className = res === 'win' ? 'win' : 'lose';
-    var msg = res === 'win' ? 'Moku beat ' + p2.c.name + '! (CPU: ' + DIFF[save.difficulty].label + ')'
+    var msg = res === 'win' && rival === 'goro' ? 'Moku defeated GORO the Thunder Beast! 🏆 Champion of the Sunset Arena!'
+      : res === 'win' ? 'Moku beat ' + p2.c.name + '! (CPU: ' + DIFF[save.difficulty].label + ')'
       : res === 'lose' ? p2.c.loseTip
       : 'An even match!';
     document.getElementById('resultDesc').innerHTML = msg + '<br>Record: ' + save.wins + 'W - ' + save.losses + 'L' + (save.streak > 1 ? ' · ' + save.streak + ' win streak!' : '');
@@ -2288,7 +2480,18 @@ body.playing #controls { display: block; }
       document.querySelector('#unlockMenu [data-action="practice"]').setAttribute('data-move', learned.id);
       showScreen('unlock');
       setTimeout(function () { sfx.win(); }, 500);
+    } else if (save.bossPending) {
+      setTimeout(showChallenger, 1200);
     }
+  }
+  function showChallenger() {
+    if (!save.bossPending || (game.mode !== 'title' && game.mode !== 'result')) return;
+    document.getElementById('challengerName').textContent = '???';
+    showScreen('challenger');
+    sfx.special();
+    setTimeout(function () {
+      if (currentScreen === 'challenger') { document.getElementById('challengerName').textContent = 'GORO — Thunder Beast'; sfx.ko(); }
+    }, 1400);
   }
 
   // ---------- rendering ----------
@@ -2323,7 +2526,8 @@ body.playing #controls { display: block; }
       ctx.textAlign = so === p1 ? 'left' : 'right';
       ctx.lineWidth = 7; ctx.strokeStyle = 'rgba(20,10,30,0.9)';
       var tx = so === p1 ? 40 : W - 40;
-      ctx.strokeText(so.c.specialName, tx, 200); ctx.fillStyle = so.c.color; ctx.fillText(so.c.specialName, tx, 200);
+      var stx = game.superText || so.c.specialName;
+      ctx.strokeText(stx, tx, 200); ctx.fillStyle = so.c.color; ctx.fillText(stx, tx, 200);
       ctx.restore();
     }
     if (game.practice && game.practice.doneT) bigText(ctx, 'GREAT!', moveById(game.practice.move).name + ' learned!', game.practice.doneT, '#5fe0d2');
@@ -2356,7 +2560,18 @@ body.playing #controls { display: block; }
     DRAW[charId](c, fake, poseOf(fake), time);
   }
   var selectCards = [].slice.call(document.querySelectorAll('.rivalCard'));
+  var challengerCanvas = document.getElementById('challengerArt');
   function renderTitleArt(time) {
+    if (currentScreen === 'challenger') {
+      var cc = challengerCanvas.getContext('2d');
+      drawRivalIcon(cc, 'goro', 256, time);
+      if (document.getElementById('challengerName').textContent === '???') {
+        cc.setTransform(1, 0, 0, 1, 0, 0);
+        cc.globalCompositeOperation = 'source-atop';
+        cc.fillStyle = '#0b0b14'; cc.fillRect(0, 0, 256, 256);
+        cc.globalCompositeOperation = 'source-over';
+      }
+    }
     if (currentScreen === 'title') drawRivalIcon(rctx, currentRival(), 256, time);
     if (currentScreen === 'select') selectCards.forEach(function (card) {
       var cv = card.querySelector('canvas');
@@ -2373,7 +2588,8 @@ body.playing #controls { display: block; }
     result: document.getElementById('resultScreen'),
     unlock: document.getElementById('unlockScreen'),
     train: document.getElementById('trainScreen'),
-    practiceDone: document.getElementById('practiceDoneScreen')
+    practiceDone: document.getElementById('practiceDoneScreen'),
+    challenger: document.getElementById('challengerScreen')
   };
   var currentScreen = 'title', howReturn = 'title';
   function showScreen(name) {
@@ -2385,7 +2601,10 @@ body.playing #controls { display: block; }
     game.mode = m;
     document.body.classList.toggle('on-title', m === 'title');
     document.body.classList.toggle('playing', m === 'playing');
-    if (m === 'title') { showScreen('title'); refreshTitle(); setTheme(CHARS[currentRival()].theme); }
+    if (m === 'title') {
+      showScreen('title'); refreshTitle(); setTheme(CHARS[currentRival()].theme);
+      if (save.bossPending) setTimeout(showChallenger, 300);
+    }
     else if (m === 'playing') showScreen(null);
     else if (m === 'paused') showScreen('paused');
     else if (m === 'result') showScreen('result');
@@ -2435,7 +2654,13 @@ body.playing #controls { display: block; }
       case 'resume': resume(); break;
       case 'quit': case 'title': setMode('title'); game.p1 = null; game.practice = null; break;
       case 'practice': startPractice(el.getAttribute('data-move')); break;
-      case 'later': showScreen('result'); break;
+      case 'later': if (save.bossPending) showChallenger(); else showScreen('result'); break;
+      case 'boss':
+        save.bossMet = true; save.bossPending = false; save.rival = 'goro'; writeSave();
+        startMatch(); break;
+      case 'bosslater':
+        save.bossMet = true; save.bossPending = false; writeSave();
+        setMode('title'); game.p1 = null; game.practice = null; break;
       case 'train':
         if (game.mode !== 'title') { setMode('title'); game.p1 = null; game.practice = null; }
         refreshTrain(); showScreen('train'); break;
@@ -2472,13 +2697,14 @@ body.playing #controls { display: block; }
     renderXp(document.getElementById('titleXp'), 0);
     var played = save.wins + save.losses + save.draws;
     document.getElementById('titleRecord').textContent = played
-      ? 'Record ' + save.wins + 'W - ' + save.losses + 'L' + (save.bestStreak > 1 ? ' · Best streak ' + save.bestStreak : '')
+      ? 'Record ' + save.wins + 'W - ' + save.losses + 'L' + (save.bestStreak > 1 ? ' · Best streak ' + save.bestStreak : '') + (save.bossBeaten ? ' · 🏆 Champion' : '')
       : '';
   }
   function refreshSelect() {
     var menu = screens.select.querySelector('.menu');
     selectCards.forEach(function (card) {
       var r = card.getAttribute('data-rival'), rec = save.rivals[r];
+      if (r === 'goro') card.style.display = save.bossMet ? '' : 'none';
       card.querySelector('em').textContent = rec && (rec.w || rec.l) ? (rec.w ? '★ ' : '') + rec.w + 'W - ' + rec.l + 'L' : 'New challenger!';
       if (r === currentRival()) selectItem(menu, card);
     });
@@ -2496,9 +2722,9 @@ body.playing #controls { display: block; }
       while (acc >= STEP) { step(); acc -= STEP; }
     } else {
       acc = 0;
-      if (game.mode === 'title') game.time++;
+      if (game.mode === 'title' || currentScreen === 'challenger') game.time++;
     }
-    if (game.mode === 'title') renderTitleArt(game.time);
+    if (game.mode === 'title' || currentScreen === 'challenger') renderTitleArt(game.time);
     render();
     requestAnimationFrame(frame);
   }
@@ -2510,7 +2736,8 @@ body.playing #controls { display: block; }
   setMode('title');
   if (game.demo) {
     var demoRival = (location.search.match(/rival=(\w+)/) || [])[1];
-    if (RIVALS.indexOf(demoRival) !== -1) save.rival = demoRival;
+    if (RIVALS.indexOf(demoRival) !== -1 || demoRival === 'goro') save.rival = demoRival;
+    if (demoRival === 'goro') save.bossMet = true;
     startMatch();
   }
   requestAnimationFrame(frame);
