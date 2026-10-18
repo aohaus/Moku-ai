@@ -944,9 +944,9 @@ body.on-title #watchScreen { display: none; }
   }
 
   var APPS = {
-    // Food Panda — "order" on the main face (100% lazy).
+    // Food Moku — "order" on the main face (100% lazy).
     food: function () {
-      appTitle.textContent = 'Food Panda';
+      appTitle.textContent = 'Food Moku';
       appBody.appendChild(h('div', 'muted', 'Moku-shaped menu · free delivery to your bed'));
       var grid = h('div', 'food-grid');
       FOODS.forEach(function (f) {
@@ -1070,7 +1070,7 @@ body.on-title #watchScreen { display: none; }
       appBody.lastChild.style.width = 'calc(var(--u) * 20)';
       appBody.appendChild(h('div', null, '🔥 Burned: <b>' + out + ' kcal</b>'));
       appBody.appendChild(h('div', null, '🍱 Eaten: <b>' + fmt(state.kcalIn) + ' kcal</b>'));
-      appBody.appendChild(h('div', 'muted', state.kcalIn > out ? 'Net: +' + fmt(state.kcalIn - out) + ' kcal. Moku is getting extra fluffy.' : 'Order something from Food Panda!'));
+      appBody.appendChild(h('div', 'muted', state.kcalIn > out ? 'Net: +' + fmt(state.kcalIn - out) + ' kcal. Moku is getting extra fluffy.' : 'Order something from Food Moku!'));
     },
     quiz: function () {
       appTitle.textContent = 'Quiz';
