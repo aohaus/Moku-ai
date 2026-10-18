@@ -1972,6 +1972,31 @@ footer {
       }
     },
     {
+      name: 'Moku Watch 6 Lazy',
+      card: 'mw6',
+      gameId: 'moku-watch-6-lazy',
+      isCompleted: function () {
+        if (isExplicitlyMarked('completed', 'mw6')) return true;
+        var p = readJSON('moku:moku-watch-6-lazy:progress');
+        return Boolean(p && Array.isArray(p.dex) && p.dex.length >= 10);
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'mw6')) return true;
+        var p = readJSON('moku:moku-watch-6-lazy:progress');
+        return Boolean(p && p.lazy > 0);
+      },
+      progress: function () {
+        if (this.isCompleted()) return 1;
+        var p = readJSON('moku:moku-watch-6-lazy:progress');
+        return p && Array.isArray(p.dex) ? Math.min(1, (p.dex.length - 1) / 9) : 0;
+      },
+      badge: function () {
+        var p = readJSON('moku:moku-watch-6-lazy:progress');
+        if (!p || !this.isPlayed()) return null;
+        return Math.round(p.lazy || 0).toLocaleString('en-US') + '% Lazy';
+      }
+    },
+    {
       name: 'Mokuball',
       card: null,
       gameId: 'mokuball',
@@ -2107,6 +2132,9 @@ footer {
     mw:  { name: 'Moku Wolf', gameId: 'moku-wolf', genre: 'Party · Pass & Play', cta: 'Play', hi: '#9B6CD9', lo: '#3B1F66',
            tag: 'Find who has the secret word!',
            desc: 'Pass the phone, talk it out, and find who has the secret WordMoku word!' },
+    mw6: { name: 'Moku Watch 6 Lazy', gameId: 'moku-watch-6-lazy', genre: 'Lazy Smartwatch', cta: 'Wear', hi: '#FFA552', lo: '#7A4214', newUntil: '2026-11-18',
+           tag: 'The smartwatch for the laziest owl.',
+           desc: 'Moku’s very own smartwatch! Order Moku Bento, take endless lunch breaks, sleep 24 hours and fill the Mokudex — the lazier, the better.' },
     mr:  { name: 'Moku-rane', gameId: 'moku-rane', genre: '3D Claw Machine', cta: 'Play', hi: '#FF9EAA', lo: '#7A3046',
            tag: 'Aim, drop, grab a prize!',
            desc: 'Real-physics 3D arcade claw machine — aim, drop, and grab cute Moku prizes for your collection.' }
@@ -2114,7 +2142,7 @@ footer {
   var SHELVES = [
     { title: 'Action & Sports', sub: 'Fling, kick, fight, race', cards: ['am', 'br', 'mk', 'mfg', 'mkt', 'mfr'] },
     { title: 'Puzzle & Brain',  sub: 'Think, match, merge',      cards: ['mm', 'md', 'so'] },
-    { title: 'Cozy & Create',   sub: 'Take it slow',             cards: ['mc', 'mf', 'mrc', 'mb', 'fm'] },
+    { title: 'Cozy & Create',   sub: 'Take it slow',             cards: ['mc', 'mf', 'mrc', 'mb', 'fm', 'mw6'] },
     { title: 'Party & Arcade',  sub: 'Play with friends',        cards: ['mw', 'mr'] }
   ];
   // Today's Pick rotates daily through titles whose screenshot shows real gameplay.

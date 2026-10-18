@@ -41,7 +41,7 @@
 *   **トークン・リソース制限の意識:** 開発量には限界があることを前提に、小規模かつインパクトの大きい改善を1回のPRで行うこと。
 *   **既存の世界観の尊重:** 「Moku」の可愛らしさや、子どもたちが直感的に楽しめるUIを崩さないこと。
 *   **環境コンセプトの維持 (Moku City):** 街づくり機能を追加する際は、必ず「緑化率・自然環境への影響」のパラメータや演出を考慮すること。
-*   **Claude Code担当タイトルには触れない:** 「Moku Future Run」「Moku Fight」は Claude Code で開発しているため、AI Studio / Gemini からは変更しないこと(詳細は §5)。
+*   **Claude Code担当タイトルには触れない:** 「Moku Future Run」「Moku Fight」「Moku Watch 6 Lazy」は Claude Code で開発しているため、AI Studio / Gemini からは変更しないこと(詳細は §5)。
 
 ## デザイン・世界観の絶対ルール
 - **世界観の維持**: 温かみのあるイラスト調・絵本のような世界観（夕焼け、木目、可愛いキャラクター）を必ず維持すること。
@@ -59,6 +59,7 @@
 | --- | --- |
 | Moku Future Run | **Claude Code**(AI Studio / Gemini からは変更しない) |
 | Moku Fight | **Claude Code**(新規タイトル。AI Studio / Gemini からは変更しない) |
+| Moku Watch 6 Lazy | **Claude Code**(2026-10-18 新規タイトル。AI Studio / Gemini からは変更しない) |
 | Moku Wolf | AI Studio(2026-10-13 に Claude Code で「New Game (Same Settings)」ボタンを部分追加。AI Studio で触る前に `main` を取り込むこと) |
 | ハブ(`hub.html`)のゲーム一覧 | AI Studio(2026-10-13 に Claude Code でゲーム一覧を Today's Pick / Continue / ジャンル棚 / 詳細シートに刷新。`icons/games/` `screenshots/` を新設。AI Studio で触る前に `main` を取り込むこと。仕様は SPEC.md §7) |
 | 上記以外 | AI Studio(Claude Code で触る場合はその都度ここを更新する) |
