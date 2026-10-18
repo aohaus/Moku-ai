@@ -192,11 +192,11 @@ body.on-title #watchScreen { display: none; }
   touch-action: pan-y;
 }
 .track {
-  display: flex; width: 200%; height: 100%;
+  display: flex; width: 300%; height: 100%;
   transition: transform 0.32s cubic-bezier(.2,.8,.2,1);
 }
 .track.dragging { transition: none; }
-.face { position: relative; width: 50%; height: 100%; padding: calc(var(--u) * 6) calc(var(--u) * 6.5); }
+.face { position: relative; width: calc(100% / 3); height: 100%; padding: calc(var(--u) * 6) calc(var(--u) * 6.5); }
 
 /* ink-drawn tiles, like the original whiteboard sketch */
 .tile {
@@ -271,6 +271,44 @@ body.on-title #watchScreen { display: none; }
 #tWalk     { grid-area: 3 / 3 / 4 / 5; background: #CFE8F2; font-size: calc(var(--u) * 4.5); padding: calc(var(--u) * 1.5); text-align: center; }
 .tile small { display: block; font-size: 0.62em; opacity: 0.65; margin-top: calc(var(--u) * 1.2); letter-spacing: 0.02em; }
 .excl { letter-spacing: 0.04em; }
+
+/* extra face (right of the main face) */
+.extra-grid {
+  height: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1.25fr 1fr;
+  gap: calc(var(--u) * 2.6);
+}
+#tNothing { grid-column: 1 / 3; background: #E4EFD9; flex-direction: row; gap: calc(var(--u) * 2); padding: calc(var(--u) * 2); font-size: calc(var(--u) * 5); text-align: left; }
+#tNothing svg { width: calc(var(--u) * 26); height: calc(var(--u) * 26); flex: none; }
+#tAlarm  { background: #FFE3B3; font-size: calc(var(--u) * 4.4); }
+#tExcuse { background: #F3DCEB; font-size: calc(var(--u) * 4.4); }
+#alarmIcon, #excuseIcon { display: block; width: 58%; aspect-ratio: 1; }
+#alarmIcon svg, #excuseIcon svg { width: 100%; height: 100%; }
+#nothingIcon { display: block; flex: none; }
+.excuse-card {
+  position: relative;
+  width: 100%;
+  border: calc(var(--u) * 0.8) solid var(--ink);
+  border-radius: calc(var(--u) * 5);
+  background: #FFF;
+  padding: calc(var(--u) * 3.4) calc(var(--u) * 3);
+  font-weight: 800;
+  font-size: calc(var(--u) * 4.6);
+  line-height: 1.3;
+}
+.excuse-card::after {
+  content: ''; position: absolute; left: 22%; bottom: calc(var(--u) * -3.4);
+  width: calc(var(--u) * 5); height: calc(var(--u) * 5);
+  background: #FFF;
+  border-right: calc(var(--u) * 0.8) solid var(--ink);
+  border-bottom: calc(var(--u) * 0.8) solid var(--ink);
+  transform: rotate(45deg);
+}
+.bell { width: calc(var(--u) * 30); height: calc(var(--u) * 30); }
+.bell.ringing { animation: ring 0.12s ease-in-out infinite alternate; }
+.ink-btn:disabled { opacity: 0.4; }
 
 /* page dots */
 #dots { margin-top: calc(var(--u) * 7 + 8px); display: flex; gap: 10px; z-index: 3; position: relative; }
@@ -455,7 +493,7 @@ body.on-title #watchScreen { display: none; }
 
 <div id="title-frame"></div>
 <a id="hub-link" href="index.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.1.1 · Updated Oct 18, 2026</div>
+<div id="buildInfo">v0.2.0 · Updated Oct 18, 2026</div>
 
 <section id="titleScreen" aria-label="Title">
   <div id="titleHeroWrap">
@@ -510,6 +548,14 @@ body.on-title #watchScreen { display: none; }
               <div class="mf-cell"><button id="calBtn" type="button" aria-label="Random date calendar" data-app="date"></button></div>
             </div>
           </div>
+          <!-- Extra face (right of the main face) -->
+          <div class="face" id="extraFace" aria-label="More lazy apps">
+            <div class="extra-grid">
+              <button class="tile" id="tNothing" type="button" data-app="nothing"><span id="nothingIcon"></span><span>Do Nothing Challenge<small id="nothingBest"></small></span></button>
+              <button class="tile" id="tAlarm" type="button" data-app="alarm"><span id="alarmIcon"></span>Lazy Alarm</button>
+              <button class="tile" id="tExcuse" type="button" data-app="excuse"><span id="excuseIcon"></span>Excuses</button>
+            </div>
+          </div>
         </div>
 
         <div class="layer" id="appLayer" role="dialog" aria-modal="true" aria-labelledby="appTitle">
@@ -535,6 +581,7 @@ body.on-title #watchScreen { display: none; }
   <div id="dots" role="tablist" aria-label="Faces">
     <button type="button" data-page="0" aria-label="Apps face"></button>
     <button type="button" data-page="1" aria-label="Main face"></button>
+    <button type="button" data-page="2" aria-label="More lazy apps"></button>
   </div>
   <div id="swipeHint">← swipe to switch faces →</div>
 </section>
@@ -561,6 +608,9 @@ body.on-title #watchScreen { display: none; }
     quizzes: 0,
     calls: 0,
     dates: 0,
+    nothingBest: 0,   // seconds, Do Nothing Challenge record
+    snoozes: 0,
+    excuses: 0,
     lunchUntil: 0,
     dex: ['moku'],
     updatedAt: null
@@ -616,6 +666,13 @@ body.on-title #watchScreen { display: none; }
 
   // ---------- Moku drawing (inline SVG) ----------
   var svgSeq = 0;
+  // A round alarm clock with two bells (used by Lazy Alarm and the Mokudex).
+  var BELL = '<g>' +
+    '<circle cx="46" cy="44" r="26" fill="#E8553E" stroke="#3B2A20" stroke-width="8"/><circle cx="154" cy="44" r="26" fill="#E8553E" stroke="#3B2A20" stroke-width="8"/>' +
+    '<path d="M56 176 L 70 154 M144 176 L 130 154" stroke="#3B2A20" stroke-width="10" stroke-linecap="round"/>' +
+    '<circle cx="100" cy="106" r="66" fill="#FFF4E2" stroke="#3B2A20" stroke-width="9"/>' +
+    '<path d="M100 106 L 100 66 M100 106 L 128 120" stroke="#3B2A20" stroke-width="9" stroke-linecap="round"/>' +
+    '<circle cx="100" cy="106" r="7" fill="#3B2A20"/></g>';
   // lid: 0 = wide awake, 1 = fully asleep. acc: optional accessory.
   function mokuSVG(opts) {
     opts = opts || {};
@@ -671,6 +728,9 @@ body.on-title #watchScreen { display: none; }
     if (a === 'phone') s += '<rect x="148" y="96" width="30" height="52" rx="7" fill="#2B3A4A" stroke="#3B2A20" stroke-width="3" transform="rotate(14 163 122)"/><rect x="153" y="104" width="20" height="34" rx="3" fill="#8fd3c0" transform="rotate(14 163 122)"/>';
     if (a === 'sweat') s += '<path d="M166 70 q 10 14 0 20 q -10 -6 0 -20 Z" fill="#8FC9F0" stroke="#3B2A20" stroke-width="2"/>';
     if (a === 'calendar') s += '<rect x="138" y="20" width="50" height="50" rx="8" fill="#FFF" stroke="#3B2A20" stroke-width="3"/><rect x="138" y="20" width="50" height="14" rx="6" fill="#E86A4A"/><text x="163" y="62" font-size="24" font-weight="800" text-anchor="middle" fill="#3B2A20" font-family="sans-serif">?</text>';
+    if (a === 'leaf') s += '<path d="M92 44 C 96 18, 128 12, 140 20 C 132 40, 110 50, 92 44 Z" fill="#9BD770" stroke="#3B2A20" stroke-width="3"/><path d="M94 42 Q 116 30 134 22" stroke="#3B2A20" stroke-width="2" fill="none"/>';
+    if (a === 'bubble') s += '<path d="M128 8 H 190 a 8 8 0 0 1 8 8 V 46 a 8 8 0 0 1 -8 8 H 152 L 140 66 L 142 54 H 128 a 8 8 0 0 1 -8 -8 V 16 a 8 8 0 0 1 8 -8 Z" fill="#FFF" stroke="#3B2A20" stroke-width="3"/><text x="159" y="40" font-size="22" font-weight="800" text-anchor="middle" fill="#3B2A20" font-family="sans-serif">but…</text>';
+    if (a === 'clock') s += BELL.replace('<g>', '<g transform="translate(134 4) scale(0.32)">');
     return s;
   }
   function svgEl(inner, viewBox) {
@@ -723,6 +783,9 @@ body.on-title #watchScreen { display: none; }
     { id: 'phone',    name: 'Hang-up Moku',      acc: 'phone',    lid: 0.55, how: 'Get a phone call.',               text: 'Calls you, then hangs up right away. Talking is tiring.' },
     { id: 'walker',   name: 'Three-Step Moku',   acc: 'sweat',    lid: 0.7,  how: 'Try to walk 1000 steps.',         text: 'Walked 3 steps. Called it a marathon.' },
     { id: 'time',     name: 'Lost-in-Time Moku', acc: 'calendar', lid: 0.4,  how: 'Roll the calendar 5 times.',      text: 'Has no idea what day it is. Does not care.' },
+    { id: 'still',    name: 'Statue Moku',       acc: 'leaf',     lid: 1,    how: 'Do nothing for 30 seconds.',      text: 'Sat so still that a leaf landed on its head. Did not notice.' },
+    { id: 'alarm',    name: 'Snooze-Button Moku', acc: 'clock',   lid: 0.95, how: 'Snooze the Lazy Alarm 5 times.',  text: 'Its alarm is set for 100 years from now. Just to be safe.' },
+    { id: 'excuse',   name: 'Excuse Moku',       acc: 'bubble',   lid: 0.5,  how: 'Read 10 excuses.',                text: 'Has an excuse for everything. Even for having excuses.' },
     { id: 'couch',    name: 'Couch Moku',        acc: 'couch',    lid: 0.8,  how: 'Reach 100,000% lazy.',            text: 'Became one with the sofa. Comes with free cushions.' },
     { id: 'king',     name: 'King of Lazy',      acc: 'crown',    lid: 0.9,  how: 'Reach 100,000,000% lazy.',        text: 'Rules the kingdom from bed. Royal decree: nap time, forever.' }
   ];
@@ -736,9 +799,36 @@ body.on-title #watchScreen { display: none; }
       walker: state.walks > 0,
       time: state.dates >= 5,
       couch: state.lazy >= 100000,
+      still: state.nothingBest >= 30,
+      alarm: state.snoozes >= 5,
+      excuse: state.excuses >= 10,
       king: state.lazy >= 100000000
     };
   }
+
+  // Excuse Generator. Kids: add your own excuses to this list!
+  var EXCUSES = [
+    'My pencil is still sleeping.',
+    'The couch would be lonely without me.',
+    'My blanket said "stay".',
+    'I already did it… in my dream.',
+    'It’s too sunny. Also too cloudy.',
+    'My shoes are taking a day off.',
+    'Gravity is extra strong today.',
+    'I’m saving my energy for tomorrow.',
+    'My watch says it’s nap o’clock.',
+    'A cat sat on my homework. A sleepy cat.',
+    'I was busy doing nothing. It took all day.',
+    'The stairs looked too tall.',
+    'My brain is on airplane mode.',
+    'I’m waiting for the weekend. Any weekend.',
+    'I can’t find my motivation. I’m too lazy to look.',
+    'Lunch break isn’t over yet (it never is).',
+    'Professor Moku said the answer is Sleep.',
+    'My feathers need to rest.'
+  ];
+  // Lazy Alarm: each ring snoozes for longer than the last.
+  var SNOOZES = ['5 minutes', '10 minutes', '30 minutes', '1 hour', '1 day', '1 week', '1 year', '100 years'];
 
   var FOODS = [
     { name: 'Moku Bento',   kcal: 640, color: '#E8553E', base: 'box' },
@@ -785,6 +875,8 @@ body.on-title #watchScreen { display: none; }
   $('tLunch').innerHTML = ICONS.pizza;
   $('tSteps').innerHTML = ICONS.foot;
   $('tCal').innerHTML = ICONS.flame;
+  $('alarmIcon').innerHTML = svgEl(BELL);
+  $('excuseIcon').innerHTML = svgEl('<path d="M30 30 H 170 a 16 16 0 0 1 16 16 V 120 a 16 16 0 0 1 -16 16 H 90 L 56 172 L 62 136 H 30 a 16 16 0 0 1 -16 -16 V 46 a 16 16 0 0 1 16 -16 Z" fill="#FFF" stroke="#3B2A20" stroke-width="9" stroke-linejoin="round"/><circle cx="62" cy="84" r="10" fill="#3B2A20"/><circle cx="100" cy="84" r="10" fill="#3B2A20"/><circle cx="138" cy="84" r="10" fill="#3B2A20"/>');
   $('callAvatar').innerHTML = mokuSVG({ acc: 'phone', lid: 0.55 });
 
   function fmt(n) { return Math.round(n).toLocaleString('en-US'); }
@@ -805,6 +897,8 @@ body.on-title #watchScreen { display: none; }
     $('lazyNum').textContent = fmt(state.lazy) + '%';
     $('lazyRank').textContent = rankFor(state.lazy);
     $('mokuBtn').innerHTML = svgEl(mokuSVG({ lid: lidFor(state.lazy) }));
+    $('nothingIcon').innerHTML = svgEl(mokuSVG({ lid: 1, acc: state.nothingBest >= 30 ? 'leaf' : null }));
+    $('nothingBest').textContent = state.nothingBest ? 'Best: ' + state.nothingBest.toFixed(1) + 's' : 'Don’t touch anything!';
   }
 
   var toastTimer = null;
@@ -854,10 +948,11 @@ body.on-title #watchScreen { display: none; }
   }
 
   // ---------- face switching / swipe ----------
-  var page = 1; // 0 = apps face, 1 = main face
+  var page = 1; // 0 = apps face, 1 = main face, 2 = extra face
+  var LAST_PAGE = 2;
   function setPage(p) {
-    page = Math.max(0, Math.min(1, p));
-    track.style.transform = 'translateX(' + (page === 0 ? 0 : -50) + '%)';
+    page = Math.max(0, Math.min(LAST_PAGE, p));
+    track.style.transform = 'translateX(' + (-page * 100 / 3) + '%)';
     Array.prototype.forEach.call(document.querySelectorAll('#dots button'), function (b) {
       var on = Number(b.getAttribute('data-page')) === page;
       b.classList.toggle('on', on);
@@ -865,6 +960,7 @@ body.on-title #watchScreen { display: none; }
     });
     $('subFace').inert = page !== 0;
     $('mainFace').inert = page !== 1;
+    $('extraFace').inert = page !== 2;
   }
   Array.prototype.forEach.call(document.querySelectorAll('#dots button'), function (b) {
     b.addEventListener('click', function () { setPage(Number(b.getAttribute('data-page'))); sfx.tap(); });
@@ -885,8 +981,8 @@ body.on-title #watchScreen { display: none; }
     }
     if (drag.moved) {
       var w = screenEl.clientWidth;
-      var base = page === 0 ? 0 : -w;
-      var x = Math.max(-w - 30, Math.min(30, base + drag.dx));
+      var base = -page * w;
+      var x = Math.max(-LAST_PAGE * w - 30, Math.min(30, base + drag.dx));
       track.style.transform = 'translateX(' + x + 'px)';
     }
   });
@@ -896,8 +992,8 @@ body.on-title #watchScreen { display: none; }
       track.classList.remove('dragging');
       suppressClick = true;
       setTimeout(function () { suppressClick = false; }, 60);
-      if (drag.dx > 50) setPage(0);
-      else if (drag.dx < -50) setPage(1);
+      if (drag.dx > 50) setPage(page - 1);
+      else if (drag.dx < -50) setPage(page + 1);
       else setPage(page);
     }
     drag = null;
@@ -912,6 +1008,7 @@ body.on-title #watchScreen { display: none; }
   var appOpen = null;
   var appTimer = null;
   var deliveryTimer = null;
+  var stopNothing = null; // ends a running Do Nothing Challenge
   function openApp(name) {
     if (!APPS[name]) return;
     closeApp(true);
@@ -929,6 +1026,7 @@ body.on-title #watchScreen { display: none; }
     // An order still on its way is cancelled, so it can't land on a later screen.
     clearTimeout(deliveryTimer);
     deliveryTimer = null;
+    if (stopNothing) stopNothing();
     appLayer.className = 'layer';
     appOpen = null;
     if (!silent) sfx.tap();
@@ -1133,6 +1231,121 @@ body.on-title #watchScreen { display: none; }
       addLazy(10000000);
     },
     // "let's walk 1000 steps!" — the lazy soul button. Moku gives up after 3.
+    // Do Nothing Challenge: the longer nobody touches the watch, the lazier it gets.
+    nothing: function () {
+      appTitle.textContent = 'Do Nothing';
+      var scene = h('div', 'scene', svgEl(mokuSVG({ lid: 0.6 })));
+      var moku = scene.firstChild;
+      moku.setAttribute('class', 'moku');
+      appBody.appendChild(scene);
+      var num = h('div', 'big-num', '0.0s');
+      appBody.appendChild(num);
+      var msg = h('div', 'muted', 'Press start, then don’t touch anything. At all.');
+      appBody.appendChild(msg);
+      var start = btn('Start doing nothing', null, begin);
+      appBody.appendChild(start);
+      if (state.nothingBest) appBody.appendChild(h('div', 'muted', 'Best: ' + state.nothingBest.toFixed(1) + 's'));
+      function begin() {
+        var t0 = Date.now();
+        var slept = false;
+        start.style.visibility = 'hidden';
+        msg.textContent = 'Shhh… Moku is doing nothing.';
+        appTimer = setInterval(function () {
+          var sec = (Date.now() - t0) / 1000;
+          num.textContent = sec.toFixed(1) + 's';
+          if (!slept && sec >= 5) { slept = true; moku.innerHTML = mokuSVG({ lid: 1 }); }
+          if (sec >= 30 && !moku.dataset.leaf) { moku.dataset.leaf = '1'; moku.innerHTML = mokuSVG({ lid: 1, acc: 'leaf' }); }
+        }, 100);
+        // Any touch or key ends it. Wait a tick so the Start tap itself doesn't count.
+        setTimeout(function () {
+          window.addEventListener('pointerdown', finish, true);
+          window.addEventListener('keydown', finish, true);
+        }, 0);
+        stopNothing = finish;
+        function finish() {
+          window.removeEventListener('pointerdown', finish, true);
+          window.removeEventListener('keydown', finish, true);
+          stopNothing = null;
+          clearInterval(appTimer);
+          appTimer = null;
+          var sec = Math.floor((Date.now() - t0) / 100) / 10;
+          var best = sec > state.nothingBest;
+          if (best) state.nothingBest = sec;
+          num.textContent = sec.toFixed(1) + 's';
+          msg.textContent = best ? 'New record! Moku is proud (but too lazy to clap).' : 'You moved! Doing nothing is hard.';
+          start.textContent = 'Try again';
+          // Show the button a moment later, so the touch that ended it can't press it.
+          setTimeout(function () { start.style.visibility = ''; }, 600);
+          start.onclick = function () { openApp('nothing'); };
+          start.removeEventListener('click', begin);
+          var gain = Math.floor(sec) * 100;
+          if (gain > 0) addLazy(gain); else afterChange();
+        }
+      }
+    },
+    // Lazy Alarm: it rings, and Moku snoozes it automatically. Every snooze gets longer.
+    alarm: function () {
+      appTitle.textContent = 'Lazy Alarm';
+      var bell = h('div', null, svgEl(BELL));
+      bell.firstChild.setAttribute('class', 'bell');
+      appBody.appendChild(bell);
+      var next = h('div', 'big-num', '7:00');
+      next.style.fontSize = 'calc(var(--u) * 9)';
+      appBody.appendChild(next);
+      var msg = h('div', 'muted', 'Wake-up alarm is set.');
+      appBody.appendChild(msg);
+      var wake = btn('I’m awake!', null, function () {});
+      wake.disabled = true;
+      appBody.appendChild(wake);
+      var ring = btn('⏰ Ring now', 'alt', ringOnce);
+      appBody.appendChild(ring);
+      var round = 0;
+      function ringOnce() {
+        ring.disabled = true;
+        bell.firstChild.classList.add('ringing');
+        msg.textContent = 'RING RING RING!!';
+        sfx.ring();
+        if (navigator.vibrate) { try { navigator.vibrate([80, 60, 80]); } catch (e) {} }
+        clearTimeout(appTimer);
+        appTimer = setTimeout(function () {
+          appTimer = null;
+          bell.firstChild.classList.remove('ringing');
+          var snooze = SNOOZES[Math.min(round, SNOOZES.length - 1)];
+          round++;
+          next.textContent = 'Snoozed';
+          msg.innerHTML = 'Moku pressed snooze in its sleep.<br><b>+' + snooze + '</b>';
+          wake.textContent = round >= SNOOZES.length ? 'I’m awake! (in 100 years)' : 'I’m awake! (Moku is too lazy)';
+          ring.disabled = false;
+          ring.textContent = '⏰ Ring again';
+          state.snoozes++;
+          addLazy(200 * round);
+        }, 1100);
+      }
+    },
+    // Excuse Generator: perfect excuses for not doing homework.
+    excuse: function () {
+      appTitle.textContent = 'Excuses';
+      appBody.appendChild(h('div', 'muted', 'I can’t do my homework because…'));
+      var card = h('div', 'excuse-card', '');
+      appBody.appendChild(card);
+      var spacer = h('div', null, svgEl(mokuSVG({ acc: 'bubble', lid: 0.5 })));
+      spacer.style.width = 'calc(var(--u) * 26)';
+      appBody.appendChild(spacer);
+      appBody.appendChild(btn('Another excuse 💬', null, next));
+      var last = -1;
+      function next() {
+        var i;
+        do { i = Math.floor(Math.random() * EXCUSES.length); } while (i === last && EXCUSES.length > 1);
+        last = i;
+        card.textContent = EXCUSES[i];
+        state.excuses++;
+        sfx.tap();
+        floatPlus('+10% lazy');
+        state.lazy += 10;
+        afterChange();
+      }
+      next();
+    },
     walk: function () {
       appTitle.textContent = 'Walk 1000 Steps';
       var scene = h('div', 'scene', svgEl(mokuSVG({ lid: 0.5 })));
@@ -1277,8 +1490,8 @@ body.on-title #watchScreen { display: none; }
       return;
     }
     if (e.key === 'Escape') { if (appOpen) closeApp(); else showTitle(); }
-    else if (!appOpen && e.key === 'ArrowLeft') setPage(0);
-    else if (!appOpen && e.key === 'ArrowRight') setPage(1);
+    else if (!appOpen && e.key === 'ArrowLeft') setPage(page - 1);
+    else if (!appOpen && e.key === 'ArrowRight') setPage(page + 1);
   });
 
   layout();
