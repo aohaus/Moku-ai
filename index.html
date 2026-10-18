@@ -785,7 +785,7 @@ footer.page-footer {
     }
 
     // 2. Total games and distinct games played
-    var gameKeys = ['am', 'mm', 'mk', 'br', 'so', 'mc', 'mr', 'md', 'mb', 'mf', 'mkt', 'mrc'];
+    var gameKeys = ['am', 'mm', 'mk', 'br', 'so', 'mc', 'mr', 'md', 'mb', 'mf', 'mkt', 'mrc', 'mw6'];
     var distinctCount = 0;
     var completedCount = 0;
 
@@ -849,6 +849,12 @@ footer.page-footer {
         var rhythmBest = parseInt(localStorage.getItem('moku_rhythm_best') || '0', 10);
         if (rhythmBest > 0) isPlayed = true;
         if (rhythmBest >= 2000) isCompleted = true;
+      } else if (k === 'mw6') {
+        try {
+          var wp = JSON.parse(localStorage.getItem('moku:moku-watch-6-lazy:progress') || 'null');
+          if (wp && wp.lazy > 0) isPlayed = true;
+          if (wp && Array.isArray(wp.dex) && wp.dex.length >= 10) isCompleted = true;
+        } catch (e) {}
       }
 
       if (isPlayed || isCompleted) distinctCount++;

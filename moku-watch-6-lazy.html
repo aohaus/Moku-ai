@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Moku Watch 6 Lazy</title>
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+:root {
+  --hi: #FFA552; --lo: #7A4214;
+  --u: 3.4px;
+  --ink: #3B2A20;
+  --paper: #FBF4E6;
+  --tan: #D49A6A;
+  --teal: #2A9D8F;
+}
+body {
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255,170,100,0.30), transparent 60%),
+    linear-gradient(180deg, #3a2430 0%, #5a3428 55%, #2a1a14 100%);
+  color: #EDEEF6;
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+
+/* ---------- shared frame / hub link (Moku series design system) ---------- */
+#title-frame {
+  position: fixed; inset: 14px;
+  border: 3px solid var(--hi);
+  border-radius: 10px;
+  pointer-events: none;
+  z-index: 40;
+}
+#title-frame::after {
+  content: '';
+  position: absolute; inset: 5px;
+  border: 1px solid var(--lo);
+  border-radius: 8px;
+}
+#hub-link {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 16px);
+  right: calc(env(safe-area-inset-right, 0px) + 16px);
+  z-index: 41;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--hi);
+  text-decoration: none;
+  animation: hubLinkPulse 2.2s ease-in-out infinite;
+}
+@keyframes hubLinkPulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+#buildInfo {
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+  left: calc(env(safe-area-inset-left, 0px) + 18px);
+  z-index: 41;
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+  color: rgba(255,255,255,0.28);
+  pointer-events: none;
+}
+body:not(.on-title) #title-frame,
+body:not(.on-title) #hub-link,
+body:not(.on-title) #buildInfo,
+body:not(.on-title) #titleScreen { display: none; }
+body.on-title #watchScreen { display: none; }
+
+/* ---------- title screen ---------- */
+#titleScreen {
+  position: fixed; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 40px 24px;
+  text-align: center;
+}
+#titleHero {
+  width: min(52vw, 230px, 34vh);
+  aspect-ratio: 1;
+  object-fit: cover;
+  object-position: center 30%;
+  filter: drop-shadow(0 0 22px rgba(255,165,82,0.55));
+  animation: heroFloat 3.4s ease-in-out infinite;
+}
+@keyframes heroFloat { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-8px) rotate(2deg); } }
+.title-zzz {
+  position: absolute; font-weight: 800; color: #FFE2B8; opacity: 0;
+  animation: zzz 3s ease-in-out infinite;
+}
+@keyframes zzz { 0% { opacity: 0; transform: translate(0, 0) scale(0.7); } 30% { opacity: 1; } 100% { opacity: 0; transform: translate(26px, -40px) scale(1.2); } }
+#titleHeroWrap { position: relative; }
+#titleName {
+  margin-top: 14px;
+  font-size: clamp(30px, 8vw, 46px);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+  color: #FFF4E2;
+  text-shadow: 0 3px 0 var(--lo), 0 8px 24px rgba(0,0,0,0.4);
+}
+#titleName span { display: block; color: var(--hi); font-size: 0.62em; letter-spacing: 0.04em; margin-top: 6px; }
+#titleTag { margin-top: 10px; font-size: 14px; color: rgba(255,244,226,0.75); font-weight: 600; }
+.titleMenu { margin-top: 10px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.titleMenuItem {
+  font-size: 19px; font-weight: 800;
+  padding: 8px 18px;
+  color: #FFF4E2;
+  border-radius: 999px;
+}
+.titleMenuItem:hover, .titleMenuItem:focus-visible { color: var(--hi); text-shadow: 0 0 12px rgba(255,165,82,0.7); outline: none; }
+
+/* ---------- watch screen ---------- */
+#watchScreen {
+  position: fixed; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+#watchTop {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
+  left: 12px; right: 12px;
+  display: flex; justify-content: space-between; align-items: center;
+  z-index: 5;
+}
+.chip-btn {
+  font-size: 13px; font-weight: 800;
+  color: #FFE2B8;
+  background: rgba(0,0,0,0.25);
+  padding: 7px 12px;
+  border-radius: 999px;
+}
+#lazyRank { font-size: 12px; font-weight: 800; color: #FFE2B8; opacity: 0.85; }
+
+.watch { position: relative; width: calc(var(--u) * 100); height: calc(var(--u) * 112); }
+.strap {
+  position: absolute; left: 50%;
+  width: calc(var(--u) * 62);
+  height: 60vh;
+  transform: translateX(-50%);
+  background:
+    repeating-linear-gradient(90deg, rgba(0,0,0,0.06) 0 3px, transparent 3px 9px),
+    linear-gradient(90deg, #8a5a34, #b07a4a 45%, #9a6a40 70%, #7a4e2c);
+  border-left: 2px solid rgba(0,0,0,0.25);
+  border-right: 2px solid rgba(0,0,0,0.25);
+  z-index: 0;
+}
+.strap::before {
+  content: ''; position: absolute; left: 7%; right: 7%; top: 0; bottom: 0;
+  border-left: 2px dashed rgba(255,226,184,0.45);
+  border-right: 2px dashed rgba(255,226,184,0.45);
+}
+.strap.top { bottom: 88%; border-radius: 12px 12px 0 0; }
+.strap.bottom { top: 88%; border-radius: 0 0 12px 12px; }
+.strap.bottom::after {
+  content: ''; position: absolute; left: 50%; top: calc(var(--u) * 36);
+  width: calc(var(--u) * 5); height: calc(var(--u) * 5);
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: #4a2e1a;
+  box-shadow: 0 calc(var(--u) * 10) 0 #4a2e1a, 0 calc(var(--u) * 20) 0 #4a2e1a;
+}
+.bezel {
+  position: absolute; inset: 0;
+  border-radius: calc(var(--u) * 26);
+  padding: calc(var(--u) * 3.6);
+  background: linear-gradient(145deg, #f3d6a8, #c8955f 40%, #8a5a34 100%);
+  box-shadow: 0 18px 40px rgba(0,0,0,0.5), inset 0 2px 0 rgba(255,255,255,0.5), inset 0 -3px 0 rgba(0,0,0,0.25);
+  z-index: 1;
+}
+.crown {
+  position: absolute; right: calc(var(--u) * -3); top: 34%;
+  width: calc(var(--u) * 4.5); height: calc(var(--u) * 13);
+  border-radius: 6px;
+  background: repeating-linear-gradient(180deg, #c8955f 0 3px, #8a5a34 3px 5px);
+  z-index: 0;
+}
+.crown.c2 { top: 58%; height: calc(var(--u) * 9); }
+.screen {
+  position: relative; width: 100%; height: 100%;
+  border-radius: calc(var(--u) * 22.5);
+  background: var(--paper);
+  overflow: hidden;
+  color: var(--ink);
+  font-family: "Chalkboard SE", "Comic Sans MS", "Marker Felt", ui-rounded, "Hiragino Maru Gothic ProN", -apple-system, "Segoe UI", Roboto, sans-serif;
+  box-shadow: inset 0 0 0 calc(var(--u) * 0.8) rgba(59,42,32,0.85);
+  touch-action: pan-y;
+}
+.track {
+  display: flex; width: 200%; height: 100%;
+  transition: transform 0.32s cubic-bezier(.2,.8,.2,1);
+}
+.track.dragging { transition: none; }
+.face { position: relative; width: 50%; height: 100%; padding: calc(var(--u) * 6) calc(var(--u) * 6.5); }
+
+/* ink-drawn tiles, like the original whiteboard sketch */
+.tile {
+  position: relative;
+  border: calc(var(--u) * 0.9) solid var(--ink);
+  border-radius: calc(var(--u) * 4);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-weight: 800;
+  line-height: 1.05;
+  color: var(--ink);
+  transition: transform 0.12s ease;
+  overflow: hidden;
+}
+.tile:active, .tile.pressed { transform: scale(0.94); }
+.tile svg { width: 72%; height: 72%; }
+
+/* main face */
+.mf-top {
+  position: relative;
+  height: 66%;
+  border-bottom: calc(var(--u) * 0.9) solid var(--ink);
+  display: flex; align-items: flex-end; justify-content: center;
+}
+#clock {
+  position: absolute; left: calc(var(--u) * 1); top: 0;
+  font-size: calc(var(--u) * 7.4); font-weight: 800; line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+#clockDate { display: block; font-size: calc(var(--u) * 3.1); opacity: 0.6; margin-top: calc(var(--u) * 0.8); letter-spacing: 0.04em; }
+#lazyMeter {
+  position: absolute; right: 0; top: calc(var(--u) * 0.6);
+  text-align: right;
+  font-size: calc(var(--u) * 3); font-weight: 800; opacity: 0.85; line-height: 1.15;
+}
+#lazyMeter b { display: block; font-size: calc(var(--u) * 4.4); color: #C2611F; font-variant-numeric: tabular-nums; }
+#mokuBtn { width: calc(var(--u) * 58); height: calc(var(--u) * 58); margin-bottom: calc(var(--u) * -1); }
+#mokuBtn svg { width: 100%; height: 100%; overflow: visible; }
+#mokuBtn:active svg { transform: scale(0.97); }
+.mf-bottom {
+  height: 34%;
+  display: grid; grid-template-columns: 1.25fr 1fr 1fr;
+  align-items: center;
+  padding-top: calc(var(--u) * 2.5);
+}
+.mf-cell {
+  height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  border-left: calc(var(--u) * 0.6) dashed rgba(59,42,32,0.55);
+}
+.mf-cell:first-child { border-left: none; }
+.mf-cell > button { width: 88%; height: 82%; display: flex; align-items: center; justify-content: center; border-radius: calc(var(--u) * 3); }
+.mf-cell > button:active { transform: scale(0.92); background: rgba(255,165,82,0.18); }
+.mf-cell svg { width: 78%; height: 78%; }
+#orderBtn { font-size: calc(var(--u) * 6.4); font-weight: 800; letter-spacing: 0.01em; }
+
+/* sub face */
+.sub-grid {
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: 1fr 1fr 1.75fr;
+  gap: calc(var(--u) * 2.4);
+}
+#tSettings { grid-area: 1 / 1; background: #EDE3D3; }
+#tLunch    { grid-area: 1 / 2; background: #FFE3B3; }
+#tSteps    { grid-area: 1 / 3; background: #F9D9C0; }
+#tCal      { grid-area: 2 / 3; background: #FFD0C2; }
+#tQuiz     { grid-area: 1 / 4 / 3 / 5; background: #D9ECD8; font-size: calc(var(--u) * 5); }
+#tQuiz span { display: block; text-align: center; line-height: 1; }
+#tDex      { grid-area: 2 / 1 / 3 / 3; background: #F7E7A8; font-size: calc(var(--u) * 4.4); }
+#tSleep    { grid-area: 3 / 1 / 4 / 3; background: #DCD6F2; font-size: calc(var(--u) * 4.5); padding: calc(var(--u) * 1.5); text-align: center; }
+#tWalk     { grid-area: 3 / 3 / 4 / 5; background: #CFE8F2; font-size: calc(var(--u) * 4.5); padding: calc(var(--u) * 1.5); text-align: center; }
+.tile small { display: block; font-size: 0.62em; opacity: 0.65; margin-top: calc(var(--u) * 1.2); letter-spacing: 0.02em; }
+.excl { letter-spacing: 0.04em; }
+
+/* page dots */
+#dots { margin-top: calc(var(--u) * 7 + 8px); display: flex; gap: 10px; z-index: 3; position: relative; }
+#dots button { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,226,184,0.3); }
+#dots button.on { background: #FFE2B8; width: 24px; border-radius: 6px; }
+#swipeHint { margin-top: 8px; font-size: 12px; font-weight: 700; color: rgba(255,226,184,0.6); z-index: 3; position: relative; }
+
+/* app overlay (inside the watch screen) */
+.layer {
+  position: absolute; inset: 0;
+  background: var(--paper);
+  z-index: 10;
+  display: none;
+  flex-direction: column;
+  padding: calc(var(--u) * 6) calc(var(--u) * 7) calc(var(--u) * 6);
+}
+.layer.show { display: flex; animation: appIn 0.22s ease-out; }
+@keyframes appIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+.app-head { display: flex; align-items: center; gap: calc(var(--u) * 2); margin-bottom: calc(var(--u) * 2.5); }
+.app-back {
+  width: calc(var(--u) * 9); height: calc(var(--u) * 9);
+  border-radius: 50%;
+  border: calc(var(--u) * 0.7) solid var(--ink);
+  font-size: calc(var(--u) * 5.4); font-weight: 800; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  flex: none;
+}
+.app-title { font-size: calc(var(--u) * 5.6); font-weight: 800; line-height: 1.05; }
+.app-body {
+  flex: 1; min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  font-size: calc(var(--u) * 4.2);
+  line-height: 1.3;
+  text-align: center;
+  display: flex; flex-direction: column; align-items: center;
+  gap: calc(var(--u) * 2.4);
+  touch-action: pan-y;
+}
+.app-body::-webkit-scrollbar { display: none; }
+.big-num { font-size: calc(var(--u) * 12); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.muted { opacity: 0.65; font-size: 0.9em; }
+.ink-btn {
+  border: calc(var(--u) * 0.8) solid var(--ink);
+  border-radius: 999px;
+  padding: calc(var(--u) * 2) calc(var(--u) * 5);
+  font-weight: 800;
+  font-size: calc(var(--u) * 4.4);
+  background: #FFE3B3;
+}
+.ink-btn:active { transform: scale(0.95); }
+.ink-btn.alt { background: #EDE3D3; }
+.food-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: calc(var(--u) * 2.4); width: 100%; }
+.food {
+  border: calc(var(--u) * 0.7) solid var(--ink);
+  border-radius: calc(var(--u) * 3.4);
+  padding: calc(var(--u) * 1.6) calc(var(--u) * 1);
+  background: #FFF;
+  font-weight: 800; font-size: calc(var(--u) * 3.5); line-height: 1.1;
+  display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * 0.6);
+}
+.food svg { width: calc(var(--u) * 17); height: calc(var(--u) * 14); }
+.food small { font-size: 0.8em; opacity: 0.6; }
+.food:active { transform: scale(0.94); background: #FFF3DD; }
+.quiz-choice { width: 100%; text-align: left; border-radius: calc(var(--u) * 3.4); }
+.dex-list { display: flex; flex-direction: column; gap: calc(var(--u) * 2); width: 100%; }
+.dex-item {
+  display: flex; gap: calc(var(--u) * 2.4); align-items: center;
+  border: calc(var(--u) * 0.6) solid var(--ink);
+  border-radius: calc(var(--u) * 3.4);
+  padding: calc(var(--u) * 1.6);
+  text-align: left;
+  background: #FFF;
+}
+.dex-item svg { width: calc(var(--u) * 16); height: calc(var(--u) * 16); flex: none; }
+.dex-item b { display: block; font-size: calc(var(--u) * 4); }
+.dex-item span { display: block; font-size: calc(var(--u) * 3.2); opacity: 0.75; line-height: 1.25; }
+.dex-item.locked { background: #EDE3D3; }
+.dex-item.locked svg { filter: brightness(0) opacity(0.35); }
+.setting-row {
+  width: 100%;
+  display: flex; justify-content: space-between; align-items: center;
+  border-bottom: calc(var(--u) * 0.5) dashed rgba(59,42,32,0.4);
+  padding: calc(var(--u) * 2) 0;
+  font-weight: 800; text-align: left;
+}
+.toggle {
+  width: calc(var(--u) * 13); height: calc(var(--u) * 7);
+  border-radius: 999px;
+  border: calc(var(--u) * 0.6) solid var(--ink);
+  background: #EDE3D3;
+  position: relative; flex: none;
+}
+.toggle::after {
+  content: ''; position: absolute; top: 50%; left: calc(var(--u) * 0.8);
+  width: calc(var(--u) * 4.4); height: calc(var(--u) * 4.4);
+  transform: translateY(-50%);
+  border-radius: 50%; background: var(--ink);
+  transition: left 0.18s ease;
+}
+.toggle.on { background: #FFC27A; }
+.toggle.on::after { left: calc(100% - var(--u) * 5.2); }
+.toggle.wiggle { animation: wiggle 0.35s ease; }
+@keyframes wiggle { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+.ring { width: calc(var(--u) * 40); height: calc(var(--u) * 40); }
+.date-card {
+  border: calc(var(--u) * 0.9) solid var(--ink);
+  border-radius: calc(var(--u) * 4);
+  width: calc(var(--u) * 52);
+  overflow: hidden;
+  background: #FFF;
+}
+.date-card .dc-top { background: #E86A4A; color: #FFF4E2; font-weight: 800; padding: calc(var(--u) * 1.4); font-size: calc(var(--u) * 4.6); }
+.date-card .dc-day { font-size: calc(var(--u) * 17); font-weight: 800; line-height: 1.1; }
+.date-card .dc-week { font-weight: 800; padding-bottom: calc(var(--u) * 2); }
+
+/* sleep / walk / delivery scenes */
+.layer.night { background: linear-gradient(180deg, #3b3566, #6b5a8a 70%, #b98a8a); color: #FFF4E2; }
+.layer.night .app-back { border-color: #FFF4E2; }
+.layer.night .ink-btn { border-color: #FFF4E2; background: rgba(255,244,226,0.15); color: #FFF4E2; }
+.scene { position: relative; width: 100%; height: calc(var(--u) * 42); flex: none; }
+.scene svg.moku { position: absolute; left: 50%; bottom: 0; width: calc(var(--u) * 38); height: calc(var(--u) * 38); transform: translateX(-50%); }
+.zz { position: absolute; font-weight: 800; font-size: calc(var(--u) * 6); animation: zzz 2.6s ease-in-out infinite; left: 62%; top: 10%; }
+.zz.z2 { animation-delay: 0.9s; font-size: calc(var(--u) * 4.6); left: 68%; }
+.zz.z3 { animation-delay: 1.8s; font-size: calc(var(--u) * 3.6); left: 56%; }
+.scooter { position: absolute; bottom: calc(var(--u) * 2); left: -40%; width: calc(var(--u) * 30); height: calc(var(--u) * 22); }
+.scooter.go { animation: ride 1.4s cubic-bezier(.3,.1,.3,1) forwards; }
+@keyframes ride { to { left: 110%; } }
+.walker { transition: transform 0.4s ease; }
+
+/* incoming call */
+#callLayer { background: linear-gradient(180deg, #2f6e5f, #2A9D8F 60%, #8fd3c0); color: #FFF4E2; align-items: center; justify-content: center; text-align: center; gap: calc(var(--u) * 3); z-index: 20; }
+#callLayer .call-avatar { width: calc(var(--u) * 32); height: calc(var(--u) * 32); animation: ring 0.25s ease-in-out infinite alternate; }
+@keyframes ring { from { transform: rotate(-6deg); } to { transform: rotate(6deg); } }
+#callLayer.ended .call-avatar { animation: none; filter: grayscale(0.6); }
+#callName { font-size: calc(var(--u) * 7.6); font-weight: 800; }
+#callSub { font-size: calc(var(--u) * 4); opacity: 0.85; min-height: 2.6em; }
+.call-btns { display: flex; gap: calc(var(--u) * 14); }
+.call-btns span {
+  width: calc(var(--u) * 13); height: calc(var(--u) * 13); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: calc(var(--u) * 6);
+}
+.call-btns .acc { background: #4CBE55; }
+.call-btns .dec { background: #E8553E; }
+#callLayer.ended .call-btns { opacity: 0.3; }
+
+/* toast + floating +% */
+#toast {
+  position: absolute; left: 50%; bottom: calc(var(--u) * 6);
+  transform: translate(-50%, 20px);
+  max-width: 84%;
+  background: var(--ink); color: #FFF4E2;
+  font-weight: 800; font-size: calc(var(--u) * 3.7); line-height: 1.25;
+  text-align: center;
+  padding: calc(var(--u) * 2) calc(var(--u) * 4);
+  border-radius: calc(var(--u) * 4);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 30;
+}
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
+.float-plus {
+  position: absolute; left: 50%; top: 42%;
+  transform: translateX(-50%);
+  font-weight: 800; font-size: calc(var(--u) * 6.4);
+  color: #C2611F;
+  text-shadow: 0 2px 0 #FFF4E2;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 31;
+  animation: floatUp 1.3s ease-out forwards;
+}
+@keyframes floatUp { from { opacity: 1; transform: translate(-50%, 0) scale(0.8); } 20% { transform: translate(-50%, -8px) scale(1.1); } to { opacity: 0; transform: translate(-50%, -60px) scale(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition: none !important; }
+}
+</style>
+</head>
+<body class="on-title">
+
+<div id="title-frame"></div>
+<a id="hub-link" href="index.html">🦉 Moku Series ▶</a>
+<div id="buildInfo">v0.1.0 · Updated Oct 18, 2026</div>
+
+<section id="titleScreen" aria-label="Title">
+  <div id="titleHeroWrap">
+    <img id="titleHero" src="brand/mokumoku-hero.png" alt="Moku">
+    <span class="title-zzz" style="right:8%;top:6%">z</span>
+    <span class="title-zzz" style="right:2%;top:0;animation-delay:1s;font-size:22px">Z</span>
+  </div>
+  <h1 id="titleName">Moku Watch 6<span>LAZY</span></h1>
+  <p id="titleTag">The smartwatch for the laziest owl.</p>
+  <div class="titleMenu">
+    <button class="titleMenuItem" id="startBtn" type="button">▶ Wear the Watch</button>
+  </div>
+</section>
+
+<section id="watchScreen" aria-label="Moku Watch 6 Lazy">
+  <div id="watchTop">
+    <button class="chip-btn" id="backTitle" type="button">‹ Title</button>
+    <span id="lazyRank"></span>
+  </div>
+
+  <div class="watch" id="watch">
+    <div class="strap top"></div>
+    <div class="strap bottom"></div>
+    <div class="crown"></div>
+    <div class="crown c2"></div>
+    <div class="bezel">
+      <div class="screen" id="screen">
+        <div class="track" id="track">
+          <!-- Sub face (left of the main face) -->
+          <div class="face" id="subFace" aria-label="Apps">
+            <div class="sub-grid">
+              <button class="tile" id="tSettings" type="button" aria-label="Settings" data-app="settings"></button>
+              <button class="tile" id="tLunch" type="button" aria-label="Lunch Break" data-app="lunch"></button>
+              <button class="tile" id="tSteps" type="button" aria-label="Steps" data-app="steps"></button>
+              <button class="tile" id="tQuiz" type="button" aria-label="Quiz" data-app="quiz"><span>Q</span><span>u</span><span>i</span><span>z</span></button>
+              <button class="tile" id="tDex" type="button" data-app="dex">Mokudex</button>
+              <button class="tile" id="tCal" type="button" aria-label="Calories" data-app="kcal"></button>
+              <button class="tile" id="tSleep" type="button" data-app="sleep">let's sleep 24 hours<span class="excl">!!!!!!</span><small>10000000% lazy</small></button>
+              <button class="tile" id="tWalk" type="button" data-app="walk">let's walk 1000 steps!<small>lazy soul</small></button>
+            </div>
+          </div>
+          <!-- Main face -->
+          <div class="face" id="mainFace" aria-label="Watch face">
+            <div class="mf-top">
+              <div id="clock">--:--<span id="clockDate"></span></div>
+              <div id="lazyMeter">LAZY<b id="lazyNum">0%</b></div>
+              <button id="mokuBtn" type="button" aria-label="Ordinary button"></button>
+            </div>
+            <div class="mf-bottom">
+              <div class="mf-cell"><button id="orderBtn" type="button" data-app="food">order</button></div>
+              <div class="mf-cell"><button id="pizzaBtn" type="button" aria-label="Lunch Break" data-app="lunch"></button></div>
+              <div class="mf-cell"><button id="calBtn" type="button" aria-label="Random date calendar" data-app="date"></button></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="layer" id="appLayer" role="dialog" aria-modal="true" aria-labelledby="appTitle">
+          <div class="app-head">
+            <button class="app-back" id="appBack" type="button" aria-label="Back">‹</button>
+            <div class="app-title" id="appTitle"></div>
+          </div>
+          <div class="app-body" id="appBody"></div>
+        </div>
+
+        <div class="layer" id="callLayer" role="alertdialog" aria-labelledby="callName">
+          <svg class="call-avatar" id="callAvatar" viewBox="0 0 200 200"></svg>
+          <div id="callName">Call Moku</div>
+          <div id="callSub">Incoming call…</div>
+          <div class="call-btns"><span class="dec">✕</span><span class="acc">📞</span></div>
+        </div>
+
+        <div id="toast" role="status" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="dots" role="tablist" aria-label="Faces">
+    <button type="button" data-page="0" aria-label="Apps face"></button>
+    <button type="button" data-page="1" aria-label="Main face"></button>
+  </div>
+  <div id="swipeHint">← swipe to switch faces →</div>
+</section>
+
+<script>
+(function () {
+  'use strict';
+
+  var GAME_ID = 'moku-watch-6-lazy';
+  var SAVE_KEY = 'moku:' + GAME_ID + ':progress';
+  var SETTINGS_KEY = 'moku:' + GAME_ID + ':settings';
+
+  // ---------- save data ----------
+  var DEFAULTS = {
+    version: 1,
+    gameId: GAME_ID,
+    lazy: 0,          // total laziness, in %
+    steps: 0,
+    kcalIn: 0,
+    orders: 0,
+    lunches: 0,
+    sleeps: 0,
+    walks: 0,
+    quizzes: 0,
+    calls: 0,
+    dates: 0,
+    lunchUntil: 0,
+    dex: ['moku'],
+    updatedAt: null
+  };
+  function load(key, defaults) {
+    var out = JSON.parse(JSON.stringify(defaults));
+    try {
+      var raw = JSON.parse(localStorage.getItem(key) || 'null');
+      if (raw && typeof raw === 'object') {
+        for (var k in raw) if (Object.prototype.hasOwnProperty.call(raw, k)) out[k] = raw[k];
+      }
+    } catch (e) {}
+    return out;
+  }
+  var state = load(SAVE_KEY, DEFAULTS);
+  if (!Array.isArray(state.dex)) state.dex = ['moku'];
+  var settings = load(SETTINGS_KEY, { sound: true });
+  function save() {
+    state.updatedAt = new Date().toISOString();
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e) {}
+  }
+  function saveSettings() {
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) {}
+  }
+
+  // ---------- sound ----------
+  var actx = null;
+  function beep(freq, dur, type, vol, when) {
+    if (!settings.sound) return;
+    try {
+      if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === 'suspended') actx.resume();
+      var t = actx.currentTime + (when || 0);
+      var o = actx.createOscillator();
+      var g = actx.createGain();
+      o.type = type || 'sine';
+      o.frequency.setValueAtTime(freq, t);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol || 0.12, t + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(actx.destination);
+      o.start(t); o.stop(t + dur + 0.02);
+    } catch (e) {}
+  }
+  var sfx = {
+    tap: function () { beep(660, 0.07, 'triangle', 0.08); },
+    lazy: function () { beep(523, 0.12, 'sine', 0.1); beep(392, 0.18, 'sine', 0.1, 0.1); },
+    yay: function () { beep(523, 0.1, 'triangle'); beep(659, 0.1, 'triangle', 0.12, 0.1); beep(784, 0.2, 'triangle', 0.12, 0.2); },
+    ring: function () { for (var i = 0; i < 3; i++) { beep(880, 0.08, 'square', 0.05, i * 0.16); beep(988, 0.08, 'square', 0.05, i * 0.16 + 0.08); } },
+    hang: function () { beep(330, 0.15, 'sine', 0.1); beep(247, 0.25, 'sine', 0.1, 0.15); },
+    snore: function () { beep(110, 0.6, 'sawtooth', 0.04); }
+  };
+
+  // ---------- Moku drawing (inline SVG) ----------
+  var svgSeq = 0;
+  // lid: 0 = wide awake, 1 = fully asleep. acc: optional accessory.
+  function mokuSVG(opts) {
+    opts = opts || {};
+    var lid = opts.lid == null ? 0.45 : opts.lid;
+    var id = 'mk' + (++svgSeq);
+    var s = '';
+    s += '<defs><clipPath id="' + id + 'l"><circle cx="72" cy="100" r="17"/></clipPath><clipPath id="' + id + 'r"><circle cx="128" cy="100" r="17"/></clipPath></defs>';
+    if (opts.acc === 'pillow') s += '<ellipse cx="100" cy="186" rx="96" ry="18" fill="#F3EBF9" stroke="#3B2A20" stroke-width="3"/>';
+    if (opts.acc === 'couch') s += '<rect x="2" y="128" width="196" height="66" rx="22" fill="#C2611F" stroke="#3B2A20" stroke-width="3"/><rect x="18" y="160" width="164" height="30" rx="10" fill="#E8894A"/>';
+    // wings
+    s += '<ellipse cx="30" cy="124" rx="20" ry="40" fill="#C4875A" transform="rotate(14 30 124)"/>';
+    s += '<ellipse cx="170" cy="124" rx="20" ry="40" fill="#C4875A" transform="rotate(-14 170 124)"/>';
+    // body
+    s += '<ellipse cx="100" cy="112" rx="80" ry="78" fill="#D49A6A" stroke="#3B2A20" stroke-width="3"/>';
+    s += '<ellipse cx="100" cy="160" rx="46" ry="26" fill="#F8EFE3"/>';
+    // heart-shaped face
+    s += '<path d="M100 66 C 84 40, 30 46, 34 98 C 38 138, 78 148, 100 146 C 122 148, 162 138, 166 98 C 170 46, 116 40, 100 66 Z" fill="#F8EFE3"/>';
+    // cheeks
+    s += '<ellipse cx="54" cy="122" rx="10" ry="6" fill="#F5B5A8" opacity=".7"/><ellipse cx="146" cy="122" rx="10" ry="6" fill="#F5B5A8" opacity=".7"/>';
+    // eyes with droopy lids
+    [['l', 72], ['r', 128]].forEach(function (e) {
+      var cx = e[1];
+      s += '<circle cx="' + cx + '" cy="100" r="17" fill="#2B1A12"/>';
+      s += '<circle cx="' + (cx + 5) + '" cy="93" r="5" fill="#fff"/><circle cx="' + (cx - 4) + '" cy="106" r="2.2" fill="#fff"/>';
+      if (lid > 0) {
+        var h = 34 * lid;
+        s += '<g clip-path="url(#' + id + e[0] + ')"><rect x="' + (cx - 18) + '" y="83" width="36" height="' + h.toFixed(1) + '" fill="#E9D9C4"/></g>';
+        if (lid < 0.98) s += '<path d="M' + (cx - 17) + ' ' + (83 + h).toFixed(1) + ' Q ' + cx + ' ' + (85 + h).toFixed(1) + ' ' + (cx + 17) + ' ' + (83 + h).toFixed(1) + '" stroke="#3B2A20" stroke-width="3" fill="none" stroke-linecap="round"/>';
+        else s += '<path d="M' + (cx - 15) + ' 100 Q ' + cx + ' 110 ' + (cx + 15) + ' 100" stroke="#3B2A20" stroke-width="3.5" fill="none" stroke-linecap="round"/>';
+      }
+    });
+    // relaxed brows
+    s += '<path d="M56 76 Q 70 72 86 78" stroke="#5A3A24" stroke-width="4" fill="none" stroke-linecap="round"/>';
+    s += '<path d="M114 78 Q 130 72 144 76" stroke="#5A3A24" stroke-width="4" fill="none" stroke-linecap="round"/>';
+    // beak
+    s += '<path d="M100 108 L 112 120 L 100 134 L 88 120 Z" fill="#F2A03D" stroke="#3B2A20" stroke-width="2.5" stroke-linejoin="round"/>';
+    // leaf bow tie
+    s += '<path d="M100 146 C 84 132, 60 136, 58 148 C 64 160, 88 158, 100 146 Z" fill="#2A9D8F" stroke="#3B2A20" stroke-width="2.5"/>';
+    s += '<path d="M100 146 C 116 132, 140 136, 142 148 C 136 160, 112 158, 100 146 Z" fill="#2A9D8F" stroke="#3B2A20" stroke-width="2.5"/>';
+    s += '<circle cx="100" cy="147" r="7" fill="#238579" stroke="#3B2A20" stroke-width="2.5"/>';
+    // feet ("w w")
+    if (opts.acc !== 'couch' && opts.acc !== 'pillow') {
+      s += '<path d="M66 186 q 4 10 9 0 q 4 10 9 0 q 4 10 9 0" stroke="#E8892E" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>';
+      s += '<path d="M108 186 q 4 10 9 0 q 4 10 9 0 q 4 10 9 0" stroke="#E8892E" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>';
+    }
+    // accessories
+    var a = opts.acc;
+    if (a === 'nightcap') s += '<path d="M44 58 C 60 10, 130 4, 160 40 C 150 44, 120 30, 96 40 C 80 46, 60 54, 44 58 Z" fill="#8C7BD1" stroke="#3B2A20" stroke-width="3"/><circle cx="164" cy="40" r="10" fill="#FFF4E2" stroke="#3B2A20" stroke-width="3"/>';
+    if (a === 'crown') s += '<path d="M64 48 L 70 14 L 86 34 L 100 8 L 114 34 L 130 14 L 136 48 Z" fill="#FFC94A" stroke="#3B2A20" stroke-width="3" stroke-linejoin="round"/><circle cx="100" cy="36" r="5" fill="#E8553E"/>';
+    if (a === 'pizza') s += pizzaPath(150, 110, 0.55, -20);
+    if (a === 'bento') s += '<rect x="134" y="132" width="56" height="40" rx="6" fill="#E8553E" stroke="#3B2A20" stroke-width="3"/><rect x="140" y="138" width="44" height="28" rx="4" fill="#FFF4E2"/><circle cx="153" cy="152" r="7" fill="#fff" stroke="#3B2A20" stroke-width="2"/><rect x="164" y="144" width="14" height="16" rx="3" fill="#9BD770"/>';
+    if (a === 'glasses') s += '<circle cx="72" cy="100" r="23" fill="none" stroke="#3B2A20" stroke-width="4"/><circle cx="128" cy="100" r="23" fill="none" stroke="#3B2A20" stroke-width="4"/><path d="M95 100 L 105 100" stroke="#3B2A20" stroke-width="4"/><path d="M60 40 L 140 40 L 100 22 Z" fill="#3B2A20"/><rect x="74" y="40" width="52" height="10" fill="#3B2A20"/>';
+    if (a === 'phone') s += '<rect x="148" y="96" width="30" height="52" rx="7" fill="#2B3A4A" stroke="#3B2A20" stroke-width="3" transform="rotate(14 163 122)"/><rect x="153" y="104" width="20" height="34" rx="3" fill="#8fd3c0" transform="rotate(14 163 122)"/>';
+    if (a === 'sweat') s += '<path d="M166 70 q 10 14 0 20 q -10 -6 0 -20 Z" fill="#8FC9F0" stroke="#3B2A20" stroke-width="2"/>';
+    if (a === 'calendar') s += '<rect x="138" y="20" width="50" height="50" rx="8" fill="#FFF" stroke="#3B2A20" stroke-width="3"/><rect x="138" y="20" width="50" height="14" rx="6" fill="#E86A4A"/><text x="163" y="62" font-size="24" font-weight="800" text-anchor="middle" fill="#3B2A20" font-family="sans-serif">?</text>';
+    return s;
+  }
+  function svgEl(inner, viewBox) {
+    return '<svg viewBox="' + (viewBox || '0 0 200 200') + '" aria-hidden="true">' + inner + '</svg>';
+  }
+  function pizzaPath(cx, cy, k, rot) {
+    // The whiteboard pizza: a slice with a crust band and a sleepy face.
+    return '<g transform="translate(' + cx + ' ' + cy + ') rotate(' + (rot || 0) + ') scale(' + k + ')">' +
+      '<path d="M-48 -52 Q 0 -78 48 -52 L 0 70 Z" fill="#FFD36B" stroke="#3B2A20" stroke-width="6" stroke-linejoin="round"/>' +
+      '<path d="M-48 -52 Q 0 -78 48 -52 L 42 -38 Q 0 -60 -42 -38 Z" fill="#D9925B" stroke="#3B2A20" stroke-width="6" stroke-linejoin="round"/>' +
+      '<path d="M-20 -6 q 6 6 12 0" stroke="#3B2A20" stroke-width="6" fill="none" stroke-linecap="round"/>' +
+      '<path d="M8 -6 q 6 6 12 0" stroke="#3B2A20" stroke-width="6" fill="none" stroke-linecap="round"/>' +
+      '<circle cx="0" cy="18" r="5" fill="#3B2A20"/>' +
+      '<circle cx="-24" cy="-22" r="7" fill="#E8553E"/><circle cx="22" cy="-24" r="7" fill="#E8553E"/>' +
+      '</g>';
+  }
+  var ICONS = {
+    pizza: svgEl(pizzaPath(100, 100, 1.15, 0)),
+    calendar: svgEl(
+      '<rect x="22" y="22" width="156" height="156" rx="26" fill="#fff" stroke="#3B2A20" stroke-width="9"/>' +
+      '<text x="100" y="74" font-size="44" font-weight="800" text-anchor="middle" fill="#3B2A20" font-family="sans-serif">2026</text>' +
+      '<path d="M40 86 L 160 86" stroke="#3B2A20" stroke-width="7" stroke-linecap="round"/>' +
+      '<text x="100" y="124" font-size="30" font-weight="800" text-anchor="middle" fill="#3B2A20" font-family="sans-serif">1 2 3 4</text>' +
+      '<text x="100" y="158" font-size="30" font-weight="800" text-anchor="middle" fill="#3B2A20" font-family="sans-serif">• • •</text>'),
+    gear: svgEl(
+      '<g transform="translate(100 100)" fill="#3B2A20">' +
+      [0, 45, 90, 135, 180, 225, 270, 315].map(function (r) { return '<rect x="-14" y="-82" width="28" height="34" rx="6" transform="rotate(' + r + ')"/>'; }).join('') +
+      '<circle r="58"/><circle r="24" fill="#EDE3D3"/></g>'),
+    // Moku's cute foot, standing in for a step counter.
+    foot: svgEl(
+      '<g fill="#E8892E" stroke="#3B2A20" stroke-width="7">' +
+      '<ellipse cx="100" cy="132" rx="52" ry="40"/>' +
+      '<ellipse cx="52" cy="70" rx="20" ry="27" transform="rotate(-18 52 70)"/>' +
+      '<ellipse cx="100" cy="52" rx="20" ry="28"/>' +
+      '<ellipse cx="148" cy="70" rx="20" ry="27" transform="rotate(18 148 70)"/></g>' +
+      '<ellipse cx="86" cy="118" rx="14" ry="8" fill="#FFF4E2" opacity=".55"/>'),
+    flame: svgEl(
+      '<path d="M100 22 C 120 60, 162 82, 156 126 C 152 160, 128 180, 100 180 C 72 180, 48 160, 44 126 C 40 96, 64 82, 70 54 C 84 70, 86 84, 88 96 C 96 70, 92 46, 100 22 Z" fill="#F07A3A" stroke="#3B2A20" stroke-width="7" stroke-linejoin="round"/>' +
+      '<path d="M100 96 C 112 118, 128 128, 124 148 C 120 164, 110 170, 100 170 C 90 170, 78 164, 76 148 C 74 132, 92 120, 100 96 Z" fill="#FFD36B"/>')
+  };
+
+  // ---------- content ----------
+  // Mokudex: each entry unlocks from a lazy deed.
+  var DEX = [
+    { id: 'moku',     name: 'Moku',              acc: null,       lid: 0.45, how: 'Always here.',                    text: 'An owl with a leaf bow tie. Owns a smartwatch, never checks it.' },
+    { id: 'pizza',    name: 'Lunch Break Moku',  acc: 'pizza',    lid: 0.5,  how: 'Take a Lunch Break.',             text: 'Lunch break starts at breakfast and ends at dinner.' },
+    { id: 'bento',    name: 'Bento Moku',        acc: 'bento',    lid: 0.3,  how: 'Order food.',                     text: 'Orders Moku Bento every day. Has never seen a kitchen.' },
+    { id: 'snooze',   name: 'Snooze Moku',       acc: 'nightcap', lid: 1,    how: 'Sleep 24 hours.',                 text: 'Pressed snooze 10,000 times. Still says "5 more minutes".' },
+    { id: 'prof',     name: 'Professor Moku',    acc: 'glasses',  lid: 0.6,  how: 'Answer the Quiz.',                text: 'Studied laziness for 20 years. The answer is always Sleep.' },
+    { id: 'phone',    name: 'Hang-up Moku',      acc: 'phone',    lid: 0.55, how: 'Get a phone call.',               text: 'Calls you, then hangs up right away. Talking is tiring.' },
+    { id: 'walker',   name: 'Three-Step Moku',   acc: 'sweat',    lid: 0.7,  how: 'Try to walk 1000 steps.',         text: 'Walked 3 steps. Called it a marathon.' },
+    { id: 'time',     name: 'Lost-in-Time Moku', acc: 'calendar', lid: 0.4,  how: 'Roll the calendar 5 times.',      text: 'Has no idea what day it is. Does not care.' },
+    { id: 'couch',    name: 'Couch Moku',        acc: 'couch',    lid: 0.8,  how: 'Reach 100,000% lazy.',            text: 'Became one with the sofa. Comes with free cushions.' },
+    { id: 'king',     name: 'King of Lazy',      acc: 'crown',    lid: 0.9,  how: 'Reach 100,000,000% lazy.',        text: 'Rules the kingdom from bed. Royal decree: nap time, forever.' }
+  ];
+  function dexCheck() {
+    return {
+      pizza: state.lunches > 0,
+      bento: state.orders > 0,
+      snooze: state.sleeps > 0,
+      prof: state.quizzes > 0,
+      phone: state.calls > 0,
+      walker: state.walks > 0,
+      time: state.dates >= 5,
+      couch: state.lazy >= 100000,
+      king: state.lazy >= 100000000
+    };
+  }
+
+  var FOODS = [
+    { name: 'Moku Bento',   kcal: 640, color: '#E8553E', base: 'box' },
+    { name: 'Moku Onigiri', kcal: 180, color: '#FFFFFF', base: 'tri' },
+    { name: 'Moku Pizza',   kcal: 820, color: '#FFD36B', base: 'round' },
+    { name: 'Moku Burger',  kcal: 560, color: '#D9925B', base: 'dome' },
+    { name: 'Moku Pancake', kcal: 410, color: '#F2C27A', base: 'stack' },
+    { name: 'Moku Ramen',   kcal: 500, color: '#F3E3B5', base: 'bowl' },
+    { name: 'Moku Donut',   kcal: 300, color: '#E98FC7', base: 'round' },
+    { name: 'Moku Pudding', kcal: 220, color: '#FFE08A', base: 'dome' }
+  ];
+  // Every menu item is shaped like Moku: food base + owl eyes + bow tie.
+  function foodSVG(f) {
+    var s = '';
+    var c = f.color, k = '#3B2A20';
+    if (f.base === 'box') s += '<rect x="20" y="40" width="160" height="110" rx="18" fill="' + c + '" stroke="' + k + '" stroke-width="7"/><rect x="34" y="54" width="132" height="82" rx="10" fill="#FFF4E2"/>';
+    if (f.base === 'tri') s += '<path d="M100 22 C 120 22, 180 120, 172 140 C 166 156, 34 156, 28 140 C 20 120, 80 22, 100 22 Z" fill="' + c + '" stroke="' + k + '" stroke-width="7"/><rect x="62" y="110" width="76" height="42" fill="#2F3B2F"/>';
+    if (f.base === 'round') s += '<circle cx="100" cy="92" r="72" fill="' + c + '" stroke="' + k + '" stroke-width="7"/>' + (f.name === 'Moku Donut' ? '<circle cx="100" cy="128" r="14" fill="#FFF" stroke="' + k + '" stroke-width="5"/>' : '<circle cx="54" cy="66" r="9" fill="#E8553E"/><circle cx="148" cy="70" r="9" fill="#E8553E"/>');
+    if (f.base === 'dome') s += '<path d="M28 128 C 28 50, 172 50, 172 128 Z" fill="' + c + '" stroke="' + k + '" stroke-width="7"/>' + (f.name === 'Moku Burger' ? '<rect x="22" y="128" width="156" height="14" rx="6" fill="#7A4E2C"/><rect x="28" y="142" width="144" height="18" rx="9" fill="' + c + '" stroke="' + k + '" stroke-width="6"/>' : '<path d="M28 128 L 20 158 L 180 158 L 172 128 Z" fill="#F2C27A" stroke="' + k + '" stroke-width="6"/><path d="M60 64 Q 100 40 140 64" stroke="#7A4214" stroke-width="12" fill="none"/>');
+    if (f.base === 'stack') s += '<ellipse cx="100" cy="140" rx="76" ry="18" fill="' + c + '" stroke="' + k + '" stroke-width="6"/><ellipse cx="100" cy="118" rx="76" ry="18" fill="' + c + '" stroke="' + k + '" stroke-width="6"/><ellipse cx="100" cy="94" rx="76" ry="22" fill="' + c + '" stroke="' + k + '" stroke-width="6"/><rect x="84" y="62" width="32" height="18" rx="4" fill="#FFF4E2" stroke="' + k + '" stroke-width="4"/>';
+    if (f.base === 'bowl') s += '<path d="M18 86 L 182 86 C 178 140, 140 160, 100 160 C 60 160, 22 140, 18 86 Z" fill="#E8553E" stroke="' + k + '" stroke-width="7"/><ellipse cx="100" cy="86" rx="82" ry="16" fill="' + c + '" stroke="' + k + '" stroke-width="6"/><path d="M120 30 L 150 80 M140 26 L 166 78" stroke="' + k + '" stroke-width="5"/>';
+    var ey = f.base === 'bowl' ? 120 : f.base === 'stack' ? 96 : f.base === 'dome' ? 98 : f.base === 'tri' ? 82 : 90;
+    s += '<circle cx="76" cy="' + ey + '" r="13" fill="' + k + '"/><circle cx="124" cy="' + ey + '" r="13" fill="' + k + '"/>';
+    s += '<circle cx="80" cy="' + (ey - 4) + '" r="4" fill="#fff"/><circle cx="128" cy="' + (ey - 4) + '" r="4" fill="#fff"/>';
+    s += '<path d="M100 ' + (ey + 8) + ' l 7 8 l -7 8 l -7 -8 Z" fill="#F2A03D"/>';
+    s += '<path d="M100 ' + (ey + 30) + ' c -10 -10 -26 -6 -26 2 c 4 8 18 8 26 -2 Z M100 ' + (ey + 30) + ' c 10 -10 26 -6 26 2 c -4 8 -18 8 -26 -2 Z" fill="#2A9D8F" stroke="' + k + '" stroke-width="3"/>';
+    return svgEl(s, '0 0 200 175');
+  }
+
+  // ---------- DOM ----------
+  var $ = function (id) { return document.getElementById(id); };
+  var body = document.body;
+  var screenEl = $('screen');
+  var track = $('track');
+  var appLayer = $('appLayer');
+  var appTitle = $('appTitle');
+  var appBody = $('appBody');
+  var callLayer = $('callLayer');
+  var toastEl = $('toast');
+
+  $('pizzaBtn').innerHTML = ICONS.pizza;
+  $('calBtn').innerHTML = ICONS.calendar;
+  $('tSettings').innerHTML = ICONS.gear;
+  $('tLunch').innerHTML = ICONS.pizza;
+  $('tSteps').innerHTML = ICONS.foot;
+  $('tCal').innerHTML = ICONS.flame;
+  $('callAvatar').innerHTML = mokuSVG({ acc: 'phone', lid: 0.55 });
+
+  function fmt(n) { return Math.round(n).toLocaleString('en-US'); }
+  function rankFor(lazy) {
+    if (lazy >= 100000000) return '👑 King of Lazy';
+    if (lazy >= 10000000) return '🌙 Legendary Napper';
+    if (lazy >= 100000) return '🛋️ Couch Owl';
+    if (lazy >= 1000) return '😪 Pro Slacker';
+    if (lazy > 0) return '🥱 A Bit Lazy';
+    return '🤔 Suspiciously Awake';
+  }
+  // Moku's eyelids droop more the lazier the watch gets.
+  function lidFor(lazy) {
+    if (lazy <= 0) return 0.15;
+    return Math.min(0.85, 0.25 + Math.log10(lazy + 1) / 14);
+  }
+  function renderMeter() {
+    $('lazyNum').textContent = fmt(state.lazy) + '%';
+    $('lazyRank').textContent = rankFor(state.lazy);
+    $('mokuBtn').innerHTML = svgEl(mokuSVG({ lid: lidFor(state.lazy) }));
+  }
+
+  var toastTimer = null;
+  function toast(msg, ms) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove('show'); }, ms || 2200);
+  }
+  function floatPlus(text) {
+    var f = document.createElement('div');
+    f.className = 'float-plus';
+    f.textContent = text;
+    screenEl.appendChild(f);
+    setTimeout(function () { f.remove(); }, 1400);
+  }
+
+  function addLazy(n) {
+    state.lazy += n;
+    floatPlus('+' + fmt(n) + '% lazy');
+    sfx.lazy();
+    afterChange();
+  }
+  function afterChange() {
+    var unlocked = dexCheck();
+    var fresh = [];
+    DEX.forEach(function (d) {
+      if (unlocked[d.id] && state.dex.indexOf(d.id) < 0) { state.dex.push(d.id); fresh.push(d); }
+    });
+    save();
+    renderMeter();
+    if (fresh.length) {
+      setTimeout(function () {
+        sfx.yay();
+        toast('📖 New in Mokudex: ' + fresh.map(function (d) { return d.name; }).join(', ') + '!', 2800);
+      }, 900);
+    }
+  }
+
+  // ---------- clock ----------
+  var DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+  var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  function tickClock() {
+    var d = new Date();
+    $('clock').firstChild.nodeValue = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    $('clockDate').textContent = DAYS[d.getDay()] + ' ' + d.getDate();
+  }
+
+  // ---------- face switching / swipe ----------
+  var page = 1; // 0 = apps face, 1 = main face
+  function setPage(p) {
+    page = Math.max(0, Math.min(1, p));
+    track.style.transform = 'translateX(' + (page === 0 ? 0 : -50) + '%)';
+    Array.prototype.forEach.call(document.querySelectorAll('#dots button'), function (b) {
+      var on = Number(b.getAttribute('data-page')) === page;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    $('subFace').inert = page !== 0;
+    $('mainFace').inert = page !== 1;
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('#dots button'), function (b) {
+    b.addEventListener('click', function () { setPage(Number(b.getAttribute('data-page'))); sfx.tap(); });
+  });
+
+  var drag = null;
+  var suppressClick = false;
+  track.addEventListener('pointerdown', function (e) {
+    if (appOpen || callActive) return;
+    drag = { x: e.clientX, y: e.clientY, dx: 0, moved: false, id: e.pointerId };
+  });
+  window.addEventListener('pointermove', function (e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    drag.dx = e.clientX - drag.x;
+    if (!drag.moved && Math.abs(drag.dx) > 8 && Math.abs(drag.dx) > Math.abs(e.clientY - drag.y)) {
+      drag.moved = true;
+      track.classList.add('dragging');
+    }
+    if (drag.moved) {
+      var w = screenEl.clientWidth;
+      var base = page === 0 ? 0 : -w;
+      var x = Math.max(-w - 30, Math.min(30, base + drag.dx));
+      track.style.transform = 'translateX(' + x + 'px)';
+    }
+  });
+  function endDrag() {
+    if (!drag) return;
+    if (drag.moved) {
+      track.classList.remove('dragging');
+      suppressClick = true;
+      setTimeout(function () { suppressClick = false; }, 60);
+      if (drag.dx > 50) setPage(0);
+      else if (drag.dx < -50) setPage(1);
+      else setPage(page);
+    }
+    drag = null;
+  }
+  window.addEventListener('pointerup', endDrag);
+  window.addEventListener('pointercancel', endDrag);
+  track.addEventListener('click', function (e) {
+    if (suppressClick) { e.stopPropagation(); e.preventDefault(); }
+  }, true);
+
+  // ---------- apps ----------
+  var appOpen = null;
+  var appTimer = null;
+  function openApp(name) {
+    if (!APPS[name]) return;
+    closeApp(true);
+    appOpen = name;
+    appLayer.className = 'layer show';
+    appBody.innerHTML = '';
+    appBody.scrollTop = 0;
+    APPS[name]();
+    sfx.tap();
+    $('appBack').focus({ preventScroll: true });
+  }
+  function closeApp(silent) {
+    clearInterval(appTimer);
+    appTimer = null;
+    appLayer.className = 'layer';
+    appOpen = null;
+    if (!silent) sfx.tap();
+  }
+  $('appBack').addEventListener('click', function () { closeApp(); });
+  function h(tag, cls, html) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (html != null) n.innerHTML = html;
+    return n;
+  }
+  function btn(label, cls, fn) {
+    var b = h('button', 'ink-btn' + (cls ? ' ' + cls : ''), label);
+    b.type = 'button';
+    b.addEventListener('click', fn);
+    return b;
+  }
+
+  var APPS = {
+    // Food Panda — "order" on the main face (100% lazy).
+    food: function () {
+      appTitle.textContent = 'Food Panda';
+      appBody.appendChild(h('div', 'muted', 'Moku-shaped menu · free delivery to your bed'));
+      var grid = h('div', 'food-grid');
+      FOODS.forEach(function (f) {
+        var b = h('button', 'food', foodSVG(f) + '<span>' + f.name + '</span><small>' + f.kcal + ' kcal</small>');
+        b.type = 'button';
+        b.addEventListener('click', function () { deliver(f); });
+        grid.appendChild(b);
+      });
+      appBody.appendChild(grid);
+    },
+    // Lunch Break (50% lazy). The break never really ends — you can only extend it.
+    lunch: function () {
+      appTitle.textContent = 'Lunch Break';
+      var now = Date.now();
+      var fresh = !(state.lunchUntil > now);
+      if (fresh) state.lunchUntil = now + 60 * 60 * 1000;
+      appBody.appendChild(h('div', null, svgEl(pizzaPath(100, 100, 1.1, 0))));
+      appBody.lastChild.style.width = 'calc(var(--u) * 26)';
+      appBody.appendChild(h('div', 'muted', 'Break ends in'));
+      var num = h('div', 'big-num', '');
+      appBody.appendChild(num);
+      var msg = h('div', 'muted', 'No work allowed. Doctor’s orders.');
+      appBody.appendChild(msg);
+      appBody.appendChild(btn('+1 hour break', null, function () {
+        state.lunchUntil += 60 * 60 * 1000;
+        msg.textContent = 'Break extended. Moku approves.';
+        addLazy(50);
+        draw();
+      }));
+      function draw() {
+        var left = Math.max(0, state.lunchUntil - Date.now());
+        var s = Math.floor(left / 1000);
+        var hh = Math.floor(s / 3600), mm = Math.floor(s / 60) % 60, ss = s % 60;
+        num.textContent = (hh ? hh + ':' : '') + String(mm).padStart(2, '0') + ':' + String(ss).padStart(2, '0');
+      }
+      draw();
+      appTimer = setInterval(draw, 1000);
+      if (fresh) { state.lunches++; addLazy(50); } else save();
+    },
+    // Random date calendar (useless).
+    date: function () {
+      appTitle.textContent = 'Random Date';
+      var card = h('div', 'date-card');
+      appBody.appendChild(card);
+      appBody.appendChild(h('div', 'muted', 'Usefulness: 0%'));
+      appBody.appendChild(btn('Roll again 🎲', null, roll));
+      function roll() {
+        var y = 1 + Math.floor(Math.random() * 9999);
+        var m = Math.floor(Math.random() * 12);
+        var d = 1 + Math.floor(Math.random() * 31);
+        if (Math.random() < 0.25) { m = 1; d = 30 + Math.floor(Math.random() * 2); } // Feb 30 / 31
+        var wd = Math.random() < 0.15 ? 'NAPDAY' : DAYS[Math.floor(Math.random() * 7)];
+        card.innerHTML = '<div class="dc-top">' + MONTHS[m] + ' ' + y + '</div><div class="dc-day">' + d + '</div><div class="dc-week">' + wd + '</div>';
+        state.dates++;
+        sfx.tap();
+        afterChange();
+      }
+      roll();
+    },
+    settings: function () {
+      appTitle.textContent = 'Settings';
+      function row(label, on, onToggle) {
+        var r = h('div', 'setting-row');
+        r.appendChild(h('span', null, label));
+        var t = h('button', 'toggle' + (on ? ' on' : ''));
+        t.type = 'button';
+        t.setAttribute('role', 'switch');
+        t.setAttribute('aria-checked', on ? 'true' : 'false');
+        t.setAttribute('aria-label', label);
+        t.addEventListener('click', function () { onToggle(t); });
+        r.appendChild(t);
+        appBody.appendChild(r);
+        return t;
+      }
+      row('Sound', settings.sound, function (t) {
+        settings.sound = !settings.sound;
+        saveSettings();
+        t.classList.toggle('on', settings.sound);
+        t.setAttribute('aria-checked', settings.sound ? 'true' : 'false');
+        sfx.tap();
+      });
+      row('Lazy Mode', true, function (t) {
+        t.classList.remove('wiggle'); void t.offsetWidth; t.classList.add('wiggle');
+        toast('Too lazy to turn off Lazy Mode.');
+      });
+      row('Work Mode', false, function (t) {
+        t.classList.remove('wiggle'); void t.offsetWidth; t.classList.add('wiggle');
+        toast('Work Mode is not installed.');
+      });
+      var line = h('div', null, '');
+      line.style.cssText = 'display:flex;flex-direction:column;gap:calc(var(--u)*2);margin-top:calc(var(--u)*2);align-items:center';
+      line.appendChild(btn('📞 Test call', 'alt', function () { closeApp(true); incomingCall(); }));
+      var armed = false;
+      var reset = btn('Reset data', 'alt', function () {
+        if (!armed) { armed = true; reset.textContent = 'Tap again to reset'; return; }
+        state = load('', DEFAULTS);
+        save();
+        renderMeter();
+        closeApp();
+        toast('All lazy records erased. (Moku is still lazy.)');
+      });
+      line.appendChild(reset);
+      appBody.appendChild(line);
+    },
+    steps: function () {
+      appTitle.textContent = 'Steps';
+      var goal = 10000;
+      var pct = Math.min(1, state.steps / goal);
+      var r = 70, c = 2 * Math.PI * r;
+      appBody.appendChild(h('div', null,
+        '<svg class="ring" viewBox="0 0 200 200" aria-hidden="true"><circle cx="100" cy="100" r="' + r + '" fill="none" stroke="#EDE3D3" stroke-width="18"/>' +
+        '<circle cx="100" cy="100" r="' + r + '" fill="none" stroke="#E8892E" stroke-width="18" stroke-linecap="round" stroke-dasharray="' + (c * Math.max(pct, 0.004)).toFixed(1) + ' ' + c.toFixed(1) + '" transform="rotate(-90 100 100)"/>' +
+        '<text x="100" y="112" text-anchor="middle" font-size="40" font-weight="800" fill="#3B2A20" font-family="sans-serif">' + fmt(state.steps) + '</text></svg>'));
+      appBody.appendChild(h('div', null, 'Goal: ' + fmt(goal) + ' steps'));
+      appBody.appendChild(h('div', 'muted', state.steps ? 'Great job! That’s enough walking for this year.' : 'Zero steps. Perfect. Keep it up!'));
+    },
+    kcal: function () {
+      appTitle.textContent = 'Calories';
+      var out = Math.round(state.steps * 0.04 * 10) / 10;
+      appBody.appendChild(h('div', null, ICONS.flame));
+      appBody.lastChild.style.width = 'calc(var(--u) * 20)';
+      appBody.appendChild(h('div', null, '🔥 Burned: <b>' + out + ' kcal</b>'));
+      appBody.appendChild(h('div', null, '🍱 Eaten: <b>' + fmt(state.kcalIn) + ' kcal</b>'));
+      appBody.appendChild(h('div', 'muted', state.kcalIn > out ? 'Net: +' + fmt(state.kcalIn - out) + ' kcal. Moku is getting extra fluffy.' : 'Order something from Food Panda!'));
+    },
+    quiz: function () {
+      appTitle.textContent = 'Quiz';
+      appBody.appendChild(h('div', null, '<b style="font-size:calc(var(--u)*6)">How to be lazy?</b>'));
+      ['A', 'B', 'C'].forEach(function (l) {
+        appBody.appendChild(btn(l + '. Sleep', 'alt quiz-choice', answer));
+      });
+      function answer() {
+        appBody.innerHTML = '';
+        appBody.appendChild(h('div', 'big-num', '💯'));
+        appBody.appendChild(h('div', null, '<b>Correct!!</b>'));
+        appBody.appendChild(h('div', 'muted', 'Every answer is Sleep. You are a genius.'));
+        appBody.appendChild(btn('Again', null, function () { openApp('quiz'); }));
+        state.quizzes++;
+        sfx.yay();
+        addLazy(100);
+      }
+    },
+    dex: function () {
+      appTitle.textContent = 'Mokudex ' + state.dex.length + '/' + DEX.length;
+      var list = h('div', 'dex-list');
+      DEX.forEach(function (d, i) {
+        var got = state.dex.indexOf(d.id) >= 0;
+        var item = h('div', 'dex-item' + (got ? '' : ' locked'),
+          svgEl(mokuSVG({ acc: d.acc, lid: d.lid })) +
+          '<div><b>No.' + String(i + 1).padStart(3, '0') + ' ' + (got ? d.name : '???') + '</b><span>' + (got ? d.text : 'How to find: ' + d.how) + '</span></div>');
+        list.appendChild(item);
+      });
+      appBody.appendChild(list);
+    },
+    // "let's sleep 24 hours!!!" — the 10000000% lazy button.
+    sleep: function () {
+      appTitle.textContent = 'Sleep Mode';
+      appLayer.classList.add('night');
+      var scene = h('div', 'scene', svgEl(mokuSVG({ acc: 'nightcap', lid: 1 })) + '<span class="zz">Z</span><span class="zz z2">Z</span><span class="zz z3">z</span>');
+      scene.firstChild.setAttribute('class', 'moku');
+      appBody.appendChild(scene);
+      var num = h('div', 'big-num', '24:00:00');
+      appBody.appendChild(num);
+      var msg = h('div', 'muted', 'Sleeping for 24 hours…');
+      appBody.appendChild(msg);
+      var started = Date.now();
+      appTimer = setInterval(function () {
+        var left = Math.max(0, 24 * 3600 - Math.floor((Date.now() - started) / 1000));
+        num.textContent = String(Math.floor(left / 3600)).padStart(2, '0') + ':' + String(Math.floor(left / 60) % 60).padStart(2, '0') + ':' + String(left % 60).padStart(2, '0');
+        if (left % 4 === 0) sfx.snore();
+      }, 1000);
+      var tries = 0;
+      var LINES = ['“5 more minutes…”', '“zzz… 5 more hours…”', '“…5 more days.”'];
+      appBody.appendChild(btn('⏰ Wake up', null, function () {
+        if (tries < LINES.length) { msg.textContent = LINES[tries++]; sfx.snore(); return; }
+        closeApp();
+        toast('Moku woke up… and went back to sleep.');
+      }));
+      state.sleeps++;
+      addLazy(10000000);
+    },
+    // "let's walk 1000 steps!" — the lazy soul button. Moku gives up after 3.
+    walk: function () {
+      appTitle.textContent = 'Walk 1000 Steps';
+      var scene = h('div', 'scene', svgEl(mokuSVG({ lid: 0.5 })));
+      var moku = scene.firstChild;
+      moku.setAttribute('class', 'moku walker');
+      appBody.appendChild(scene);
+      var num = h('div', 'big-num', '0');
+      appBody.appendChild(num);
+      var msg = h('div', 'muted', 'Let’s go! 1000 steps!');
+      appBody.appendChild(msg);
+      var n = 0;
+      appTimer = setInterval(function () {
+        n++;
+        if (n <= 3) {
+          num.textContent = n;
+          moku.style.transform = 'translateX(-50%) translateY(' + (n % 2 ? -8 : 0) + 'px) rotate(' + (n % 2 ? -6 : 6) + 'deg)';
+          sfx.tap();
+          return;
+        }
+        clearInterval(appTimer);
+        appTimer = null;
+        moku.innerHTML = mokuSVG({ acc: 'sweat', lid: 0.85 });
+        moku.style.transform = 'translateX(-50%) translateY(10px)';
+        num.textContent = '3 / 1000';
+        msg.textContent = '…too far. Moku sat down. Lazy soul wins.';
+        state.steps += 3;
+        state.walks++;
+        addLazy(500);
+      }, 650);
+    }
+  };
+
+  function deliver(f) {
+    appBody.innerHTML = '';
+    appTitle.textContent = 'Delivering…';
+    var scene = h('div', 'scene', '');
+    var scooter = h('div', 'scooter', svgEl(
+      '<circle cx="50" cy="150" r="22" fill="#3B2A20"/><circle cx="160" cy="150" r="22" fill="#3B2A20"/>' +
+      '<path d="M40 128 L 170 128 L 150 90 L 90 90 Z" fill="#E86A4A" stroke="#3B2A20" stroke-width="6" stroke-linejoin="round"/>' +
+      '<rect x="20" y="58" width="56" height="56" rx="8" fill="#FFF4E2" stroke="#3B2A20" stroke-width="6"/>' +
+      '<circle cx="128" cy="62" r="26" fill="#fff" stroke="#3B2A20" stroke-width="6"/><circle cx="118" cy="58" r="7" fill="#3B2A20"/><circle cx="138" cy="58" r="7" fill="#3B2A20"/>' +
+      '<circle cx="108" cy="40" r="9" fill="#3B2A20"/><circle cx="148" cy="40" r="9" fill="#3B2A20"/>', '0 0 200 180'));
+    scene.appendChild(scooter);
+    appBody.appendChild(scene);
+    var msg = h('div', null, '🛵 ' + f.name + ' is on the way!');
+    appBody.appendChild(msg);
+    requestAnimationFrame(function () { scooter.classList.add('go'); });
+    beep(440, 0.1, 'square', 0.05); beep(554, 0.1, 'square', 0.05, 0.12);
+    setTimeout(function () {
+      if (appOpen !== 'food') return;
+      appTitle.textContent = 'Delivered!';
+      scene.innerHTML = '';
+      scene.appendChild(h('div', null, foodSVG(f)));
+      scene.lastChild.style.cssText = 'width:calc(var(--u)*40);margin:0 auto';
+      msg.innerHTML = '<b>' + f.name + '</b> arrived in 0.1 sec.<br><span class="muted">Moku didn’t even get up.</span>';
+      appBody.appendChild(btn('Order more', null, function () { openApp('food'); }));
+      state.orders++;
+      state.kcalIn += f.kcal;
+      addLazy(100);
+    }, 1450);
+  }
+
+  // Taps on any [data-app] tile / button open that app.
+  $('watch').addEventListener('click', function (e) {
+    var t = e.target.closest ? e.target.closest('[data-app]') : null;
+    if (t) openApp(t.getAttribute('data-app'));
+  });
+
+  // The ordinary button: nothing happens (0%).
+  $('mokuBtn').addEventListener('click', function () {
+    floatPlus('+0% lazy');
+    toast('…nothing happened.', 1300);
+  });
+
+  // ---------- phone: Moku calls, then hangs up right away ----------
+  var callActive = false;
+  var callTimer = null;
+  function scheduleCall() {
+    clearTimeout(callTimer);
+    callTimer = setTimeout(function () {
+      if (body.classList.contains('on-title') || document.hidden || appOpen || callActive) { scheduleCall(); return; }
+      incomingCall();
+    }, 35000 + Math.random() * 40000);
+  }
+  function incomingCall() {
+    callActive = true;
+    callLayer.classList.remove('ended');
+    callLayer.classList.add('show');
+    $('callSub').textContent = 'Incoming call…';
+    sfx.ring();
+    if (navigator.vibrate) { try { navigator.vibrate([120, 80, 120]); } catch (e) {} }
+    setTimeout(function () {
+      callLayer.classList.add('ended');
+      $('callSub').textContent = 'Call ended. Talking is too much work.';
+      sfx.hang();
+      state.calls++;
+      afterChange();
+      setTimeout(function () {
+        callLayer.classList.remove('show', 'ended');
+        callActive = false;
+        scheduleCall();
+      }, 2000);
+    }, 1400);
+  }
+
+  // ---------- sizing ----------
+  function layout() {
+    var vw = window.innerWidth, vh = window.innerHeight;
+    var w = Math.min(vw * 0.9, 400, (vh - 150) / 1.12);
+    w = Math.max(w, 230);
+    document.documentElement.style.setProperty('--u', (w / 100).toFixed(3) + 'px');
+  }
+  window.addEventListener('resize', layout);
+
+  // ---------- screens ----------
+  function showTitle() {
+    closeApp(true);
+    body.classList.add('on-title');
+    $('startBtn').focus({ preventScroll: true });
+  }
+  function showWatch() {
+    body.classList.remove('on-title');
+    setPage(1);
+    renderMeter();
+    tickClock();
+    sfx.yay();
+    if (!state.updatedAt) save();
+    scheduleCall();
+  }
+  $('startBtn').addEventListener('click', showWatch);
+  $('backTitle').addEventListener('click', showTitle);
+
+  document.addEventListener('keydown', function (e) {
+    if (body.classList.contains('on-title')) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showWatch(); }
+      return;
+    }
+    if (e.key === 'Escape') { if (appOpen) closeApp(); else showTitle(); }
+    else if (!appOpen && e.key === 'ArrowLeft') setPage(0);
+    else if (!appOpen && e.key === 'ArrowRight') setPage(1);
+  });
+
+  layout();
+  renderMeter();
+  tickClock();
+  setInterval(tickClock, 10000);
+  setPage(1);
+})();
+</script>
+</body>
+</html>
