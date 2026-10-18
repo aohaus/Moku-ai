@@ -911,6 +911,7 @@ body.on-title #watchScreen { display: none; }
   // ---------- apps ----------
   var appOpen = null;
   var appTimer = null;
+  var deliveryTimer = null;
   function openApp(name) {
     if (!APPS[name]) return;
     closeApp(true);
@@ -925,6 +926,9 @@ body.on-title #watchScreen { display: none; }
   function closeApp(silent) {
     clearInterval(appTimer);
     appTimer = null;
+    // An order still on its way is cancelled, so it can't land on a later screen.
+    clearTimeout(deliveryTimer);
+    deliveryTimer = null;
     appLayer.className = 'layer';
     appOpen = null;
     if (!silent) sfx.tap();
@@ -1183,8 +1187,8 @@ body.on-title #watchScreen { display: none; }
     appBody.appendChild(msg);
     requestAnimationFrame(function () { scooter.classList.add('go'); });
     beep(440, 0.1, 'square', 0.05); beep(554, 0.1, 'square', 0.05, 0.12);
-    setTimeout(function () {
-      if (appOpen !== 'food') return;
+    deliveryTimer = setTimeout(function () {
+      deliveryTimer = null;
       appTitle.textContent = 'Delivered!';
       scene.innerHTML = '';
       scene.appendChild(h('div', null, foodSVG(f)));
