@@ -455,7 +455,7 @@ body.on-title #watchScreen { display: none; }
 
 <div id="title-frame"></div>
 <a id="hub-link" href="index.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.1.0 · Updated Oct 18, 2026</div>
+<div id="buildInfo">v0.1.1 · Updated Oct 18, 2026</div>
 
 <section id="titleScreen" aria-label="Title">
   <div id="titleHeroWrap">
@@ -1169,8 +1169,14 @@ body.on-title #watchScreen { display: none; }
       '<circle cx="50" cy="150" r="22" fill="#3B2A20"/><circle cx="160" cy="150" r="22" fill="#3B2A20"/>' +
       '<path d="M40 128 L 170 128 L 150 90 L 90 90 Z" fill="#E86A4A" stroke="#3B2A20" stroke-width="6" stroke-linejoin="round"/>' +
       '<rect x="20" y="58" width="56" height="56" rx="8" fill="#FFF4E2" stroke="#3B2A20" stroke-width="6"/>' +
-      '<circle cx="128" cy="62" r="26" fill="#fff" stroke="#3B2A20" stroke-width="6"/><circle cx="118" cy="58" r="7" fill="#3B2A20"/><circle cx="138" cy="58" r="7" fill="#3B2A20"/>' +
-      '<circle cx="108" cy="40" r="9" fill="#3B2A20"/><circle cx="148" cy="40" r="9" fill="#3B2A20"/>', '0 0 200 180'));
+      // The rider is a sleepy Moku with its leaf bow tie.
+      '<path d="M128 102 c -10 -10 -26 -6 -26 2 c 4 8 18 8 26 -2 Z M128 102 c 10 -10 26 -6 26 2 c -4 8 -18 8 -26 -2 Z" fill="#2A9D8F" stroke="#3B2A20" stroke-width="3"/>' +
+      '<circle cx="128" cy="62" r="32" fill="#D49A6A" stroke="#3B2A20" stroke-width="5"/>' +
+      '<path d="M128 50 C 121 38, 99 40, 100 60 C 101 78, 118 84, 128 83 C 138 84, 155 78, 156 60 C 157 40, 135 38, 128 50 Z" fill="#F8EFE3"/>' +
+      '<circle cx="117" cy="62" r="7" fill="#2B1A12"/><circle cx="139" cy="62" r="7" fill="#2B1A12"/>' +
+      '<path d="M110 62 A 7 7 0 0 1 124 62 Z M132 62 A 7 7 0 0 1 146 62 Z" fill="#E9D9C4"/>' +
+      '<path d="M110 62 L 124 62 M132 62 L 146 62" stroke="#3B2A20" stroke-width="2.5" stroke-linecap="round"/>' +
+      '<path d="M128 67 l 5 6 l -5 6 l -5 -6 Z" fill="#F2A03D" stroke="#3B2A20" stroke-width="2"/>', '0 0 200 180'));
     scene.appendChild(scooter);
     appBody.appendChild(scene);
     var msg = h('div', null, '🛵 ' + f.name + ' is on the way!');
