@@ -307,18 +307,18 @@ body.on-title #watchScreen { display: none; }
   transform: rotate(45deg);
 }
 /* Moku Moku: the LCD pet face */
+/* The pink device body fills the whole screen up to the watch frame (the screen's own rounded edge
+   clips it); the padding keeps the contents where they were when the body sat inside a white margin. */
 .pet {
   height: 100%;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: calc(var(--u) * 2.6);
-  border: calc(var(--u) * 0.9) solid var(--ink);
-  border-radius: calc(var(--u) * 14) calc(var(--u) * 14) calc(var(--u) * 8) calc(var(--u) * 8);
   background:
     radial-gradient(circle at 30% 20%, rgba(255,255,255,0.45), transparent 40%),
     #F2C7A8;
-  padding: calc(var(--u) * 2.4);
+  padding: calc(var(--u) * 7.8);
 }
-#petFace { padding: calc(var(--u) * 4.5) calc(var(--u) * 4.5); }
+#petFace { padding: 0; }
 .pet-head { display: flex; align-items: center; gap: calc(var(--u) * 2.4); }
 .pet-name { font-weight: 800; font-size: calc(var(--u) * 4.4); letter-spacing: 0.08em; }
 .pet-help {
@@ -548,7 +548,7 @@ body.on-title #watchScreen { display: none; }
 
 <div id="title-frame"></div>
 <a id="hub-link" href="index.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.5.0 · Updated Oct 22, 2026</div>
+<div id="buildInfo">v0.5.1 · Updated Oct 22, 2026</div>
 
 <section id="titleScreen" aria-label="Title">
   <div id="titleHeroWrap">
