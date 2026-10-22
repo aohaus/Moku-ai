@@ -548,7 +548,7 @@ body.on-title #watchScreen { display: none; }
 
 <div id="title-frame"></div>
 <a id="hub-link" href="index.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.4.0 · Updated Oct 22, 2026</div>
+<div id="buildInfo">v0.5.0 · Updated Oct 22, 2026</div>
 
 <section id="titleScreen" aria-label="Title">
   <div id="titleHeroWrap">
@@ -1461,12 +1461,14 @@ body.on-title #watchScreen { display: none; }
       row(i, ic('play'), '<b>Play</b> — the “Which way?” game. Guess where Moku looks: A = left, B = right, C = nap. Get 3 of 5 right to win!');
       row(i, ic('futon'), '<b>Futon</b> — when the germ shows up, Moku has the <i>can’t-be-bothered</i> sickness. Two blankets make it better.');
       row(i, ic('clean'), '<b>Clean</b> — sweep away the poop. Too much poop can make Moku sick.');
-      row(i, ic('status'), '<b>Status</b> — age, weight (G), snack hearts, nap hearts. Press A or B for the next page.');
+      row(i, ic('status'), '<b>Status</b> — age, weight (G), snack hearts, nap hearts, generation. Press A or B for the next page.');
       row(i, ic('call'), '<b>Call</b> — lights up and beeps when Moku needs you.');
       var g = sec('Growing up');
       row(g, icon(SPR.egg), 'The egg hatches in 5 minutes. Moku grows up after 1 day (real time).');
       row(g, icon(SPR.lazy.map(function (r) { return r.replace(/\+/g, '.'); })), 'Left alone a lot, or too many snacks (20G or more)? Moku grows into a <b>Lazy Moku</b>.');
+      row(g, icon(SPR.cloud), 'A grown-up Moku lives about a week (Lazy Moku: about 10 days). Then it moves to the <b>Land of Endless Naps</b>. Press B for the next generation’s egg.');
       row(g, icon(SPR.envelope), '12 hours hungry, sick, or with lots of poop, and Moku leaves on a long nap trip. Press B for a new egg.');
+      row(g, 'GEN', 'The last Status page shows which generation you are raising.');
     },
     walk: function () {
       appTitle.textContent = 'Walk 1000 Steps';
@@ -1587,17 +1589,37 @@ body.on-title #watchScreen { display: none; }
   var PET_KEY = 'moku:' + GAME_ID + ':pet';
   var LCD_W = 48, LCD_H = 32, LCD_S = 8;
   var PET_HATCH_MIN = 5, PET_ADULT_MIN = 24 * 60, PET_TRIP_MIN = 12 * 60;
-  function newPet(gen) {
+  function newPet(gen, history) {
     var now = Date.now();
     return {
       version: 1, stage: 'egg', adultType: null, gen: gen || 1,
       age: 0, hunger: 2, goro: 2, poop: 0, lightsOff: false,
       hungerT: 0, goroT: 0, nextPoop: 120, neglect: 0, streak: 0,
       weight: 5, sick: false, sickDose: 0,
+      lifespan: 0,                 // age (min) when a grown-up Moku moves to the Land of Endless Naps
+      history: history || [],      // past generations: { gen, type, days, end }
       born: now, last: now
     };
   }
   var pet = load(PET_KEY, newPet(1));
+  // Grown-ups live about a week. Lazy Moku saves its energy, so it lives longer;
+  // being left alone shortens it a little.
+  function petLifespan() {
+    var days = pet.adultType === 'lazy' ? 10 : 7;
+    return days * 1440 + Math.floor(Math.random() * 1440) - Math.min(3 * 1440, pet.neglect * 2);
+  }
+  function petMoveOut(end) {
+    pet.stage = end;
+    pet.history = (pet.history || []).concat([{ gen: pet.gen, type: pet.adultType || 'baby', days: Math.floor(pet.age / 1440), end: end }]).slice(-20);
+    petEvent(end);
+  }
+  function petNextEgg() {
+    pet = newPet(pet.gen + 1, pet.history);
+    petSel = -1; petMode = 'idle'; petGame = null;
+    savePet();
+    petTune('egg');
+    toast('Generation ' + pet.gen + ': a new egg arrived! 🥚');
+  }
   function savePet() {
     try { localStorage.setItem(PET_KEY, JSON.stringify(pet)); } catch (e) {}
   }
@@ -1735,24 +1757,30 @@ body.on-title #watchScreen { display: none; }
     'D': ['##.', '#.#', '#.#', '#.#', '##.'], 'H': ['#.#', '#.#', '###', '#.#', '#.#'],
     'Z': ['###', '..#', '.#.', '#..', '###'], 'G': ['###', '#..', '#.#', '#.#', '###'],
     '<': ['..#', '.#.', '#..', '.#.', '..#'], '>': ['#..', '.#.', '..#', '.#.', '#..'],
-    '?': ['###', '..#', '.##', '...', '.#.'], '-': ['...', '...', '###', '...', '...'], '/': ['..#', '..#', '.#.', '#..', '#..'],
+    '?': ['###', '..#', '.##', '...', '.#.'], 'E': ['###', '#..', '##.', '#..', '###'],
+    'N': ['#.#', '###', '###', '#.#', '#.#'], '-': ['...', '...', '###', '...', '...'], '/': ['..#', '..#', '.#.', '#..', '#..'],
     ' ': ['...', '...', '...', '...', '...']
   };
 
   // ---------- simulation (1 step = 1 real minute) ----------
-  function petNeedsCare() { return pet.stage !== 'egg' && pet.stage !== 'trip' && (pet.hunger === 0 || pet.goro === 0 || pet.poop > 0 || pet.sick); }
+  function petNeedsCare() { return pet.stage !== 'egg' && pet.stage !== 'trip' && pet.stage !== 'dream' && (pet.hunger === 0 || pet.goro === 0 || pet.poop > 0 || pet.sick); }
   function petStep() {
     pet.age++;
     if (pet.stage === 'egg') {
       if (pet.age >= PET_HATCH_MIN) { pet.stage = 'baby'; petEvent('hatch'); }
       return 0;
     }
-    if (pet.stage === 'trip') return 0;
+    if (pet.stage === 'trip' || pet.stage === 'dream') return 0;
     if (pet.stage === 'baby' && pet.age >= PET_ADULT_MIN) {
       pet.stage = 'adult';
       // Left alone too long, or too many snacks → a very lazy adult.
       pet.adultType = pet.neglect >= 180 || pet.weight >= 20 ? 'lazy' : 'moku';
+      pet.lifespan = petLifespan();
       petEvent('grow');
+    }
+    if (pet.stage === 'adult') {
+      if (!pet.lifespan) pet.lifespan = petLifespan(); // grown-ups from before lifespans existed
+      if (pet.age >= pet.lifespan) { petMoveOut('dream'); return 0; }
     }
     var sleeping = pet.lightsOff;
     if (++pet.hungerT >= (sleeping ? 90 : 45)) { pet.hungerT = 0; pet.hunger = Math.max(0, pet.hunger - 1); }
@@ -1770,7 +1798,7 @@ body.on-title #watchScreen { display: none; }
     }
     if (pet.hunger === 0 || pet.goro === 0 || pet.poop >= 3 || pet.sick) pet.neglect++;
     pet.streak = (pet.hunger === 0 || pet.poop >= 4 || pet.sick) ? pet.streak + 1 : 0;
-    if (pet.streak >= PET_TRIP_MIN) { pet.stage = 'trip'; petEvent('trip'); }
+    if (pet.streak >= PET_TRIP_MIN) petMoveOut('trip');
     return sleeping ? 1 : 0; // a sleeping pet makes the watch a little lazier
   }
   function petSim() {
@@ -1842,6 +1870,28 @@ body.on-title #watchScreen { display: none; }
     else if (kind === 'yay') { beep(1600, 0.06, 'square', 0.04); beep(2100, 0.08, 'square', 0.04, 0.09); }
     else beep(2000, 0.04, 'square', 0.035);
   }
+  // Little square-wave tunes, like an old LCD toy's speaker.
+  var NOTE = { C4: 262, D4: 294, E4: 330, F4: 349, G4: 392, A4: 440, B4: 494, C5: 523, D5: 587, E5: 659, F5: 698, G5: 784, A5: 880, C6: 1047, R: 0 };
+  var TUNES = {
+    hatch: 'C5:1 E5:1 G5:1 C6:3',
+    grow: 'C5:1 E5:1 G5:1 C5:1 E5:1 G5:1 C6:2 G5:1 C6:4',
+    win: 'G5:1 R:1 G5:1 C6:4',
+    lose: 'E5:2 C5:2 G4:4',
+    eat: 'C6:1 G5:1 C6:1',
+    cure: 'E5:1 G5:1 C6:2',
+    egg: 'E5:1 G5:1 E5:1 C6:3',
+    trip: 'C6:2 G5:2 E5:2 C5:4',
+    // a slow lullaby for moving to the Land of Endless Naps
+    dream: 'G5:3 E5:3 C5:3 E5:3 G5:3 E5:3 C5:6 R:2 D5:3 F5:3 E5:3 D5:3 C5:8'
+  };
+  function petTune(name) {
+    var t = 0;
+    TUNES[name].split(' ').forEach(function (n) {
+      var p = n.split(':'), len = Number(p[1]) * 0.09;
+      if (NOTE[p[0]]) beep(NOTE[p[0]], len * 0.85, 'square', 0.035, t);
+      t += len;
+    });
+  }
   function drawPet() {
     frame.fill(0);
     petTick++;
@@ -1852,6 +1902,7 @@ body.on-title #watchScreen { display: none; }
     var spr = petSprite(), sw = spr[0].length, sh = spr.length;
     var groundY = 26 - sh; // sprites stand on row 25, just above the bottom icons
     if (pet.stage === 'trip') { drawTrip(); return; }
+    if (pet.stage === 'dream') { drawDream(); return; }
     if (petMode === 'status') { drawStatus(); return; }
     if (petMode === 'game') { drawGame(spr, groundY); return; }
     if (petMode === 'food') {
@@ -1883,6 +1934,9 @@ body.on-title #watchScreen { display: none; }
     } else if (petStatusPage === 1) {
       var w = String(pet.weight) + 'G';
       text(frame, w, 24 - w.length * 2, 13);
+    } else if (petStatusPage === 4) {
+      var gen = 'GEN ' + pet.gen;
+      text(frame, gen, 24 - gen.length * 2, 13);
     } else {
       var val = petStatusPage === 2 ? pet.hunger : pet.goro;
       if (petStatusPage === 2) blit(frame, SPR.snack, 3, 14); else text(frame, 'Z', 4, 14);
@@ -1896,6 +1950,17 @@ body.on-title #watchScreen { display: none; }
     blit(frame, SPR.cloud, 18, 20);
     blit(frame, s, 19, 20 - s.length + 2);
     if (petTick % 4 < 2) text(frame, 'Z', 40, 9);
+  }
+  // The Land of Endless Naps: Moku floats up on a cloud among twinkling stars.
+  function drawDream() {
+    var s = pet.adultType === 'lazy' ? SPR.lazySleep : SPR.mokuSleep;
+    var lift = (petTick >> 1) % 4;
+    [[3, 8], [9, 20], [42, 9], [37, 22], [26, 6], [4, 15]].forEach(function (st, i) {
+      if ((petTick + i) % 3) dot(frame, st[0], st[1]);
+    });
+    blit(frame, SPR.cloud, 16, 21 - lift);
+    blit(frame, s, 17 - (s[0].length > 20 ? 2 : 0), 22 - lift - s.length + 1);
+    if (petTick % 4 < 2) text(frame, 'Z', 41, 12);
   }
   function drawAnim(spr, groundY) {
     var a = petAnim, f = a.f++;
@@ -1975,9 +2040,9 @@ body.on-title #watchScreen { display: none; }
       pet.goro = Math.min(4, pet.goro + 1);
       pet.weight = Math.max(5, pet.weight - 1); // napping burns calories, apparently
       savePet();
-      petBeep('yay');
+      petTune('win');
       addLazy(100);
-    } else petBeep('no');
+    } else petTune('lose');
   }
 
   // ---------- buttons (A: select, B: decide, C: cancel) ----------
@@ -1985,8 +2050,8 @@ body.on-title #watchScreen { display: none; }
     if (petAnim) return;
     petSim();
     petBeep('tap');
-    if (pet.stage === 'trip') {
-      if (btn === 'B') { pet = newPet(pet.gen + 1); petSel = -1; petMode = 'idle'; savePet(); toast('A new egg arrived! 🥚'); }
+    if (pet.stage === 'trip' || pet.stage === 'dream') {
+      if (btn === 'B') petNextEgg();
       return;
     }
     if (petMode === 'food') {
@@ -1996,13 +2061,13 @@ body.on-title #watchScreen { display: none; }
         petMode = 'idle';
         if (petFoodSel === 0) startAnim('refuse', 6);
         else if (pet.hunger >= 4) { petBeep('no'); toast('Moku is full… but would still nap.'); }
-        else startAnim('eat', 8, function () { pet.hunger++; pet.weight = Math.min(99, pet.weight + 1); savePet(); petBeep('yay'); });
+        else startAnim('eat', 8, function () { pet.hunger++; pet.weight = Math.min(99, pet.weight + 1); savePet(); petTune('eat'); });
       }
       return;
     }
     if (petMode === 'status') {
       if (btn === 'C') petMode = 'idle';
-      else petStatusPage = (petStatusPage + 1) % 4;
+      else petStatusPage = (petStatusPage + 1) % 5;
       return;
     }
     if (petMode === 'game') { petGameGuess(btn); return; }
@@ -2032,7 +2097,7 @@ body.on-title #watchScreen { display: none; }
       if (!pet.sick) { petBeep('no'); return; }
       startAnim('futon', 8, function () {
         pet.sickDose++;
-        if (pet.sickDose >= 2) { pet.sick = false; pet.sickDose = 0; petBeep('yay'); toast('Moku feels better! (Still lazy.)', 1800); }
+        if (pet.sickDose >= 2) { pet.sick = false; pet.sickDose = 0; petTune('cure'); toast('Moku feels better! (Still lazy.)', 1800); }
         else toast('One more blanket, please…', 1600);
         savePet();
       });
@@ -2047,14 +2112,17 @@ body.on-title #watchScreen { display: none; }
   });
 
   function petRender() {
-    if (petEvents.length) {
+    // Events that happened while the face was hidden (or the page was closed)
+    // wait here until the pet face is actually on screen.
+    if (petEvents.length && petVisible()) {
       var ev = petEvents.shift();
-      if (ev === 'hatch') { startAnim('hatch', 8); petBeep('yay'); toast('The egg hatched! 🐣'); }
-      else if (ev === 'grow') { petBeep('yay'); toast(pet.adultType === 'lazy' ? 'Moku grew up… very, very lazy.' : 'Moku grew up!'); }
-      else if (ev === 'trip') { petBeep('call'); toast('Moku left on a long nap trip. ✉️'); }
+      if (ev === 'hatch') { startAnim('hatch', 8); petTune('hatch'); toast('The egg hatched! 🐣'); }
+      else if (ev === 'grow') { petTune('grow'); toast(pet.adultType === 'lazy' ? 'Moku grew up… very, very lazy.' : 'Moku grew up!'); }
+      else if (ev === 'trip') { petTune('trip'); toast('Moku left on a long nap trip. ✉️'); }
+      else if (ev === 'dream') { petTune('dream'); toast('Moku moved to the Land of Endless Naps. 💤 Thank you for taking care of it!', 3200); }
     }
     drawPet();
-    paintLCD(pet.lightsOff && pet.stage !== 'trip' && petMode === 'idle' && !petAnim);
+    paintLCD(pet.lightsOff && pet.stage !== 'trip' && pet.stage !== 'dream' && petMode === 'idle' && !petAnim);
   }
   // 2 frames per second, like an old LCD toy. Only draws while the face is visible.
   setInterval(function () {
@@ -2067,7 +2135,6 @@ body.on-title #watchScreen { display: none; }
   petSim();
   savePet(); // keep the egg's birth time even if nothing has happened yet
   // Show the first frame right away so the face is never blank.
-  petEvents.length = 0;
   petRender();
 
   // ---------- sizing ----------
