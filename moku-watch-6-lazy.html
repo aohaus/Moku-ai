@@ -2112,7 +2112,9 @@ body.on-title #watchScreen { display: none; }
   });
 
   function petRender() {
-    if (petEvents.length) {
+    // Events that happened while the face was hidden (or the page was closed)
+    // wait here until the pet face is actually on screen.
+    if (petEvents.length && petVisible()) {
       var ev = petEvents.shift();
       if (ev === 'hatch') { startAnim('hatch', 8); petTune('hatch'); toast('The egg hatched! 🐣'); }
       else if (ev === 'grow') { petTune('grow'); toast(pet.adultType === 'lazy' ? 'Moku grew up… very, very lazy.' : 'Moku grew up!'); }
@@ -2133,7 +2135,6 @@ body.on-title #watchScreen { display: none; }
   petSim();
   savePet(); // keep the egg's birth time even if nothing has happened yet
   // Show the first frame right away so the face is never blank.
-  petEvents.length = 0;
   petRender();
 
   // ---------- sizing ----------
