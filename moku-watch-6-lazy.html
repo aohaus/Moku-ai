@@ -192,11 +192,11 @@ body.on-title #watchScreen { display: none; }
   touch-action: pan-y;
 }
 .track {
-  display: flex; width: 300%; height: 100%;
+  display: flex; width: 400%; height: 100%;
   transition: transform 0.32s cubic-bezier(.2,.8,.2,1);
 }
 .track.dragging { transition: none; }
-.face { position: relative; width: calc(100% / 3); height: 100%; padding: calc(var(--u) * 6) calc(var(--u) * 6.5); }
+.face { position: relative; width: 25%; height: 100%; padding: calc(var(--u) * 6) calc(var(--u) * 6.5); }
 
 /* ink-drawn tiles, like the original whiteboard sketch */
 .tile {
@@ -306,6 +306,39 @@ body.on-title #watchScreen { display: none; }
   border-bottom: calc(var(--u) * 0.8) solid var(--ink);
   transform: rotate(45deg);
 }
+/* Moku Moku: the LCD pet face */
+.pet {
+  height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: calc(var(--u) * 2.6);
+  border: calc(var(--u) * 0.9) solid var(--ink);
+  border-radius: calc(var(--u) * 14) calc(var(--u) * 14) calc(var(--u) * 8) calc(var(--u) * 8);
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,0.45), transparent 40%),
+    #F2C7A8;
+  padding: calc(var(--u) * 2.4);
+}
+#petFace { padding: calc(var(--u) * 4.5) calc(var(--u) * 4.5); }
+.pet-name { font-weight: 800; font-size: calc(var(--u) * 4.4); letter-spacing: 0.08em; }
+.pet-lcd {
+  width: 100%;
+  padding: calc(var(--u) * 1.6);
+  border: calc(var(--u) * 0.9) solid var(--ink);
+  border-radius: calc(var(--u) * 3);
+  background: #7A6A55;
+  box-shadow: inset 0 calc(var(--u) * 0.8) 0 rgba(0,0,0,0.25);
+}
+#petLcd { display: block; width: 100%; height: auto; image-rendering: pixelated; border-radius: calc(var(--u) * 1); }
+.pet-btns { display: flex; gap: calc(var(--u) * 7); }
+.pet-btns button {
+  width: calc(var(--u) * 11); height: calc(var(--u) * 11);
+  border-radius: 50%;
+  border: calc(var(--u) * 0.8) solid var(--ink);
+  background: #FFA552;
+  box-shadow: 0 calc(var(--u) * 0.9) 0 var(--ink);
+  font-weight: 800; font-size: calc(var(--u) * 4);
+}
+.pet-btns button:active { transform: translateY(calc(var(--u) * 0.8)); box-shadow: 0 0 0 var(--ink); }
 .bell { width: calc(var(--u) * 30); height: calc(var(--u) * 30); }
 .bell.ringing { animation: ring 0.12s ease-in-out infinite alternate; }
 .ink-btn:disabled { opacity: 0.4; }
@@ -493,7 +526,7 @@ body.on-title #watchScreen { display: none; }
 
 <div id="title-frame"></div>
 <a id="hub-link" href="index.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.2.0 · Updated Oct 18, 2026</div>
+<div id="buildInfo">v0.3.0 · Updated Oct 22, 2026</div>
 
 <section id="titleScreen" aria-label="Title">
   <div id="titleHeroWrap">
@@ -556,6 +589,18 @@ body.on-title #watchScreen { display: none; }
               <button class="tile" id="tExcuse" type="button" data-app="excuse"><span id="excuseIcon"></span>Excuses</button>
             </div>
           </div>
+          <!-- Moku Moku: LCD pet face (right of the extra face) -->
+          <div class="face" id="petFace" aria-label="Moku Moku pet">
+            <div class="pet">
+              <div class="pet-name">MOKU MOKU</div>
+              <div class="pet-lcd"><canvas id="petLcd" width="384" height="256" role="img" aria-label="Moku Moku LCD screen"></canvas></div>
+              <div class="pet-btns">
+                <button id="petA" type="button" aria-label="A: select">A</button>
+                <button id="petB" type="button" aria-label="B: decide">B</button>
+                <button id="petC" type="button" aria-label="C: cancel">C</button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="layer" id="appLayer" role="dialog" aria-modal="true" aria-labelledby="appTitle">
@@ -582,6 +627,7 @@ body.on-title #watchScreen { display: none; }
     <button type="button" data-page="0" aria-label="Apps face"></button>
     <button type="button" data-page="1" aria-label="Main face"></button>
     <button type="button" data-page="2" aria-label="More lazy apps"></button>
+    <button type="button" data-page="3" aria-label="Moku Moku pet"></button>
   </div>
   <div id="swipeHint">← swipe to switch faces →</div>
 </section>
@@ -730,6 +776,7 @@ body.on-title #watchScreen { display: none; }
     if (a === 'calendar') s += '<rect x="138" y="20" width="50" height="50" rx="8" fill="#FFF" stroke="#3B2A20" stroke-width="3"/><rect x="138" y="20" width="50" height="14" rx="6" fill="#E86A4A"/><text x="163" y="62" font-size="24" font-weight="800" text-anchor="middle" fill="#3B2A20" font-family="sans-serif">?</text>';
     if (a === 'leaf') s += '<path d="M92 44 C 96 18, 128 12, 140 20 C 132 40, 110 50, 92 44 Z" fill="#9BD770" stroke="#3B2A20" stroke-width="3"/><path d="M94 42 Q 116 30 134 22" stroke="#3B2A20" stroke-width="2" fill="none"/>';
     if (a === 'bubble') s += '<path d="M128 8 H 190 a 8 8 0 0 1 8 8 V 46 a 8 8 0 0 1 -8 8 H 152 L 140 66 L 142 54 H 128 a 8 8 0 0 1 -8 -8 V 16 a 8 8 0 0 1 8 -8 Z" fill="#FFF" stroke="#3B2A20" stroke-width="3"/><text x="159" y="40" font-size="22" font-weight="800" text-anchor="middle" fill="#3B2A20" font-family="sans-serif">but…</text>';
+    if (a === 'shell') s += '<path d="M52 50 C 54 4, 146 4, 148 50 L 136 38 L 124 52 L 112 38 L 100 52 L 88 38 L 76 52 L 64 38 Z" fill="#FFF4E2" stroke="#3B2A20" stroke-width="3" stroke-linejoin="round"/>';
     if (a === 'clock') s += BELL.replace('<g>', '<g transform="translate(134 4) scale(0.32)">');
     return s;
   }
@@ -786,6 +833,7 @@ body.on-title #watchScreen { display: none; }
     { id: 'still',    name: 'Statue Moku',       acc: 'leaf',     lid: 1,    how: 'Do nothing for 30 seconds.',      text: 'Sat so still that a leaf landed on its head. Did not notice.' },
     { id: 'alarm',    name: 'Snooze-Button Moku', acc: 'clock',   lid: 0.95, how: 'Snooze the Lazy Alarm 5 times.',  text: 'Its alarm is set for 100 years from now. Just to be safe.' },
     { id: 'excuse',   name: 'Excuse Moku',       acc: 'bubble',   lid: 0.5,  how: 'Read 10 excuses.',                text: 'Has an excuse for everything. Even for having excuses.' },
+    { id: 'pixel',    name: 'Pixel Moku',        acc: 'shell',    lid: 0.5,  how: 'Hatch the Moku Moku egg.',        text: 'Lives inside your watch in black and white. Eats snacks only.' },
     { id: 'couch',    name: 'Couch Moku',        acc: 'couch',    lid: 0.8,  how: 'Reach 100,000% lazy.',            text: 'Became one with the sofa. Comes with free cushions.' },
     { id: 'king',     name: 'King of Lazy',      acc: 'crown',    lid: 0.9,  how: 'Reach 100,000,000% lazy.',        text: 'Rules the kingdom from bed. Royal decree: nap time, forever.' }
   ];
@@ -802,6 +850,7 @@ body.on-title #watchScreen { display: none; }
       still: state.nothingBest >= 30,
       alarm: state.snoozes >= 5,
       excuse: state.excuses >= 10,
+      pixel: state.petHatched === true,
       king: state.lazy >= 100000000
     };
   }
@@ -948,11 +997,11 @@ body.on-title #watchScreen { display: none; }
   }
 
   // ---------- face switching / swipe ----------
-  var page = 1; // 0 = apps face, 1 = main face, 2 = extra face
-  var LAST_PAGE = 2;
+  var page = 1; // 0 = apps face, 1 = main face, 2 = extra face, 3 = Moku Moku pet
+  var LAST_PAGE = 3;
   function setPage(p) {
     page = Math.max(0, Math.min(LAST_PAGE, p));
-    track.style.transform = 'translateX(' + (-page * 100 / 3) + '%)';
+    track.style.transform = 'translateX(' + (-page * 25) + '%)';
     Array.prototype.forEach.call(document.querySelectorAll('#dots button'), function (b) {
       var on = Number(b.getAttribute('data-page')) === page;
       b.classList.toggle('on', on);
@@ -961,6 +1010,7 @@ body.on-title #watchScreen { display: none; }
     $('subFace').inert = page !== 0;
     $('mainFace').inert = page !== 1;
     $('extraFace').inert = page !== 2;
+    $('petFace').inert = page !== 3;
   }
   Array.prototype.forEach.call(document.querySelectorAll('#dots button'), function (b) {
     b.addEventListener('click', function () { setPage(Number(b.getAttribute('data-page'))); sfx.tap(); });
@@ -1146,6 +1196,10 @@ body.on-title #watchScreen { display: none; }
         if (!armed) { armed = true; reset.textContent = 'Tap again to reset'; return; }
         state = load('', DEFAULTS);
         save();
+        // Moku Moku starts over too, so Pixel Moku can be earned again.
+        pet = newPet(1);
+        petSel = -1; petMode = 'idle'; petAnim = null; petEvents.length = 0;
+        savePet();
         renderMeter();
         closeApp();
         toast('All lazy records erased. (Moku is still lazy.)');
@@ -1457,6 +1511,409 @@ body.on-title #watchScreen { display: none; }
     }, 1400);
   }
 
+  // ---------- Moku Moku: a black-and-white LCD pet on the 4th face ----------
+  // A 48x32 dot LCD that runs on real time. Moku grows from an egg (5 min) to a
+  // baby, and to an adult after 1 day. The more it was left alone, the lazier
+  // the adult it becomes. If it starves or the poop piles up for 12 hours, it
+  // leaves on a long nap trip and a new egg arrives.
+  var PET_KEY = 'moku:' + GAME_ID + ':pet';
+  var LCD_W = 48, LCD_H = 32, LCD_S = 8;
+  var PET_HATCH_MIN = 5, PET_ADULT_MIN = 24 * 60, PET_TRIP_MIN = 12 * 60;
+  function newPet(gen) {
+    var now = Date.now();
+    return {
+      version: 1, stage: 'egg', adultType: null, gen: gen || 1,
+      age: 0, hunger: 2, goro: 2, poop: 0, lightsOff: false,
+      hungerT: 0, goroT: 0, nextPoop: 120, neglect: 0, streak: 0,
+      born: now, last: now
+    };
+  }
+  var pet = load(PET_KEY, newPet(1));
+  function savePet() {
+    try { localStorage.setItem(PET_KEY, JSON.stringify(pet)); } catch (e) {}
+  }
+
+  // Sprites: '#' dark, '+' dithered (Moku's tan feathers), '.' off.
+  function rasterMoku(eyes, flat) {
+    var W = flat ? 24 : 20, H = flat ? 22 : 21, cx = W / 2 - 0.5;
+    var cy = flat ? 13 : 9.5, rx = flat ? 11.2 : 9.6, ry = flat ? 7.2 : 9.2;
+    var px = {};
+    function inside(x, y) { return Math.pow((x - cx) / rx, 2) + Math.pow((y - cy) / ry, 2) <= 1; }
+    var fy = cy - (flat ? 0.8 : 1.6), lob = flat ? 4.6 : 4.5, bottom = cy + (flat ? 4.2 : 5.2);
+    function face(x, y) {
+      var a = Math.pow(x - (cx - 3.2), 2) + Math.pow(y - fy, 2) <= lob * lob;
+      var b = Math.pow(x - (cx + 3.2), 2) + Math.pow(y - fy, 2) <= lob * lob;
+      var tri = y >= fy && y <= bottom && Math.abs(x - cx) <= (bottom - y) * 1.15;
+      return a || b || tri;
+    }
+    function belly(x, y) {
+      return Math.pow((x - cx) / (flat ? 7 : 5.6), 2) + Math.pow((y - (cy + (flat ? 3.6 : 6.2))) / (flat ? 3.2 : 4.2), 2) <= 1;
+    }
+    for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) {
+      if (!inside(x, y)) continue;
+      var edge = !inside(x + 1, y) || !inside(x - 1, y) || !inside(x, y + 1) || !inside(x, y - 1);
+      if (edge) px[x + ',' + y] = '#';
+      else if (!face(x, y) && !belly(x, y)) px[x + ',' + y] = '+';
+    }
+    function set(x, y, v) { if (v) px[x + ',' + y] = v; else delete px[x + ',' + y]; }
+    var ex = [Math.floor(cx - 3.5), Math.floor(cx + 2.5)], ey = Math.floor(fy);
+    ex.forEach(function (e) {
+      var dx, dy;
+      if (eyes === 'open') {
+        for (dx = 0; dx < 3; dx++) for (dy = 0; dy < 3; dy++) set(e + dx, ey + dy, '#');
+        set(e + 2, ey, null);
+      } else if (eyes === 'half') {
+        for (dx = 0; dx < 3; dx++) { set(e + dx, ey + 1, '#'); set(e + dx, ey + 2, '#'); }
+        set(e + 2, ey + 1, null);
+      } else {
+        set(e, ey + 1, '#'); set(e + 1, ey + 2, '#'); set(e + 2, ey + 1, '#');
+      }
+      if (eyes !== 'closed') for (dx = 0; dx < 3; dx++) set(e + dx, ey - 2, '#');
+    });
+    var b0 = Math.floor(cx), by = ey + 3;
+    set(b0, by, '#'); set(b0 + 1, by, '#'); set(b0, by + 1, '#'); set(b0 + 1, by + 1, '#');
+    var ty = by + 3;
+    for (var d = 0; d < 4; d++) {
+      var h = d === 0 ? 1 : 0;
+      for (var k = -1 + h; k <= 1 - h; k++) { set(b0 - 1 - d, ty + k, '#'); set(b0 + 2 + d, ty + k, '#'); }
+    }
+    set(b0, ty, '#'); set(b0 + 1, ty, '#');
+    if (!flat) {
+      var fyy = H - 2;
+      [Math.floor(cx - 3), Math.floor(cx + 2)].forEach(function (fx) {
+        set(fx - 1, fyy, '#'); set(fx + 1, fyy, '#'); set(fx, fyy + 1, '#');
+      });
+    }
+    return toRows(px, W, H);
+  }
+  function rasterBaby(sleeping) {
+    var W = 14, H = 14, cx = 6.5, cy = 6.5, r = 6.4, px = {};
+    function inside(x, y) { return (x - cx) * (x - cx) + (y - cy) * (y - cy) <= r * r; }
+    for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) {
+      if (!inside(x, y)) continue;
+      var edge = !inside(x + 1, y) || !inside(x - 1, y) || !inside(x, y + 1) || !inside(x, y - 1);
+      if (edge) px[x + ',' + y] = '#';
+      else if (y < 4 || Math.abs(x - cx) > 4.6) px[x + ',' + y] = '+';
+    }
+    [3, 8].forEach(function (e) {
+      if (sleeping) { px[e + ',6'] = '#'; px[(e + 1) + ',6'] = '#'; }
+      else for (var dx = 0; dx < 2; dx++) for (var dy = 0; dy < 2; dy++) px[(e + dx) + ',' + (5 + dy)] = '#';
+    });
+    px['6,8'] = '#'; px['7,8'] = '#'; px['4,13'] = '#'; px['9,13'] = '#';
+    return toRows(px, W, H);
+  }
+  function rasterEgg() {
+    var W = 12, H = 14, cx = 5.5, cy = 7, px = {};
+    function inside(x, y) { return Math.pow((x - cx) / 5.6, 2) + Math.pow((y - cy) / (y < cy ? 6.8 : 6.2), 2) <= 1; }
+    for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) {
+      if (!inside(x, y)) continue;
+      if (!inside(x + 1, y) || !inside(x - 1, y) || !inside(x, y + 1) || !inside(x, y - 1)) px[x + ',' + y] = '#';
+    }
+    ['3,4', '4,4', '4,3', '7,8', '8,8', '7,9', '3,10', '4,10'].forEach(function (p) { px[p] = '#'; });
+    return toRows(px, W, H);
+  }
+  // Map of "x,y" → char into an array of strings, cropped to its content.
+  function toRows(px, W, H) {
+    var minY = H, maxY = -1, minX = W, maxX = -1;
+    Object.keys(px).forEach(function (k) {
+      var p = k.split(',').map(Number);
+      minX = Math.min(minX, p[0]); maxX = Math.max(maxX, p[0]);
+      minY = Math.min(minY, p[1]); maxY = Math.max(maxY, p[1]);
+    });
+    var rows = [];
+    for (var y = minY; y <= maxY; y++) {
+      var r = '';
+      for (var x = minX; x <= maxX; x++) r += px[x + ',' + y] || '.';
+      rows.push(r);
+    }
+    return rows;
+  }
+  var SPR = {
+    egg: rasterEgg(),
+    baby: rasterBaby(false), babySleep: rasterBaby(true),
+    moku: rasterMoku('open', false), mokuSleep: rasterMoku('closed', false),
+    lazy: rasterMoku('half', true), lazySleep: rasterMoku('closed', true),
+    poop: ['..#..', '.###.', '#####'],
+    meal: ['#.#....', '.#.#...', '#######', '#.....#', '.#...#.', '..###..'],
+    snack: ['.###.', '#####', '#####', '.#.#.', '..#..'],
+    ball: ['.###.', '#.#.#', '##.##', '#.#.#', '.###.'],
+    arrow: ['#..', '##.', '###', '##.', '#..'],
+    heart: ['##.##', '#####', '.###.', '..#..'],
+    heartOff: ['##.##', '#.#.#', '.#.#.', '..#..'],
+    no: ['#...#', '.#.#.', '..#..', '.#.#.', '#...#'],
+    envelope: ['#########', '##.....##', '#.#...#.#', '#..#.#..#', '#...#...#', '#########'],
+    cloud: ['....###.......', '..##...##.##..', '.#.......#..#.', '#.............#', '###############']
+  };
+  // Icons: 4 on top (snack, light, play, clean) + 2 at the bottom (status, call).
+  var PET_ICONS = [
+    { id: 'snack', x: 3, y: 0, spr: ['..#..', '.#.#.', '#...#', '#.#.#', '#####'] },
+    { id: 'light', x: 15, y: 0, spr: ['.###.', '#...#', '#...#', '.###.', '..#..'] },
+    { id: 'play', x: 27, y: 0, spr: SPR.ball },
+    { id: 'clean', x: 39, y: 0, spr: ['....#', '...#.', '..#..', '.###.', '#.#.#'] },
+    { id: 'status', x: 3, y: 27, spr: ['....#', '..#.#', '..#.#', '#.#.#', '#####'] },
+    { id: 'call', x: 39, y: 27, spr: ['..#..', '.###.', '.###.', '#####', '..#..'] }
+  ];
+  var PET_SELECTABLE = 5; // the call icon is only an indicator
+  var GLYPH = {
+    '0': ['###', '#.#', '#.#', '#.#', '###'], '1': ['.#.', '##.', '.#.', '.#.', '###'],
+    '2': ['###', '..#', '###', '#..', '###'], '3': ['###', '..#', '.##', '..#', '###'],
+    '4': ['#.#', '#.#', '###', '..#', '..#'], '5': ['###', '#..', '###', '..#', '###'],
+    '6': ['###', '#..', '###', '#.#', '###'], '7': ['###', '..#', '.#.', '.#.', '.#.'],
+    '8': ['###', '#.#', '###', '#.#', '###'], '9': ['###', '#.#', '###', '..#', '###'],
+    'D': ['##.', '#.#', '#.#', '#.#', '##.'], 'H': ['#.#', '#.#', '###', '#.#', '#.#'],
+    'Z': ['###', '..#', '.#.', '#..', '###'], ' ': ['...', '...', '...', '...', '...']
+  };
+
+  // ---------- simulation (1 step = 1 real minute) ----------
+  function petNeedsCare() { return pet.stage !== 'egg' && pet.stage !== 'trip' && (pet.hunger === 0 || pet.goro === 0 || pet.poop > 0); }
+  function petStep() {
+    pet.age++;
+    if (pet.stage === 'egg') {
+      if (pet.age >= PET_HATCH_MIN) { pet.stage = 'baby'; petEvent('hatch'); }
+      return 0;
+    }
+    if (pet.stage === 'trip') return 0;
+    if (pet.stage === 'baby' && pet.age >= PET_ADULT_MIN) {
+      pet.stage = 'adult';
+      pet.adultType = pet.neglect >= 180 ? 'lazy' : 'moku';
+      petEvent('grow');
+    }
+    var sleeping = pet.lightsOff;
+    if (++pet.hungerT >= (sleeping ? 90 : 45)) { pet.hungerT = 0; pet.hunger = Math.max(0, pet.hunger - 1); }
+    if (sleeping) {
+      if (++pet.goroT >= 30) { pet.goroT = 0; pet.goro = Math.min(4, pet.goro + 1); }
+    } else if (++pet.goroT >= 60) { pet.goroT = 0; pet.goro = Math.max(0, pet.goro - 1); }
+    if (!sleeping && pet.age >= pet.nextPoop) {
+      pet.poop = Math.min(4, pet.poop + 1);
+      pet.nextPoop = pet.age + 120 + Math.floor(Math.random() * 60);
+    }
+    if (pet.hunger === 0 || pet.goro === 0 || pet.poop >= 3) pet.neglect++;
+    pet.streak = (pet.hunger === 0 || pet.poop >= 4) ? pet.streak + 1 : 0;
+    if (pet.streak >= PET_TRIP_MIN) { pet.stage = 'trip'; petEvent('trip'); }
+    return sleeping ? 1 : 0; // a sleeping pet makes the watch a little lazier
+  }
+  function petSim() {
+    var now = Date.now();
+    var mins = Math.floor((now - pet.last) / 60000);
+    if (mins <= 0) return;
+    pet.last += mins * 60000;
+    mins = Math.min(mins, 3 * 24 * 60); // catch up at most 3 days
+    var lazyGain = 0;
+    var wasNeedy = petNeedsCare();
+    for (var i = 0; i < mins; i++) lazyGain += petStep();
+    savePet();
+    if (lazyGain) { state.lazy += lazyGain; afterChange(); }
+    if (!wasNeedy && petNeedsCare() && petVisible()) petBeep('call');
+  }
+  var petEvents = [];
+  function petEvent(kind) {
+    petEvents.push(kind);
+    if (kind === 'hatch') { state.petHatched = true; afterChange(); }
+  }
+
+  // ---------- LCD rendering ----------
+  var lcd = $('petLcd');
+  var lctx = lcd.getContext('2d');
+  var LCD_BG = '#9CA87C', LCD_ON = '#2B3320', LCD_GHOST = '#929E72', LCD_DARK = '#3E4630';
+  var frame = new Uint8Array(LCD_W * LCD_H), prevFrame = new Uint8Array(LCD_W * LCD_H), segs = new Uint8Array(LCD_W * LCD_H);
+  function dot(buf, x, y) { if (x >= 0 && y >= 0 && x < LCD_W && y < LCD_H) buf[y * LCD_W + x] = 1; }
+  function blit(buf, rows, ox, oy) {
+    for (var y = 0; y < rows.length; y++) for (var x = 0; x < rows[y].length; x++) {
+      var c = rows[y][x];
+      if (c === '#' || (c === '+' && (ox + x + oy + y) % 2 === 0)) dot(buf, ox + x, oy + y);
+    }
+  }
+  function text(buf, str, ox, oy) {
+    for (var i = 0; i < str.length; i++) blit(buf, GLYPH[str[i]] || GLYPH[' '], ox + i * 4, oy);
+  }
+  PET_ICONS.forEach(function (ic) { blit(segs, ic.spr, ic.x, ic.y); });
+  function paintLCD(dark) {
+    var s = LCD_S;
+    lctx.fillStyle = LCD_BG;
+    lctx.fillRect(0, 0, lcd.width, lcd.height);
+    if (dark) { lctx.fillStyle = LCD_DARK; lctx.fillRect(0, 6 * s, lcd.width, 20 * s); }
+    for (var y = 0; y < LCD_H; y++) for (var x = 0; x < LCD_W; x++) {
+      var i = y * LCD_W + x, inPlay = y >= 6 && y < 26, col = null;
+      if (frame[i]) col = (dark && inPlay) ? LCD_BG : LCD_ON;
+      else if (!(dark && inPlay) && (prevFrame[i] || segs[i])) col = LCD_GHOST; // last frame + unlit icon segments
+      if (col) { lctx.fillStyle = col; lctx.fillRect(x * s + 1, y * s + 1, s - 1, s - 1); }
+    }
+    prevFrame.set(frame);
+  }
+
+  // ---------- UI state ----------
+  var petSel = -1, petMode = 'idle', petFoodSel = 0, petStatusPage = 0, petAnim = null, petX = 14, petTick = 0;
+  function petVisible() { return page === 3 && !body.classList.contains('on-title') && !document.hidden; }
+  function petSprite() {
+    var sl = pet.lightsOff;
+    if (pet.stage === 'egg' || pet.stage === 'trip') return SPR.egg;
+    if (pet.stage === 'baby') return sl ? SPR.babySleep : SPR.baby;
+    if (pet.adultType === 'lazy') return sl ? SPR.lazySleep : SPR.lazy;
+    return sl ? SPR.mokuSleep : SPR.moku;
+  }
+  function petBeep(kind) {
+    if (kind === 'call') { for (var i = 0; i < 3; i++) beep(2100, 0.06, 'square', 0.04, i * 0.14); }
+    else if (kind === 'no') { beep(500, 0.12, 'square', 0.04); }
+    else if (kind === 'yay') { beep(1600, 0.06, 'square', 0.04); beep(2100, 0.08, 'square', 0.04, 0.09); }
+    else beep(2000, 0.04, 'square', 0.035);
+  }
+  function drawPet() {
+    frame.fill(0);
+    petTick++;
+    // icons: the selected one is lit, and "call" lights up when Moku needs you
+    PET_ICONS.forEach(function (ic, i) {
+      if (i === petSel || (ic.id === 'call' && petNeedsCare())) blit(frame, ic.spr, ic.x, ic.y);
+    });
+    var spr = petSprite(), sw = spr[0].length, sh = spr.length;
+    var groundY = 26 - sh; // sprites stand on row 25, just above the bottom icons
+    if (pet.stage === 'trip') { drawTrip(); return; }
+    if (petMode === 'status') { drawStatus(); return; }
+    if (petMode === 'food') {
+      blit(frame, SPR.meal, 12, 12); blit(frame, SPR.snack, 31, 13);
+      blit(frame, SPR.arrow, petFoodSel === 0 ? 7 : 26, 13);
+      return;
+    }
+    if (petAnim) { drawAnim(spr, groundY); return; }
+    if (pet.stage === 'egg') {
+      var wob = petTick % 4 === 0 ? 1 : petTick % 4 === 2 ? -1 : 0;
+      blit(frame, spr, 18 + wob, groundY);
+      return;
+    }
+    if (!pet.lightsOff && petTick % 2 === 0) {
+      var r = Math.random();
+      petX += r < 0.3 ? -1 : r < 0.6 ? 1 : 0;
+    }
+    var maxX = 47 - sw - (pet.poop ? 7 : 1);
+    petX = Math.max(1, Math.min(maxX, petX));
+    blit(frame, spr, petX, groundY + (pet.stage === 'baby' && petTick % 2 && !pet.lightsOff ? -1 : 0));
+    for (var p = 0; p < pet.poop; p++) blit(frame, SPR.poop, 41, 22 - p * 4);
+    if (pet.lightsOff && petTick % 4 < 2) text(frame, 'Z', petX + sw - 1, groundY - 6);
+  }
+  function drawStatus() {
+    if (petStatusPage === 0) {
+      var d = Math.floor(pet.age / 1440), h = Math.floor(pet.age / 60) % 24;
+      text(frame, d + 'D ' + h + 'H', 24 - (String(d).length + String(h).length + 3) * 2, 13);
+    } else {
+      var val = petStatusPage === 1 ? pet.hunger : pet.goro;
+      if (petStatusPage === 1) blit(frame, SPR.snack, 3, 14); else text(frame, 'Z', 4, 14);
+      for (var i = 0; i < 4; i++) blit(frame, i < val ? SPR.heart : SPR.heartOff, 12 + i * 8, 14);
+    }
+  }
+  function drawTrip() {
+    blit(frame, SPR.envelope, 3, 8);
+    var s = pet.adultType === 'lazy' ? SPR.lazySleep : pet.stage === 'baby' ? SPR.babySleep : SPR.mokuSleep;
+    if (pet.adultType === null) s = SPR.babySleep;
+    blit(frame, SPR.cloud, 18, 20);
+    blit(frame, s, 19, 20 - s.length + 2);
+    if (petTick % 4 < 2) text(frame, 'Z', 40, 9);
+  }
+  function drawAnim(spr, groundY) {
+    var a = petAnim, f = a.f++;
+    var x = Math.min(petX, 46 - spr[0].length - 8);
+    if (a.type === 'eat') {
+      blit(frame, spr, x, groundY);
+      var bites = [SPR.snack, SPR.snack.slice(1), SPR.snack.slice(3), []][Math.min(3, f >> 1)];
+      blit(frame, bites, x + spr[0].length + 2, 20 + (5 - bites.length));
+      if (f % 2 === 0) petBeep('tap');
+    } else if (a.type === 'refuse') {
+      blit(frame, spr, x + (f % 2 ? 2 : -2), groundY);
+      blit(frame, SPR.meal, x + spr[0].length + 3, 19);
+      if (f % 2) blit(frame, SPR.no, x + spr[0].length + 4, 11);
+      if (f === 0) petBeep('no');
+    } else if (a.type === 'play') {
+      blit(frame, a.f > 4 ? (pet.adultType === 'lazy' ? SPR.lazySleep : pet.stage === 'baby' ? SPR.babySleep : SPR.mokuSleep) : spr, x, groundY);
+      blit(frame, SPR.ball, x + spr[0].length + 3, f % 2 ? 15 : 20);
+      if (f > 4) { dot(frame, x + 4, groundY - 3); if (f > 5) dot(frame, x + 7, groundY - 3); if (f > 6) dot(frame, x + 10, groundY - 3); }
+    } else if (a.type === 'clean') {
+      blit(frame, spr, x, groundY);
+      var bx = 47 - f * 4;
+      for (var y = 6; y < 26; y++) dot(frame, bx, y);
+      for (var p = 0; p < pet.poop; p++) if (bx > 41) blit(frame, SPR.poop, 41, 22 - p * 4);
+    } else if (a.type === 'hatch') {
+      blit(frame, f < 4 ? SPR.egg : spr, f < 4 ? 18 + (f % 2 ? 1 : -1) : x, groundY);
+    }
+    if (a.f >= a.n) {
+      petAnim = null;
+      if (a.done) a.done();
+    }
+  }
+  function startAnim(type, n, done) { petAnim = { type: type, f: 0, n: n, done: done }; }
+
+  // ---------- buttons (A: select, B: decide, C: cancel) ----------
+  function petPress(btn) {
+    if (petAnim) return;
+    petSim();
+    petBeep('tap');
+    if (pet.stage === 'trip') {
+      if (btn === 'B') { pet = newPet(pet.gen + 1); petSel = -1; petMode = 'idle'; savePet(); toast('A new egg arrived! 🥚'); }
+      return;
+    }
+    if (petMode === 'food') {
+      if (btn === 'A') petFoodSel = 1 - petFoodSel;
+      else if (btn === 'C') petMode = 'idle';
+      else {
+        petMode = 'idle';
+        if (petFoodSel === 0) startAnim('refuse', 6);
+        else if (pet.hunger >= 4) { petBeep('no'); toast('Moku is full… but would still nap.'); }
+        else startAnim('eat', 8, function () { pet.hunger++; savePet(); petBeep('yay'); });
+      }
+      return;
+    }
+    if (petMode === 'status') {
+      if (btn === 'C') petMode = 'idle';
+      else petStatusPage = (petStatusPage + 1) % 3;
+      return;
+    }
+    if (btn === 'A') { petSel = (petSel + 1) % PET_SELECTABLE; return; }
+    if (btn === 'C') { petSel = -1; return; }
+    var id = petSel >= 0 ? PET_ICONS[petSel].id : null;
+    if (!id) return;
+    if (id === 'status') { petMode = 'status'; petStatusPage = 0; return; }
+    if (pet.stage === 'egg') { petBeep('no'); return; }
+    if (id === 'snack') { if (pet.lightsOff) { petBeep('no'); return; } petMode = 'food'; petFoodSel = 1; }
+    else if (id === 'light') { pet.lightsOff = !pet.lightsOff; savePet(); }
+    else if (id === 'play') {
+      if (pet.lightsOff) { petBeep('no'); return; }
+      // Moku never wants to play. Being turned down makes the watch lazier.
+      startAnim('play', 9, function () {
+        pet.goro = Math.min(4, pet.goro + 1); savePet();
+        toast('Moku: “…nah. Let’s just nap.”', 1800);
+        addLazy(100);
+      });
+    } else if (id === 'clean') {
+      if (!pet.poop) { petBeep('no'); return; }
+      startAnim('clean', 12, function () { pet.poop = 0; savePet(); petBeep('yay'); });
+    }
+  }
+  ['A', 'B', 'C'].forEach(function (b) {
+    // A small delay, like a cheap toy's rubber buttons.
+    $('pet' + b).addEventListener('click', function () { setTimeout(function () { petPress(b); petRender(); }, 120); });
+  });
+
+  function petRender() {
+    if (petEvents.length) {
+      var ev = petEvents.shift();
+      if (ev === 'hatch') { startAnim('hatch', 8); petBeep('yay'); toast('The egg hatched! 🐣'); }
+      else if (ev === 'grow') { petBeep('yay'); toast(pet.adultType === 'lazy' ? 'Moku grew up… very, very lazy.' : 'Moku grew up!'); }
+      else if (ev === 'trip') { petBeep('call'); toast('Moku left on a long nap trip. ✉️'); }
+    }
+    drawPet();
+    paintLCD(pet.lightsOff && pet.stage !== 'trip' && petMode === 'idle' && !petAnim);
+  }
+  // 2 frames per second, like an old LCD toy. Only draws while the face is visible.
+  setInterval(function () {
+    if (!petVisible()) return;
+    petSim();
+    petRender();
+  }, 500);
+  setInterval(petSim, 30000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) petSim(); });
+  petSim();
+  savePet(); // keep the egg's birth time even if nothing has happened yet
+  // Show the first frame right away so the face is never blank.
+  petEvents.length = 0;
+  petRender();
+
   // ---------- sizing ----------
   function layout() {
     var vw = window.innerWidth, vh = window.innerHeight;
@@ -1492,6 +1949,7 @@ body.on-title #watchScreen { display: none; }
     if (e.key === 'Escape') { if (appOpen) closeApp(); else showTitle(); }
     else if (!appOpen && e.key === 'ArrowLeft') setPage(page - 1);
     else if (!appOpen && e.key === 'ArrowRight') setPage(page + 1);
+    else if (!appOpen && page === 3 && /^[abc]$/i.test(e.key)) $('pet' + e.key.toUpperCase()).click();
   });
 
   layout();
