@@ -1196,6 +1196,10 @@ body.on-title #watchScreen { display: none; }
         if (!armed) { armed = true; reset.textContent = 'Tap again to reset'; return; }
         state = load('', DEFAULTS);
         save();
+        // Moku Moku starts over too, so Pixel Moku can be earned again.
+        pet = newPet(1);
+        petSel = -1; petMode = 'idle'; petAnim = null; petEvents.length = 0;
+        savePet();
         renderMeter();
         closeApp();
         toast('All lazy records erased. (Moku is still lazy.)');
