@@ -174,7 +174,7 @@ body.deck .actBtn, body.deck #btnPunch, body.deck #btnKick { width: auto; bottom
 body.deck #pauseBtn { top: 10px; }
 body.deck #pad, body.deck .actBtn { opacity: 1; }
 @media (orientation: portrait) {
-  .rivalRow { flex-wrap: wrap; }
+  .rivalRow { --cw: clamp(84px, 27vw, 124px); }
   .moveCols { flex-direction: column; gap: 6px; }
   #howScreen { gap: 4px; padding: 14px 16px; }
 }
@@ -256,23 +256,23 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
 .cmd .pl { opacity: 0.7; margin: 0 1px; }
 .howNote { font-size: clamp(9.5px, 1.2vw, 12px); color: rgba(237,238,246,0.55); max-width: 620px; line-height: 1.5; }
 #selectMenu { margin-top: 4px; }
-.rivalRow { display: flex; gap: clamp(8px, 2vw, 18px); justify-content: center; }
+.rivalRow { --cw: clamp(84px, 14vw, 140px); display: flex; flex-wrap: wrap; gap: 8px clamp(6px, 1.4vw, 14px); justify-content: center; max-width: calc(var(--cw) * 5 + 60px); }
 .titleMenuItem.rivalCard {
   display: flex; flex-direction: column; align-items: center; gap: 2px;
-  width: clamp(104px, 19vw, 180px);
-  padding: 6px 6px 8px;
+  width: var(--cw);
+  padding: 4px 4px 6px;
   border-radius: 12px;
   border: 2px solid rgba(255,255,255,0.12);
   background: rgba(255,255,255,0.04);
-  font-size: 15px; color: rgba(237,238,246,0.7);
+  font-size: 13px; color: rgba(237,238,246,0.7);
 }
 .titleMenuItem.rivalCard::before { content: none; }
 .titleMenuItem.rivalCard.sel { border-color: var(--hi); box-shadow: 0 0 18px rgba(46,196,182,0.45); color: #fff; text-shadow: none; }
 .rivalCard canvas {
-  width: 70%; aspect-ratio: 1; border-radius: 50%;
+  width: 62%; aspect-ratio: 1; border-radius: 50%;
   background: radial-gradient(circle at 50% 40%, rgba(255,255,255,0.14), rgba(0,0,0,0.25) 75%);
 }
-.rivalCard span { font-size: 10.5px; font-weight: 700; color: rgba(237,238,246,0.6); }
+.rivalCard span { font-size: 9.5px; font-weight: 700; color: rgba(237,238,246,0.6); line-height: 1.2; }
 .rivalCard em { font-style: normal; font-size: 10px; font-weight: 700; color: #ffd27a; min-height: 1.2em; }
 @media (max-height: 430px) {
   .screen { padding: 14px 24px; gap: 4px; }
@@ -285,6 +285,8 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
   .screenTitle { font-size: 18px; }
   .moveList { font-size: 11px; gap: 3px 10px; }
   .moveList h3 { margin-top: 1px; }
+  .rivalCard span { display: none; }
+  .rivalCard canvas { width: 50%; }
 }
 .xpLine { font-size: 11px; font-weight: 700; color: rgba(237,238,246,0.7); min-height: 1em; max-width: 520px; line-height: 1.5; }
 .xpLine b { color: #ffd86a; }
@@ -312,6 +314,12 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
 #challengerName { font-size: clamp(22px, 4vw, 36px); font-weight: 800; color: #fff; }
 #challengerDesc { font-size: 12.5px; color: rgba(237,238,246,0.7); max-width: 480px; line-height: 1.5; }
 .bossCard { border-color: rgba(255,210,60,0.5) !important; }
+.titleMenuItem.rivalCard.lockedCard { opacity: 0.55; border-style: dashed; }
+#newRivalTag { font-size: clamp(15px, 2.8vw, 24px); font-weight: 900; font-style: italic; color: #ffd86a; letter-spacing: 0.04em; text-shadow: 0 0 16px rgba(255,200,80,0.6); }
+#newRivalArt { width: clamp(100px, 20vw, 180px); height: auto; aspect-ratio: 1; animation: heroFloat 2.4s ease-in-out infinite; }
+#newRivalName { font-size: clamp(20px, 3.8vw, 32px); font-weight: 800; color: #fff; }
+#newRivalFrom { font-size: 11px; font-weight: 800; letter-spacing: 0.12em; color: var(--hi); text-transform: uppercase; }
+#newRivalDesc { font-size: 12.5px; color: rgba(237,238,246,0.75); max-width: 480px; line-height: 1.5; }
 #resultTitle { font-size: clamp(28px, 5.4vw, 48px); font-weight: 800; letter-spacing: 0.02em; }
 #resultTitle.win { color: #FFD27A; text-shadow: 0 0 22px rgba(255,190,90,0.6); }
 #resultTitle.lose { color: #C4B5FD; text-shadow: 0 0 22px rgba(167,139,250,0.5); }
@@ -321,7 +329,7 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
 <body class="on-title">
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.6.0 · Updated Oct 23, 2026</div>
+<div id="buildInfo">v0.7.0 · Updated Oct 24, 2026</div>
 
 <div id="wrapper">
   <canvas id="c"></canvas>
@@ -360,6 +368,9 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
         <div class="titleMenuItem rivalCard sel" data-action="rival" data-rival="kon"><canvas width="200" height="200"></canvas><b>KON</b><span>Trickster Fox · Balanced</span><em></em></div>
         <div class="titleMenuItem rivalCard" data-action="rival" data-rival="ponta"><canvas width="200" height="200"></canvas><b>PONTA</b><span>Tanuki Bruiser · Power</span><em></em></div>
         <div class="titleMenuItem rivalCard" data-action="rival" data-rival="nox"><canvas width="200" height="200"></canvas><b>NOX</b><span>Moonlight Bat · Speed</span><em></em></div>
+        <div class="titleMenuItem rivalCard" data-action="rival" data-rival="ninja"><canvas width="200" height="200"></canvas><b>NINJA RAT</b><span>Shadow Ninja · Trickster</span><em></em></div>
+        <div class="titleMenuItem rivalCard" data-action="rival" data-rival="chef"><canvas width="200" height="200"></canvas><b>CHEF RAT</b><span>Kitchen Brawler · Long Reach</span><em></em></div>
+        <div class="titleMenuItem rivalCard" data-action="rival" data-rival="moyo"><canvas width="200" height="200"></canvas><b>MOYO</b><span>Jelly Gummy · Bouncy</span><em></em></div>
         <div class="titleMenuItem rivalCard bossCard" data-action="rival" data-rival="goro" style="display:none"><canvas width="200" height="200"></canvas><b>GORO</b><span>Thunder Beast · Mid-Boss</span><em></em></div>
       </div>
       <div class="titleMenuItem" data-action="back">Back</div>
@@ -395,6 +406,18 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
     <nav class="menu" id="challengerMenu">
       <div class="titleMenuItem sel" data-action="boss">Accept the Challenge!</div>
       <div class="titleMenuItem" data-action="bosslater">Not now</div>
+    </nav>
+  </section>
+
+  <section class="screen" id="newRivalScreen">
+    <div id="newRivalTag">★ A NEW RIVAL APPEARED! ★</div>
+    <canvas id="newRivalArt" width="256" height="256"></canvas>
+    <div id="newRivalName"></div>
+    <div id="newRivalFrom"></div>
+    <p id="newRivalDesc"></p>
+    <nav class="menu" id="newRivalMenu">
+      <div class="titleMenuItem sel" data-action="newrival">Fight Now!</div>
+      <div class="titleMenuItem" data-action="newrivallater">Later</div>
     </nav>
   </section>
 
@@ -455,7 +478,7 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
 
   // ---------- save data ----------
   function loadSave() {
-    var d = { version: 1, gameId: GAME_ID, wins: 0, losses: 0, draws: 0, streak: 0, bestStreak: 0, rival: 'kon', rivals: {}, xp: 0, moves: [], bossMet: false, bossPending: false, bossBeaten: false, difficulty: 'normal', sound: true, updatedAt: null };
+    var d = { version: 1, gameId: GAME_ID, wins: 0, losses: 0, draws: 0, streak: 0, bestStreak: 0, rival: 'kon', rivals: {}, xp: 0, moves: [], bossMet: false, bossPending: false, bossBeaten: false, unlocked: [], difficulty: 'normal', sound: true, updatedAt: null };
     try {
       var raw = localStorage.getItem(SAVE_KEY);
       if (raw) {
@@ -471,6 +494,7 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
   }
   var save = loadSave();
   if (!Array.isArray(save.moves)) save.moves = [];
+  if (!Array.isArray(save.unlocked)) save.unlocked = [];
   if (['leaf', 'throw', 'counter'].every(function (id) { return save.moves.indexOf(id) !== -1; }) && save.moves.indexOf('storm') === -1) save.moves.push('storm');
 
   // ---------- audio (tiny WebAudio synth) ----------
@@ -622,6 +646,12 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
       overlay: ['source-over', 'rgba(255,246,228,0.14)'], banner: '#a83444' },
     night: { sky: ['#14112b', '#272152', '#3d3170', '#5b4682', '#7a5a8a'], cloud: '120,100,170', sun: { x: 250, y: 105, r: 34, fill: '#fff6d6', glow: '255,244,200' }, late: true, stars: true,
       overlay: ['multiply', '#6f69b4'], banner: '#5e2a48', fireflies: true },
+    dusk: { sky: ['#1e1838', '#3b2a5a', '#7a3a5a', '#c25a4a', '#e88a5a'], cloud: '200,120,150', sun: { x: 300, y: 250, r: 50, fill: '#ffc89a', glow: '255,140,100' },
+      overlay: ['multiply', '#b4a0d8'], banner: '#3a2a4a' },
+    morning: { sky: ['#7fb6e6', '#b4d6ee', '#f4e2c8', '#ffd6a0', '#ffe0a8'], cloud: '255,250,240', sun: { x: 760, y: 110, r: 34, fill: '#fffbe6', glow: '255,240,200' }, late: true,
+      overlay: ['source-over', 'rgba(255,240,210,0.10)'], banner: '#c0602a' },
+    candy: { sky: ['#ffb3d1', '#ffc9e0', '#e8d0ff', '#c8f0e8', '#fff0c8'], cloud: '255,255,255', sun: { x: 250, y: 110, r: 30, fill: '#fff8fb', glow: '255,220,240' }, late: true,
+      overlay: ['source-over', 'rgba(255,220,240,0.12)'], banner: '#e0609a' },
     storm: { sky: ['#161b29', '#262d45', '#3a405c', '#565672', '#706a80'], cloud: '70,78,105', sun: null, late: true,
       overlay: ['multiply', '#8a90b4'], banner: '#5a2633', rain: true }
   };
@@ -920,7 +950,70 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
       P:  { startup: 10, recovery: 16 }
     })
   };
+  // Guest rivals from other Moku Series games. One more shows up every time Moku wins a match.
+  CHARS.ninja = {
+    name: 'NINJA RAT', title: 'Shadow Ninja', style: 'Trickster', theme: 'dusk', from: 'Angry Mokumoku',
+    intro: 'The quickest of the rat gang. Throws shuriken and vanishes in smoke to pop up right behind you!',
+    walk: 4.0, back: 3.3, jumpV: -15.6, power: 0.9, defense: 1.1, scale: 0.98,
+    color: '#E0484F', specialName: 'SHURIKEN STORM!',
+    combos: { AAB: 'SHADOW RUSH!', BP: 'STAR TRAP!' },
+    proj: { kind: 'shuriken', speed: 11, r: 13 }, superProj: { kind: 'starstorm', speed: 9, r: 30 },
+    portrait: { dy: 62, s: 0.9, bg: ['#7a3a5a', '#1e1838'] }, titleScale: 1.4,
+    ai: { aggr: 1.1, jump: 1.4, proj: 1.3, teleport: 0.3 },
+    loseTip: 'When Ninja Rat vanishes, turn around! It pops up behind you. Guard (←) first, then hit back.',
+    attacks: attacks({
+      A:  { startup: 3, recovery: 7, dmg: 5, range: 60, yOff: 62 },
+      B:  { startup: 7, recovery: 13, dmg: 9, range: 96, yOff: 58, lunge: 4 },
+      cA: { startup: 3, recovery: 7, dmg: 4 },
+      jB: { range: 90 },
+      P:  { startup: 8, recovery: 14 }
+    })
+  };
+  CHARS.chef = {
+    name: 'CHEF RAT', title: 'Kitchen Brawler', style: 'Long Reach', theme: 'morning', from: 'Angry Mokumoku',
+    intro: 'The rat gang\'s cook. Swings a heavy frying pan and lobs piping-hot buns across the arena!',
+    walk: 2.8, back: 2.3, jumpV: -14, power: 1.1, defense: 0.95, scale: 1.04,
+    color: '#7FB6E6', specialName: 'FLYING FRYING PAN!',
+    combos: { AAB: 'KITCHEN RUSH!', BP: 'BUN BARRAGE!' },
+    proj: { kind: 'bun', speed: 5.5, r: 14, vy: -8, g: 0.42 }, superProj: { kind: 'pan', speed: 7.5, r: 32 },
+    portrait: { dy: 72, s: 0.82, bg: ['#ffd6a0', '#c0602a'] }, titleScale: 1.3,
+    ai: { aggr: 1.05, jump: 0.6, proj: 1.4 },
+    loseTip: 'Chef Rat\'s frying pan reaches far. Stay just outside it, then dash in after a swing!',
+    attacks: attacks({
+      A:  { startup: 5, recovery: 10, dmg: 6, range: 64, yOff: 60 },
+      B:  { startup: 11, active: 6, recovery: 17, dmg: 12, range: 114, push: 9, yOff: 56 },
+      cB: { startup: 11, active: 6, recovery: 19, range: 110, yOff: 14 },
+      jB: { range: 92, dmg: 10 },
+      P:  { startup: 12, recovery: 18 }
+    })
+  };
+  CHARS.moyo = {
+    name: 'MOYO', title: 'Jelly Gummy', style: 'Bouncy', theme: 'candy', from: 'Moyomoyo',
+    intro: 'A gummy that bounced out of Moyomoyo! Jumps sky-high, stretches its jelly arms and throws bouncing gummies.',
+    walk: 2.9, back: 2.5, jumpV: -17, gravity: 0.6, power: 0.95, defense: 0.9, scale: 1.12,
+    color: '#FF7FB0', specialName: 'GIANT GUMMY BOUNCE!',
+    combos: { AAB: 'JELLY JAB!', BP: 'GUMMY POP!' },
+    proj: { kind: 'jelly', speed: 6, r: 13, vy: -6, g: 0.5, bounce: 2 }, superProj: { kind: 'bigjelly', speed: 6.5, r: 30, vy: -5, g: 0.45, bounce: 3 },
+    portrait: { dy: 30, s: 0.95, bg: ['#ffc9e0', '#c8a0f0'] }, titleScale: 1.35,
+    ai: { aggr: 0.95, jump: 2.4, proj: 1 },
+    loseTip: 'Moyo bounces high! Wait for it to land, then attack. Its stretchy arms reach far.',
+    attacks: attacks({
+      A:  { startup: 5, recovery: 9, dmg: 5, range: 66, yOff: 52 },
+      B:  { startup: 10, active: 6, recovery: 16, dmg: 10, range: 124, yOff: 50 },
+      cB: { startup: 10, active: 6, recovery: 18, range: 118, yOff: 12 },
+      jB: { range: 96 },
+      P:  { startup: 10, recovery: 16 }
+    })
+  };
   var RIVALS = ['kon', 'ponta', 'nox'];
+  var NEW_RIVALS = ['ninja', 'chef', 'moyo'];
+  function rivalOpen(id) { return (game && game.demo && CHARS[id]) || RIVALS.indexOf(id) !== -1 || save.unlocked.indexOf(id) !== -1 || (id === 'goro' && save.bossMet); }
+  function unlockNextRival() {
+    for (var i = 0; i < NEW_RIVALS.length; i++) {
+      if (save.unlocked.indexOf(NEW_RIVALS[i]) === -1) { save.unlocked.push(NEW_RIVALS[i]); return NEW_RIVALS[i]; }
+    }
+    return null;
+  }
   function bossTime() { return RIVALS.every(function (r) { return save.rivals[r] && save.rivals[r].w > 0; }); }
 
   // Moku starts with only P and K; every match earns XP and new moves unlock in this order.
@@ -1292,7 +1385,7 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
   }
 
   var projectiles = [];
-  var TRAIL = { razor: 'leaf', storm: 'leaf', wisp: 'flame', foxfire: 'flame', quake: 'dust', sonic: 'sonic', screech: 'sonic', tball: 'spark', bolt: 'spark' };
+  var TRAIL = { razor: 'leaf', storm: 'leaf', wisp: 'flame', foxfire: 'flame', quake: 'dust', sonic: 'sonic', screech: 'sonic', tball: 'spark', bolt: 'spark', shuriken: 'spark', starstorm: 'smoke', bun: 'steam', pan: 'steam', jelly: 'jelly', bigjelly: 'jelly' };
   function spawnProjectile(f, isSuper) {
     var cfg = isSuper ? f.c.superProj : f.c.proj;
     var atk = isSuper
@@ -1302,7 +1395,7 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
     projectiles.push({
       owner: f, kind: cfg.kind, super: isSuper,
       x: f.x + f.facing * 44, y: f.y - (cfg.y || 54 * (f.c.scale || 1)),
-      vx: f.facing * cfg.speed, vy: cfg.vy || 0, g: cfg.g || 0, r: cfg.r, t: 0, atk: atk
+      vx: f.facing * cfg.speed, vy: cfg.vy || 0, g: cfg.g || 0, bounce: cfg.bounce || 0, r: cfg.r, t: 0, atk: atk
     });
     if (!isSuper) { sfx.toss(); practiceEvent('leaf', f); }
     else practiceEvent('storm', f);
@@ -1320,6 +1413,7 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
         projectiles.splice(i, 1);
         continue;
       }
+      if (p.g && p.y >= GROUND - 8 && p.bounce > 0) { p.y = GROUND - 8; p.vy = -Math.abs(p.vy) * 0.75; p.bounce--; burst(p.x, GROUND - 6, 'dust'); continue; }
       if (p.g && p.y >= GROUND - 8) { burst(p.x, GROUND - 8, 'dust'); projectiles.splice(i, 1); continue; }
       if (p.x < -60 || p.x > W + 60) projectiles.splice(i, 1);
     }
@@ -1353,6 +1447,10 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
     ponta: { parts: ['dust', 'spark'], ring: '#f2d29a', n: 16 },
     nox: { parts: ['sonic', 'spark'], ring: '#b9bdff', n: 16 },
     goro: { parts: ['spark', 'spark'], ring: '#ffe066', n: 18 },
+    ninja: { parts: ['smoke', 'spark'], ring: '#ff9a9a', n: 16 },
+    chef: { parts: ['steam', 'spark'], ring: '#cfe6ff', n: 16 },
+    moyo: { parts: ['jelly', 'spark'], ring: '#ffb3d1', n: 16 },
+    smoke: { parts: ['smoke'], ring: null, n: 14 },
     dust: { parts: ['dust'], ring: null, n: 10 }
   };
   function burst(x, y, kind) {
@@ -1362,7 +1460,7 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
     if (particles.length > 260) particles.splice(0, particles.length - 260);
   }
   var rings = [];
-  var DRIFT = { flame: -0.08, sonic: -0.02, dust: 0.05 };
+  var DRIFT = { flame: -0.08, sonic: -0.02, dust: 0.05, smoke: -0.04, steam: -0.1 };
   function stepParticles() {
     for (var i = particles.length - 1; i >= 0; i--) {
       var p = particles[i];
@@ -1380,6 +1478,9 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
       if (p.kind === 'leaf') { c.fillStyle = '#7ccf6a'; c.beginPath(); c.ellipse(0, 0, p.size * 1.4, p.size * 0.6, 0, 0, Math.PI * 2); c.fill(); }
       else if (p.kind === 'flame') { c.fillStyle = a > 0.5 ? '#e0d0ff' : '#9b6cff'; c.beginPath(); c.arc(0, 0, p.size * a + 1, 0, Math.PI * 2); c.fill(); }
       else if (p.kind === 'dust') { c.fillStyle = '#c7a37a'; c.beginPath(); c.arc(0, 0, p.size * (1.4 - a * 0.6), 0, Math.PI * 2); c.fill(); }
+      else if (p.kind === 'smoke') { c.fillStyle = 'rgba(150,150,170,0.55)'; c.beginPath(); c.arc(0, 0, p.size * (2.4 - a * 1.2), 0, Math.PI * 2); c.fill(); }
+      else if (p.kind === 'steam') { c.fillStyle = 'rgba(255,255,255,0.6)'; c.beginPath(); c.arc(0, 0, p.size * (1.8 - a * 0.8), 0, Math.PI * 2); c.fill(); }
+      else if (p.kind === 'jelly') { c.fillStyle = a > 0.5 ? '#ffb3d1' : '#ff7fb0'; c.beginPath(); c.arc(0, 0, p.size * 0.9 + 1, 0, Math.PI * 2); c.fill(); }
       else if (p.kind === 'sonic') { c.strokeStyle = '#c3c7ff'; c.lineWidth = 1.5; c.beginPath(); c.arc(0, 0, p.size * (1.6 - a), 0, Math.PI * 2); c.stroke(); }
       else { c.fillStyle = '#fff3c0'; c.fillRect(-p.size / 2, -1, p.size, 2); c.fillRect(-1, -p.size / 2, 2, p.size); }
       c.restore();
@@ -1806,7 +1907,196 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
     c.restore();
   }
 
-  var DRAW = { moku: drawMoku, kon: drawKon, ponta: drawPonta, nox: drawNox, goro: drawGoro };
+
+  // ---------- guest rivals from other Moku Series games ----------
+  // Ninja Rat and Chef Rat come from the rat gang of Angry Mokumoku / Moyomoyo.
+  function ratEars(c, x1, x2, y, fur, inner) {
+    ell(c, x1, y, 13, 13, 0, fur); ell(c, x2, y - 2, 13, 13, 0, fur);
+    ell(c, x1, y, 7, 7, 0, inner); ell(c, x2, y - 2, 7, 7, 0, inner);
+  }
+  function ratTail(c, P, color) {
+    c.save(); c.translate(-22, -24); c.rotate(-0.3 + P.tail * 0.5);
+    c.strokeStyle = color; c.lineWidth = 5; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(0, 0); c.bezierCurveTo(-30, 6, -40, -30, -22, -52); c.stroke();
+    c.restore();
+  }
+  function drawNinja(c, f, P, time) {
+    var lp = P.legPhase * 5;
+    c.save();
+    c.translate(0, P.dy);
+    c.rotate(P.lean);
+    c.scale(P.sx, P.sy);
+    ratTail(c, P, '#c98a96');
+    // legs: wrapped navy trousers
+    ell(c, -11 - lp * 0.6, -12, 9, 13, 0, '#2b2f4a');
+    ell(c, 11 + lp * 0.6, -12, 9, 13, 0, '#2b2f4a');
+    ell(c, -11 - lp * 0.6, -2, 9, 5, 0, '#14161f');
+    ell(c, 11 + lp * 0.6, -2, 9, 5, 0, '#14161f');
+    // back arm
+    c.save(); c.translate(-16, -60); c.rotate(P.armB);
+    ell(c, 0, 13, 7, 15, 0, '#262a42'); ell(c, 0, 26, 6, 5, 0, '#6b6b78');
+    c.restore();
+    // gi and red sash
+    var tg = c.createLinearGradient(0, -78, 0, -14);
+    tg.addColorStop(0, '#3a3f62'); tg.addColorStop(1, '#262a42');
+    ell(c, 0, -46, 24, 31, 0, tg);
+    c.strokeStyle = '#4d5480'; c.lineWidth = 3;
+    c.beginPath(); c.moveTo(-10, -74); c.lineTo(8, -50); c.stroke();
+    c.fillStyle = '#d23a3a'; c.fillRect(-23, -40, 46, 8);
+    ell(c, -20, -32, 5, 9, 0.4, '#d23a3a');
+    // head: grey rat with big round ears
+    ratEars(c, -16, 20, -118, '#5b5b68', '#e7a2b0');
+    ell(c, 4, -94, 26, 24, 0, '#5b5b68');
+    // snout and the cloth mask over it
+    ell(c, 22, -88, 14, 9, 0.1, '#6b6b78');
+    ell(c, 8, -84, 25, 12, 0, '#262a42');
+    ell(c, 34, -90, 4, 3.2, 0, '#ff8fa5');
+    // headband with fluttering tails
+    c.fillStyle = '#d23a3a'; c.fillRect(-22, -112, 50, 8);
+    var flut = Math.sin(time * 0.3) * 4;
+    c.beginPath(); c.moveTo(-20, -110); c.quadraticCurveTo(-38, -116 + flut, -50, -104 + flut); c.lineTo(-46, -100 + flut); c.quadraticCurveTo(-34, -108 + flut, -20, -104); c.fill();
+    c.beginPath(); c.moveTo(-20, -106); c.quadraticCurveTo(-36, -100 - flut, -46, -88 - flut); c.lineTo(-42, -85 - flut); c.quadraticCurveTo(-32, -96 - flut, -20, -102); c.fill();
+    ell(c, 4, -108, 4, 4, 0, '#ff6b6b');
+    // eyes peeking out of the mask
+    ell(c, -1, -97, 8, 7, 0, '#ffffff'); ell(c, 17, -97, 8, 7, 0, '#ffffff');
+    drawEyes(c, P, -1, 17, -97, 5, '#1a1a24', '#ffffff', '#5b5b68');
+    if (P.eyes === 'angry') {
+      c.strokeStyle = '#1a1a24'; c.lineWidth = 2.8; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(-9, -103); c.lineTo(4, -100); c.stroke();
+      c.beginPath(); c.moveTo(25, -103); c.lineTo(12, -100); c.stroke();
+    }
+    // front arm
+    c.save(); c.translate(16, -60); c.rotate(P.armF);
+    ell(c, 0, 13 * P.armLen, 7, 15 * P.armLen, 0, '#323758');
+    ell(c, 0, 27 * P.armLen, 6, 5, 0, '#6b6b78');
+    c.restore();
+    if (P.beak > 0) {
+      c.strokeStyle = 'rgba(210,215,255,0.9)'; c.lineWidth = 3; c.lineCap = 'round';
+      for (var s = 0; s < 3; s++) { c.beginPath(); c.moveTo(40, -78 + s * 8); c.lineTo(64, -86 + s * 8); c.stroke(); }
+    }
+    if (P.slash) {
+      c.strokeStyle = 'rgba(200,210,255,0.85)'; c.lineWidth = 4; c.lineCap = 'round';
+      c.beginPath(); c.arc(14, -54, 70, -1.0, 0.8); c.stroke();
+      c.strokeStyle = 'rgba(255,255,255,0.7)'; c.lineWidth = 1.5;
+      c.beginPath(); c.arc(14, -54, 62, -0.8, 0.6); c.stroke();
+    }
+    c.restore();
+  }
+
+  function drawChef(c, f, P, time) {
+    var lp = P.legPhase * 5;
+    c.save();
+    c.translate(0, P.dy);
+    c.rotate(P.lean);
+    c.scale(P.sx, P.sy);
+    ratTail(c, P, '#d59aa4');
+    // legs: checked chef trousers
+    ell(c, -12 - lp * 0.6, -12, 10, 13, 0, '#4a4a58');
+    ell(c, 12 + lp * 0.6, -12, 10, 13, 0, '#4a4a58');
+    ell(c, -12 - lp * 0.6, -2, 10, 5, 0, '#2a2a30');
+    ell(c, 12 + lp * 0.6, -2, 10, 5, 0, '#2a2a30');
+    // back arm holds a ladle
+    c.save(); c.translate(-18, -60); c.rotate(P.armB);
+    ell(c, 0, 13, 8, 15, 0, '#ece9e2'); ell(c, 0, 27, 6, 5, 0, '#8d8d98');
+    c.restore();
+    // chef coat + apron + neckerchief
+    var tg = c.createLinearGradient(0, -80, 0, -12);
+    tg.addColorStop(0, '#ffffff'); tg.addColorStop(1, '#e6e2d8');
+    ell(c, 0, -46, 27, 33, 0, tg);
+    c.fillStyle = '#7fb6e6';
+    c.beginPath(); c.moveTo(-18, -48); c.lineTo(18, -48); c.lineTo(22, -16); c.quadraticCurveTo(0, -10, -22, -16); c.closePath(); c.fill();
+    ell(c, -6, -66, 2.4, 2.4, 0, '#b9b4a8'); ell(c, 6, -66, 2.4, 2.4, 0, '#b9b4a8');
+    c.fillStyle = '#e8553e';
+    c.beginPath(); c.moveTo(-14, -76); c.lineTo(16, -76); c.lineTo(2, -62); c.closePath(); c.fill();
+    // head
+    ratEars(c, -18, 22, -112, '#8d8d98', '#f0b4bf');
+    ell(c, 4, -94, 26, 24, 0, '#8d8d98');
+    ell(c, 22, -86, 14, 9, 0.1, '#a3a3ad');
+    ell(c, 34, -88, 4, 3.2, 0, '#ff8fa5');
+    c.strokeStyle = 'rgba(60,60,70,0.6)'; c.lineWidth = 1.2;
+    [-4, 0, 4].forEach(function (d) { c.beginPath(); c.moveTo(30, -84 + d * 0.5); c.lineTo(46, -86 + d * 1.6); c.stroke(); });
+    // tall toque
+    c.fillStyle = '#ffffff';
+    c.fillRect(-14, -132, 34, 16);
+    ell(c, -6, -138, 12, 12, 0, '#ffffff'); ell(c, 12, -140, 12, 12, 0, '#ffffff'); ell(c, 3, -146, 12, 11, 0, '#ffffff');
+    c.strokeStyle = '#ddd8cc'; c.lineWidth = 1.5; c.strokeRect(-14, -132, 34, 16);
+    // eyes + bushy brows
+    drawEyes(c, P, -2, 16, -97, 6, '#2a1d14', '#ffffff', '#8d8d98');
+    if (P.eyes === 'angry') {
+      c.strokeStyle = '#3a3a44'; c.lineWidth = 3.4; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(-11, -109); c.lineTo(4, -104); c.stroke();
+      c.beginPath(); c.moveTo(26, -109); c.lineTo(11, -104); c.stroke();
+    }
+    ell(c, -9, -86, 4, 2.5, 0, 'rgba(255,150,170,0.4)');
+    // front arm with the frying pan
+    c.save(); c.translate(18, -60); c.rotate(P.armF);
+    ell(c, 0, 13 * P.armLen, 8, 15 * P.armLen, 0, '#f5f2ea');
+    var hy = 27 * P.armLen;
+    c.fillStyle = '#5a3a22'; c.fillRect(-2.5, hy - 2, 5, 22);
+    ell(c, 0, hy + 34, 17, 17, 0, '#3a3a42');
+    ell(c, 0, hy + 34, 12, 12, 0, '#55555f');
+    ell(c, -4, hy + 30, 4, 3, 0, 'rgba(255,255,255,0.35)');
+    ell(c, 0, hy, 6, 5, 0, '#8d8d98');
+    c.restore();
+    if (P.beak > 0) {
+      c.strokeStyle = 'rgba(255,240,220,0.9)'; c.lineWidth = 3; c.lineCap = 'round';
+      for (var s = 0; s < 3; s++) { c.beginPath(); c.moveTo(42, -78 + s * 8); c.lineTo(64, -86 + s * 8); c.stroke(); }
+    }
+    if (P.slash) {
+      c.strokeStyle = 'rgba(255,220,160,0.85)'; c.lineWidth = 6; c.lineCap = 'round';
+      c.beginPath(); c.arc(16, -50, 92, -1.0, 0.75); c.stroke();
+    }
+    c.restore();
+  }
+
+  // Moyo: a gummy from Moyomoyo. Wobbly jelly body, stretchy arms, huge jumps.
+  function drawMoyo(c, f, P, time) {
+    var wob = Math.sin(time * 0.22) * 0.04, hop = f.state === 'walk' ? Math.abs(Math.sin(f.t * 0.28)) : 0;
+    c.save();
+    c.translate(0, P.dy);
+    c.rotate(P.lean);
+    c.scale(P.sx * (1 + wob + hop * 0.06), P.sy * (1 - wob - hop * 0.05));
+    function jellyArm(rot, len, front) {
+      c.save(); c.translate(front ? 30 : -30, -54); c.rotate(rot);
+      c.strokeStyle = front ? '#ff7fb0' : '#e8659a'; c.lineCap = 'round'; c.lineWidth = 12;
+      c.beginPath(); c.moveTo(0, 0); c.lineTo(0, 22 * len); c.stroke();
+      ell(c, 0, 24 * len, 9, 9, 0, front ? '#ff92bd' : '#ee72a6');
+      c.restore();
+    }
+    jellyArm(P.armB, 1, false);
+    // translucent jelly cube
+    var s = 84, x0 = -s / 2, y0 = -s - 6;
+    var g = c.createLinearGradient(0, y0, 0, y0 + s);
+    g.addColorStop(0, 'rgba(255,150,195,0.97)'); g.addColorStop(1, 'rgba(230,84,145,0.97)');
+    c.fillStyle = g;
+    c.beginPath(); c.roundRect ? c.roundRect(x0, y0, s, s, 30) : c.rect(x0, y0, s, s); c.fill();
+    c.fillStyle = 'rgba(255,255,255,0.32)';
+    c.beginPath(); c.roundRect ? c.roundRect(x0 + 10, y0 + 8, 34, 16, 8) : c.rect(x0 + 10, y0 + 8, 34, 16); c.fill();
+    ell(c, 28, y0 + 64, 5, 8, 0.3, 'rgba(255,255,255,0.18)');
+    // face patch like the Moyomoyo gummies
+    ell(c, 4, -50, 27, 28, 0, 'rgba(250,232,205,0.95)');
+    drawEyes(c, P, -7, 15, -58, 6, '#181818', '#ffffff', '#c25a86');
+    if (P.eyes === 'angry') {
+      c.strokeStyle = '#4A1800'; c.lineWidth = 3; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(-16, -70); c.lineTo(-2, -64); c.stroke();
+      c.beginPath(); c.moveTo(24, -70); c.lineTo(10, -64); c.stroke();
+    }
+    ell(c, 4, -44, 4.5, 5.5, 0, '#D97818');
+    // teal bow tie
+    ell(c, -4, -30, 8, 4.5, -0.35, '#3DA890'); ell(c, 12, -30, 8, 4.5, 0.35, '#3DA890'); ell(c, 4, -30, 3, 3, 0, '#2c8a74');
+    jellyArm(P.armF, P.armLen * (P.slash ? 1.6 : 1), true);
+    if (P.beak > 0) {
+      c.strokeStyle = 'rgba(255,200,225,0.9)'; c.lineWidth = 3; c.lineCap = 'round';
+      for (var k = 0; k < 3; k++) { c.beginPath(); c.moveTo(56, -64 + k * 8); c.lineTo(78, -70 + k * 8); c.stroke(); }
+    }
+    if (P.slash) {
+      c.strokeStyle = 'rgba(255,170,210,0.8)'; c.lineWidth = 5; c.lineCap = 'round';
+      c.beginPath(); c.arc(20, -46, 96, -0.8, 0.6); c.stroke();
+    }
+    c.restore();
+  }
+
+  var DRAW = { moku: drawMoku, kon: drawKon, ponta: drawPonta, nox: drawNox, goro: drawGoro, ninja: drawNinja, chef: drawChef, moyo: drawMoyo };
 
   function hexA(hex, a) {
     var n = parseInt(hex.slice(1), 16);
@@ -1917,6 +2207,38 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
           c.strokeStyle = st[1]; c.lineWidth = st[0]; c.lineJoin = 'round';
           c.beginPath(); pts.forEach(function (pt, k) { if (k) c.lineTo(pt[0], pt[1]); else c.moveTo(pt[0], pt[1]); }); c.stroke();
         });
+      } else if (p.kind === 'shuriken' || p.kind === 'starstorm') {
+        var bigS = p.kind === 'starstorm';
+        for (var gh = bigS ? 2 : 0; gh >= 0; gh--) {
+          c.save(); c.translate(-dir * gh * 26, 0); c.rotate(time * 0.7 * dir + gh); c.globalAlpha = 1 - gh * 0.3;
+          var R = bigS ? 26 : 13;
+          c.fillStyle = '#4a4f66';
+          c.beginPath();
+          for (var pt = 0; pt < 8; pt++) { var ra = pt % 2 ? R * 0.32 : R, an = pt * Math.PI / 4; c.lineTo(Math.cos(an) * ra, Math.sin(an) * ra); }
+          c.closePath(); c.fill();
+          c.strokeStyle = '#c9cde0'; c.lineWidth = 1.5; c.stroke();
+          ell(c, 0, 0, R * 0.18, R * 0.18, 0, '#e0484f');
+          c.restore();
+        }
+      } else if (p.kind === 'bun') {
+        c.rotate(Math.sin(time * 0.2) * 0.3);
+        ell(c, 0, 2, 13, 10, 0, '#fffaf0');
+        c.strokeStyle = '#e8dcc4'; c.lineWidth = 1.5;
+        c.beginPath(); c.moveTo(-5, -5); c.quadraticCurveTo(0, 0, 5, -5); c.stroke();
+        ell(c, -4, -2, 4, 2.5, 0, 'rgba(255,255,255,0.8)');
+      } else if (p.kind === 'pan') {
+        c.rotate(time * 0.45 * dir);
+        c.fillStyle = '#5a3a22'; c.fillRect(20, -4, 30, 8);
+        ell(c, 0, 0, 30, 30, 0, '#3a3a42'); ell(c, 0, 0, 22, 22, 0, '#55555f');
+        ell(c, -2, 2, 11, 8, 0, '#ffd36b'); ell(c, -2, 2, 5, 4, 0, '#ff9f45');
+        ell(c, -10, -10, 6, 4, -0.6, 'rgba(255,255,255,0.35)');
+      } else if (p.kind === 'jelly' || p.kind === 'bigjelly') {
+        var js = p.kind === 'bigjelly' ? 2.2 : 1, sq = 1 + Math.sin(time * 0.4) * 0.08;
+        c.scale(js * sq, js / sq);
+        c.fillStyle = 'rgba(255,127,176,0.95)';
+        c.beginPath(); c.roundRect ? c.roundRect(-12, -12, 24, 24, 9) : c.rect(-12, -12, 24, 24); c.fill();
+        c.fillStyle = 'rgba(255,255,255,0.35)'; c.fillRect(-8, -9, 9, 4);
+        if (js > 1) { ell(c, -4, -1, 2, 2.4, 0, '#181818'); ell(c, 4, -1, 2, 2.4, 0, '#181818'); ell(c, 0, 4, 1.6, 2, 0, '#D97818'); }
       } else if (p.kind === 'sonic' || p.kind === 'screech') {
         var loud = p.kind === 'screech', n = loud ? 4 : 3, sz = loud ? 1.5 : 1;
         if (loud) {
@@ -2202,6 +2524,18 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
     ai.timer = d.think + Math.floor(Math.random() * d.think);
 
     var r = Math.random();
+    // Ninja Rat: vanish in smoke and pop up behind the opponent
+    if (pers.teleport && dist > 150 && me.onGround() && me.state !== 'attack' && Math.random() < pers.teleport) {
+      var bx = opp.x + (dx > 0 ? 72 : -72);
+      if (bx > 60 && bx < W - 60) {
+        burst(me.x, me.y - 50, 'smoke');
+        me.x = bx; me.vx = 0;
+        burst(me.x, me.y - 50, 'smoke');
+        sfx.swing();
+        ai.plan = 'crouch'; ai.planT = 6;
+        return;
+      }
+    }
     if (me.meter >= 100 && dist > 160 && r < 0.6) { inp.buf.sp = 6; return; }
     if (dist > 200 && !me.hasProjectile() && Math.random() < 0.3 * pers.proj) { inp.buf.p = 6; return; }
     if (dist > 120) {
@@ -2425,8 +2759,7 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
   // ?debug exposes the game state for automated tests
   if (/[?&]debug\b/.test(location.search)) window.__mokuFight = { game: game, projectiles: function () { return projectiles; }, lastPress: function () { return lastPress; } };
   function currentRival() {
-    if (save.rival === 'goro' && save.bossMet) return 'goro';
-    return RIVALS.indexOf(save.rival) !== -1 ? save.rival : 'kon';
+    return CHARS[save.rival] && save.rival !== 'moku' && rivalOpen(save.rival) ? save.rival : 'kon';
   }
 
   // ---- practice: right after learning a move (or from Training) ----
@@ -2638,6 +2971,8 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
       else save.draws++;
       // beating all three rivals once calls out the hidden mid-boss
       if (res === 'win' && !save.bossMet && bossTime()) save.bossPending = true;
+      // every win brings a new guest rival into the arena
+      if (res === 'win') game.newRival = unlockNextRival();
       writeSave();
     }
     game.phase = 'done';
@@ -2661,9 +2996,26 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
       document.querySelector('#unlockMenu [data-action="practice"]').setAttribute('data-move', learned.id);
       showScreen('unlock');
       setTimeout(function () { sfx.win(); }, 500);
+    } else if (game.newRival) {
+      setTimeout(showNewRival, 1200);
     } else if (save.bossPending) {
       setTimeout(showChallenger, 1200);
     }
+  }
+  function showNewRival() {
+    var id = game.newRival;
+    if (!id || game.mode !== 'result') return;
+    var ch = CHARS[id];
+    document.getElementById('newRivalName').textContent = ch.name + ' — ' + ch.title;
+    document.getElementById('newRivalFrom').textContent = 'From ' + ch.from;
+    document.getElementById('newRivalDesc').textContent = ch.intro;
+    showScreen('newRival');
+    sfx.special();
+  }
+  // after the new-rival screen: the boss challenge if it is waiting, otherwise back to the result
+  function afterNewRival() {
+    game.newRival = null;
+    if (save.bossPending) showChallenger(); else showScreen('result');
   }
   function showChallenger() {
     if (!save.bossPending || (game.mode !== 'title' && game.mode !== 'result')) return;
@@ -2756,6 +3108,7 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
   }
   var selectCards = [].slice.call(document.querySelectorAll('.rivalCard'));
   var challengerCanvas = document.getElementById('challengerArt');
+  var newRivalCanvas = document.getElementById('newRivalArt');
   function renderTitleArt(time) {
     if (currentScreen === 'challenger') {
       var cc = challengerCanvas.getContext('2d');
@@ -2768,9 +3121,17 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
       }
     }
     if (currentScreen === 'title') drawRivalIcon(rctx, currentRival(), 256, time);
+    if (currentScreen === 'newRival' && game.newRival) drawRivalIcon(newRivalCanvas.getContext('2d'), game.newRival, 256, time);
     if (currentScreen === 'select') selectCards.forEach(function (card) {
-      var cv = card.querySelector('canvas');
-      drawRivalIcon(cv.getContext('2d'), card.getAttribute('data-rival'), cv.width, time);
+      var cv = card.querySelector('canvas'), id = card.getAttribute('data-rival'), cc = cv.getContext('2d');
+      drawRivalIcon(cc, id, cv.width, time);
+      if (!rivalOpen(id)) {
+        // still a mystery: draw it as a dark silhouette
+        cc.setTransform(1, 0, 0, 1, 0, 0);
+        cc.globalCompositeOperation = 'source-atop';
+        cc.fillStyle = '#1a1424'; cc.fillRect(0, 0, cv.width, cv.height);
+        cc.globalCompositeOperation = 'source-over';
+      }
     });
   }
 
@@ -2784,7 +3145,8 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
     unlock: document.getElementById('unlockScreen'),
     train: document.getElementById('trainScreen'),
     practiceDone: document.getElementById('practiceDoneScreen'),
-    challenger: document.getElementById('challengerScreen')
+    challenger: document.getElementById('challengerScreen'),
+    newRival: document.getElementById('newRivalScreen')
   };
   var currentScreen = 'title', howReturn = 'title';
   function showScreen(name) {
@@ -2811,7 +3173,7 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
   function selectItem(menu, el) {
     menu.querySelectorAll('.titleMenuItem').forEach(function (o) { o.classList.toggle('sel', o === el); });
     var r = el.getAttribute('data-rival');
-    if (r) setTheme(CHARS[r].theme);
+    if (r && rivalOpen(r)) setTheme(CHARS[r].theme);
   }
   function moveMenu(d) {
     var menu = activeMenu(); if (!menu) return;
@@ -2849,7 +3211,11 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
       case 'resume': resume(); break;
       case 'quit': case 'title': setMode('title'); game.p1 = null; game.practice = null; break;
       case 'practice': startPractice(el.getAttribute('data-move')); break;
-      case 'later': if (save.bossPending) showChallenger(); else showScreen('result'); break;
+      case 'later': if (game.newRival) showNewRival(); else if (save.bossPending) showChallenger(); else showScreen('result'); break;
+      case 'newrival':
+        save.rival = game.newRival; game.newRival = null; writeSave();
+        startMatch(); break;
+      case 'newrivallater': afterNewRival(); break;
       case 'boss':
         save.bossMet = true; save.bossPending = false; save.rival = 'goro'; writeSave();
         startMatch(); break;
@@ -2898,9 +3264,13 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
   function refreshSelect() {
     var menu = screens.select.querySelector('.menu');
     selectCards.forEach(function (card) {
-      var r = card.getAttribute('data-rival'), rec = save.rivals[r];
+      var r = card.getAttribute('data-rival'), rec = save.rivals[r], open = rivalOpen(r), ch = CHARS[r];
       if (r === 'goro') card.style.display = save.bossMet ? '' : 'none';
-      card.querySelector('em').textContent = rec && (rec.w || rec.l) ? (rec.w ? '★ ' : '') + rec.w + 'W - ' + rec.l + 'L' : 'New challenger!';
+      card.classList.toggle('lockedCard', !open);
+      card.setAttribute('data-action', open ? 'rival' : 'locked');
+      card.querySelector('b').textContent = open ? ch.name : '???';
+      card.querySelector('span').textContent = open ? ch.title + ' · ' + ch.style : 'Win a match to meet';
+      card.querySelector('em').textContent = !open ? '🔒' : rec && (rec.w || rec.l) ? (rec.w ? '★ ' : '') + rec.w + 'W - ' + rec.l + 'L' : 'New challenger!';
       if (r === currentRival()) selectItem(menu, card);
     });
   }
@@ -2919,9 +3289,9 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
       while (acc >= STEP) { step(); acc -= STEP; }
     } else {
       acc = 0;
-      if (game.mode === 'title' || currentScreen === 'challenger') game.time++;
+      if (game.mode === 'title' || currentScreen === 'challenger' || currentScreen === 'newRival') game.time++;
     }
-    if (game.mode === 'title' || currentScreen === 'challenger') renderTitleArt(game.time);
+    if (game.mode === 'title' || currentScreen === 'challenger' || currentScreen === 'newRival') renderTitleArt(game.time);
     render();
     requestAnimationFrame(frame);
   }
@@ -2933,7 +3303,7 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
   setMode('title');
   if (game.demo) {
     var demoRival = (location.search.match(/rival=(\w+)/) || [])[1];
-    if (RIVALS.indexOf(demoRival) !== -1 || demoRival === 'goro') save.rival = demoRival;
+    if (CHARS[demoRival] && demoRival !== 'moku') save.rival = demoRival;
     if (demoRival === 'goro') save.bossMet = true;
     startMatch();
   }
