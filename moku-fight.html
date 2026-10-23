@@ -28,19 +28,6 @@ body {
 }
 :root { --hi: #2EC4B6; --lo: #145A55; }
 
-/* ---------- rotate-to-landscape gate ---------- */
-#rotate-hint {
-  display: none;
-  position: fixed; inset: 0; z-index: 999;
-  background: #0a0810;
-  flex-direction: column; align-items: center; justify-content: center;
-  color: #EDEEF6; font-size: 15px; font-weight: 700; gap: 16px; text-align: center;
-  padding: 20px;
-}
-#rotate-hint span { font-size: 52px; display: inline-block; animation: spin 1.5s ease-in-out infinite alternate; }
-@keyframes spin { from { transform: rotate(-28deg); } to { transform: rotate(28deg); } }
-#rotate-hint p { color: rgba(237,238,246,0.6); font-size: 12.5px; font-weight: 600; max-width: 260px; line-height: 1.6; }
-
 /* ---------- shared frame / hub link (Moku series design system) ---------- */
 #title-frame {
   display: block;
@@ -84,10 +71,6 @@ body:not(.on-title) #title-frame,
 body:not(.on-title) #hub-link,
 body:not(.on-title) #buildInfo { display: none; }
 
-@media (max-width: 900px) and (orientation: portrait) {
-  #rotate-hint { display: flex; }
-  #title-frame, #hub-link, #buildInfo, #wrapper { display: none !important; }
-}
 
 /* ---------- stage wrapper ---------- */
 #wrapper {
@@ -172,6 +155,28 @@ body.playing #controls { display: block; }
 }
 @media (hover: hover) and (pointer: fine) {
   #pad, .actBtn { opacity: 0.55; }
+}
+/* ---------- control deck (phone portrait / tablets): the game on top, the controls below it ---------- */
+body.deck #wrapper { max-width: none; aspect-ratio: auto; background: #0f0b16; }
+body.deck.portrait #wrapper { border-radius: 0; box-shadow: none; }
+body.deck canvas#c { height: auto; }
+body.deck #controls {
+  inset: auto 0 0 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(46,196,182,0.12), transparent 60%),
+    linear-gradient(180deg, #221a2c 0%, #150f1d 60%, #0f0b16 100%);
+  border-top: 2px solid rgba(46,196,182,0.55);
+}
+body.deck #stickZone { width: 50%; height: 100%; }
+body.deck #pad { bottom: auto; }
+body.deck .actBtn, body.deck #btnPunch, body.deck #btnKick { width: auto; bottom: auto; }
+body.deck #pauseBtn { top: 10px; }
+body.deck #pad, body.deck .actBtn { opacity: 1; }
+@media (orientation: portrait) {
+  .rivalRow { flex-wrap: wrap; }
+  .moveCols { flex-direction: column; gap: 6px; }
+  #howScreen { gap: 4px; padding: 14px 16px; }
 }
 
 /* ---------- screens (title / how-to / result / pause) ---------- */
@@ -314,10 +319,9 @@ body.playing #controls { display: block; }
 </style>
 </head>
 <body class="on-title">
-<div id="rotate-hint"><span>📱</span><p>Moku Fight is played in landscape.<br>Please rotate your device.</p></div>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.5.3 · Updated Oct 23, 2026</div>
+<div id="buildInfo">v0.6.0 · Updated Oct 23, 2026</div>
 
 <div id="wrapper">
   <canvas id="c"></canvas>
@@ -442,6 +446,8 @@ body.playing #controls { display: block; }
   var GAME_ID = 'moku-fight';
   var SAVE_KEY = 'moku:' + GAME_ID + ':progress';
   var W = 960, H = 540;
+  // VW: how much of the stage is in view (narrower on a phone held upright); the camera follows the fight
+  var VW = W, cam = { x: 0 };
   var GROUND = 468;
   var STEP = 1000 / 60;
   var ROUNDS_TO_WIN = 2;
@@ -530,16 +536,83 @@ body.playing #controls { display: block; }
   var bgCanvas = document.createElement('canvas');
   var bgCtx = bgCanvas.getContext('2d');
 
+  // layout: 'overlay' (controls float on the game: desktop, phone landscape) or 'deck' (controls get their own panel below)
+  var deckEls = ['controls', 'stickZone', 'pad', 'btnPunch', 'btnKick'].map(function (id) { return document.getElementById(id); });
+  function isTouch() { return (window.matchMedia && matchMedia('(pointer: coarse)').matches) || navigator.maxTouchPoints > 0; }
+  function layout() {
+    var vw = window.innerWidth, vh = window.innerHeight;
+    var touch = isTouch(), portrait = vh > vw;
+    var deck = touch && (portrait || vw / vh < 1.65);
+    document.body.classList.toggle('deck', deck);
+    document.body.classList.toggle('portrait', deck && portrait);
+    deckEls.forEach(function (el) { el.removeAttribute('style'); });
+    if (!deck) {
+      VW = W;
+      wrapper.removeAttribute('style'); canvas.removeAttribute('style');
+      return;
+    }
+    var sw, sh, gh;
+    if (portrait) {
+      // the game takes about 3/5 of the screen; view a narrower slice of the stage to make that possible
+      sw = vw; sh = vh;
+      VW = Math.max(560, Math.min(W, Math.round(H * vw / (vh * 0.6))));
+      gh = vw * H / VW;
+    } else {
+      // tablet landscape: keep the whole 16:9 stage, leave a band below it for the controls
+      VW = W;
+      gh = Math.min(vw * 9 / 16, vh * 0.74, 720);
+      sw = gh * 16 / 9;
+      sh = Math.min(vh, gh + Math.max(170, Math.min(300, vh - gh)));
+    }
+    var dh = sh - gh;
+    wrapper.style.width = sw + 'px'; wrapper.style.height = sh + 'px';
+    canvas.style.height = gh + 'px';
+    var ctl = deckEls[0], pad = deckEls[2];
+    ctl.style.top = gh + 'px';
+    // joystick on the left, P / K on the right, sized to the deck
+    var ps = Math.min(dh * 0.78, sw * 0.42, 230);
+    pad.style.width = ps + 'px';
+    pad.style.left = Math.max(12, sw * 0.06) + 'px';
+    pad.style.top = (dh - ps) / 2 + 'px';
+    var bs = Math.min(dh * 0.44, sw * 0.22, 130);
+    var bp = deckEls[3], bk = deckEls[4];
+    bp.style.width = bk.style.width = bs + 'px';
+    bk.style.right = Math.max(12, sw * 0.05) + 'px';
+    bk.style.top = dh / 2 - bs * 0.92 + 'px';
+    bp.style.right = Math.max(12, sw * 0.05) + bs * 1.02 + 'px';
+    bp.style.top = dh / 2 - bs * 0.02 + 'px';
+  }
   function resize() {
-    var r = wrapper.getBoundingClientRect();
+    layout();
+    var r = canvas.getBoundingClientRect();
     if (r.width < 2) return;
     dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.round(r.width * dpr);
-    canvas.height = Math.round(r.height * dpr);
-    scale = canvas.width / W;
-    bgCanvas.width = canvas.width;
+    canvas.height = Math.round(r.width * dpr * H / VW);
+    scale = canvas.width / VW;
+    // the background covers the whole stage so the camera can pan across it
+    bgCanvas.width = Math.round(W * scale);
     bgCanvas.height = canvas.height;
     drawBackground();
+    if (game.p1) snapCamera();
+  }
+  function cameraTarget() {
+    if (VW >= W || !game.p1) return 0;
+    var mid = (game.p1.x + game.p2.x) / 2;
+    return Math.max(0, Math.min(W - VW, mid - VW / 2));
+  }
+  function snapCamera() { cam.x = cameraTarget(); }
+  function stepCamera() { cam.x += (cameraTarget() - cam.x) * 0.18; }
+  // with a narrow view the fighters may not walk further apart than the screen
+  function leash(a, b, oax, obx) {
+    if (VW >= W) return;
+    var maxSep = VW - 90, d = b.x - a.x, over = Math.abs(d) - maxSep;
+    if (over <= 0) return;
+    var sgn = d >= 0 ? 1 : -1;
+    var outA = Math.max(0, -(a.x - oax) * sgn), outB = Math.max(0, (b.x - obx) * sgn), tot = outA + outB;
+    var shareA = tot > 0 ? outA / tot : 0.5;
+    a.x += sgn * over * shareA;
+    b.x -= sgn * over * (1 - shareA);
   }
 
   // each rival fights at a different time of day
@@ -1884,7 +1957,7 @@ body.playing #controls { display: block; }
     c.beginPath(); c.moveTo(x + skew, y); c.lineTo(x + w + skew, y); c.lineTo(x + w, y + h); c.lineTo(x, y + h); c.closePath();
   }
   function drawHpBar(c, f, left, time) {
-    var x = left ? 96 : 540, y = 20, w = 324, h = 22;
+    var x = left ? 96 : VW / 2 + 60, y = 20, w = VW / 2 - 156, h = 22;
     c.fillStyle = 'rgba(10,8,16,0.8)'; slantBar(c, x - 4, y - 4, w + 8, h + 8, 6); c.fill();
     c.strokeStyle = '#c9cbd6'; c.lineWidth = 2; slantBar(c, x - 4, y - 4, w + 8, h + 8, 6); c.stroke();
     var pct = f.hp / 100, lag = f.hpLag / 100;
@@ -1902,7 +1975,7 @@ body.playing #controls { display: block; }
     c.fillStyle = 'rgba(255,255,255,0.25)'; c.fillRect(x, y, w + 8, 5);
     c.restore();
     // super meter
-    var mx = left ? 150 : 540, mw = 270, my = 50, mh = 10;
+    var mx = left ? 150 : VW / 2 + 60, mw = VW / 2 - 210, my = 50, mh = 10;
     if (left && f.charId === 'moku' && !superUnlocked() && !game.ai1) mh = 0;
     if (mh) {
     c.fillStyle = 'rgba(10,8,16,0.8)'; slantBar(c, mx - 3, my - 3, mw + 6, mh + 6, 4); c.fill();
@@ -1921,22 +1994,22 @@ body.playing #controls { display: block; }
     }
     }
     // portrait + name
-    var px = left ? 14 : W - 84;
+    var px = left ? 14 : VW - 84;
     drawPortrait(c, f.charId, px, 10, 70, 58, time, !left);
     c.strokeStyle = f.c.color; c.lineWidth = 3; c.strokeRect(px, 10, 70, 58);
     c.font = '800 13px -apple-system, "Segoe UI", Roboto, sans-serif';
     c.fillStyle = '#fff'; c.textAlign = left ? 'left' : 'right';
-    c.fillText(f.c.name, left ? 98 : W - 98, 78);
+    c.fillText(f.c.name, left ? 98 : VW - 98, 78);
     // round win dots
     for (var i = 0; i < (game.practice ? 0 : ROUNDS_TO_WIN); i++) {
-      var dx = left ? 446 - i * 20 : 514 + i * 20;
+      var dx = left ? VW / 2 - 34 - i * 20 : VW / 2 + 34 + i * 20;
       c.fillStyle = 'rgba(10,8,16,0.85)'; c.beginPath(); c.arc(dx, 70, 8, 0, Math.PI * 2); c.fill();
       c.strokeStyle = '#c9cbd6'; c.lineWidth = 1.5; c.stroke();
       if (f.rounds > i) { c.fillStyle = '#4fc3ff'; c.beginPath(); c.arc(dx, 70, 5, 0, Math.PI * 2); c.fill(); }
     }
   }
   function drawTimer(c) {
-    var cx = 480, cy = 36;
+    var cx = VW / 2, cy = 36;
     c.fillStyle = 'rgba(16,18,28,0.92)';
     c.beginPath(); c.moveTo(cx - 44, cy - 28); c.lineTo(cx + 44, cy - 28); c.lineTo(cx + 54, cy); c.lineTo(cx + 34, cy + 28); c.lineTo(cx - 34, cy + 28); c.lineTo(cx - 54, cy); c.closePath(); c.fill();
     c.strokeStyle = '#d8dae4'; c.lineWidth = 3; c.stroke();
@@ -1951,24 +2024,24 @@ body.playing #controls { display: block; }
     var pr = game.practice, m = moveById(pr.move);
     c.save();
     c.fillStyle = 'rgba(12,10,20,0.78)';
-    c.beginPath(); c.roundRect ? c.roundRect(290, 150, 380, 86, 14) : c.rect(290, 150, 380, 86); c.fill();
+    c.beginPath(); c.roundRect ? c.roundRect(VW / 2 - 190, 150, 380, 86, 14) : c.rect(VW / 2 - 190, 150, 380, 86); c.fill();
     c.strokeStyle = 'rgba(46,196,182,0.7)'; c.lineWidth = 2; c.stroke();
     c.textAlign = 'center';
     c.font = '800 12px -apple-system, "Segoe UI", Roboto, sans-serif'; c.fillStyle = '#2EC4B6';
-    c.fillText('PRACTICE · ' + m.icon + ' ' + m.name.toUpperCase(), 480, 170);
+    c.fillText('PRACTICE · ' + m.icon + ' ' + m.name.toUpperCase(), VW / 2, 170);
     c.font = '900 22px -apple-system, "Segoe UI", Roboto, sans-serif'; c.fillStyle = '#fff';
-    c.fillText(m.cmd, 480, 198);
+    c.fillText(m.cmd, VW / 2, 198);
     c.font = '700 12px -apple-system, "Segoe UI", Roboto, sans-serif'; c.fillStyle = 'rgba(237,238,246,0.75)';
-    c.fillText(pr.count >= PRACTICE_GOAL ? 'GREAT! You got it!' : m.lesson, 400, 222);
+    c.fillText(pr.count >= PRACTICE_GOAL ? 'GREAT! You got it!' : m.lesson, VW / 2 - 80, 222);
     for (var i = 0; i < PRACTICE_GOAL; i++) {
       c.fillStyle = i < pr.count ? '#ffd86a' : 'rgba(255,255,255,0.18)';
-      c.beginPath(); c.arc(560 + i * 24, 218, 8, 0, Math.PI * 2); c.fill();
+      c.beginPath(); c.arc(VW / 2 + 80 + i * 24, 218, 8, 0, Math.PI * 2); c.fill();
     }
     // what you just pressed, newest on the right
     var recent = inputLog.filter(function (e) { return game.time - e.t < 150; });
     if (recent.length) {
       c.font = '800 20px -apple-system, "Segoe UI", Roboto, sans-serif';
-      var x = 480 - (recent.length - 1) * 15;
+      var x = VW / 2 - (recent.length - 1) * 15;
       recent.forEach(function (e, k) {
         c.globalAlpha = 0.45 + 0.55 * (k + 1) / recent.length;
         c.fillStyle = e.s === 'P' ? '#ff7a7a' : e.s === 'K' ? '#7ab4ff' : '#ffffff';
@@ -1986,7 +2059,7 @@ body.playing #controls { display: block; }
       c.textAlign = left ? 'left' : 'right';
       c.lineWidth = 5; c.strokeStyle = 'rgba(40,20,10,0.8)';
       var txt = f.combo + ' HITS!';
-      var x = left ? 24 : W - 24;
+      var x = left ? 24 : VW - 24;
       // sits below the finish banner while it is up
       var y = f.comboNameT > 0 ? 196 : 140;
       c.strokeText(txt, x, y); c.fillStyle = '#ffd86a'; c.fillText(txt, x, y);
@@ -2007,7 +2080,7 @@ body.playing #controls { display: block; }
     var alpha = Math.min(1, f.comboNameT / 14);
     c.globalAlpha = alpha;
     // mirror for the right-hand player so the plate grows from the screen edge
-    if (!left) { c.translate(W, 0); c.scale(-1, 1); }
+    if (!left) { c.translate(VW, 0); c.scale(-1, 1); }
     var x0 = 10, x1 = x0 + w * wipe;
     var plate = function () {
       c.beginPath();
@@ -2060,7 +2133,7 @@ body.playing #controls { display: block; }
   function bigText(c, txt, sub, t, color) {
     var s = Math.min(1, t / 10);
     c.save();
-    c.translate(W / 2, H / 2 - 20);
+    c.translate(VW / 2, H / 2 - 20);
     c.scale(0.6 + s * 0.4 + (t < 10 ? (1 - s) * 0.8 : 0), 0.6 + s * 0.4 + (t < 10 ? (1 - s) * 0.8 : 0));
     c.globalAlpha = Math.min(1, t / 6);
     c.font = 'italic 900 78px -apple-system, "Segoe UI", Roboto, sans-serif';
@@ -2368,7 +2441,7 @@ body.playing #controls { display: block; }
     game.ai1 = null; game.ai2 = { t: 0 };
     projectiles.length = 0; particles.length = 0; rings.length = 0; inputLog.length = 0;
     game.timer = ROUND_TIME; game.phase = 'fight'; game.phaseT = 0;
-    game.hitstop = 0; game.shake = 0; game.superFreeze = 0; game.slowmo = null; game.roundResult = null;
+    game.hitstop = 0; game.shake = 0; game.superFreeze = 0; game.slowmo = null; snapCamera(); game.roundResult = null;
     setMode('playing');
   }
   // the practice partner: stands still for Razor Leaf, guards for Owl Toss, attacks for Wing Counter
@@ -2429,7 +2502,7 @@ body.playing #controls { display: block; }
     game.p1.reset(300, 1); game.p2.reset(660, -1);
     projectiles.length = 0; particles.length = 0; rings.length = 0;
     game.timer = ROUND_TIME; game.phase = 'intro'; game.phaseT = 0;
-    game.hitstop = 0; game.shake = 0; game.superFreeze = 0; game.slowmo = null;
+    game.hitstop = 0; game.shake = 0; game.superFreeze = 0; game.slowmo = null; snapCamera();
     game.roundResult = null;
   }
 
@@ -2451,6 +2524,7 @@ body.playing #controls { display: block; }
     p1.hpLag += (p1.hp - p1.hpLag) * (p1.state === 'hit' ? 0.02 : 0.08);
     p2.hpLag += (p2.hp - p2.hpLag) * (p2.state === 'hit' ? 0.02 : 0.08);
     stepParticles();
+    stepCamera();
     if (game.superFreeze > 0) { game.superFreeze--; return; }
     if (game.hitstop > 0) { game.hitstop--; return; }
     game.phaseT++;
@@ -2465,9 +2539,11 @@ body.playing #controls { display: block; }
     }
     if (game.phase === 'fight' && game.practice) {
       practiceThink(p2, p1, game.in2);
+      var ox1 = p1.x, ox2 = p2.x;
       p1.step(game.in1, p2);
       p2.step(game.in2, p1);
       separate(p1, p2);
+      leash(p1, p2, ox1, ox2);
       stepProjectiles();
       decayBuffers(game.in1); decayBuffers(game.in2);
       p1.hp = p2.hp = 100;   // nobody gets hurt while practising
@@ -2476,10 +2552,12 @@ body.playing #controls { display: block; }
     }
     if (game.phase === 'fight') {
       cpuThink(game.ai2, p2, p1, game.in2);
+      var fx1 = p1.x, fx2 = p2.x;
       p1.step(game.in1, p2);
       p2.step(game.in2, p1);
       if (p2.c.boss && !p2.powered && p2.hp > 0 && p2.hp <= 50) powerUp(p2);
       separate(p1, p2);
+      leash(p1, p2, fx1, fx2);
       stepProjectiles();
       decayBuffers(game.in1); decayBuffers(game.in2);
       game.timer -= 1 / 60;
@@ -2602,9 +2680,10 @@ body.playing #controls { display: block; }
     // combo zoom: scale everything (background + world) about the hit point
     var ze = game.mode === 'playing' || game.mode === 'paused' ? slowmoZoom(performance.now()) : 0;
     var z = 1 + SLOWMO.zoom * ze;
-    var fx = ze ? Math.max(W / 2 - 200, Math.min(W / 2 + 200, game.slowmo.x)) : 0;
+    // focus point in view coordinates (the camera may be panned across the stage)
+    var fx = ze ? Math.max(VW * 0.29, Math.min(VW * 0.71, game.slowmo.x - cam.x)) : 0;
     var fy = ze ? Math.max(300, Math.min(360, game.slowmo.y)) : 0;
-    var zx = (1 - z) * fx * scale, zy = (1 - z) * fy * scale;
+    var zx = (1 - z) * fx * scale - z * cam.x * scale, zy = (1 - z) * fy * scale;
     ctx.setTransform(z, 0, 0, z, zx, zy);
     ctx.drawImage(bgCanvas, 0, 0);
     var sx = game.shake ? (Math.random() - 0.5) * game.shake : 0;
@@ -2625,10 +2704,10 @@ body.playing #controls { display: block; }
     ctx.setTransform(scale, 0, 0, scale, 0, 0);
     if (ze) {
       // soft vignette while the slow motion is on
-      var vg = ctx.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, W * 0.62);
+      var vg = ctx.createRadialGradient(VW / 2, H / 2, H * 0.35, VW / 2, H / 2, VW * 0.62);
       vg.addColorStop(0, 'rgba(0,0,0,0)');
       vg.addColorStop(1, 'rgba(10,6,20,' + (0.45 * ze).toFixed(2) + ')');
-      ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = vg; ctx.fillRect(0, 0, VW, H);
     }
     drawHpBar(ctx, p1, true, game.time);
     drawHpBar(ctx, p2, false, game.time);
@@ -2641,7 +2720,7 @@ body.playing #controls { display: block; }
       ctx.font = 'italic 900 40px -apple-system, "Segoe UI", Roboto, sans-serif';
       ctx.textAlign = so === p1 ? 'left' : 'right';
       ctx.lineWidth = 7; ctx.strokeStyle = 'rgba(20,10,30,0.9)';
-      var tx = so === p1 ? 40 : W - 40;
+      var tx = so === p1 ? 40 : VW - 40;
       var stx = game.superText || so.c.specialName;
       ctx.strokeText(stx, tx, 200); ctx.fillStyle = so.c.color; ctx.fillText(stx, tx, 200);
       ctx.restore();
