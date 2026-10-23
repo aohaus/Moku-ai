@@ -317,7 +317,7 @@ body.playing #controls { display: block; }
 <div id="rotate-hint"><span>📱</span><p>Moku Fight is played in landscape.<br>Please rotate your device.</p></div>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.5.1 · Updated Oct 22, 2026</div>
+<div id="buildInfo">v0.5.3 · Updated Oct 23, 2026</div>
 
 <div id="wrapper">
   <canvas id="c"></canvas>
@@ -880,7 +880,7 @@ body.playing #controls { display: block; }
     this.state = 'idle'; this.t = 0;
     this.atk = null; this.atkKey = null; this.atkFrame = 0; this.hasHit = false;
     this.stun = 0; this.flash = 0; this.combo = 0; this.comboShow = 0;
-    this.chain = []; this.comboName = ''; this.comboNameT = 0; this.aiChained = false;
+    this.chain = []; this.comboName = ''; this.comboKind = ''; this.comboNameT = 0; this.aiChained = false;
     this.airAttacked = false;
     this.powered = false;
   };
@@ -1056,11 +1056,12 @@ body.playing #controls { display: block; }
       o.state = 'hit'; o.stun = 44; o.vx = this.facing * 8; o.vy = -9; o.flash = 8;
       var dmg = Math.round(13 * (this.c.power || 1) * (o.c.defense || 1));
       o.hp = Math.max(0, o.hp - dmg);
-      this.comboName = 'OWL TOSS!'; this.comboNameT = 80;
+      this.comboName = 'OWL TOSS!'; this.comboKind = 'THROW'; this.comboNameT = 80;
       this.meter = Math.min(100, this.meter + 12);
       game.hitstop = 10; game.shake = 12;
       burst(o.x, o.y - 50, this.charId);
       sfx.heavy(); sfx.combo();
+      playerSlowmo(this, o.x, o.y - 50);
       this.grabbed = null;
       practiceEvent('throw', this);
     }
@@ -1114,10 +1115,14 @@ body.playing #controls { display: block; }
 
   // ---------- combo slow motion / camera zoom ----------
   // wall-clock based so it feels the same on every device; starts after the hitstop freeze
-  var SLOWMO = { dur: 750, rate: 0.4, zoom: 0.16, zin: 120, zout: 260 };
+  var SLOWMO = { dur: 750, rate: 0.4, zoom: 0.3, zin: 120, zout: 260 };
   function startSlowmo(x, y) {
     game.slowmo = { start: performance.now(), x: x, y: y };
     sfx.slowmo();
+  }
+  // only the human player's big moments get it (named combos, Owl Toss, Wing Counter)
+  function playerSlowmo(f, x, y) {
+    if (f === game.p1 && !game.ai1) startSlowmo(x, y);
   }
   function slowmoElapsed(now) {
     var s = game.slowmo;
@@ -1174,9 +1179,9 @@ body.playing #controls { display: block; }
       def.meter = Math.min(100, def.meter + 5);
       if (att.combo >= 2) att.comboShow = 70;
       if (a.comboName) {
-        att.comboName = a.comboName; att.comboNameT = 80; sfx.combo();
+        att.comboName = a.comboName; att.comboKind = 'COMBO FINISH'; att.comboNameT = 80; sfx.combo();
         // player's named combo: brief slow motion + zoom on the hit (CPU combos stay plain)
-        if (att === game.p1 && !game.ai1) startSlowmo(hx, hy);
+        playerSlowmo(att, hx, hy);
       }
       game.hitstop = a.special ? 14 : a.comboName ? 12 : (dmg >= 9 ? 8 : 5);
       game.shake = a.special ? 14 : a.comboName ? 10 : (dmg >= 9 ? 7 : 4);
@@ -1189,7 +1194,7 @@ body.playing #controls { display: block; }
 
   function counterStrike(def, att, hx, hy) {
     def.flash = 0; def.guardFlash = 14;
-    def.comboName = 'COUNTER!'; def.comboNameT = 80;
+    def.comboName = 'COUNTER!'; def.comboKind = 'REVERSAL'; def.comboNameT = 80;
     game.hitstop = 14; game.shake = 8;
     burst(hx, hy, 'block');
     sfx.combo();
@@ -1206,8 +1211,10 @@ body.playing #controls { display: block; }
       def.meter = Math.min(100, def.meter + 10);
       burst(att.x, att.y - 50, def.charId);
       sfx.heavy();
+      playerSlowmo(def, att.x, att.y - 50);
     } else {
       def.state = 'idle';
+      playerSlowmo(def, hx, hy);
     }
   }
 
@@ -1973,17 +1980,80 @@ body.playing #controls { display: block; }
   function drawCombo(c, f, left) {
     if ((f.comboShow <= 0 || f.combo < 2) && f.comboNameT <= 0) return;
     c.save();
-    c.globalAlpha = Math.min(1, f.comboShow / 20);
-    c.font = 'italic 900 30px -apple-system, "Segoe UI", Roboto, sans-serif';
-    c.textAlign = left ? 'left' : 'right';
-    c.lineWidth = 5; c.strokeStyle = 'rgba(40,20,10,0.8)';
-    var txt = f.combo + ' HITS!';
-    var x = left ? 24 : W - 24;
-    c.strokeText(txt, x, 140); c.fillStyle = '#ffd86a'; c.fillText(txt, x, 140);
-    if (f.comboNameT > 0) {
-      c.globalAlpha = Math.min(1, f.comboNameT / 15);
-      c.font = 'italic 900 24px -apple-system, "Segoe UI", Roboto, sans-serif';
-      c.strokeText(f.comboName, x, 172); c.fillStyle = f.c.color; c.fillText(f.comboName, x, 172);
+    if (f.comboShow > 0 && f.combo >= 2) {
+      c.globalAlpha = Math.min(1, f.comboShow / 20);
+      c.font = 'italic 900 30px -apple-system, "Segoe UI", Roboto, sans-serif';
+      c.textAlign = left ? 'left' : 'right';
+      c.lineWidth = 5; c.strokeStyle = 'rgba(40,20,10,0.8)';
+      var txt = f.combo + ' HITS!';
+      var x = left ? 24 : W - 24;
+      // sits below the finish banner while it is up
+      var y = f.comboNameT > 0 ? 196 : 140;
+      c.strokeText(txt, x, y); c.fillStyle = '#ffd86a'; c.fillText(txt, x, y);
+    }
+    c.restore();
+    if (f.comboNameT > 0) drawFinishBanner(c, f, left);
+  }
+  // broadcast-style caption plate ("zabuton") under the name / HP bar
+  function drawFinishBanner(c, f, left) {
+    var age = 80 - f.comboNameT;
+    var FONT = 'italic 900 42px -apple-system, "Segoe UI", Roboto, sans-serif';
+    c.save();
+    c.font = FONT;
+    var tw = c.measureText(f.comboName).width;
+    var w = Math.max(260, tw + 92), h = 54, y = 106, slant = 16;
+    var inT = Math.min(1, age / 8);
+    var wipe = 1 - Math.pow(1 - inT, 3);  // ease-out
+    var alpha = Math.min(1, f.comboNameT / 14);
+    c.globalAlpha = alpha;
+    // mirror for the right-hand player so the plate grows from the screen edge
+    if (!left) { c.translate(W, 0); c.scale(-1, 1); }
+    var x0 = 10, x1 = x0 + w * wipe;
+    var plate = function () {
+      c.beginPath();
+      c.moveTo(x0, y); c.lineTo(x1 + slant, y); c.lineTo(x1, y + h); c.lineTo(x0, y + h); c.closePath();
+    };
+    // plate: dark body fading out toward the tail, gold rules top and bottom
+    var g = c.createLinearGradient(x0, 0, x0 + w + slant, 0);
+    g.addColorStop(0, 'rgba(14,10,26,0.94)'); g.addColorStop(0.75, 'rgba(14,10,26,0.82)'); g.addColorStop(1, 'rgba(14,10,26,0.35)');
+    plate(); c.fillStyle = g; c.fill();
+    c.fillStyle = '#ffd86a';
+    c.fillRect(x0, y - 3, (x1 - x0) + slant, 3);
+    c.fillRect(x0, y + h, (x1 - x0), 3);
+    // accent bar in the fighter's colour
+    c.fillStyle = f.c.color; c.fillRect(x0, y, 10, h);
+    // kicker tag on top
+    if (age > 3) {
+      c.font = '900 12px -apple-system, "Segoe UI", Roboto, sans-serif';
+      var kick = f.comboKind || 'COMBO FINISH';
+      var kw = c.measureText(kick).width + 18;
+      c.fillStyle = f.c.color; c.fillRect(x0 + 18, y - 20, kw, 18);
+      c.save(); if (!left) { c.translate(x0 + 18 + kw / 2, 0); c.scale(-1, 1); c.translate(-(x0 + 18 + kw / 2), 0); }
+      c.fillStyle = '#fff'; c.textAlign = 'center'; c.fillText(kick, x0 + 18 + kw / 2, y - 6);
+      c.restore();
+    }
+    // main title slides in with a little overshoot
+    if (age > 2) {
+      var tt = Math.min(1, (age - 2) / 8);
+      var slide = (1 - tt) * -60 + Math.sin(tt * Math.PI) * 8;
+      var tx = x0 + 30 + slide, ty = y + h / 2 + 15;
+      c.save(); c.beginPath(); c.rect(x0 + 10, y - 2, w + slant, h + 4); c.clip();
+      c.save();
+      if (!left) { c.translate(tx + tw / 2, 0); c.scale(-1, 1); c.translate(-(tx + tw / 2), 0); }
+      c.font = FONT; c.textAlign = 'left';
+      c.lineWidth = 6; c.strokeStyle = 'rgba(20,10,30,0.95)'; c.strokeText(f.comboName, tx, ty);
+      var tg = c.createLinearGradient(0, y + 6, 0, y + h - 4);
+      tg.addColorStop(0, '#ffffff'); tg.addColorStop(0.55, '#fff3c4'); tg.addColorStop(1, '#ffc94a');
+      c.fillStyle = tg; c.fillText(f.comboName, tx, ty);
+      c.restore();
+      // light sweep across the plate
+      if (age < 22) {
+        var sx = x0 + (w + 80) * ((age - 2) / 20) - 40;
+        var sg = c.createLinearGradient(sx - 40, 0, sx + 40, 0);
+        sg.addColorStop(0, 'rgba(255,255,255,0)'); sg.addColorStop(0.5, 'rgba(255,255,255,0.55)'); sg.addColorStop(1, 'rgba(255,255,255,0)');
+        c.fillStyle = sg; c.fillRect(sx - 40, y, 80, h);
+      }
+      c.restore();
     }
     c.restore();
   }
@@ -2533,7 +2603,7 @@ body.playing #controls { display: block; }
     var ze = game.mode === 'playing' || game.mode === 'paused' ? slowmoZoom(performance.now()) : 0;
     var z = 1 + SLOWMO.zoom * ze;
     var fx = ze ? Math.max(W / 2 - 200, Math.min(W / 2 + 200, game.slowmo.x)) : 0;
-    var fy = ze ? Math.max(H / 2 - 120, Math.min(H / 2 + 60, game.slowmo.y)) : 0;
+    var fy = ze ? Math.max(300, Math.min(360, game.slowmo.y)) : 0;
     var zx = (1 - z) * fx * scale, zy = (1 - z) * fy * scale;
     ctx.setTransform(z, 0, 0, z, zx, zy);
     ctx.drawImage(bgCanvas, 0, 0);
