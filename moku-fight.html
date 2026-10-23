@@ -317,7 +317,7 @@ body.playing #controls { display: block; }
 <div id="rotate-hint"><span>📱</span><p>Moku Fight is played in landscape.<br>Please rotate your device.</p></div>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.5.0 · Updated Oct 14, 2026</div>
+<div id="buildInfo">v0.5.1 · Updated Oct 22, 2026</div>
 
 <div id="wrapper">
   <canvas id="c"></canvas>
@@ -512,6 +512,7 @@ body.playing #controls { display: block; }
     jump: function () { tone('sine', 300, 600, 0.12, 0.08); },
     toss: function () { noise(0.12, 0.16, 3200); tone('triangle', 700, 1400, 0.1, 0.05); },
     combo: function () { [784, 988, 1318].forEach(function (f, i) { tone('square', f, f, 0.07, 0.05, i * 0.05); }); },
+    slowmo: function () { tone('sine', 220, 70, 0.45, 0.09); },
     special: function () { tone('sawtooth', 180, 900, 0.45, 0.08); tone('sine', 400, 1200, 0.45, 0.06); },
     ko: function () { tone('sine', 120, 40, 0.8, 0.25); noise(0.5, 0.3, 300); },
     beep: function () { tone('sine', 660, 660, 0.12, 0.1); },
@@ -1111,6 +1112,34 @@ body.playing #controls { display: block; }
     return true;
   }
 
+  // ---------- combo slow motion / camera zoom ----------
+  // wall-clock based so it feels the same on every device; starts after the hitstop freeze
+  var SLOWMO = { dur: 750, rate: 0.4, zoom: 0.16, zin: 120, zout: 260 };
+  function startSlowmo(x, y) {
+    game.slowmo = { start: performance.now(), x: x, y: y };
+    sfx.slowmo();
+  }
+  function slowmoElapsed(now) {
+    var s = game.slowmo;
+    if (!s) return -1;
+    var t = now - s.start;
+    if (t >= SLOWMO.dur) { game.slowmo = null; return -1; }
+    return t;
+  }
+  function timeScale(now) {
+    var t = slowmoElapsed(now);
+    if (t < 0) return 1;
+    var back = SLOWMO.dur - SLOWMO.zout;  // ease back to normal speed at the end
+    return t < back ? SLOWMO.rate : SLOWMO.rate + (1 - SLOWMO.rate) * ((t - back) / SLOWMO.zout);
+  }
+  function slowmoZoom(now) {
+    var t = slowmoElapsed(now);
+    if (t < 0) return 0;
+    var e = t < SLOWMO.zin ? t / SLOWMO.zin : t > SLOWMO.dur - SLOWMO.zout ? (SLOWMO.dur - t) / SLOWMO.zout : 1;
+    e = e * e * (3 - 2 * e);  // smoothstep
+    return e;
+  }
+
   function landHit(att, def, a, hx, hy) {
     var fromDir = att.x < def.x ? 1 : -1;
     if (def.state === 'throw' || def.state === 'thrown') return;
@@ -1144,7 +1173,11 @@ body.playing #controls { display: block; }
       att.meter = Math.min(100, att.meter + (a.special ? 0 : a.proj ? 5 : 9));
       def.meter = Math.min(100, def.meter + 5);
       if (att.combo >= 2) att.comboShow = 70;
-      if (a.comboName) { att.comboName = a.comboName; att.comboNameT = 80; sfx.combo(); }
+      if (a.comboName) {
+        att.comboName = a.comboName; att.comboNameT = 80; sfx.combo();
+        // player's named combo: brief slow motion + zoom on the hit (CPU combos stay plain)
+        if (att === game.p1 && !game.ai1) startSlowmo(hx, hy);
+      }
       game.hitstop = a.special ? 14 : a.comboName ? 12 : (dmg >= 9 ? 8 : 5);
       game.shake = a.special ? 14 : a.comboName ? 10 : (dmg >= 9 ? 7 : 4);
       burst(hx, hy, att.charId);
@@ -2265,7 +2298,7 @@ body.playing #controls { display: block; }
     game.ai1 = null; game.ai2 = { t: 0 };
     projectiles.length = 0; particles.length = 0; rings.length = 0; inputLog.length = 0;
     game.timer = ROUND_TIME; game.phase = 'fight'; game.phaseT = 0;
-    game.hitstop = 0; game.shake = 0; game.superFreeze = 0; game.roundResult = null;
+    game.hitstop = 0; game.shake = 0; game.superFreeze = 0; game.slowmo = null; game.roundResult = null;
     setMode('playing');
   }
   // the practice partner: stands still for Razor Leaf, guards for Owl Toss, attacks for Wing Counter
@@ -2326,7 +2359,7 @@ body.playing #controls { display: block; }
     game.p1.reset(300, 1); game.p2.reset(660, -1);
     projectiles.length = 0; particles.length = 0; rings.length = 0;
     game.timer = ROUND_TIME; game.phase = 'intro'; game.phaseT = 0;
-    game.hitstop = 0; game.shake = 0; game.superFreeze = 0;
+    game.hitstop = 0; game.shake = 0; game.superFreeze = 0; game.slowmo = null;
     game.roundResult = null;
   }
 
@@ -2496,11 +2529,17 @@ body.playing #controls { display: block; }
 
   // ---------- rendering ----------
   function render() {
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    // combo zoom: scale everything (background + world) about the hit point
+    var ze = game.mode === 'playing' || game.mode === 'paused' ? slowmoZoom(performance.now()) : 0;
+    var z = 1 + SLOWMO.zoom * ze;
+    var fx = ze ? Math.max(W / 2 - 200, Math.min(W / 2 + 200, game.slowmo.x)) : 0;
+    var fy = ze ? Math.max(H / 2 - 120, Math.min(H / 2 + 60, game.slowmo.y)) : 0;
+    var zx = (1 - z) * fx * scale, zy = (1 - z) * fy * scale;
+    ctx.setTransform(z, 0, 0, z, zx, zy);
     ctx.drawImage(bgCanvas, 0, 0);
     var sx = game.shake ? (Math.random() - 0.5) * game.shake : 0;
     var sy = game.shake ? (Math.random() - 0.5) * game.shake : 0;
-    ctx.setTransform(scale, 0, 0, scale, sx * scale, sy * scale);
+    ctx.setTransform(scale * z, 0, 0, scale * z, sx * scale + zx, sy * scale + zy);
     drawDynamicScenery(ctx, game.time);
     if (!game.p1) { ctx.setTransform(1, 0, 0, 1, 0, 0); return; }
     var p1 = game.p1, p2 = game.p2;
@@ -2514,6 +2553,13 @@ body.playing #controls { display: block; }
     drawProjectiles(ctx, game.time);
     drawParticles(ctx);
     ctx.setTransform(scale, 0, 0, scale, 0, 0);
+    if (ze) {
+      // soft vignette while the slow motion is on
+      var vg = ctx.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, W * 0.62);
+      vg.addColorStop(0, 'rgba(0,0,0,0)');
+      vg.addColorStop(1, 'rgba(10,6,20,' + (0.45 * ze).toFixed(2) + ')');
+      ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+    }
     drawHpBar(ctx, p1, true, game.time);
     drawHpBar(ctx, p2, false, game.time);
     if (game.practice) drawPracticeHud(ctx); else drawTimer(ctx);
@@ -2718,7 +2764,9 @@ body.playing #controls { display: block; }
   function frame(now) {
     var dt = Math.min(100, now - last); last = now;
     if (game.mode === 'playing') {
-      acc += dt;
+      // the hitstop freeze plays at full speed; the slow motion starts when it ends
+      if (game.slowmo && game.hitstop > 0) game.slowmo.start = now;
+      acc += dt * timeScale(now);
       while (acc >= STEP) { step(); acc -= STEP; }
     } else {
       acc = 0;
