@@ -317,7 +317,7 @@ body.playing #controls { display: block; }
 <div id="rotate-hint"><span>📱</span><p>Moku Fight is played in landscape.<br>Please rotate your device.</p></div>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.5.1 · Updated Oct 22, 2026</div>
+<div id="buildInfo">v0.5.2 · Updated Oct 23, 2026</div>
 
 <div id="wrapper">
   <canvas id="c"></canvas>
@@ -1061,6 +1061,7 @@ body.playing #controls { display: block; }
       game.hitstop = 10; game.shake = 12;
       burst(o.x, o.y - 50, this.charId);
       sfx.heavy(); sfx.combo();
+      playerSlowmo(this, o.x, o.y - 50);
       this.grabbed = null;
       practiceEvent('throw', this);
     }
@@ -1119,6 +1120,10 @@ body.playing #controls { display: block; }
     game.slowmo = { start: performance.now(), x: x, y: y };
     sfx.slowmo();
   }
+  // only the human player's big moments get it (named combos, Owl Toss, Wing Counter)
+  function playerSlowmo(f, x, y) {
+    if (f === game.p1 && !game.ai1) startSlowmo(x, y);
+  }
   function slowmoElapsed(now) {
     var s = game.slowmo;
     if (!s) return -1;
@@ -1176,7 +1181,7 @@ body.playing #controls { display: block; }
       if (a.comboName) {
         att.comboName = a.comboName; att.comboNameT = 80; sfx.combo();
         // player's named combo: brief slow motion + zoom on the hit (CPU combos stay plain)
-        if (att === game.p1 && !game.ai1) startSlowmo(hx, hy);
+        playerSlowmo(att, hx, hy);
       }
       game.hitstop = a.special ? 14 : a.comboName ? 12 : (dmg >= 9 ? 8 : 5);
       game.shake = a.special ? 14 : a.comboName ? 10 : (dmg >= 9 ? 7 : 4);
@@ -1206,8 +1211,10 @@ body.playing #controls { display: block; }
       def.meter = Math.min(100, def.meter + 10);
       burst(att.x, att.y - 50, def.charId);
       sfx.heavy();
+      playerSlowmo(def, att.x, att.y - 50);
     } else {
       def.state = 'idle';
+      playerSlowmo(def, hx, hy);
     }
   }
 
