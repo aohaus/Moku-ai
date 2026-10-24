@@ -26,12 +26,21 @@ sam deploy --guided
 タイトルを追加するたびに、そのタイトル用のDreamloリーダーボードを作成し、このJSONにエントリを追加する
 (Lambdaコンソールなら「設定」→「環境変数」から編集、SAMなら`sam deploy --guided`のパラメータとして渡す)。
 
+**`AuthSecret` パラメータ(任意)**: `backend/` の `AuthSecret` と同じ値。設定すると、ログイン中のプレイヤー(SPEC.md §10)の
+スコアがアカウントの表示名+検証済みタグ(`Aoi#u6ffd2`)で登録される。空ならすべてゲスト扱い(従来どおり)。
+
 デプロイ完了後に出力される `ProxyUrl`(またはAPI GatewayのURL)を、`shared/moku-scores.js` の
 `configure({ proxyBaseUrl, gameId })` に渡す。
 
 ## API仕様
 
 プロキシ自身が薄いAPIを提供する(Dreamloの生URLはクライアントから直接は触らない)。
+
+### ログイン中のスコア送信
+
+`action=submit` に `auth=<ログイントークン>` を付けると(`shared/moku-scores.js` が自動で付ける)、`name` は無視され
+`<表示名>#u<5桁>` に置き換わる。ゲストの `name` に `#u` が含まれる場合は `400`(なりすまし防止。ゲストのサフィックスは16進数なので `u` を含まない)。
+トークンはヘッダーではなくクエリで渡す(GETを単純リクエストのままにし、CORSプリフライトを発生させないため)。
 
 ### ランキング取得
 ```

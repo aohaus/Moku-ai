@@ -26,7 +26,7 @@ Mokuball は実装済みだがハブ未公開(準備中)。
 
 ## 2. セーブデータ / 進捗管理
 
-- **保存先**: `localStorage`(サーバー同期は現時点では行わない、将来拡張の余地は残す)。
+- **保存先**: `localStorage`。ログイン中のプレイヤーは §10 のクラウドセーブで端末間同期される(ゲーム側は従来どおり `localStorage` だけを読み書きすればよい)。
 - **キー名前空間**: `moku:<gameId>:<key>` 形式で統一し、ゲーム間の衝突を防ぐ。
   - 例: `moku:angry-mokumoku:progress`, `moku:moyomoyo:highscore`
 - **共通スキーマ(ゲームごとのセーブデータJSON)**:
@@ -119,11 +119,12 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
 - **将来の代替/拡張案: 自前ホスト(API Gateway + Lambda + DynamoDB)**
   - 実装済みテンプレートが `backend/`(AWS SAM)にある。仕様は [`backend/API_SPEC.md`](backend/API_SPEC.md) / デプロイ手順は [`backend/README.md`](backend/README.md)。
   - Dreamloで要件を満たせなくなった場合(25件超の保持、改ざん対策、独自ロジック等)の移行先として保持。
+  - 2026-10-24〜 同じスタックに §10 のアカウント / クラウドセーブ API(`/auth/*` `/save`)を同居させている。スコアAPI(`/scores`)は引き続き予備。
 - **通信タイミング(opt-in、Dreamlo/自前どちらの実装でも共通)**: 常時通信はしない。ゲーム側が明示的に呼ぶのは以下のみ。
   - スコア確定時にベストスコアを送信
   - ランキング画面を開いた時のみ取得を呼ぶ
   - 通信失敗時もローカルの `localStorage` 記録(§2)を正とし、プレイ継続に影響させない。
-- **認証**: なし。デバイスごとのUUIDを`localStorage`の`moku:deviceId`(全ゲーム共通、ゲームIDのnamespaceを付けない)に保存し、プレイヤーキーとして使う。ログイン・アカウント機能は導入しない。
+- **プレイヤー識別**: ゲストはデバイスごとのUUIDを`localStorage`の`moku:deviceId`(全ゲーム共通、ゲームIDのnamespaceを付けない)に保存し、プレイヤーキーとして使う。ログインは任意(§10)。ログイン中は `shared/moku-scores.js` がセッショントークンを送り、プロキシがアカウントの表示名+検証済みタグ `#u…` に置き換える(ゲスト名は `#u` で始まるサフィックスを使えない)。
 - **`gameId`**: ファイル名(拡張子なし、`kebab-case`)と一致させる。例: `angry-moku-battle-royal`。Dreamloのリーダーボード名にもこれを使う。
 - **新規タイトルがランキングを実装する場合**: そのタイトル専用のDreamloリーダーボードを作成し、`dreamlo-proxy`の`GAME_KEYS`環境変数にそのタイトルの`gameId`とpublic/private keyを追加する(要AWSコンソール/デプロイ操作)。クライアント側は`shared/moku-scores.js`を`<script>`で読み込み、`MokuScores.configure({ proxyBaseUrl, gameId })`を呼ぶだけでよく、Dreamloのキーには一切触れない。
 
@@ -158,11 +159,29 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
 
 ## 9. MAINページとハブのローカル集計XP(2026-08-14〜)
 
-- **`main.html`(新規)**: シリーズの入口となるシンプルなスプラッシュページ。マスコットバッジ・2段ロゴ・タグライン・「▶ Get Started」ボタン(`index.html`へ遷移)のみのミニマル構成。背景はハブと同じ写真+時間帯グラデーションシステムをそのまま複製している(`PLACES`/`BANDS`/`updateSky()`ロジック共通)。「What's Moku Series?」の説明トグルボタンを備える。**ログイン導線(`Log In (Coming Soon)`)と設定歯車は非活性のプレースホルダーで、実装は対象外**(SPEC全体の「ログイン不要・サーバー同期なし」方針を維持するため)。
+- **`main.html`(新規)**: シリーズの入口となるシンプルなスプラッシュページ。マスコットバッジ・2段ロゴ・タグライン・「▶ Get Started」ボタン(`index.html`へ遷移)のみのミニマル構成。背景はハブと同じ写真+時間帯グラデーションシステムをそのまま複製している(`PLACES`/`BANDS`/`updateSky()`ロジック共通)。「What's Moku Series?」の説明トグルボタンを備える。設定歯車は非活性のプレースホルダー。ログイン導線は 2026-10-24 に §10 で実装した(API未設定の環境では従来どおり `Log In (Coming Soon)` のまま)。
 - **ハブのグリーティング + Lv/XPバー**: `index.html` ヘッダーに「Hello, Moku! What will you play today?」の挨拶文と、Lv./XPバー(`#xpBar`)を追加した。**サーバーもログインも一切使わず、`#statsTable`と同じ`GAMES`配列から算出する完全ローカル集計値**。
   - 各ゲームエントリに `progress()` 関数を追加(0〜1を返す、未プレイなら0)。ゲームごとの指標例: Angry Mokumoku = クリアLv/30、Shiri of Moku = 解放ステージ/20、Mokuball = 解放ステージ/5、Moyomoyo = ベストスコアとQuestベストをそれぞれ3000点で正規化し50%ずつ合算、MK Mobile・Battle Royalはポイント/レベルを適当な上限値で正規化。
   - `XP_PER_GAME = 400`、`XP_PER_LEVEL = 200`。全ゲームの `progress() * 400` を合算して総XPを算出し、`Lv = floor(総XP / 200) + 1`。全ゲーム未プレイ(総XP = 0)の場合はXPバー自体を非表示にする(`#xpBar.has-xp`)。
   - 新規タイトル追加時は `progress()` も忘れずに追加すること(`#statsTable`の`read()`とセットで管理)。
+
+## 10. アカウント / クラウドセーブ(2026-10-24〜)
+
+ログインは**任意**。ゲストのままでも従来どおり全機能で遊べる(§1「外部通信なしでも起動できる」は維持)。
+
+- **想定規模**: 最大100アカウント(`MaxUsers`)。iPhone / iPad / Android / PC など複数端末から同じアカウントで遊ぶ。
+- **ログイン方式**: プレイヤーID(英数字 `-` `_` 3〜16文字、大文字小文字は区別しない)+ PIN(数字4〜6桁)。メールアドレス不要(主な利用者は小学生)。
+  - 新規登録には**招待コード**が必要(`InviteCode`。保護者が配る)。上限人数に達すると登録不可。
+  - PINを5回連続で間違えるとそのIDを15分ロック(以降5回ごとに30分→60分…最大24時間)。API全体にもレート制限あり。PIN忘れ・ロック解除は保護者が `backend/scripts/accounts.js` で行う。
+  - 表示名(ランキング用、12文字まで)はIDとは別。IDはランキング等に**公開しない**(ログイン情報の半分のため)。公開用には `#u` + 5桁のタグを使う。
+- **バックエンド**: `backend/`(AWS SAM)。`/auth/*` と `/save` を既存の HTTP API に追加。DynamoDB `moku-accounts` テーブル。仕様は [`backend/API_SPEC.md`](backend/API_SPEC.md) の「Accounts」。
+- **クライアント**: [`shared/moku-account.js`](shared/moku-account.js)。
+  - ハブ(`index.html` / `hub.html`): `<script src="shared/moku-account.js"></script>` + `[data-moku-account]`(ログインボタン/アカウントチップの差し込み先)+ `[data-moku-greeting]`(「Hello, <名前>!」に置き換え)。ページ表示時に同期する。
+  - ゲーム: `<script src="shared/moku-account.js" data-mode="background"></script>` を `</head>` 直前に1行足すだけ。UIは出さず、ページを閉じる/隠す時に進捗をアップロードする。未導入のゲームの進捗も次にハブを開いた時に同期される。
+  - APIのURLは `moku-account.js` 冒頭の `API_BASE_URL`。空なら `npm run dev`(localhost:3000)では `server.js` のモック(招待コード `moku-dev`、メモリ保存)を使い、それ以外ではログインUIを出さない。
+- **同期対象**: `localStorage` のうち `moku:` `moku_` `moyomoyo-` `amoku-` で始まるキー全部(`moku:deviceId` `moku:account:*` `moku:sync:*` は除く)。**新規タイトルはこのどれかの接頭辞のキーを使うこと**(§2の `moku:<gameId>:<key>` 規約に従えば自動で対象になる)。
+- **同期ルール**: クラウドセーブは全キーのスナップショット+リビジョン番号(上限300KB)。端末側だけ変化→アップロード、クラウド側だけ変化→ダウンロードしてページ再読み込み、両方変化(またはゲスト進捗がある端末で初ログイン)→「クラウド / この端末」のどちらを残すかプレイヤーに選ばせる。
+- **ログアウト**: クラウドへ保存してから、その端末のMoku進捗を消す(兄弟で1台のiPadを共有する想定)。オフラインで保存できない時は「進捗を端末に残したままログアウト」を選べる。
 
 ## 未決事項 / 次に決めること
 

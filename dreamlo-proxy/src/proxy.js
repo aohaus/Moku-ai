@@ -1,4 +1,5 @@
 const http = require("http");
+const crypto = require("crypto");
 
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
 const UPSTREAM_HOST = "dreamlo.com";
@@ -8,6 +9,10 @@ const UPSTREAM_HOST = "dreamlo.com";
 // sees them, so a public game HTML file can't leak write access to the
 // leaderboard.
 const GAME_KEYS = JSON.parse(process.env.GAME_KEYS || "{}");
+
+// Same HMAC key as backend/ (accounts API). Empty = accounts not set up yet:
+// every submit is treated as a guest.
+const AUTH_SECRET = process.env.AUTH_SECRET || "";
 
 const MAX_NAME_LEN = 20;
 const MAX_LIMIT = 25; // Dreamlo free tier only ever keeps the top 25 anyway.
@@ -48,6 +53,36 @@ function sanitizeName(name) {
   return String(name || "Moku").replace(/\*/g, "").slice(0, MAX_NAME_LEN);
 }
 
+// Copy of verify() in backend/src/token.js — keep the two in sync.
+function verifyToken(token) {
+  if (typeof token !== "string" || !AUTH_SECRET) return null;
+  const [body, mac] = token.split(".");
+  if (!body || !mac) return null;
+  const expected = crypto.createHmac("sha256", AUTH_SECRET).update(body).digest();
+  const given = Buffer.from(mac, "base64url");
+  if (given.length !== expected.length || !crypto.timingSafeEqual(given, expected)) return null;
+  try {
+    const payload = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
+    return payload && payload.exp * 1000 > Date.now() ? payload : null;
+  } catch {
+    return null;
+  }
+}
+
+// Leaderboard names are "<label>#<suffix>". Logged-in players get the
+// account's display name and a "u" + 5-hex tag, set here from the signed
+// token so it can't be faked. Guests send their own name with a hex
+// device-id suffix (shared/moku-scores.js), which never starts with "u".
+function entryName(params) {
+  const account = verifyToken(params.auth);
+  if (account) {
+    return { name: sanitizeName(`${account.name}#u${String(account.uid).slice(0, 5)}`) };
+  }
+  const name = sanitizeName(params.name);
+  if (/#u/i.test(name)) return { error: "names ending in #u… are reserved for logged-in players" };
+  return { name };
+}
+
 async function handleTop(gameId, limitParam) {
   const keys = GAME_KEYS[gameId];
   if (!keys) return json(404, { error: `unknown gameId: ${gameId}` });
@@ -85,7 +120,9 @@ async function handleSubmit(gameId, params) {
   if (!Number.isFinite(score) || score < 0) {
     return json(400, { error: "score must be a non-negative integer" });
   }
-  const name = encodeURIComponent(sanitizeName(params.name));
+  const entry = entryName(params);
+  if (entry.error) return json(400, { error: entry.error });
+  const name = encodeURIComponent(entry.name);
   const seconds = Math.max(0, parseInt(params.seconds, 10) || 0);
 
   const { statusCode } = await fetchUpstream(

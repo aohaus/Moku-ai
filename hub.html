@@ -1164,6 +1164,7 @@ footer {
   <div class="topbar">
     <div class="brand">MOKU SERIES</div>
     <div class="icon-actions">
+      <div data-moku-account></div>
       <button class="icon-btn" type="button" disabled title="Coming soon">🔔</button>
       <div class="settings-wrap">
         <button class="icon-btn" id="settingsBtn" type="button" aria-haspopup="true" aria-expanded="false">⋯</button>
@@ -1181,7 +1182,7 @@ footer {
       </div>
     </div>
     <div class="profile-info">
-      <div id="greeting">Hello, Moku!</div>
+      <div id="greeting" data-moku-greeting>Hello, Moku!</div>
       <div class="sub">What will you play today?</div>
     </div>
     <div class="profile-xp">
@@ -2559,5 +2560,6 @@ footer {
   };
 })();
 </script>
+<script src="shared/moku-account.js"></script>
 </body>
 </html>

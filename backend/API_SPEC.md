@@ -5,7 +5,8 @@ API Gateway (HTTP API) + Lambda + DynamoDB (`backend/template.yaml`)。
 
 ## 設計方針
 
-- **ログイン/アカウント不要**。プレイヤーはデバイスごとのUUID(`deviceId`)で識別する。
+- **ログインは任意**。ゲストはデバイスごとのUUID(`deviceId`)で識別する。ログイン中のプレイヤーは `POST /scores` に
+  `Authorization: Bearer <token>` を付けると、記録が `deviceId = "user:<uid>"`・`playerName = 表示名` で保存される(端末をまたいで1レコード)。
 - **常時通信しない**。SPEC.md §1 の「外部通信なしでも起動できることを基本とする」方針に従い、
   ゲーム側は以下のタイミングのみ通信する:
   - スコア確定時に `POST /scores` でベストスコアを送信(明示的な操作、またはプレイ終了時の自動送信のいずれでも可。ゲームごとに選択)
@@ -93,7 +94,7 @@ Base URL はデプロイ後に `sam deploy` の出力(`ApiUrl`)で決まる。
 
 ## 認証
 
-なし。デバイスIDは自己申告のため、なりすまし・不正送信への耐性は持たない。
+`/scores` はゲストなら認証なし(上記の任意トークンのみ)。デバイスIDは自己申告のため、なりすまし・不正送信への耐性は持たない。
 数百人規模のカジュアル用途と割り切り、将来的に問題が出た場合は API Gateway の
 レート制限強化や reCAPTCHA 的な仕組みの追加を検討する(現時点ではスコープ外)。
 
@@ -101,3 +102,73 @@ Base URL はデプロイ後に `sam deploy` の出力(`ApiUrl`)で決まる。
 
 `template.yaml` の `AllowedOrigin` パラメータで許可オリジンを指定する
 (GitHub Pages等の配布先URL)。開発中は `*` のままでよい。
+
+
+---
+
+# Accounts / Cloud Save(SPEC.md §10)
+
+同じ HTTP API 上のエンドポイント。ハンドラは `src/accountApi.js`(1つの Lambda)。クライアントは `shared/moku-account.js`。
+
+## データ
+
+DynamoDB `moku-accounts`(`pk` + `sk`):
+
+| pk | sk | 内容 |
+| --- | --- | --- |
+| `LOGIN#<loginId>` | `PROFILE` | `loginId` `uid`(公開用ランダムID) `displayName` `pinHash`(scrypt) `tv`(トークン世代) `failCount` `lockedUntil` `createdAt` |
+| `LOGIN#<loginId>` | `SAVE` | `data`(localStorage キー→値 のJSON文字列、300KBまで) `rev` `updatedAt` `device` |
+| `META` | `USERS` | `count` — 登録時にトランザクションで +1 し、`MaxUsers` を超えないようにする |
+
+## トークン
+
+`base64url(payload).base64url(HMAC-SHA256)`(ヘッダーなしの JWT HS256 相当、`src/token.js`)。
+payload: `{ lid, uid, name, tv, iat, exp }`、有効期限90日。`Authorization: Bearer <token>` で送る。
+`/auth/me` `/auth/pin` `/save` は DB の `tv` と照合するので、PIN変更・PINリセットで他端末のトークンは無効になる。
+`dreamlo-proxy` は同じ `AUTH_SECRET` で署名と期限だけを検証する(DBは見ない)。
+
+## エラー形式
+
+`{ "error": "<code>", "message": "<子ども向けの英語メッセージ>" }`。主なコード:
+`invalid_login_id` `invalid_pin` `weak_pin` `bad_invite` `registration_closed` `id_taken` `full` `bad_credentials`
+`locked`(429、`retryAfterSec` 付き) `unauthorized`(401、再ログインが必要) `conflict`(409、`rev` 付き) `too_large`(413)。
+
+## `POST /auth/register`
+
+```json
+{ "inviteCode": "…", "loginId": "aoi", "pin": "2580", "displayName": "Aoi" }
+```
+- `loginId`: `[a-z0-9_-]{3,16}`(大文字は小文字に正規化)。
+- `pin`: 数字4〜6桁。同じ数字の繰り返し・連番(`1234` `9876` 等)は `weak_pin`。
+- `displayName`: 12文字まで。`#` `*` `|` `/` `\` と制御文字は除去。省略時は `loginId`。
+
+**201** `{ "token": "…", "user": { "loginId": "aoi", "displayName": "Aoi", "tag": "u6ffd2" } }`
+
+## `POST /auth/login`
+
+`{ "loginId": "aoi", "pin": "2580" }` → **200** register と同じ形。
+IDが存在しない場合と PIN 違いは同じ応答(`401 bad_credentials`)・同じ処理時間。
+5回連続で失敗するとロック(15分→30分→…最大24時間)、ロック中は正しいPINでも `429 locked`。
+
+## `GET /auth/me`
+
+**200** `{ "user": { … } }`
+
+## `POST /auth/pin`
+
+`{ "currentPin": "2580", "newPin": "4826" }` → **200** `{ "token": "<新トークン>", "user": { … } }`(他端末はログアウトされる)
+
+## `GET /save`
+
+**200** `{ "save": null }` または `{ "save": { "rev": 3, "updatedAt": "…", "device": "iPad", "data": { "moku:…": "…" } } }`
+
+## `PUT /save`
+
+```json
+{ "data": { "moku:shiri-of-moku:progress": "{…}" }, "baseRev": 3, "device": "iPhone" }
+```
+- `data` の値はすべて文字列(localStorage の値そのまま)。
+- `baseRev` はクライアントが最後に見た `rev`(初回は 0)。サーバー側の `rev` と一致した時だけ保存し `rev = baseRev + 1` にする。
+  一致しなければ **409** `{ "error": "conflict", "rev": <現在のrev> }`(別端末が先に保存した)。
+
+**200** `{ "rev": 4, "updatedAt": "…" }`

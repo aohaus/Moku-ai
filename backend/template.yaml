@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  Moku Series — shared game records API.
+  Moku Series — shared game records API + player accounts / cloud save.
   API Gateway (HTTP API) + Lambda + DynamoDB, sized for Free Tier / a few hundred players.
 
 Globals:
@@ -12,6 +12,7 @@ Globals:
     Environment:
       Variables:
         TABLE_NAME: !Ref ScoresTable
+        AUTH_SECRET: !Ref AuthSecret
 
 Parameters:
   AllowedOrigin:
@@ -20,6 +21,26 @@ Parameters:
     Description: >
       CORS origin allowed to call this API (e.g. https://aohaus.github.io).
       Use "*" during development only.
+  AuthSecret:
+    Type: String
+    NoEcho: true
+    MinLength: 32
+    Description: >
+      HMAC key that signs login tokens (e.g. `openssl rand -hex 32`).
+      dreamlo-proxy must be deployed with the same value. Changing it logs
+      everyone out.
+  InviteCode:
+    Type: String
+    NoEcho: true
+    Default: ""
+    Description: >
+      Code a new player must enter to create an account. Hand it out to the
+      people you want to invite; redeploy with a new value to rotate it.
+      Empty = sign-up closed.
+  MaxUsers:
+    Type: Number
+    Default: 100
+    Description: Maximum number of accounts. Sign-up refuses once reached.
 
 Resources:
   ScoresTable:
@@ -49,18 +70,43 @@ Resources:
           Projection:
             ProjectionType: ALL
 
+  AccountsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: moku-accounts
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
   MokuScoresApi:
     Type: AWS::Serverless::HttpApi
     Properties:
+      # Caps the whole API — slows down PIN guessing on top of the
+      # per-account lockout, and is far above what 100 players need.
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 20
+        ThrottlingRateLimit: 10
       CorsConfiguration:
         AllowOrigins:
           - !Ref AllowedOrigin
         AllowMethods:
           - GET
           - POST
+          - PUT
           - OPTIONS
         AllowHeaders:
           - content-type
+          - authorization
 
   SubmitScoreFunction:
     Type: AWS::Serverless::Function
@@ -94,7 +140,61 @@ Resources:
             Path: /scores
             Method: GET
 
+  AccountFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/accountApi.handler
+      CodeUri: .
+      MemorySize: 256 # scrypt PIN hashing is CPU-bound; more memory = more CPU
+      Environment:
+        Variables:
+          ACCOUNTS_TABLE_NAME: !Ref AccountsTable
+          INVITE_CODE: !Ref InviteCode
+          MAX_USERS: !Ref MaxUsers
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AccountsTable
+      Events:
+        Register:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /auth/register
+            Method: POST
+        Login:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /auth/login
+            Method: POST
+        Me:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /auth/me
+            Method: GET
+        ChangePin:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /auth/pin
+            Method: POST
+        GetSave:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /save
+            Method: GET
+        PutSave:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /save
+            Method: PUT
+
 Outputs:
   ApiUrl:
-    Description: Base URL for the Moku scores API
+    Description: >
+      Base URL for the Moku scores + accounts API. Put it in
+      shared/moku-account.js (API_BASE_URL).
     Value: !Sub "https://${MokuScoresApi}.execute-api.${AWS::Region}.amazonaws.com"

@@ -62,4 +62,5 @@
 | Moku Watch 6 Lazy | **Claude Code**(2026-10-18 新規タイトル。AI Studio / Gemini からは変更しない) |
 | Moku Wolf | AI Studio(2026-10-13 に Claude Code で「New Game (Same Settings)」ボタンを部分追加。AI Studio で触る前に `main` を取り込むこと) |
 | ハブ(`hub.html`)のゲーム一覧 | AI Studio(2026-10-13 に Claude Code でゲーム一覧を Today's Pick / Continue / ジャンル棚 / 詳細シートに刷新。`icons/games/` `screenshots/` を新設。AI Studio で触る前に `main` を取り込むこと。仕様は SPEC.md §7) |
+| アカウント / クラウドセーブ(`shared/moku-account.js`、`backend/` の `/auth` `/save`、`server.js` のモック行) | **Claude Code**(2026-10-24 新規。SPEC.md §10。`index.html` / `hub.html` には `<script src="shared/moku-account.js">` と `data-moku-account` / `data-moku-greeting` 属性だけを追加している — AI Studio でハブを触る前に `main` を取り込み、これらを消さないこと) |
 | 上記以外 | AI Studio(Claude Code で触る場合はその都度ここを更新する) |
