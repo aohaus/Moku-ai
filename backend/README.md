@@ -27,6 +27,7 @@ sam deploy --parameter-overrides AllowedOrigin=https://aohaus.github.io AuthSecr
 
 - 途中の `Deploy this changeset? [y/N]:` には `y`。
 - **2回目以降(コードの更新だけ)**: `cd ~/Moku-ai && git pull && cd backend && sam deploy`(保存済みの値で更新される)。
+  - 新しいエンドポイントを足した時(例: 2026-10-24 の `GET /players`)もこれでよい。デプロイ前の古い API でもクライアントは壊れない(プロフィールの Players 欄が出ないだけ)。
 - **AuthSecret を変えずに招待コードだけ変える**: 保管している AuthSecret を `SECRET=...` に入れてから、上の `sam deploy --parameter-overrides ...` を新しい招待コードで実行する。AuthSecret を変えると全員ログアウトされる。
 - `sam deploy --guided`(質問形式)でもよいが、**`AuthSecret` と `InviteCode` は入力しても画面に何も表示されない**(パスワード入力と同じ)。
   貼り付けは1回だけにすること。見えない制御文字が混ざると `ParameterValue for ParameterKey AuthSecret contains invalid characters` で失敗する。

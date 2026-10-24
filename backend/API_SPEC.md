@@ -116,7 +116,7 @@ DynamoDB `moku-accounts`(`pk` + `sk`):
 
 | pk | sk | 内容 |
 | --- | --- | --- |
-| `LOGIN#<loginId>` | `PROFILE` | `loginId` `uid`(公開用ランダムID) `displayName` `pinHash`(scrypt) `tv`(トークン世代) `failCount` `lockedUntil` `createdAt` |
+| `LOGIN#<loginId>` | `PROFILE` | `loginId` `uid`(公開用ランダムID) `displayName` `pinHash`(scrypt) `tv`(トークン世代) `failCount` `lockedUntil` `lastSeenAt`(最終アクセス、ミリ秒) `createdAt` |
 | `LOGIN#<loginId>` | `SAVE` | `data`(localStorage キー→値 のJSON文字列、300KBまで) `rev` `updatedAt` `device` |
 | `META` | `USERS` | `count` — 登録時にトランザクションで +1 し、`MaxUsers` を超えないようにする |
 
@@ -172,3 +172,20 @@ IDが存在しない場合と PIN 違いは同じ応答(`401 bad_credentials`)�
   一致しなければ **409** `{ "error": "conflict", "rev": <現在のrev> }`(別端末が先に保存した)。
 
 **200** `{ "rev": 4, "updatedAt": "…" }`
+
+## `GET /players`
+
+ログイン中のプレイヤーだけが呼べる、全アカウントの一覧(新しくアクセスした順)。
+
+**200**
+```json
+{
+  "players": [
+    { "displayName": "Aoi", "tag": "u6ffd2", "lastSeenAt": "2026-10-24T15:20:00.000Z", "online": true, "you": false }
+  ],
+  "onlineWindowSec": 300
+}
+```
+- `online`: `lastSeenAt` が5分以内。
+- Player ID(`loginId`)は含めない(ログイン情報の半分のため)。
+- `lastSeenAt` は、認証付きのリクエスト(`/auth/me` `/save` `/players` など)とログイン・新規登録のたびに更新される。書き込みは1人1分に1回まで。
