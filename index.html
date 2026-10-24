@@ -493,6 +493,13 @@ h1 .wm-series {
   cursor: not-allowed;
 }
 #loginLink span { font-weight: 600; opacity: 0.75; }
+#transferLink {
+  appearance: none; border: 0; background: none; padding: 4px 8px;
+  font: inherit; font-size: 12.5px; font-weight: 700;
+  color: rgba(237,238,246,0.55); cursor: pointer;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+#transferLink:hover, #transferLink:focus-visible { color: #EDEEF6; }
 
 .quick-row {
   display: flex; gap: 14px; font-size: 22px;
@@ -595,6 +602,7 @@ footer.page-footer {
     </button>
   </div>
   <div id="loginLink" data-moku-account>Log In <span>(Coming Soon)</span></div>
+  <button id="transferLink" type="button" data-moku-transfer>🔁 Transfer Progress</button>
   <div class="quick-row" aria-hidden="true">🦉 🍬 ⚽ 🏆 💬 🕹️ 🍉 🍱 🎣 🏎️ 🎹 🏃</div>
 </div>
 
@@ -1020,5 +1028,6 @@ footer.page-footer {
 })();
 </script>
 <script src="shared/moku-account.js"></script>
+<script src="shared/moku-transfer.js"></script>
 </body>
 </html>

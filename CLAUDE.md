@@ -92,6 +92,7 @@ cd backend && npm test   # アカウントAPIのテスト(AWS不要)
 - `localStorage` のキーは `moku:<gameId>:<key>`。`gameId` はファイル名(拡張子なし)。このキーは自動でクラウドセーブの対象になる(SPEC.md §10)。
 - 新規タイトルを追加したら `index.html` / `hub.html` の `GAMES` 配列(stats / `progress()`)にも追加する。`hub.html` は表示用の `CATALOG` / `SHELVES` と `icons/games/<gameId>.svg` / `screenshots/<gameId>.jpg` も必要(SPEC.md §7)。
 - ゲームページには `<script src="shared/moku-account.js" data-mode="background"></script>` を入れると、ページを閉じた時に進捗がクラウドへ保存される(SPEC.md §10)。
+- 進捗の端末間の移動は2通り: ログインしてのクラウドセーブ(SPEC.md §10)と、サーバー不要の引き継ぎコード `shared/moku-transfer.js`(SPEC.md §11)。どちらも同じ同期対象キーを使う。
 
 ## 開発履歴について
 
