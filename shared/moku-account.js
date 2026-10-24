@@ -4,7 +4,10 @@
  * Include on a page:
  *   <script src="shared/moku-account.js"></script>
  *     Full mode (hub pages). Renders a Log In / account chip into every
- *     [data-moku-account] element, swaps the text of [data-moku-greeting]
+ *     [data-moku-account] element. A button marked data-moku-account="nav"
+ *     (e.g. a bottom-nav tab) keeps its own markup instead: the script
+ *     enables it and fills its [data-moku-account-icon] and
+ *     [data-moku-account-label] children. Swaps the text of [data-moku-greeting]
  *     to "Hello, <name>!", and syncs progress with the cloud on load.
  *   <script src="shared/moku-account.js" data-mode="background"></script>
  *     Game pages. No UI — only uploads progress when the page is hidden or
@@ -335,6 +338,10 @@
     '.mka-avatar{flex:none;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;',
     'background:linear-gradient(135deg,#6EE7A8,#FFC94A);color:#10121E;font-size:12px;font-weight:900}',
     '.mka-dot{flex:none;width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.3)}',
+    '.mka-avatar-wrap{position:relative;display:inline-flex}',
+    '.mka-avatar-wrap .mka-avatar{width:20px;height:20px;font-size:11px}',
+    '.mka-avatar-wrap .mka-dot{position:absolute;right:-2px;bottom:-1px;box-shadow:0 0 0 2px rgba(12,13,22,0.95)}',
+    '.mka-nav-label{max-width:76px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
     '.mka-dot[data-status="ok"]{background:#6EE7A8}',
     '.mka-dot[data-status="syncing"]{background:#FFC94A;animation:mka-pulse 1s ease-in-out infinite}',
     '.mka-dot[data-status="conflict"]{background:#FFC94A}',
@@ -388,7 +395,7 @@
     '.mka-choice .mka-icon{font-size:26px;flex:none}',
     '.mka-choice b{display:block;font-size:15px;font-weight:800}',
     '.mka-choice span span{display:block;margin-top:2px;font-size:12.5px;font-weight:600;color:rgba(237,238,246,0.6)}',
-    '.mka-toast{position:fixed;left:50%;bottom:max(22px,env(safe-area-inset-bottom));z-index:9100;transform:translate(-50%,20px);',
+    '.mka-toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 86px);z-index:9100;transform:translate(-50%,20px);',
     'padding:10px 16px;border-radius:999px;background:rgba(16,18,30,0.94);border:1px solid rgba(110,231,168,0.4);',
     'color:#EDEEF6;font:800 13.5px -apple-system,"Segoe UI",Roboto,sans-serif;opacity:0;pointer-events:none;',
     'transition:opacity .25s,transform .25s;max-width:calc(100vw - 32px)}',
@@ -432,12 +439,37 @@
 
   var greetingDefaults = typeof WeakMap === 'function' ? new WeakMap() : null;
 
+  // A page-owned button (the hub's bottom-nav Profile tab). It ships
+  // disabled as "Coming soon", so it stays that way when accounts are off.
+  function renderNavButton(btn, user) {
+    btn.disabled = false;
+    btn.removeAttribute('title');
+    btn.setAttribute('aria-label', user ? 'Account: ' + user.displayName : 'Log In');
+    var icon = btn.querySelector('[data-moku-account-icon]');
+    var label = btn.querySelector('[data-moku-account-label]');
+    if (icon) {
+      icon.innerHTML = user
+        ? '<span class="mka-avatar-wrap"><span class="mka-avatar">' + esc(Array.from(user.displayName)[0] || '?') + '</span>' +
+          '<span class="mka-dot" data-status="' + status + '"></span></span>'
+        : '👤';
+    }
+    if (label) {
+      label.classList.add('mka-nav-label');
+      label.textContent = user ? user.displayName : 'Log In';
+    }
+    if (!btn.__mokuAccount) {
+      btn.__mokuAccount = true;
+      btn.addEventListener('click', function () { openModal(getUser() ? 'account' : 'login'); });
+    }
+  }
+
   function renderAll() {
     if (mode !== 'full' || !enabled || !document.body) return;
     injectStyle();
     var user = getUser();
 
     Array.prototype.forEach.call(document.querySelectorAll('[data-moku-account]'), function (slot) {
+      if (slot.getAttribute('data-moku-account') === 'nav') return renderNavButton(slot, user);
       slot.innerHTML = user
         ? '<button class="mka-chip" type="button" aria-label="Account: ' + esc(user.displayName) + '">' +
           '<span class="mka-avatar" aria-hidden="true">' + esc(Array.from(user.displayName)[0] || '?') + '</span>' +
