@@ -488,11 +488,14 @@ h1 .wm-series {
 }
 
 #loginLink {
+  width: 100%;
   font-size: 13px; font-weight: 700;
   color: rgba(237,238,246,0.32);
   cursor: not-allowed;
 }
-#loginLink span { font-weight: 600; opacity: 0.75; }
+/* Once accounts are on, shared/moku-account.js fills it with a full-width card. */
+#loginLink:has(.mka-wide) { cursor: auto; margin-top: -10px; }
+#loginLink > span { font-weight: 600; opacity: 0.75; }
 #transferLink {
   appearance: none; border: 0; background: none; padding: 4px 8px;
   font: inherit; font-size: 12.5px; font-weight: 700;
@@ -601,7 +604,7 @@ footer.page-footer {
       <span id="shareBtnLabel">Share</span>
     </button>
   </div>
-  <div id="loginLink" data-moku-account>Log In <span>(Coming Soon)</span></div>
+  <div id="loginLink" data-moku-account="wide" data-moku-new-until="2026-11-24">Log In <span>(Coming Soon)</span></div>
   <button id="transferLink" type="button" data-moku-transfer>🔁 Transfer Progress</button>
   <div class="quick-row" aria-hidden="true">🦉 🍬 ⚽ 🏆 💬 🕹️ 🍉 🍱 🎣 🏎️ 🎹 🏃</div>
 </div>
