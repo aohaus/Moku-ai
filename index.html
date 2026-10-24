@@ -4,12 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Moku Series</title>
-<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
-<link rel="icon" type="image/x-icon" href="favicon.ico">
-<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+<!-- Icons: made by scripts/make-icons.py. Bump ?v= when they change so browsers refetch. -->
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png?v=2">
+<link rel="icon" type="image/x-icon" href="favicon.ico?v=2">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png?v=2">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png?v=2">
 <link rel="manifest" href="hub-manifest.json">
+<meta name="theme-color" content="#0A0B12">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Moku Series">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -488,11 +492,14 @@ h1 .wm-series {
 }
 
 #loginLink {
+  width: 100%;
   font-size: 13px; font-weight: 700;
   color: rgba(237,238,246,0.32);
   cursor: not-allowed;
 }
-#loginLink span { font-weight: 600; opacity: 0.75; }
+/* Once accounts are on, shared/moku-account.js fills it with a full-width card. */
+#loginLink:has(.mka-wide) { cursor: auto; margin-top: -10px; }
+#loginLink > span { font-weight: 600; opacity: 0.75; }
 #transferLink {
   appearance: none; border: 0; background: none; padding: 4px 8px;
   font: inherit; font-size: 12.5px; font-weight: 700;
@@ -601,7 +608,7 @@ footer.page-footer {
       <span id="shareBtnLabel">Share</span>
     </button>
   </div>
-  <div id="loginLink" data-moku-account>Log In <span>(Coming Soon)</span></div>
+  <div id="loginLink" data-moku-account="wide" data-moku-new-until="2026-11-24">Log In <span>(Coming Soon)</span></div>
   <button id="transferLink" type="button" data-moku-transfer>🔁 Transfer Progress</button>
   <div class="quick-row" aria-hidden="true">🦉 🍬 ⚽ 🏆 💬 🕹️ 🍉 🍱 🎣 🏎️ 🎹 🏃</div>
 </div>

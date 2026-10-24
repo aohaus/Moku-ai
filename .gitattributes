@@ -1,0 +1,7 @@
+# Images are binary: never let a tool rewrite them as text (see 2026-10 icon corruption).
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.gif binary
+*.webp binary

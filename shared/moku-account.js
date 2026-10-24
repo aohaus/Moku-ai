@@ -4,7 +4,13 @@
  * Include on a page:
  *   <script src="shared/moku-account.js"></script>
  *     Full mode (hub pages). Renders a Log In / account chip into every
- *     [data-moku-account] element, swaps the text of [data-moku-greeting]
+ *     [data-moku-account] element. A button marked data-moku-account="nav"
+ *     (e.g. a bottom-nav tab) keeps its own markup instead: the script
+ *     enables it and fills its [data-moku-account-icon] and
+ *     [data-moku-account-label] children. data-moku-account="wide" renders a
+ *     full-width call-to-action card instead of the small chip (index.html);
+ *     add data-moku-new-until="YYYY-MM-DD" to show a NEW pill until that day.
+ *     Swaps the text of [data-moku-greeting]
  *     to "Hello, <name>!", and syncs progress with the cloud on load.
  *   <script src="shared/moku-account.js" data-mode="background"></script>
  *     Game pages. No UI — only uploads progress when the page is hidden or
@@ -335,6 +341,32 @@
     '.mka-avatar{flex:none;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;',
     'background:linear-gradient(135deg,#6EE7A8,#FFC94A);color:#10121E;font-size:12px;font-weight:900}',
     '.mka-dot{flex:none;width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.3)}',
+    '.mka-avatar-wrap{position:relative;display:inline-flex}',
+    '.mka-avatar-wrap .mka-avatar{width:20px;height:20px;font-size:11px}',
+    '.mka-avatar-wrap .mka-dot{position:absolute;right:-2px;bottom:-1px;box-shadow:0 0 0 2px rgba(12,13,22,0.95)}',
+    '.mka-nav-label{max-width:76px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.mka-wide{position:relative;display:flex;align-items:center;gap:14px;width:100%;max-width:380px;margin:0 auto;',
+    'padding:14px 18px;border-radius:20px;overflow:hidden;text-align:left;cursor:pointer;font:inherit;color:#EDEEF6;',
+    'border:1.5px solid rgba(255,201,74,0.55);background:linear-gradient(135deg,rgba(255,201,74,0.16),rgba(110,231,168,0.12));',
+    'box-shadow:0 0 26px rgba(255,201,74,0.22),0 8px 22px rgba(0,0,0,0.3);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);',
+    '-webkit-tap-highlight-color:transparent;transition:transform .15s,box-shadow .15s,border-color .15s}',
+    '.mka-wide:hover,.mka-wide:focus-visible{outline:none;border-color:#FFC94A;box-shadow:0 0 34px rgba(255,201,74,0.38),0 8px 22px rgba(0,0,0,0.3)}',
+    '.mka-wide:active{transform:translateY(1px) scale(.99)}',
+    '.mka-wide::after{content:"";position:absolute;top:0;bottom:0;left:-60%;width:40%;pointer-events:none;',
+    'background:linear-gradient(100deg,transparent,rgba(255,255,255,0.18),transparent);animation:mka-shine 4.5s ease-in-out infinite}',
+    '@keyframes mka-shine{0%,55%{left:-60%}100%{left:130%}}',
+    '.mka-wide.is-in{border-color:rgba(110,231,168,0.45);background:rgba(255,255,255,0.07);box-shadow:0 8px 22px rgba(0,0,0,0.3)}',
+    '.mka-wide.is-in::after{display:none}',
+    '.mka-wide-icon{flex:none;width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;',
+    'font-size:24px;background:rgba(255,255,255,0.1)}',
+    '.mka-wide .mka-avatar{width:44px;height:44px;font-size:20px}',
+    '.mka-wide-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}',
+    '.mka-wide-title{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:800;letter-spacing:0.01em}',
+    '.mka-wide-title span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.mka-wide-sub{font-size:12.5px;font-weight:600;color:rgba(237,238,246,0.7);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.mka-new{flex:none;font-style:normal;font-size:10px;font-weight:800;letter-spacing:0.08em;background:#FFF4D6;color:#7A4A00;padding:3px 8px;border-radius:999px}',
+    '.mka-wide-arrow{flex:none;font-size:22px;font-weight:700;color:rgba(237,238,246,0.55)}',
+    '@media (prefers-reduced-motion:reduce){.mka-wide::after{animation:none;display:none}}',
     '.mka-dot[data-status="ok"]{background:#6EE7A8}',
     '.mka-dot[data-status="syncing"]{background:#FFC94A;animation:mka-pulse 1s ease-in-out infinite}',
     '.mka-dot[data-status="conflict"]{background:#FFC94A}',
@@ -388,7 +420,7 @@
     '.mka-choice .mka-icon{font-size:26px;flex:none}',
     '.mka-choice b{display:block;font-size:15px;font-weight:800}',
     '.mka-choice span span{display:block;margin-top:2px;font-size:12.5px;font-weight:600;color:rgba(237,238,246,0.6)}',
-    '.mka-toast{position:fixed;left:50%;bottom:max(22px,env(safe-area-inset-bottom));z-index:9100;transform:translate(-50%,20px);',
+    '.mka-toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 86px);z-index:9100;transform:translate(-50%,20px);',
     'padding:10px 16px;border-radius:999px;background:rgba(16,18,30,0.94);border:1px solid rgba(110,231,168,0.4);',
     'color:#EDEEF6;font:800 13.5px -apple-system,"Segoe UI",Roboto,sans-serif;opacity:0;pointer-events:none;',
     'transition:opacity .25s,transform .25s;max-width:calc(100vw - 32px)}',
@@ -432,12 +464,60 @@
 
   var greetingDefaults = typeof WeakMap === 'function' ? new WeakMap() : null;
 
+  // Full-width call to action (index.html). Logged out it advertises the
+  // feature; logged in it shows who is playing and the cloud-save status.
+  function renderWideButton(slot, user) {
+    var until = slot.getAttribute('data-moku-new-until');
+    var isNew = !user && until && new Date() < new Date(until + 'T23:59:59');
+    slot.innerHTML = user
+      ? '<button class="mka-wide is-in" type="button" aria-label="Account: ' + esc(user.displayName) + '">' +
+        '<span class="mka-avatar-wrap"><span class="mka-avatar">' + esc(Array.from(user.displayName)[0] || '?') + '</span>' +
+        '<span class="mka-dot" data-status="' + status + '"></span></span>' +
+        '<span class="mka-wide-text"><span class="mka-wide-title"><span>' + esc(user.displayName) + '</span></span>' +
+        '<span class="mka-wide-sub">' + esc(statusText()) + '</span></span>' +
+        '<span class="mka-wide-arrow" aria-hidden="true">›</span></button>'
+      : '<button class="mka-wide" type="button">' +
+        '<span class="mka-wide-icon" aria-hidden="true">☁️</span>' +
+        '<span class="mka-wide-text"><span class="mka-wide-title"><span>Log In</span>' +
+        (isNew ? '<em class="mka-new">NEW</em>' : '') + '</span>' +
+        '<span class="mka-wide-sub">Keep your progress on every device</span></span>' +
+        '<span class="mka-wide-arrow" aria-hidden="true">›</span></button>';
+    slot.firstChild.addEventListener('click', function () { openModal(user ? 'account' : 'login'); });
+  }
+
+  // A page-owned button (the hub's bottom-nav Profile tab). It ships
+  // disabled as "Coming soon", so it stays that way when accounts are off.
+  function renderNavButton(btn, user) {
+    btn.disabled = false;
+    btn.removeAttribute('title');
+    btn.setAttribute('aria-label', user ? 'Account: ' + user.displayName : 'Log In');
+    var icon = btn.querySelector('[data-moku-account-icon]');
+    var label = btn.querySelector('[data-moku-account-label]');
+    if (icon) {
+      icon.innerHTML = user
+        ? '<span class="mka-avatar-wrap"><span class="mka-avatar">' + esc(Array.from(user.displayName)[0] || '?') + '</span>' +
+          '<span class="mka-dot" data-status="' + status + '"></span></span>'
+        : '👤';
+    }
+    if (label) {
+      label.classList.add('mka-nav-label');
+      label.textContent = user ? user.displayName : 'Log In';
+    }
+    if (!btn.__mokuAccount) {
+      btn.__mokuAccount = true;
+      btn.addEventListener('click', function () { openModal(getUser() ? 'account' : 'login'); });
+    }
+  }
+
   function renderAll() {
     if (mode !== 'full' || !enabled || !document.body) return;
     injectStyle();
     var user = getUser();
 
     Array.prototype.forEach.call(document.querySelectorAll('[data-moku-account]'), function (slot) {
+      var kind = slot.getAttribute('data-moku-account');
+      if (kind === 'nav') return renderNavButton(slot, user);
+      if (kind === 'wide') return renderWideButton(slot, user);
       slot.innerHTML = user
         ? '<button class="mka-chip" type="button" aria-label="Account: ' + esc(user.displayName) + '">' +
           '<span class="mka-avatar" aria-hidden="true">' + esc(Array.from(user.displayName)[0] || '?') + '</span>' +

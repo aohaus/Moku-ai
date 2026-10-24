@@ -177,6 +177,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
 - **バックエンド**: `backend/`(AWS SAM)。`/auth/*` と `/save` を既存の HTTP API に追加。DynamoDB `moku-accounts` テーブル。仕様は [`backend/API_SPEC.md`](backend/API_SPEC.md) の「Accounts」。
 - **クライアント**: [`shared/moku-account.js`](shared/moku-account.js)。
   - ハブ(`index.html` / `hub.html`): `<script src="shared/moku-account.js"></script>` + `[data-moku-account]`(ログインボタン/アカウントチップの差し込み先)+ `[data-moku-greeting]`(「Hello, <名前>!」に置き換え)。ページ表示時に同期する。
+    - `hub.html` は下部ナビの **Profile** タブがログイン/アカウントボタン(`data-moku-account="nav"`。中の `[data-moku-account-icon]` と `[data-moku-account-label]` をスクリプトが書き換える。未ログインは 👤 Log In、ログイン中は頭文字アイコン+同期状態の点+表示名)。API未設定の環境では従来どおり非活性の「Coming soon」。`index.html` は Get Started の下に幅広のカード型ボタン(`data-moku-account="wide"`。未ログインは ☁️ Log In+説明文+光が流れるアニメーション、`data-moku-new-until` の日付まで NEW バッジ。ログイン中は頭文字アイコン+表示名+保存状態)。
   - ゲーム: `<script src="shared/moku-account.js" data-mode="background"></script>` を `</head>` 直前に1行足すだけ。UIは出さず、ページを閉じる/隠す時に進捗をアップロードする。未導入のゲームの進捗も次にハブを開いた時に同期される。
   - APIのURLは `moku-account.js` 冒頭の `API_BASE_URL`(2026-10-24 デプロイ済み: `https://d6hl1cxi0i.execute-api.ap-southeast-5.amazonaws.com`、呼べるのは `https://aohaus.github.io` からのみ)。`npm run dev`(localhost:3000)では常に `server.js` のモック(招待コード `moku-dev`、メモリ保存)を使う。`API_BASE_URL` が空ならログインUIを出さない。
 - **同期対象**: `localStorage` のうち `moku:` `moku_` `moyomoyo-` `amoku-` で始まるキー全部(`moku:deviceId` `moku:account:*` `moku:sync:*` は除く)。**新規タイトルはこのどれかの接頭辞のキーを使うこと**(§2の `moku:<gameId>:<key>` 規約に従えば自動で対象になる)。

@@ -84,6 +84,8 @@ cd backend && npm test   # アカウントAPIのテスト(AWS不要)
 
 - **`main` に直接 push しない。** 作業ブランチで変更し、PR 経由でマージする。
 - 画像などのバイナリ(`backgrounds/` `brand/` `icons/` `screenshots/`)は理由なく再生成・再エンコードしない。
+  - アプリアイコン・ファビコン(`icons/icon-*.png` `icons/apple-touch-icon.png` `icons/favicon-32.png` `favicon.ico`)は `python3 scripts/make-icons.py` で `brand/mokumoku-hero.png` から作る。作り直したら `index.html` / `hub.html` / `hub-manifest.json` のアイコンURLの `?v=` を上げる(ブラウザのキャッシュ対策)。
+  - 2026-10 に AI Studio の Push で PNG がテキスト扱いされて壊れた(バイト列が `EF BF BD` に化けた)。`.gitattributes` で画像を binary 指定している。
 - 変更したゲームは SPEC.md §5 に従い `#buildInfo` のバージョンと日付を更新する。
 
 ## 7. コーディング規約(要点)
