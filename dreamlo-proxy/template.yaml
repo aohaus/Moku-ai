@@ -19,6 +19,13 @@ Parameters:
       pairs, one entry per Moku title using the leaderboard. The private code
       never leaves this Lambda — clients only ever send a gameId.
       Example: {"angry-moku-battle-royal":{"public":"xxx","private":"yyy"}}
+  AuthSecret:
+    Type: String
+    NoEcho: true
+    Default: ""
+    Description: >
+      Same value as backend/'s AuthSecret. Lets logged-in players' scores
+      show their account name with a verified tag. Empty = guests only.
 
 Resources:
   DreamloProxyFunction:
@@ -33,6 +40,7 @@ Resources:
         Variables:
           ALLOWED_ORIGIN: !Ref AllowedOrigin
           GAME_KEYS: !Ref GameKeys
+          AUTH_SECRET: !Ref AuthSecret
       FunctionUrlConfig:
         AuthType: NONE
         Cors:

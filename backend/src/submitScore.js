@@ -1,6 +1,7 @@
 const { UpdateCommand } = require("@aws-sdk/lib-dynamodb");
 const { doc, TABLE_NAME, toScoreSort } = require("./db");
 const { json } = require("./response");
+const token = require("./token");
 
 const MAX_PLAYER_NAME_LEN = 24;
 const MAX_META_JSON_LEN = 512;
@@ -17,7 +18,17 @@ exports.handler = async (event) => {
     return badRequest("invalid JSON body");
   }
 
-  const { gameId, deviceId, score, playerName, level, meta } = body;
+  let { gameId, deviceId, score, playerName, level, meta } = body;
+
+  // Logged-in players (shared/moku-account.js) send their session token: the
+  // record is keyed to the account instead of the device and shows the
+  // account's display name, so it follows them across devices.
+  const auth = /^Bearer\s+(\S+)$/i.exec(event.headers?.authorization || "");
+  const account = auth && token.verify(auth[1], process.env.AUTH_SECRET);
+  if (account) {
+    deviceId = `user:${account.uid}`;
+    playerName = account.name;
+  }
 
   if (typeof gameId !== "string" || !gameId) return badRequest("gameId is required");
   if (typeof deviceId !== "string" || !deviceId) return badRequest("deviceId is required");

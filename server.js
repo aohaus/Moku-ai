@@ -54,6 +54,9 @@ app.all(['/proxy', '/api/scores'], (req, res) => {
   res.json({ gameId, ranking });
 });
 
+// Accounts / cloud save mock (shared/moku-account.js). See backend/dev/mount.js.
+require('./backend/dev/mount')(app);
+
 // Serve static files from repository root
 app.use(express.static(path.join(__dirname), {
   extensions: ['html', 'htm']
