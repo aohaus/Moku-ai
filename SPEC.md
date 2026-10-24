@@ -178,7 +178,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
 - **クライアント**: [`shared/moku-account.js`](shared/moku-account.js)。
   - ハブ(`index.html` / `hub.html`): `<script src="shared/moku-account.js"></script>` + `[data-moku-account]`(ログインボタン/アカウントチップの差し込み先)+ `[data-moku-greeting]`(「Hello, <名前>!」に置き換え)。ページ表示時に同期する。
   - ゲーム: `<script src="shared/moku-account.js" data-mode="background"></script>` を `</head>` 直前に1行足すだけ。UIは出さず、ページを閉じる/隠す時に進捗をアップロードする。未導入のゲームの進捗も次にハブを開いた時に同期される。
-  - APIのURLは `moku-account.js` 冒頭の `API_BASE_URL`。空なら `npm run dev`(localhost:3000)では `server.js` のモック(招待コード `moku-dev`、メモリ保存)を使い、それ以外ではログインUIを出さない。
+  - APIのURLは `moku-account.js` 冒頭の `API_BASE_URL`(2026-10-24 デプロイ済み: `https://d6hl1cxi0i.execute-api.ap-southeast-5.amazonaws.com`、呼べるのは `https://aohaus.github.io` からのみ)。`npm run dev`(localhost:3000)では常に `server.js` のモック(招待コード `moku-dev`、メモリ保存)を使う。`API_BASE_URL` が空ならログインUIを出さない。
 - **同期対象**: `localStorage` のうち `moku:` `moku_` `moyomoyo-` `amoku-` で始まるキー全部(`moku:deviceId` `moku:account:*` `moku:sync:*` は除く)。**新規タイトルはこのどれかの接頭辞のキーを使うこと**(§2の `moku:<gameId>:<key>` 規約に従えば自動で対象になる)。
 - **同期ルール**: クラウドセーブは全キーのスナップショット+リビジョン番号(上限300KB)。端末側だけ変化→アップロード、クラウド側だけ変化→ダウンロードしてページ再読み込み、両方変化(またはゲスト進捗がある端末で初ログイン)→「クラウド / この端末」のどちらを残すかプレイヤーに選ばせる。
 - **ログアウト**: クラウドへ保存してから、その端末のMoku進捗を消す(兄弟で1台のiPadを共有する想定)。オフラインで保存できない時は「進捗を端末に残したままログアウト」を選べる。

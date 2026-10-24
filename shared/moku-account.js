@@ -26,10 +26,12 @@
 (function (global) {
   'use strict';
 
-  // ← After `sam deploy` in backend/, paste the ApiUrl output here.
-  // Empty: same-origin mock on http://localhost:3000 (npm run dev), and
-  // login stays "Coming Soon" everywhere else.
-  var API_BASE_URL = '';
+  // ApiUrl output of `sam deploy` in backend/ (stack moku-backend,
+  // ap-southeast-5). Only origins listed in the stack's AllowedOrigin can
+  // call it. On http://localhost:3000 (npm run dev) the server.js mock is
+  // used instead, so local testing never touches real accounts.
+  // Empty = login stays "Coming Soon".
+  var API_BASE_URL = 'https://d6hl1cxi0i.execute-api.ap-southeast-5.amazonaws.com';
 
   var TOKEN_KEY = 'moku:account:token';
   var USER_KEY = 'moku:account:user';
@@ -47,8 +49,8 @@
 
   function resolveBase() {
     if (typeof global.MOKU_ACCOUNT_API === 'string') return global.MOKU_ACCOUNT_API.replace(/\/$/, '');
-    if (API_BASE_URL) return API_BASE_URL.replace(/\/$/, '');
     if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) && location.port === '3000') return '';
+    if (API_BASE_URL) return API_BASE_URL.replace(/\/$/, '');
     return null;
   }
   var base = resolveBase();
