@@ -13,6 +13,10 @@ const MAX_DISPLAY_NAME_LEN = 12;
 const MAX_SAVE_BYTES = 300 * 1024; // DynamoDB items cap at 400 KB
 const MAX_SAVE_KEY_LEN = 200;
 const MAX_DEVICE_LEN = 40;
+// lastSeenAt is written at most this often per player, and anyone seen
+// within ONLINE_WINDOW_MS counts as "online" in GET /players.
+const SEEN_WRITE_EVERY_MS = 60 * 1000;
+const ONLINE_WINDOW_MS = 5 * 60 * 1000;
 
 // Every 5th wrong PIN in a row locks the ID: 15 min, then 30, 60 … up to 24 h.
 const FAILS_PER_LOCK = 5;
@@ -56,14 +60,19 @@ function lockMs(failCount) {
   return Math.min(BASE_LOCK_MS * 2 ** Math.max(0, step), MAX_LOCK_MS);
 }
 
-function publicUser(user) {
+// What other players may see.
+function publicUserView(user) {
   return {
-    loginId: user.loginId,
     displayName: user.displayName,
     // Public leaderboard tag. Starts with "u", which never appears in the
     // hex device-id suffix guests get, so the two can't be confused.
     tag: `u${user.uid.slice(0, 5)}`,
   };
+}
+
+// What the player sees about themselves.
+function publicUser(user) {
+  return { loginId: user.loginId, ...publicUserView(user) };
 }
 
 function issueToken(user, secret, now) {
@@ -89,7 +98,34 @@ function createAccountApi(store, config) {
     if (!payload) return null;
     const user = await store.getUser(payload.lid);
     if (!user || user.uid !== payload.uid || user.tv !== payload.tv) return null;
+    await markSeen(user);
     return user;
+  }
+
+  // Feeds the "online" list. Best effort: a failed write never fails the request.
+  async function markSeen(user) {
+    const t = now();
+    if (user.lastSeenAt && t - user.lastSeenAt < SEEN_WRITE_EVERY_MS) return;
+    user.lastSeenAt = t;
+    try {
+      await store.updateUser(user.loginId, { lastSeenAt: t });
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  // Everyone with an account, newest activity first. Only display names and
+  // public tags — never the Player ID, which is half of someone's login.
+  async function listPlayers(me) {
+    const t = now();
+    const players = (await store.listUsers()).map((u) => ({
+      ...publicUserView(u),
+      lastSeenAt: u.lastSeenAt ? new Date(u.lastSeenAt).toISOString() : null,
+      online: !!u.lastSeenAt && t - u.lastSeenAt < ONLINE_WINDOW_MS,
+      you: u.uid === me.uid,
+    }));
+    players.sort((a, b) => (b.lastSeenAt || "").localeCompare(a.lastSeenAt || ""));
+    return json(200, { players, onlineWindowSec: ONLINE_WINDOW_MS / 1000 });
   }
 
   async function register(body) {
@@ -114,6 +150,7 @@ function createAccountApi(store, config) {
       tv: 1,
       failCount: 0,
       lockedUntil: 0,
+      lastSeenAt: now(),
       createdAt: new Date(now()).toISOString(),
     };
     try {
@@ -155,9 +192,7 @@ function createAccountApi(store, config) {
       }
       return badCredentials();
     }
-    if (user.failCount || user.lockedUntil) {
-      await store.updateUser(loginId, { failCount: 0, lockedUntil: 0 });
-    }
+    await store.updateUser(loginId, { failCount: 0, lockedUntil: 0, lastSeenAt: t });
     return json(200, { token: issueToken(user, authSecret, t), user: publicUser(user) });
   }
 
@@ -226,13 +261,14 @@ function createAccountApi(store, config) {
         return route === "POST /auth/login" ? await login(body) : await register(body);
       }
 
-      const authed = ["GET /auth/me", "POST /auth/pin", "GET /save", "PUT /save"];
+      const authed = ["GET /auth/me", "POST /auth/pin", "GET /save", "PUT /save", "GET /players"];
       if (!authed.includes(route)) return err(404, "not_found", "not found");
 
       const user = await authenticate(event);
       if (!user) return err(401, "unauthorized", "Please log in again.");
       if (route === "GET /auth/me") return json(200, { user: publicUser(user) });
       if (route === "GET /save") return await getSave(user);
+      if (route === "GET /players") return await listPlayers(user);
 
       const body = parseBody(event);
       if (!body) return err(400, "invalid_json", "invalid JSON body");

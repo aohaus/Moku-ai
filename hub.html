@@ -1977,6 +1977,32 @@ footer {
       }
     },
     {
+      // Stage clears raise unlockedStages (max 3); clearing stage 3 itself
+      // isn't saved yet, so progress tops out at 2/3 until it is.
+      name: 'Moku Future Run',
+      card: 'mfr',
+      gameId: 'moku-future-run',
+      isCompleted: function () {
+        return isExplicitlyMarked('completed', 'mfr');
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'mfr')) return true;
+        var p = readJSON('moku:moku-future-run:progress');
+        return Boolean(p && ((p.highScore || 0) > 0 || (p.totalBerries || 0) > 0 || (p.unlockedStages || 1) > 1));
+      },
+      progress: function () {
+        if (this.isCompleted()) return 1;
+        var p = readJSON('moku:moku-future-run:progress');
+        return p ? Math.min(1, ((p.unlockedStages || 1) - 1) / 3) : 0;
+      },
+      badge: function () {
+        var p = readJSON('moku:moku-future-run:progress');
+        if (!p || !this.isPlayed()) return null;
+        return 'Stage ' + Math.min(p.unlockedStages || 1, 3) + ' · Best ' + (p.highScore || 0).toLocaleString() +
+          ' · ' + (p.totalBerries || 0).toLocaleString() + ' berries';
+      }
+    },
+    {
       name: 'Moku Watch 6 Lazy',
       card: 'mw6',
       gameId: 'moku-watch-6-lazy',
@@ -2152,6 +2178,49 @@ footer {
   ];
   // Today's Pick rotates daily through titles whose screenshot shows real gameplay.
   var FEATURED = ['mfg', 'mkt', 'am', 'mc'];
+
+  // ---------- Profile: "My Saves" ----------
+  // shared/moku-account.js calls this to list the player's saves: one row per
+  // game with progress, its badge() line, and when that game's save keys last
+  // changed (savedAt = the sync's per-key stamps, moku:meta:saved-at).
+  // A game's keys are moku:<gameId>:… and moku:completed:<card>, plus the
+  // older un-namespaced keys below. New titles only need the moku:<gameId>: form.
+  var LEGACY_SAVE_PREFIXES = {
+    'angry-mokumoku': ['amoku-'],
+    'moyomoyo': ['moyomoyo-'],
+    'angry-moku-battle-royal': ['moku:save'],
+    'moku-drop': ['moku_drop_'],
+    'moku-bento': ['moku_bento_'],
+    'moku-fishing': ['moku_fishing_'],
+    'moku-kart': ['moku_kart_'],
+    'moku-rhythm': ['moku_rhythm_'],
+    'moku-wolf': ['moku_wolf_'],
+    'moku-rane': ['moku:mr:']
+  };
+  window.MOKU_SAVE_SUMMARY = function (savedAt) {
+    var stamped = Object.keys(savedAt || {});
+    return GAMES.map(function (g) {
+      var summary = g.badge ? g.badge() : null;
+      if (!summary) return null;
+      var prefixes = ['moku:' + g.gameId + ':', 'moku:completed:' + g.card]
+        .concat(LEGACY_SAVE_PREFIXES[g.gameId] || []);
+      var latest = '';
+      stamped.forEach(function (k) {
+        var mine = prefixes.some(function (p) { return k.indexOf(p) === 0; });
+        if (mine && savedAt[k] > latest) latest = savedAt[k];
+      });
+      var c = CATALOG[g.card] || {};
+      return {
+        name: c.name || g.name,
+        summary: summary,
+        savedAt: latest || null,
+        hi: c.hi, lo: c.lo,
+        icon: 'icons/games/' + g.gameId + '.svg'
+      };
+    }).filter(Boolean).sort(function (a, b) {
+      return (b.savedAt || '').localeCompare(a.savedAt || '');
+    });
+  };
 
   var lastGameState = {};
   var tileNodes = {};

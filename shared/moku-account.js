@@ -10,6 +10,9 @@
  *     [data-moku-account-label] children. data-moku-account="wide" renders a
  *     full-width call-to-action card instead of the small chip (index.html);
  *     add data-moku-new-until="YYYY-MM-DD" to show a NEW pill until that day.
+ *     The account panel lists the player's saves when the page defines
+ *     window.MOKU_SAVE_SUMMARY(savedAt) (hub.html does), and everyone else
+ *     with an account (GET /players). Opening a page with #profile shows it.
  *     Swaps the text of [data-moku-greeting]
  *     to "Hello, <name>!", and syncs progress with the cloud on load.
  *   <script src="shared/moku-account.js" data-mode="background"></script>
@@ -47,7 +50,13 @@
   var NO_SYNC = ['moku:deviceId', 'moku:account:', 'moku:sync:'];
   // Written by the hub itself on every visit — doesn't count as "progress"
   // when deciding whether a fresh device has anything worth keeping.
-  var NOT_PROGRESS = ['moku:stats:streak'];
+  // moku:meta:saved-at maps each save key to when it last changed (stamped
+  // at sync time). It travels with the save, so every device shows the same
+  // "saved" times in the profile.
+  var SAVED_AT_KEY = 'moku:meta:saved-at';
+  var NOT_PROGRESS = ['moku:stats:streak', SAVED_AT_KEY];
+  var HEARTBEAT_MS = 2 * 60 * 1000; // keeps "online" in the players list fresh
+  var PLAYERS_TTL_MS = 60 * 1000;
   var KEEPALIVE_MAX_BYTES = 60000; // browsers cap keepalive bodies at 64 KB
 
   var script = document.currentScript;
@@ -118,10 +127,8 @@
     if (data) Object.keys(data).forEach(function (k) { lsSet(k, data[k]); });
   }
 
-  // FNV-1a over key-sorted JSON: cheap change detection, not security.
-  function hashData(data) {
-    var keys = Object.keys(data).sort();
-    var str = JSON.stringify(keys.map(function (k) { return [k, data[k]]; }));
+  // FNV-1a: cheap change detection, not security.
+  function hashStr(str) {
     var h = 0x811c9dc5;
     for (var i = 0; i < str.length; i++) {
       h ^= str.charCodeAt(i);
@@ -129,13 +136,57 @@
     }
     return h.toString(16) + ':' + str.length;
   }
+  // Hash of the game data only: the saved-at stamps don't count, so two
+  // copies of the same progress match even if they were stamped separately.
+  function hashData(data) {
+    var keys = Object.keys(data).filter(function (k) { return k !== SAVED_AT_KEY; }).sort();
+    return hashStr(JSON.stringify(keys.map(function (k) { return [k, data[k]]; })));
+  }
+  function keyHashes(data) {
+    var out = {};
+    Object.keys(data).forEach(function (k) { if (k !== SAVED_AT_KEY) out[k] = hashStr(data[k]); });
+    return out;
+  }
 
   function getSyncState(user) {
     var st = readJson(SYNC_KEY);
     return st && user && st.lid === user.loginId ? st : null;
   }
-  function setSyncState(user, rev, hash) {
-    lsSet(SYNC_KEY, JSON.stringify({ lid: user.loginId, rev: rev, hash: hash, at: new Date().toISOString() }));
+  // `data` is what this device and the cloud now agree on; its per-key
+  // hashes let the next sync tell which saves changed in between.
+  function setSyncState(user, rev, data) {
+    lsSet(SYNC_KEY, JSON.stringify({
+      lid: user.loginId, rev: rev, hash: hashData(data), keys: keyHashes(data), at: new Date().toISOString()
+    }));
+  }
+
+  function readSavedAt(data) {
+    try { return JSON.parse((data || {})[SAVED_AT_KEY] || lsGet(SAVED_AT_KEY) || '{}') || {}; } catch (e) { return {}; }
+  }
+
+  // Stamps "now" on every save key that changed since the last sync (or
+  // that has no stamp yet), writes the stamps back, and returns `local`
+  // including them.
+  function stampChanges(local, st) {
+    var prev = st && st.keys;
+    var stamps = readSavedAt(local);
+    var now = new Date().toISOString();
+    var changed = false;
+    Object.keys(local).forEach(function (k) {
+      if (k === SAVED_AT_KEY) return;
+      if (prev ? prev[k] !== hashStr(local[k]) : !stamps[k]) {
+        stamps[k] = now;
+        changed = true;
+      }
+    });
+    Object.keys(stamps).forEach(function (k) {
+      if (!(k in local)) { delete stamps[k]; changed = true; }
+    });
+    if (changed) {
+      local[SAVED_AT_KEY] = JSON.stringify(stamps);
+      lsSet(SAVED_AT_KEY, local[SAVED_AT_KEY]);
+    }
+    return local;
   }
 
   function deviceLabel() {
@@ -203,14 +254,14 @@
 
   function upload(user, data, baseRev) {
     return api('PUT', '/save', { data: data, baseRev: baseRev, device: deviceLabel() }).then(function (res) {
-      setSyncState(user, res.rev, hashData(data));
+      setSyncState(user, res.rev, data);
       return res;
     });
   }
 
   function adoptRemote(user, remote) {
     replaceLocal(remote.data);
-    setSyncState(user, remote.rev, hashData(remote.data));
+    setSyncState(user, remote.rev, remote.data);
     // Every page reads localStorage on load, so reload to show the new progress.
     location.reload();
   }
@@ -224,22 +275,29 @@
 
     function attempt(retried) {
       var user = getUser();
+      var st = getSyncState(user);
       var local = collectLocal();
       var localHash = hashData(local);
-      var st = getSyncState(user);
+      // Stamp just before uploading, so the stamps record real changes only.
+      function send(baseRev) {
+        return upload(user, stampChanges(local, st), baseRev).then(function () { return 'ok'; });
+      }
 
       return api('GET', '/save').then(function (res) {
         var remote = res.save;
-        if (!remote) return upload(user, local, 0).then(function () { return 'ok'; });
+        if (!remote) return send(0);
 
         var remoteHash = hashData(remote.data);
         if (remoteHash === localHash) {
-          setSyncState(user, remote.rev, localHash);
+          // Same progress (e.g. this device's own upload as the page closed):
+          // take the cloud's stamps so every device shows the same times.
+          if (remote.data[SAVED_AT_KEY]) lsSet(SAVED_AT_KEY, remote.data[SAVED_AT_KEY]);
+          setSyncState(user, remote.rev, remote.data);
           return 'ok';
         }
         if (st && st.rev === remote.rev) {
           // Cloud unchanged since our last sync → our edits win.
-          return upload(user, local, remote.rev).then(function () { return 'ok'; });
+          return send(remote.rev);
         }
         var localUntouched = st ? st.hash === localHash : !hasProgress(local);
         if (localUntouched) {
@@ -252,7 +310,7 @@
             adoptRemote(user, remote);
             return 'ok';
           }
-          if (choice === 'device') return upload(user, local, remote.rev).then(function () { return 'ok'; });
+          if (choice === 'device') return send(remote.rev);
           return 'conflict';
         });
       }).catch(function (err) {
@@ -281,12 +339,12 @@
     var st = getSyncState(user);
     if (!enabled || !user || !st || running) return;
     var local = collectLocal();
-    var hash = hashData(local);
-    if (hash === st.hash) return;
+    if (hashData(local) === st.hash) return;
+    stampChanges(local, st);
     var body = JSON.stringify({ data: local, baseRev: st.rev, device: deviceLabel() });
     if (body.length > KEEPALIVE_MAX_BYTES) return;
     api('PUT', '/save', { data: local, baseRev: st.rev, device: deviceLabel() }, { keepalive: true })
-      .then(function (res) { setSyncState(user, res.rev, hash); })
+      .then(function (res) { setSyncState(user, res.rev, local); })
       .catch(function () {});
   }
 
@@ -345,6 +403,29 @@
     '.mka-avatar-wrap .mka-avatar{width:20px;height:20px;font-size:11px}',
     '.mka-avatar-wrap .mka-dot{position:absolute;right:-2px;bottom:-1px;box-shadow:0 0 0 2px rgba(12,13,22,0.95)}',
     '.mka-nav-label{max-width:76px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.mka-panel.is-profile{max-width:420px}',
+    '.mka-section{margin-top:18px}',
+    '.mka-section-h{display:flex;align-items:baseline;justify-content:space-between;margin:0 2px 8px;',
+    'font-size:12px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:rgba(237,238,246,0.6)}',
+    '.mka-section-h small{font-size:12px;letter-spacing:0;text-transform:none;font-weight:700;color:#6EE7A8}',
+    '.mka-list{display:flex;flex-direction:column;gap:2px;padding:4px;border-radius:14px;',
+    'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)}',
+    '.mka-row{display:flex;align-items:center;gap:11px;padding:8px;border-radius:10px;min-width:0}',
+    '.mka-row + .mka-row{border-top:1px solid rgba(255,255,255,0.05)}',
+    '.mka-tile{flex:none;width:36px;height:36px;border-radius:26%;display:flex;align-items:center;justify-content:center;',
+    'box-shadow:inset 0 0 0 1px rgba(255,255,255,0.18)}',
+    '.mka-tile img{width:80%;height:80%}',
+    '.mka-row-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}',
+    '.mka-row-main b{font-size:14px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.mka-row-main span{font-size:12px;font-weight:600;color:rgba(237,238,246,0.62);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.mka-row-side{flex:none;font-size:11.5px;font-weight:700;color:rgba(237,238,246,0.5);text-align:right}',
+    '.mka-row-side.is-online{color:#6EE7A8}',
+    '.mka-row .mka-avatar{width:32px;height:32px;font-size:14px}',
+    '.mka-you{margin-left:6px;font-size:10px;font-weight:800;letter-spacing:0.06em;color:#10121E;background:#6EE7A8;',
+    'padding:2px 6px;border-radius:999px;vertical-align:2px}',
+    '.mka-empty{padding:12px;font-size:13px;font-weight:600;color:rgba(237,238,246,0.55);text-align:center}',
+    '.mka-more{display:block;margin:6px auto 0}',
+    'a.mka-secondary{display:flex;align-items:center;justify-content:center;text-decoration:none}',
     '.mka-wide{position:relative;display:flex;align-items:center;gap:14px;width:100%;max-width:380px;margin:0 auto;',
     'padding:14px 18px;border-radius:20px;overflow:hidden;text-align:left;cursor:pointer;font:inherit;color:#EDEEF6;',
     'border:1.5px solid rgba(255,201,74,0.55);background:linear-gradient(135deg,rgba(255,201,74,0.16),rgba(110,231,168,0.12));',
@@ -440,6 +521,17 @@
     var hh = String(d.getHours()).padStart(2, '0');
     var mm = String(d.getMinutes()).padStart(2, '0');
     return months[d.getMonth()] + ' ' + d.getDate() + ', ' + hh + ':' + mm;
+  }
+
+  function relTime(iso) {
+    var t = Date.parse(iso || '');
+    if (!t) return '';
+    var min = Math.floor((Date.now() - t) / 60000);
+    if (min < 1) return 'Just now';
+    if (min < 60) return min + ' min ago';
+    if (min < 24 * 60) return Math.floor(min / 60) + ' h ago';
+    if (min < 48 * 60) return 'Yesterday';
+    return fmtDate(iso).split(',')[0];
   }
 
   function statusText() {
@@ -602,11 +694,13 @@
         (isLogin ? '<p class="mka-sub" style="text-align:center">Forgot your PIN? Ask a grown-up to reset it.</p>' : '') +
         '</form>';
     } else if (view === 'account' && user) {
+      html = html.replace('class="mka-panel"', 'class="mka-panel is-profile"');
       html += HERO + '<h2 class="mka-title" id="mkaTitle">' + esc(user.displayName) + '</h2>' +
         '<p class="mka-sub">Player ID: ' + esc(user.loginId) + '</p></div>' +
         '<div class="mka-meta"><span>' + esc(statusText()) + '</span>' +
         '<span>Leaderboard name: <b>' + esc(user.displayName) + '</b> #' + esc(user.tag) + '</span></div>' +
-        '<div class="mka-actions">' +
+        savesSection() + playersSection() +
+        '<div class="mka-actions mka-section">' +
         '<button class="mka-secondary" type="button" data-act="sync">☁️ Save now</button>' +
         '<button class="mka-secondary" type="button" data-go="pin">🔑 Change PIN</button>' +
         '<button class="mka-secondary" type="button" data-go="logout">👋 Log Out</button></div>';
@@ -674,6 +768,14 @@
       errorEl.textContent = msg;
     }
 
+    Array.prototype.forEach.call(panel.querySelectorAll('[data-more]'), function (b) {
+      b.addEventListener('click', function () {
+        expanded[b.getAttribute('data-more')] = true;
+        renderModal('account');
+      });
+    });
+    if (view === 'account') loadPlayers();
+
     var syncBtn = panel.querySelector('[data-act="sync"]');
     if (syncBtn) syncBtn.addEventListener('click', function () { syncNow({ interactive: true }); });
 
@@ -693,7 +795,8 @@
     var form = panel.querySelector('form');
     if (form) {
       var first = form.querySelector('input');
-      if (first) setTimeout(function () { first.focus(); }, 30);
+      // Don't steal focus if the player already tapped into another field.
+      if (first) setTimeout(function () { if (!form.contains(document.activeElement)) first.focus(); }, 30);
       form.addEventListener('submit', function (e) {
         e.preventDefault();
         var v = {};
@@ -714,6 +817,78 @@
         }).then(function () { submit.disabled = false; });
       });
     }
+  }
+
+  // ---------- profile: my saves + players ----------
+
+  var expanded = {};
+  var LIST_PREVIEW = 5;
+
+  function moreButton(name, total) {
+    if (expanded[name] || total <= LIST_PREVIEW) return '';
+    return '<button class="mka-link mka-more" type="button" data-more="' + name + '">Show all (' + total + ')</button>';
+  }
+
+  function savesSection() {
+    var head = '<div class="mka-section"><h3 class="mka-section-h">My Saves</h3>';
+    if (typeof global.MOKU_SAVE_SUMMARY !== 'function') {
+      // Only the hub knows how to summarize each game.
+      return head + '<a class="mka-secondary" href="hub.html#profile">📒 See my saves</a></div>';
+    }
+    var saves = [];
+    try { saves = global.MOKU_SAVE_SUMMARY(readSavedAt()) || []; } catch (e) {}
+    if (!saves.length) return head + '<div class="mka-list"><div class="mka-empty">No saves yet — go play a game! 🎮</div></div></div>';
+    var shown = expanded.saves ? saves : saves.slice(0, LIST_PREVIEW);
+    return head + '<div class="mka-list">' + shown.map(function (g) {
+      return '<div class="mka-row">' +
+        '<span class="mka-tile" style="background:linear-gradient(150deg,' + esc(g.hi || '#888') + ',' + esc(g.lo || '#444') + ')">' +
+        (g.icon ? '<img src="' + esc(g.icon) + '" alt="">' : '') + '</span>' +
+        '<span class="mka-row-main"><b>' + esc(g.name) + '</b><span>' + esc(g.summary) + '</span></span>' +
+        '<span class="mka-row-side">' + esc(g.savedAt ? relTime(g.savedAt) : '') + '</span></div>';
+    }).join('') + '</div>' + moreButton('saves', saves.length) + '</div>';
+  }
+
+  // { at, players } | { at, hidden: true } (failed; retried after the TTL)
+  // | { unsupported: true } (backend has no /players) | null (not loaded yet)
+  var playersCache = null;
+  var playersLoading = false;
+
+  function loadPlayers() {
+    if (playersLoading || (playersCache && (playersCache.unsupported || Date.now() - playersCache.at < PLAYERS_TTL_MS))) return;
+    var hadList = !!(playersCache && playersCache.players);
+    playersLoading = true;
+    api('GET', '/players').then(function (res) {
+      playersCache = { at: Date.now(), players: res.players || [] };
+    }, function (err) {
+      if (handleAuthError(err)) { closeModal(); return; }
+      // Older backend without /players: leave the section out. Other
+      // failures (offline …) keep the last list, or hide the section, until
+      // the next try after the TTL.
+      if (err.status === 404) playersCache = { unsupported: true };
+      else if (hadList) playersCache.at = Date.now();
+      else playersCache = { at: Date.now(), hidden: true };
+    }).then(function () {
+      playersLoading = false;
+      if (modalView === 'account' && playersCache) renderModal('account');
+    });
+  }
+
+  function playersSection() {
+    if (playersCache && (playersCache.unsupported || playersCache.hidden)) return '';
+    var head = '<div class="mka-section"><h3 class="mka-section-h">Players';
+    if (!playersCache) return head + '</h3><div class="mka-list"><div class="mka-empty">Loading…</div></div></div>';
+    var players = playersCache.players;
+    var online = players.filter(function (p) { return p.online; }).length;
+    var shown = expanded.players ? players : players.slice(0, LIST_PREVIEW);
+    return head + ' <small>' + online + ' online</small></h3><div class="mka-list">' + shown.map(function (p) {
+      return '<div class="mka-row">' +
+        '<span class="mka-avatar-wrap"><span class="mka-avatar">' + esc(Array.from(p.displayName)[0] || '?') + '</span>' +
+        (p.online ? '<span class="mka-dot" data-status="ok"></span>' : '') + '</span>' +
+        '<span class="mka-row-main"><b>' + esc(p.displayName) + (p.you ? '<em class="mka-you">YOU</em>' : '') + '</b>' +
+        '<span>#' + esc(p.tag) + '</span></span>' +
+        '<span class="mka-row-side' + (p.online ? ' is-online' : '') + '">' +
+        (p.online ? '● Online' : esc(p.lastSeenAt ? relTime(p.lastSeenAt) : '')) + '</span></div>';
+    }).join('') + '</div>' + moreButton('players', players.length) + '</div>';
   }
 
   function chooseSave(remote, local) {
@@ -745,7 +920,16 @@
 
   function boot() {
     renderAll();
-    if (mode === 'full') syncNow({ interactive: true });
+    if (mode === 'full') {
+      syncNow({ interactive: true });
+      if (location.hash === '#profile' && getUser()) openModal('account');
+    }
+  }
+
+  // Tells the server this player is still around (GET /players "online").
+  function heartbeat() {
+    if (!getUser() || document.visibilityState !== 'visible') return;
+    api('GET', '/auth/me').catch(handleAuthError);
   }
 
   if (enabled) {
@@ -753,6 +937,7 @@
       if (document.visibilityState === 'hidden') flushOnHide();
     });
     global.addEventListener('pagehide', flushOnHide);
+    setInterval(heartbeat, HEARTBEAT_MS);
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
     else boot();
   }
@@ -762,6 +947,7 @@
     getUser: getUser,
     getToken: getToken,
     getStatus: function () { return status; },
+    getSavedAt: function () { return readSavedAt(); },
     onStatusChange: function (fn) { listeners.push(fn); },
     openLogin: function () { if (enabled) openModal(getUser() ? 'account' : 'login'); },
     syncNow: syncNow,

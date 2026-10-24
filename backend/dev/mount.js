@@ -15,7 +15,7 @@ module.exports = function mountDevAccounts(app) {
     maxUsers: 100,
   });
 
-  app.all(["/auth/:action", "/save"], async (req, res) => {
+  app.all(["/auth/:action", "/save", "/players"], async (req, res) => {
     const result = await handler({
       requestContext: { http: { method: req.method } },
       rawPath: req.path,

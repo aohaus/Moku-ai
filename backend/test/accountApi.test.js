@@ -133,3 +133,30 @@ test("tokens expire", () => {
   assert.equal(token.verify(t, SECRET, t0 + 1000).lid, "aoi");
   assert.equal(token.verify(t, SECRET, t0 + (token.TOKEN_TTL_SEC + 1) * 1000), null);
 });
+
+test("players list: public names only, newest first, online within 5 min", async () => {
+  const { call, register, advance } = setup();
+  const aoi = (await register("aoi", "2580", { displayName: "Aoi" })).body.token;
+  advance(10 * 60 * 1000);
+  const ren = (await register("ren", "4826", { displayName: "Ren" })).body.token;
+
+  assert.equal((await call("GET", "/players")).status, 401);
+  const res = await call("GET", "/players", null, ren);
+  assert.equal(res.status, 200);
+  const [first, second] = res.body.players;
+  assert.equal(first.displayName, "Ren");
+  assert.equal(first.you, true);
+  assert.equal(first.online, true);
+  assert.equal(second.displayName, "Aoi");
+  assert.equal(second.online, false); // last seen 10 min ago
+  assert.equal(second.you, false);
+  for (const p of res.body.players) {
+    assert.deepEqual(Object.keys(p).sort(), ["displayName", "lastSeenAt", "online", "tag", "you"]);
+  }
+
+  // Any authenticated call counts as being seen.
+  await call("GET", "/auth/me", null, aoi);
+  const again = (await call("GET", "/players", null, ren)).body.players;
+  assert.equal(again[0].displayName, "Aoi");
+  assert.equal(again[0].online, true);
+});

@@ -179,6 +179,12 @@ Resources:
             ApiId: !Ref MokuScoresApi
             Path: /auth/pin
             Method: POST
+        Players:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /players
+            Method: GET
         GetSave:
           Type: HttpApi
           Properties:

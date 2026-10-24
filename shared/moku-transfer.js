@@ -22,8 +22,8 @@
   // Same key selection as shared/moku-account.js (cloud save) — keep in sync.
   var SYNC_PREFIXES = ['moku:', 'moku_', 'moyomoyo-', 'amoku-'];
   var NO_SYNC = ['moku:deviceId', 'moku:account:', 'moku:sync:'];
-  // Written by the hub on every visit; not "progress" on its own.
-  var NOT_PROGRESS = ['moku:stats:streak'];
+  // Written by the hub / cloud sync on their own; not "progress".
+  var NOT_PROGRESS = ['moku:stats:streak', 'moku:meta:saved-at'];
 
   function isSyncKey(key) {
     var i;
@@ -373,7 +373,7 @@
     var errorEl = panel.querySelector('.mkt-error');
     var checkBtn = panel.querySelector('[data-act="check"]');
     var fileInput = panel.querySelector('input[type=file]');
-    setTimeout(function () { box.focus(); }, 30);
+    setTimeout(function () { if (!panel.contains(document.activeElement)) box.focus(); }, 30);
 
     function check(code) {
       errorEl.textContent = '';

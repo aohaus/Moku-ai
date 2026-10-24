@@ -26,6 +26,9 @@ function createMemoryStore() {
       if (!u) throw new Error("no such user");
       users.set(loginId, { ...u, ...fields });
     },
+    async listUsers() {
+      return [...users.values()].map(({ pinHash, ...u }) => ({ ...u }));
+    },
     async getSave(loginId) {
       const s = saves.get(loginId);
       return s ? { ...s } : null;
