@@ -10,6 +10,7 @@ function codedError(code) {
 function createMemoryStore() {
   const users = new Map();
   const saves = new Map();
+  const logs = [];
 
   return {
     async getUser(loginId) {
@@ -38,6 +39,12 @@ function createMemoryStore() {
       const current = saves.get(loginId);
       if ((current ? current.rev : 0) !== baseRev) throw codedError("conflict");
       saves.set(loginId, { ...record });
+    },
+    async addLog(entry) {
+      logs.push({ ...entry });
+    },
+    async listLogs(day) {
+      return logs.filter((l) => l.at.startsWith(day)).reverse().map((l) => ({ ...l }));
     },
     async listSaves() {
       return [...saves.entries()].map(([loginId, { rev, updatedAt, device }]) => ({ loginId, rev, updatedAt, device }));

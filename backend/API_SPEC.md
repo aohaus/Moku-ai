@@ -232,3 +232,31 @@ IDが存在しない場合と PIN 違いは同じ応答(`401 bad_credentials`)�
 ## `DELETE /admin/users/{loginId}`
 
 **200** `{ "deleted": "aoi" }`。アカウントとクラウドセーブを削除。自分自身は `400 cannot_delete_self`。
+
+## `GET /admin/logs?days=7&loginId=aoi`
+
+アクセスログ(新しい順)。`days` は 1〜30(既定 7)、`loginId` は省略可(その人の行と、その人の旧IDの行)。
+
+**200**
+```json
+{
+  "days": 7,
+  "logs": [
+    { "at": "2026-10-25T02:07:00.000Z", "type": "play", "loginId": "aoi", "displayName": "Aoi",
+      "device": "iPad", "detail": { "keys": ["moku:moku-fight:progress"], "rev": 3 } }
+  ]
+}
+```
+
+| `type` | いつ | `detail` |
+| --- | --- | --- |
+| `login` | ログイン成功 | — |
+| `register` | 招待コードで新規登録 | — |
+| `login_failed` | ログイン失敗 | `reason`: `wrong_pin`(+`failCount`) / `unknown_id` / `locked` |
+| `locked` | 5回目のPINまちがいでロック | `failCount` |
+| `play` | クラウドセーブで値が変わった | `keys`(最大30)・`rev` |
+| `pin_change` | 本人がPINを変更 | — |
+| `admin_create` / `admin_delete` | 管理者が追加 / 削除 | `by` |
+| `admin_update` | 管理者が変更 | `by`・`changes`(`loginId` `displayName` `pin` `unlock`)・`from`(旧ID)・`fromName`(旧表示名) |
+
+PINはどこにも記録しない。DynamoDB の `ttl` で90日後に自動削除。

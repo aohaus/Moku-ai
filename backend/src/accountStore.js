@@ -5,6 +5,7 @@ const {
   TransactWriteCommand,
   DeleteCommand,
   ScanCommand,
+  QueryCommand,
 } = require("@aws-sdk/lib-dynamodb");
 const { doc } = require("./db");
 
@@ -256,6 +257,42 @@ async function renameUser(oldId, newId, fields) {
   }
 }
 
+// ---------- access log ----------
+// One partition per UTC day: pk "LOG#2026-10-25", sk "<ISO time>#<random>".
+// Items expire by themselves through the table's TTL attribute `ttl`.
+
+const LOG_LIMIT_PER_DAY = 500;
+
+async function addLog(entry, ttlSec) {
+  const day = entry.at.slice(0, 10);
+  await doc.send(
+    new PutCommand({
+      TableName: TABLE,
+      Item: {
+        pk: `LOG#${day}`,
+        sk: `${entry.at}#${Math.random().toString(36).slice(2, 8)}`,
+        ...entry,
+        ttl: Math.floor(Date.parse(entry.at) / 1000) + ttlSec,
+      },
+    })
+  );
+}
+
+// Newest first.
+async function listLogs(day) {
+  const res = await doc.send(
+    new QueryCommand({
+      TableName: TABLE,
+      KeyConditionExpression: "pk = :pk",
+      ExpressionAttributeValues: { ":pk": `LOG#${day}` },
+      ScanIndexForward: false,
+      Limit: LOG_LIMIT_PER_DAY,
+    })
+  );
+  return (res.Items || []).map(({ pk, sk, ttl, ...entry }) => entry);
+}
+
 module.exports = {
   getUser, createUser, updateUser, getSave, putSave, listUsers, listSaves, deleteUser, renameUser,
+  addLog, listLogs,
 };

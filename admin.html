@@ -14,6 +14,7 @@
   create-admin <id> <pin>` in backend/ — it can't be created from any page.
   The session lives in sessionStorage (gone when the tab closes) and is
   separate from the player login in shared/moku-account.js.
+  Tabs: players (/admin/users) and the access log (/admin/logs).
 -->
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -132,6 +133,31 @@ button, input { font: inherit; color: inherit; }
 .user-actions { display: flex; gap: 6px; flex: none; }
 .empty { text-align: center; padding: 30px 10px; color: var(--muted); font-weight: 700; }
 
+/* ---------- access log ---------- */
+.filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+.select {
+  height: 38px; padding: 0 30px 0 12px; border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.16); background: rgba(255,255,255,0.06);
+  font-size: 13.5px; font-weight: 700; color: var(--text);
+  -webkit-appearance: none; appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 15px) 16px, calc(100% - 10px) 16px;
+  background-size: 5px 5px; background-repeat: no-repeat;
+}
+.select option { background: #15172A; }
+.filters .count { margin-left: auto; font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.day { margin: 16px 2px 6px; font-size: 12px; font-weight: 800; letter-spacing: 0.06em; color: var(--muted); }
+.logs { display: flex; flex-direction: column; padding: 4px 14px; }
+.log { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; }
+.log + .log { border-top: 1px solid rgba(255,255,255,0.06); }
+.log-time { flex: none; width: 44px; font-size: 12.5px; font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 1px; }
+.log-icon { flex: none; width: 22px; text-align: center; }
+.log-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.log-title { font-size: 14px; font-weight: 800; line-height: 1.45; }
+.log-title.warn { color: var(--gold); }
+.log-title.bad { color: var(--red); }
+.log-sub { font-size: 12px; font-weight: 600; color: var(--muted); }
+
 /* ---------- dialog ---------- */
 .overlay {
   position: fixed; inset: 0; z-index: 50;
@@ -198,17 +224,41 @@ button, input { font: inherit; color: inherit; }
 
   <section id="mainView" hidden>
     <div class="tabs" role="tablist">
-      <button class="tab" type="button" role="tab" aria-selected="true">👥 ユーザー</button>
-      <button class="tab" type="button" role="tab" aria-selected="false" disabled>📜 アクセスログ <small>準備中</small></button>
+      <button class="tab" type="button" role="tab" aria-selected="true" data-tab="users">👥 ユーザー</button>
+      <button class="tab" type="button" role="tab" aria-selected="false" data-tab="logs">📜 アクセスログ</button>
       <button class="tab" type="button" role="tab" aria-selected="false" disabled>🚨 エラー <small>準備中</small></button>
     </div>
 
-    <div class="summary">
-      <div class="stat" id="userStat">読み込み中…</div>
-      <button class="btn small" id="reloadBtn" type="button">↻ 更新</button>
-      <button class="btn small primary" id="addBtn" type="button">＋ プレイヤーを追加</button>
+    <div id="usersView">
+      <div class="summary">
+        <div class="stat" id="userStat">読み込み中…</div>
+        <button class="btn small" id="reloadBtn" type="button">↻ 更新</button>
+        <button class="btn small primary" id="addBtn" type="button">＋ プレイヤーを追加</button>
+      </div>
+      <div class="users" id="userList"></div>
     </div>
-    <div class="users" id="userList"></div>
+
+    <div id="logsView" hidden>
+      <div class="filters">
+        <select class="select" id="logDays" aria-label="期間">
+          <option value="1">今日</option>
+          <option value="3">3日間</option>
+          <option value="7" selected>7日間</option>
+          <option value="30">30日間</option>
+        </select>
+        <select class="select" id="logUser" aria-label="プレイヤー"><option value="">全員</option></select>
+        <select class="select" id="logType" aria-label="種類">
+          <option value="">すべて</option>
+          <option value="login">ログイン</option>
+          <option value="play">プレイ</option>
+          <option value="settings">設定変更</option>
+        </select>
+        <button class="btn small" id="logReload" type="button">↻ 更新</button>
+        <span class="count" id="logCount"></span>
+      </div>
+      <div id="logList"></div>
+      <p class="note" style="margin-top:14px">ログは 90 日で自動的に消えます。PIN は記録していません。</p>
+    </div>
   </section>
 </div>
 
@@ -463,6 +513,144 @@ button, input { font: inherit; color: inherit; }
     });
   }
 
+  // ---------- access log ----------
+
+  // Which game a save key belongs to (same rules as hub.html MOKU_SAVE_SUMMARY).
+  var GAME_NAMES = {
+    'angry-mokumoku': 'Angry Mokumoku', 'angry-moku-battle-royal': 'Battle Royal', 'mk-mobile': 'MK Mobile',
+    'moku-fight': 'Moku Fight', 'moku-kart': 'Moku Kart Dash', 'moku-future-run': 'Moku Future Run',
+    'moyomoyo': 'Moyomoyo', 'moku-drop': 'Moku Drop', 'shiri-of-moku': 'Shiri of Moku', 'mokucity': 'Moku City',
+    'moku-fishing': 'Moku Fishing Pond', 'moku-rhythm': 'Moku Rhythm Cafe', 'moku-bento': 'Moku Bento',
+    'flying-moku': 'Flying Moku', 'moku-wolf': 'Moku Wolf', 'moku-watch-6-lazy': 'Moku Watch 6 Lazy',
+    'moku-rane': 'Moku-rane', 'mokuball': 'Mokuball'
+  };
+  var CARD_GAMES = {
+    am: 'angry-mokumoku', br: 'angry-moku-battle-royal', mk: 'mk-mobile', mfg: 'moku-fight', mkt: 'moku-kart',
+    mfr: 'moku-future-run', mm: 'moyomoyo', md: 'moku-drop', so: 'shiri-of-moku', mc: 'mokucity', mf: 'moku-fishing',
+    mrc: 'moku-rhythm', mb: 'moku-bento', fm: 'flying-moku', mw: 'moku-wolf', mw6: 'moku-watch-6-lazy', mr: 'moku-rane'
+  };
+  var LEGACY_PREFIXES = [
+    ['amoku-', 'angry-mokumoku'], ['moyomoyo-', 'moyomoyo'], ['moku:save', 'angry-moku-battle-royal'],
+    ['moku_drop_', 'moku-drop'], ['moku_bento_', 'moku-bento'], ['moku_fishing_', 'moku-fishing'],
+    ['moku_kart_', 'moku-kart'], ['moku_rhythm_', 'moku-rhythm'], ['moku_wolf_', 'moku-wolf'], ['moku:mr:', 'moku-rane']
+  ];
+  function gameOfKey(key) {
+    var m = /^moku:(?:played|completed):(.+)$/.exec(key);
+    if (m) return CARD_GAMES[m[1]] || null;
+    m = /^moku:([a-z0-9-]+):/.exec(key);
+    if (m && GAME_NAMES[m[1]]) return m[1];
+    for (var i = 0; i < LEGACY_PREFIXES.length; i++) {
+      if (key.indexOf(LEGACY_PREFIXES[i][0]) === 0) return LEGACY_PREFIXES[i][1];
+    }
+    return null;
+  }
+  function gamesOf(keys) {
+    var names = [];
+    (keys || []).forEach(function (k) {
+      var g = gameOfKey(k);
+      var name = g ? GAME_NAMES[g] : 'その他';
+      if (names.indexOf(name) < 0) names.push(name);
+    });
+    return names;
+  }
+
+  var LOG_KINDS = {
+    login: 'login', register: 'login', login_failed: 'login', locked: 'login',
+    play: 'play',
+    pin_change: 'settings', admin_create: 'settings', admin_update: 'settings', admin_delete: 'settings'
+  };
+  var CHANGE_LABELS = { loginId: 'ID', displayName: '表示名', pin: 'PIN', unlock: 'ロック解除' };
+
+  // → { icon, title, tone }
+  function describe(l) {
+    var d = l.detail || {};
+    switch (l.type) {
+      case 'login': return { icon: '🔑', title: 'ログイン' };
+      case 'register': return { icon: '🆕', title: '新規登録(招待コード)' };
+      case 'login_failed':
+        if (d.reason === 'unknown_id') return { icon: '⚠️', title: 'ログイン失敗:存在しない ID', tone: 'warn' };
+        if (d.reason === 'locked') return { icon: '⚠️', title: 'ログイン失敗:ロック中', tone: 'warn' };
+        return { icon: '⚠️', title: 'ログイン失敗:PIN まちがい(' + (d.failCount || '?') + ' 回目)', tone: 'warn' };
+      case 'locked': return { icon: '🔒', title: 'PIN を ' + (d.failCount || 5) + ' 回まちがえてロック', tone: 'bad' };
+      case 'play': return { icon: '🎮', title: 'プレイ:' + gamesOf(d.keys).join('、') };
+      case 'pin_change': return { icon: '🔑', title: 'PIN を変更(本人)' };
+      case 'admin_create': return { icon: '🛠', title: '管理者が追加' };
+      case 'admin_delete': return { icon: '🗑', title: '管理者が削除', tone: 'bad' };
+      case 'admin_update':
+        return { icon: '🛠', title: '管理者が変更:' + (d.changes || []).map(function (c) {
+          if (c === 'loginId' && d.from) return 'ID(' + d.from + ' → ' + l.loginId + ')';
+          if (c === 'displayName' && d.fromName) return '表示名(' + d.fromName + ' → ' + l.displayName + ')';
+          return CHANGE_LABELS[c] || c;
+        }).join('、') };
+      default: return { icon: '•', title: l.type };
+    }
+  }
+
+  var logs = [];
+  var WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
+
+  function fillUserFilter() {
+    var sel = $('logUser');
+    var current = sel.value;
+    sel.innerHTML = '<option value="">全員</option>' + users.map(function (u) {
+      return '<option value="' + esc(u.loginId) + '">' + esc(u.displayName) + '(' + esc(u.loginId) + ')</option>';
+    }).join('');
+    sel.value = current;
+  }
+
+  function loadLogs() {
+    $('logCount').textContent = '読み込み中…';
+    var q = '?days=' + $('logDays').value + ($('logUser').value ? '&loginId=' + encodeURIComponent($('logUser').value) : '');
+    return api('GET', '/admin/logs' + q).then(function (res) {
+      logs = res.logs;
+      renderLogs();
+    }, function (err) {
+      if (err.code !== 'unauthorized') $('logCount').textContent = message(err);
+    });
+  }
+
+  function renderLogs() {
+    var kind = $('logType').value;
+    var shown = logs.filter(function (l) { return !kind || LOG_KINDS[l.type] === kind; });
+    $('logCount').textContent = shown.length + ' 件';
+    if (!shown.length) {
+      $('logList').innerHTML = '<div class="card empty">この条件のログはありません</div>';
+      return;
+    }
+    var html = '';
+    var day = '';
+    shown.forEach(function (l) {
+      var d = new Date(l.at);
+      var key = d.toDateString();
+      if (key !== day) {
+        if (day) html += '</div>';
+        day = key;
+        html += '<div class="day">' + (d.getMonth() + 1) + '月' + d.getDate() + '日(' + WEEKDAYS[d.getDay()] + ')</div><div class="card logs">';
+      }
+      var info = describe(l);
+      var who = l.displayName ? esc(l.displayName) + '(' + esc(l.loginId) + ')' : esc(l.loginId || '—');
+      html += '<div class="log">' +
+        '<span class="log-time">' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + '</span>' +
+        '<span class="log-icon">' + info.icon + '</span>' +
+        '<span class="log-main"><span class="log-title' + (info.tone ? ' ' + info.tone : '') + '">' + esc(info.title) + '</span>' +
+        '<span class="log-sub">' + who + (l.device ? ' · ' + esc(l.device) : '') +
+        (l.detail && l.detail.by ? ' · 操作: ' + esc(l.detail.by) : '') + '</span></span></div>';
+    });
+    $('logList').innerHTML = html + '</div>';
+  }
+
+  function showTab(name) {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-tab]'), function (t) {
+      t.setAttribute('aria-selected', String(t.getAttribute('data-tab') === name));
+    });
+    $('usersView').hidden = name !== 'users';
+    $('logsView').hidden = name !== 'logs';
+    if (name === 'logs') {
+      fillUserFilter();
+      loadLogs();
+    }
+  }
+
   // ---------- wiring ----------
 
   $('loginForm').addEventListener('submit', function (e) {
@@ -488,6 +676,13 @@ button, input { font: inherit; color: inherit; }
     showLogin();
   });
   $('reloadBtn').addEventListener('click', loadUsers);
+  Array.prototype.forEach.call(document.querySelectorAll('[data-tab]'), function (t) {
+    t.addEventListener('click', function () { showTab(t.getAttribute('data-tab')); });
+  });
+  $('logDays').addEventListener('change', loadLogs);
+  $('logUser').addEventListener('change', loadLogs);
+  $('logType').addEventListener('change', renderLogs);
+  $('logReload').addEventListener('click', loadLogs);
   $('addBtn').addEventListener('click', openAdd);
   $('userList').addEventListener('click', function (e) {
     var edit = e.target.closest('[data-edit]');
