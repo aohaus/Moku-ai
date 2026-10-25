@@ -1,0 +1,1860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Moku Bridge</title>
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+:root {
+  --hi: #5ED6E8; --lo: #16596A;
+  --ink: #3B2A20;
+  --paper: #FBF4E6;
+  --wood: #B07A4F;
+  --wood-dk: #7A4F2E;
+  --moint: #F5B83D;
+  --moint-dk: #9A6512;
+}
+body {
+  background: linear-gradient(180deg, #F59C6E 0%, #FFD39A 45%, #FBE7CF 100%);
+  color: #EDEEF6;
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+/* ---------- shared frame / hub link (Moku series design system) ---------- */
+#title-frame {
+  position: fixed; inset: 14px;
+  border: 3px solid var(--hi);
+  border-radius: 10px;
+  pointer-events: none;
+  z-index: 40;
+}
+#title-frame::after {
+  content: '';
+  position: absolute; inset: 5px;
+  border: 1px solid var(--lo);
+  border-radius: 8px;
+}
+#hub-link {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 16px);
+  right: calc(env(safe-area-inset-right, 0px) + 16px);
+  z-index: 41;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--hi);
+  text-decoration: none;
+  text-shadow: 0 1px 2px rgba(22,89,106,0.55);
+  animation: hubLinkPulse 2.2s ease-in-out infinite;
+}
+@keyframes hubLinkPulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+#buildInfo {
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+  left: calc(env(safe-area-inset-left, 0px) + 18px);
+  z-index: 41;
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+  color: rgba(255,255,255,0.28);
+  pointer-events: none;
+}
+body:not(.on-title) #title-frame,
+body:not(.on-title) #hub-link,
+body:not(.on-title) #buildInfo,
+body:not(.on-title) #titleScreen { display: none; }
+body.on-title #hud,
+body.on-title #controls { display: none; }
+
+/* ---------- title screen ---------- */
+#titleScreen {
+  position: fixed; inset: 0;
+  z-index: 30;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: calc(env(safe-area-inset-top, 0px) + 40px) 24px calc(env(safe-area-inset-bottom, 0px) + 40px);
+  background: radial-gradient(ellipse at 50% 45%, rgba(255,240,220,0.0) 0%, rgba(90,40,30,0.30) 100%);
+  text-align: center;
+}
+#titleHero {
+  width: min(200px, 44vw, 26vh);
+  aspect-ratio: 1;
+  object-fit: cover;
+  object-position: center 30%;
+  filter: drop-shadow(0 0 18px rgba(94,214,232,0.65)) drop-shadow(0 6px 10px rgba(60,30,20,0.35));
+  animation: heroFloat 3.2s ease-in-out infinite;
+}
+@keyframes heroFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+#titleName {
+  margin-top: 6px;
+  font-size: clamp(40px, 12vw, 64px);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  color: #FFFDF7;
+  text-shadow: 0 3px 0 var(--lo), 0 6px 14px rgba(60,30,20,0.35);
+}
+#titleName span {
+  display: block;
+  font-size: 0.5em;
+  letter-spacing: 0.32em;
+  margin-top: 6px;
+  color: #E9FBFF;
+}
+#titleTag {
+  margin-top: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #FFF6EA;
+  text-shadow: 0 1px 3px rgba(80,40,20,0.55);
+}
+.titleMenu {
+  margin-top: 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.titleMenuItem {
+  font-size: 19px;
+  font-weight: 800;
+  padding: 8px 18px;
+  color: rgba(255,250,240,0.72);
+  text-shadow: 0 1px 3px rgba(80,40,20,0.6);
+  transition: color 0.2s, transform 0.2s;
+}
+.titleMenuItem.primary {
+  color: #FFFFFF;
+  text-shadow: 0 0 12px rgba(94,214,232,0.95), 0 1px 3px rgba(22,89,106,0.8);
+  animation: menuGlow 1.6s ease-in-out infinite;
+}
+@keyframes menuGlow { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+.titleMenuItem:hover, .titleMenuItem:focus-visible { color: #FFFFFF; outline: none; }
+.moint-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 12px 5px 6px;
+  border-radius: 999px;
+  background: rgba(251,244,230,0.92);
+  color: var(--ink);
+  font-weight: 800;
+  font-size: 15px;
+  box-shadow: 0 2px 0 rgba(122,79,46,0.45);
+}
+.moint-coin {
+  width: 22px; height: 22px; border-radius: 50%;
+  display: inline-grid; place-items: center;
+  background: radial-gradient(circle at 35% 30%, #FFE7A3, var(--moint) 60%, #D9931E);
+  color: #7A4A0A; font-size: 12px; font-weight: 900;
+  box-shadow: inset 0 -2px 0 rgba(154,101,18,0.55);
+  flex: none;
+}
+.title-chips { margin-top: 18px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.lucky-chip { padding-left: 10px; }
+.lucky-chip[hidden] { display: none; }
+.lucky-chip b { color: #2F7D3A; }
+
+/* ---------- HUD ---------- */
+#hud {
+  position: fixed; left: 0; right: 0; top: 0;
+  z-index: 20;
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) calc(env(safe-area-inset-right, 0px) + 12px) 0 calc(env(safe-area-inset-left, 0px) + 12px);
+  display: flex; flex-direction: column; gap: 8px;
+  pointer-events: none;
+}
+.hud-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.hud-row > * { pointer-events: auto; }
+.chip-btn {
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(251,244,230,0.92);
+  color: var(--ink);
+  font-weight: 800; font-size: 14px;
+  box-shadow: 0 2px 0 rgba(122,79,46,0.45);
+}
+.chip-btn:active { transform: translateY(1px); box-shadow: 0 1px 0 rgba(122,79,46,0.45); }
+#hudCenter { text-align: center; flex: 1; pointer-events: none; }
+#hudBridge { font-size: 12px; font-weight: 800; letter-spacing: 0.08em; color: #FFF8EE; text-shadow: 0 1px 2px rgba(80,40,20,0.6); }
+#hudStep { font-size: 20px; font-weight: 800; color: #FFFFFF; text-shadow: 0 2px 0 var(--lo), 0 2px 8px rgba(60,30,20,0.4); }
+#stepDots { display: flex; justify-content: center; gap: 5px; pointer-events: none; }
+#stepDots i {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: rgba(255,255,255,0.45);
+  box-shadow: inset 0 0 0 1.5px rgba(22,89,106,0.45);
+  transition: background 0.25s, transform 0.25s;
+}
+#stepDots i.done { background: var(--hi); box-shadow: inset 0 0 0 1.5px var(--lo); }
+#stepDots i.now { background: #FFFFFF; transform: scale(1.35); box-shadow: 0 0 6px rgba(94,214,232,0.9), inset 0 0 0 1.5px var(--lo); }
+#stepDots i.goal { border-radius: 3px; background: #FFE27A; box-shadow: inset 0 0 0 1.5px #C99A1E; }
+#hudMsg {
+  align-self: center;
+  margin-top: 4px;
+  padding: 6px 14px;
+  border-radius: 12px;
+  background: rgba(251,244,230,0.94);
+  color: var(--ink);
+  font-size: 14px; font-weight: 700;
+  box-shadow: 0 2px 0 rgba(122,79,46,0.4);
+  opacity: 0; transform: translateY(-6px);
+  transition: opacity 0.25s, transform 0.25s;
+  pointer-events: none;
+}
+#hudMsg.show { opacity: 1; transform: none; }
+
+/* ---------- controls ---------- */
+#controls {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  z-index: 20;
+  padding: 0 calc(env(safe-area-inset-right, 0px) + 16px) calc(env(safe-area-inset-bottom, 0px) + 18px) calc(env(safe-area-inset-left, 0px) + 18px);
+  display: flex; justify-content: space-between; align-items: flex-end; gap: 12px;
+  pointer-events: none;
+}
+#controls > * { pointer-events: auto; }
+#itemRow { display: flex; flex-direction: column; gap: 10px; align-items: stretch; }
+#soundBtn { align-self: flex-end; }
+.item-btn {
+  position: relative;
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 14px 7px 8px;
+  border-radius: 14px;
+  background: rgba(251,244,230,0.95);
+  color: var(--ink);
+  font-weight: 800; font-size: 14px;
+  box-shadow: 0 3px 0 rgba(122,79,46,0.5);
+  transition: opacity 0.2s, transform 0.1s;
+}
+.item-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 rgba(122,79,46,0.5); }
+.item-btn:disabled { opacity: 0.45; cursor: default; }
+.item-btn svg { width: 28px; height: 28px; flex: none; }
+.item-btn small { display: block; font-size: 10.5px; font-weight: 700; color: #8A6A52; line-height: 1.1; }
+.item-count {
+  position: absolute; top: -7px; right: -7px;
+  min-width: 22px; height: 22px; padding: 0 5px;
+  border-radius: 11px;
+  background: var(--lo); color: #FFFFFF;
+  font-size: 12px; font-weight: 900;
+  display: grid; place-items: center;
+  box-shadow: 0 0 0 2px var(--paper);
+}
+/* 左下のジョイスティック: 倒して狙い、離すとジャンプ(Flying Moku と同じ左手スティック) */
+#stick {
+  position: relative;
+  width: 148px; height: 148px;
+  flex: none;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, rgba(255,255,255,0.40), rgba(94,214,232,0.22) 70%, rgba(22,89,106,0.18));
+  border: 2px solid rgba(255,255,255,0.75);
+  box-shadow: 0 6px 14px rgba(60,30,20,0.25), inset 0 0 18px rgba(94,214,232,0.35);
+  touch-action: none;
+  cursor: grab;
+  transition: opacity 0.2s, filter 0.2s;
+}
+#stick.off { opacity: 0.45; filter: saturate(0.5); }
+#stick::before {
+  content: '';
+  position: absolute; left: 14%; right: 14%; top: 50%;
+  height: 2px; margin-top: -1px;
+  background: rgba(255,255,255,0.45);
+  border-radius: 1px;
+}
+.stick-arrow {
+  position: absolute; top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px; font-weight: 900;
+  color: rgba(255,255,255,0.9);
+  text-shadow: 0 1px 2px rgba(22,89,106,0.7);
+  transition: transform 0.15s, color 0.15s;
+  pointer-events: none;
+}
+.stick-arrow.l { left: 10px; }
+.stick-arrow.r { right: 10px; }
+.stick-arrow.on { color: #FFF3B0; transform: translateY(-50%) scale(1.35); }
+#stickKnob {
+  position: absolute; left: 50%; top: 50%;
+  width: 66px; height: 66px; margin: -33px 0 0 -33px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #FFFFFF 0%, #BDF1F8 35%, var(--hi) 75%, #39B5C9 100%);
+  border: 2px solid rgba(255,255,255,0.9);
+  box-shadow: 0 4px 0 var(--lo), 0 8px 14px rgba(22,89,106,0.35);
+  pointer-events: none;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+#stickKnob.active { transition: none; box-shadow: 0 2px 0 var(--lo), 0 0 16px rgba(255,243,176,0.8); }
+#stickHelp {
+  position: absolute; left: 50%; bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  white-space: nowrap;
+  padding: 4px 10px;
+  border-radius: 10px;
+  background: rgba(251,244,230,0.94);
+  color: var(--ink);
+  font-size: 12px; font-weight: 800;
+  box-shadow: 0 2px 0 rgba(122,79,46,0.4);
+  pointer-events: none;
+  animation: helpBob 1.4s ease-in-out infinite;
+}
+#stickHelp[hidden] { display: none; }
+@keyframes helpBob { 0%, 100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, -4px); } }
+
+/* ---------- panels (shop / help / result) ---------- */
+.overlay {
+  position: fixed; inset: 0;
+  z-index: 60;
+  display: none;
+  align-items: center; justify-content: center;
+  padding: calc(env(safe-area-inset-top, 0px) + 20px) 18px calc(env(safe-area-inset-bottom, 0px) + 20px);
+  background: rgba(70,35,25,0.38);
+}
+.overlay.open { display: flex; animation: fadeIn 0.2s ease-out; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.card {
+  width: 100%; max-width: 380px;
+  max-height: 100%;
+  overflow-y: auto;
+  border-radius: 22px;
+  background: var(--paper);
+  color: var(--ink);
+  padding: 22px 20px 18px;
+  box-shadow: 0 0 0 3px #E8D5B5, 0 6px 0 #D2B48C, 0 14px 30px rgba(60,30,20,0.35);
+  text-align: center;
+  animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes popIn { from { transform: scale(0.8) translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+.card h2 { font-size: 26px; font-weight: 800; letter-spacing: 0.01em; color: var(--lo); }
+.card .sub { margin-top: 4px; font-size: 14px; font-weight: 600; color: #8A6A52; line-height: 1.4; }
+.card-actions { margin-top: 18px; display: flex; flex-direction: column; gap: 8px; }
+.btn {
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-size: 17px; font-weight: 800;
+  color: #FFFFFF;
+  background: linear-gradient(180deg, #8FE6F2, var(--hi) 60%, #39B5C9);
+  box-shadow: 0 4px 0 var(--lo);
+  text-shadow: 0 1px 0 rgba(22,89,106,0.6);
+}
+.btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--lo); }
+.btn.ghost { background: #F1E4CC; color: var(--ink); text-shadow: none; box-shadow: 0 4px 0 #D2B48C; }
+.btn.ghost:active { box-shadow: 0 1px 0 #D2B48C; }
+.shop-bal { margin-top: 10px; }
+.shop-list { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; text-align: left; }
+.shop-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  background: #FFFFFF;
+  box-shadow: 0 0 0 2px #EADBC2;
+}
+.shop-item svg { width: 48px; height: 48px; flex: none; }
+.shop-item .info { flex: 1; min-width: 0; }
+.shop-item b { display: block; font-size: 16px; }
+.shop-item p { font-size: 12.5px; color: #8A6A52; line-height: 1.35; margin-top: 2px; }
+.shop-item .owned { font-size: 12px; font-weight: 800; color: var(--lo); margin-top: 4px; }
+.buy-btn {
+  flex: none;
+  display: flex; align-items: center; gap: 4px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-weight: 900; font-size: 15px;
+  color: #7A4A0A;
+  background: linear-gradient(180deg, #FFE7A3, var(--moint));
+  box-shadow: 0 3px 0 var(--moint-dk);
+}
+.buy-btn .moint-coin { width: 18px; height: 18px; font-size: 10px; }
+.buy-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 var(--moint-dk); }
+.buy-btn:disabled { filter: grayscale(0.8); opacity: 0.6; cursor: default; }
+.help-list { margin-top: 12px; text-align: left; display: flex; flex-direction: column; gap: 10px; font-size: 14.5px; line-height: 1.45; }
+.help-list li { list-style: none; display: flex; gap: 10px; align-items: flex-start; }
+.help-list li span:first-child { font-size: 20px; line-height: 1.1; flex: none; width: 26px; text-align: center; }
+.reward-lines { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; font-size: 15px; font-weight: 700; }
+.reward-lines div { display: flex; justify-content: space-between; padding: 6px 12px; border-radius: 10px; background: #FFFFFF; box-shadow: 0 0 0 2px #EADBC2; }
+.reward-lines div.total { background: #FFF3D1; box-shadow: 0 0 0 2px #F0CF7A; font-size: 17px; }
+.reward-lines span:last-child { color: var(--moint-dk); }
+.reward-lines div.lucky-line { background: #EEF8E6; box-shadow: 0 0 0 2px #BFE3A8; }
+.reward-lines div.lucky-line span:last-child { color: #2F7D3A; }
+.reward-lines div.lucky-line small { font-size: 12px; color: #6A8A5A; }
+.reward-lines div.lucky-line.record { animation: recordPop 0.9s ease-in-out 2; }
+@keyframes recordPop { 50% { transform: scale(1.04); box-shadow: 0 0 0 3px #8CC46A, 0 0 14px rgba(140,196,106,0.6); } }
+#resultIcon { font-size: 48px; line-height: 1; margin-bottom: 4px; }
+
+#toast {
+  position: fixed; left: 50%; top: 42%;
+  z-index: 80;
+  transform: translate(-50%, -50%);
+  padding: 10px 18px;
+  border-radius: 14px;
+  background: rgba(59,42,32,0.9);
+  color: #FFF6EA;
+  font-weight: 800; font-size: 15px;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.2s;
+  white-space: nowrap;
+}
+#toast.show { opacity: 1; }
+
+@media (orientation: landscape) and (max-height: 500px) {
+  #titleHero { width: min(120px, 24vh); }
+  #titleName { font-size: 40px; }
+  #stick { width: 124px; height: 124px; }
+  #stickKnob { width: 56px; height: 56px; margin: -28px 0 0 -28px; }
+  #itemRow { gap: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition: none !important; }
+}
+</style>
+<script src="shared/moku-account.js" data-mode="background"></script>
+</head>
+<body class="on-title">
+
+<canvas id="scene"></canvas>
+
+<div id="title-frame"></div>
+<a id="hub-link" href="index.html">🦉 Moku Series ▶</a>
+<div id="buildInfo">v0.3.1 · Updated Oct 25, 2026</div>
+
+<!-- Item icons, reused by the HUD and the shop -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="icoHint" viewBox="0 0 48 48">
+      <circle cx="24" cy="20" r="13" fill="#FFE27A" stroke="#C99A1E" stroke-width="2.5"/>
+      <path d="M18 31h12v5a3 3 0 0 1-3 3h-6a3 3 0 0 1-3-3z" fill="#D9C7A8" stroke="#8A6A52" stroke-width="2"/>
+      <path d="M19 35h10" stroke="#8A6A52" stroke-width="2"/>
+      <path d="M19 15a7 7 0 0 1 6-4" stroke="#FFFFFF" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M41 9l2-4M44 16l4-1M5 9L3 5M4 16l-4-1" stroke="#F5B83D" stroke-width="2.5" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="icoCarpet" viewBox="0 0 48 48">
+      <path d="M5 26c6-5 11 3 19-2s13-3 19 0l-3 12c-6-3-11-5-18 0S9 37 4 37z" fill="#C2456E" stroke="#7A2241" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M8 29c5-3 9 3 16-1s10-2 15 0l-1.5 5c-5-2-9-3-15 1s-10 2-15 1z" fill="#F5B83D"/>
+      <circle cx="23" cy="30.5" r="2.4" fill="#7A2241"/>
+      <path d="M4 37l-2 3M8 38l-1 3M40 36l2 3M44 26l3-2M43 31l3-1" stroke="#F5B83D" stroke-width="2" stroke-linecap="round"/>
+      <path d="M16 14l2 4 4 1-4 1-2 4-2-4-4-1 4-1zM34 8l1.5 3 3 1-3 1-1.5 3-1.5-3-3-1 3-1z" fill="#FFFFFF"/>
+    </symbol>
+  </defs>
+</svg>
+
+<section id="titleScreen" aria-label="Title">
+  <img id="titleHero" src="brand/mokumoku-hero.png" alt="Moku">
+  <h1 id="titleName">Moku<span>BRIDGE</span></h1>
+  <p id="titleTag">Pick the right glass. Cross the sky!</p>
+  <div class="titleMenu">
+    <button class="titleMenuItem primary" id="playBtn" type="button">▶ Play</button>
+    <button class="titleMenuItem" id="titleShopBtn" type="button">Moint Shop</button>
+    <button class="titleMenuItem" id="helpBtn" type="button">How to Play</button>
+  </div>
+  <div class="title-chips">
+    <div class="moint-chip" id="titleMoints"><span class="moint-coin">M</span><span data-moints>0</span></div>
+    <div class="moint-chip lucky-chip" id="titleLucky" hidden>🍀 Luckiest <b data-best-lucky>0</b></div>
+  </div>
+</section>
+
+<div id="hud">
+  <div class="hud-row">
+    <button class="chip-btn" id="backBtn" type="button">‹ Title</button>
+    <div id="hudCenter">
+      <div id="hudBridge">BRIDGE 1</div>
+      <div id="hudStep">Step 1 / 8</div>
+    </div>
+    <div class="moint-chip"><span class="moint-coin">M</span><span data-moints>0</span></div>
+  </div>
+  <div id="stepDots"></div>
+  <div id="hudMsg"></div>
+</div>
+
+<div id="controls">
+  <div id="stick" role="slider" aria-label="Joystick: push left or right, then let go to hop" aria-valuemin="-1" aria-valuemax="1" aria-valuenow="0">
+    <span class="stick-arrow l" id="arrowL">◀</span>
+    <span class="stick-arrow r" id="arrowR">▶</span>
+    <div id="stickKnob"></div>
+    <div id="stickHelp" hidden>Push, then let go!</div>
+  </div>
+  <div id="itemRow">
+    <button class="item-btn" id="hintBtn" type="button">
+      <svg><use href="#icoHint"/></svg>
+      <span>Hint<small id="hintSub">15 Moints</small></span>
+      <span class="item-count" id="hintCount">0</span>
+    </button>
+    <button class="item-btn" id="carpetBtn" type="button">
+      <svg><use href="#icoCarpet"/></svg>
+      <span>Magic Carpet<small id="carpetSub">40 Moints</small></span>
+      <span class="item-count" id="carpetCount">0</span>
+    </button>
+    <button class="chip-btn" id="soundBtn" type="button" aria-label="Sound">🔊</button>
+  </div>
+</div>
+
+<div class="overlay" id="shopOverlay" role="dialog" aria-label="Moint Shop">
+  <div class="card">
+    <h2>Moint Shop</h2>
+    <p class="sub">Spend Moints on helpers for the bridge.</p>
+    <div class="moint-chip shop-bal"><span class="moint-coin">M</span><span data-moints>0</span></div>
+    <div class="shop-list" id="shopList"></div>
+    <div class="card-actions">
+      <button class="btn ghost" id="shopClose" type="button">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="helpOverlay" role="dialog" aria-label="How to Play">
+  <div class="card">
+    <h2>How to Play</h2>
+    <ul class="help-list">
+      <li><span>🪟</span><span>Each step has two glass panels. Only one is strong!</span></li>
+      <li><span>🕹️</span><span>Push the <b>stick</b> left or right, then let go to hop.</span></li>
+      <li><span>☁️</span><span>Pick the weak one and Moku falls into the soft clouds. A fall costs <b>3 Moints</b>.</span></li>
+      <li><span>🧠</span><span>Moku remembers every panel he tried. Try again and get farther!</span></li>
+      <li><span>🏁</span><span>Reach the goal to win <b>Moints</b>. Lucky guesses give bonus Moints.</span></li>
+      <li><span>💡</span><span><b>Hint</b>: the strong panel glows for a moment.</span></li>
+      <li><span>✨</span><span><b>Magic Carpet</b>: flies Moku 3 glasses ahead. The glasses you skip stay a secret!</span></li>
+      <li><span>🍀</span><span><b>Luckiest Steps</b>: lucky guesses in a row. Beat your record and show it off in your profile!</span></li>
+    </ul>
+    <div class="card-actions">
+      <button class="btn" id="helpClose" type="button">Got it!</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="resultOverlay" role="dialog" aria-label="Result">
+  <div class="card">
+    <div id="resultIcon">🏁</div>
+    <h2 id="resultTitle">You Made It!</h2>
+    <p class="sub" id="resultSub"></p>
+    <div class="reward-lines" id="rewardLines"></div>
+    <div class="card-actions">
+      <button class="btn" id="resultMain" type="button">Next Bridge</button>
+      <button class="btn ghost" id="resultShop" type="button">Moint Shop</button>
+      <button class="btn ghost" id="resultTitleBtn" type="button">Title</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ================================================================
+  // Save data
+  //   moku:moint:wallet           … シリーズ共通通貨 Moint の財布(他タイトルからも使える想定)
+  //   moku:moku-bridge:progress   … このゲームの進捗・アイテム・今の橋の配置
+  //   moku:moku-bridge:muted      … サウンドOFF
+  // ================================================================
+  var GAME_ID = 'moku-bridge';
+  var WALLET_KEY = 'moku:moint:wallet';
+  var PROGRESS_KEY = 'moku:' + GAME_ID + ':progress';
+  var MUTE_KEY = 'moku:' + GAME_ID + ':muted';
+  var WELCOME_MOINTS = 40;
+  var FALL_PENALTY = 3;   // 落ちたら Moint を少しだけ失う(0 未満にはしない)
+  var PRICES = { hint: 15, carpet: 40 };
+  var CARPET_JUMP = 3;    // Magic Carpet は3枚先のガラスまで飛ぶ(とばした段は踏まないので分からないまま)
+
+  function readJSON(key) {
+    try { var raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
+  }
+  function writeJSON(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+  }
+
+  var wallet = readJSON(WALLET_KEY);
+  if (!wallet || typeof wallet.balance !== 'number') {
+    wallet = { version: 1, balance: 0, updatedAt: null };
+  }
+  var progress = readJSON(PROGRESS_KEY);
+  if (!progress || progress.version !== 1) {
+    progress = {
+      version: 1, gameId: GAME_ID,
+      bridge: 1,          // 今挑戦中の橋の番号
+      pattern: null,      // 各段の正解(0=左, 1=右)
+      solved: null,       // 各段: 正解がもうわかっているか
+      broken: null,       // 各段: 割れたパネル(-1 = なし)
+      tries: 0,           // この橋への挑戦回数
+      cleared: 0,         // 渡りきった橋の数
+      bestFirstTry: 0,
+      totalTries: 0,
+      mointsEarned: 0,
+      bestLucky: 0,       // Luckiest Steps: 1回の挑戦で、ヒントなしで続けて当てた段数の最高記録
+      items: { hint: 0, carpet: 0 },
+      welcomeGift: false,
+      updatedAt: null
+    };
+  }
+  if (!progress.items) progress.items = { hint: 0, carpet: 0 };
+  if (!progress.welcomeGift) {
+    // 初めて遊ぶ子にはお試し用のMointを少しだけ
+    progress.welcomeGift = true;
+    wallet.balance += WELCOME_MOINTS;
+    wallet.updatedAt = new Date().toISOString();
+    writeJSON(WALLET_KEY, wallet);
+  }
+  var muted = false;
+  try { muted = localStorage.getItem(MUTE_KEY) === '1'; } catch (e) {}
+
+  // 財布はシリーズ共通なので、別タブ・別ゲームが書き換えているかもしれない。
+  // 残高を変える直前に読み直し、財布を書くのは残高を変えた時だけにする。
+  function refreshWallet() {
+    var w = readJSON(WALLET_KEY);
+    if (w && typeof w.balance === 'number') wallet = w;
+  }
+  function saveAll() {
+    progress.updatedAt = new Date().toISOString();
+    writeJSON(PROGRESS_KEY, progress);
+  }
+  function addMoints(n) {
+    refreshWallet();
+    wallet.balance = Math.max(0, wallet.balance + n);
+    wallet.updatedAt = new Date().toISOString();
+    writeJSON(WALLET_KEY, wallet);
+    if (n > 0) progress.mointsEarned = (progress.mointsEarned || 0) + n;
+    saveAll();
+    renderMoints();
+  }
+
+  function stepsFor(bridge) {
+    // 1〜2本目は8段、3〜4本目は9段、5本目からは10段
+    return Math.min(10, 8 + Math.floor((bridge - 1) / 2));
+  }
+  function ensureBridge() {
+    var n = stepsFor(progress.bridge);
+    if (!Array.isArray(progress.pattern) || progress.pattern.length !== n) {
+      progress.pattern = [];
+      progress.solved = [];
+      progress.broken = [];
+      for (var i = 0; i < n; i++) {
+        progress.pattern.push(Math.random() < 0.5 ? 0 : 1);
+        progress.solved.push(false);
+        progress.broken.push(-1);
+      }
+      progress.tries = 0;
+      saveAll();
+    }
+  }
+  ensureBridge();
+
+  // ================================================================
+  // Sound (Web Audio synth, no files)
+  // ================================================================
+  var audio = null;
+  function ensureAudio() {
+    if (!audio) {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      try { audio = new AC(); } catch (e) { return null; }
+    }
+    if (audio.state === 'suspended') audio.resume();
+    return audio;
+  }
+  document.addEventListener('pointerdown', ensureAudio, { passive: true });
+  document.addEventListener('keydown', ensureAudio);
+
+  function tone(freq, dur, opts) {
+    if (muted) return;
+    var ac = ensureAudio(); if (!ac) return;
+    opts = opts || {};
+    var t = ac.currentTime + (opts.delay || 0);
+    var o = ac.createOscillator();
+    var g = ac.createGain();
+    o.type = opts.type || 'sine';
+    o.frequency.setValueAtTime(freq, t);
+    if (opts.to) o.frequency.exponentialRampToValueAtTime(opts.to, t + dur);
+    var vol = opts.vol == null ? 0.18 : opts.vol;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + Math.min(0.02, dur * 0.3));
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(ac.destination);
+    o.start(t); o.stop(t + dur + 0.05);
+  }
+  function noise(dur, opts) {
+    if (muted) return;
+    var ac = ensureAudio(); if (!ac) return;
+    opts = opts || {};
+    var t = ac.currentTime + (opts.delay || 0);
+    var len = Math.floor(ac.sampleRate * dur);
+    var buf = ac.createBuffer(1, len, ac.sampleRate);
+    var d = buf.getChannelData(0);
+    for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    var src = ac.createBufferSource(); src.buffer = buf;
+    var f = ac.createBiquadFilter();
+    f.type = opts.filter || 'highpass';
+    f.frequency.setValueAtTime(opts.freq || 2500, t);
+    if (opts.freqTo) f.frequency.exponentialRampToValueAtTime(opts.freqTo, t + dur);
+    var g = ac.createGain();
+    g.gain.setValueAtTime(opts.vol == null ? 0.25 : opts.vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f); f.connect(g); g.connect(ac.destination);
+    src.start(t);
+  }
+  var sfx = {
+    hop: function () { tone(420, 0.16, { to: 820, type: 'triangle', vol: 0.12 }); },
+    glass: function () {
+      tone(1760, 0.35, { type: 'sine', vol: 0.10 });
+      tone(2637, 0.28, { type: 'sine', vol: 0.06, delay: 0.02 });
+    },
+    good: function () {
+      tone(880, 0.12, { type: 'triangle', vol: 0.10 });
+      tone(1318, 0.18, { type: 'triangle', vol: 0.10, delay: 0.08 });
+    },
+    shatter: function () {
+      noise(0.45, { freq: 3000, vol: 0.22 });
+      for (var i = 0; i < 6; i++) tone(1800 + Math.random() * 2400, 0.12, { type: 'sine', vol: 0.05, delay: i * 0.04 });
+    },
+    fall: function () { tone(900, 0.9, { to: 180, type: 'sine', vol: 0.10 }); },
+    poof: function () { noise(0.5, { filter: 'lowpass', freq: 900, freqTo: 200, vol: 0.18 }); },
+    hint: function () {
+      [1318, 1568, 1976, 2637].forEach(function (f, i) { tone(f, 0.25, { vol: 0.07, delay: i * 0.06 }); });
+    },
+    carpet: function () {
+      noise(0.9, { filter: 'bandpass', freq: 400, freqTo: 2400, vol: 0.20 });
+      [659, 784, 988, 1318].forEach(function (f, i) { tone(f, 0.2, { type: 'triangle', vol: 0.07, delay: 0.1 + i * 0.09 }); });
+    },
+    win: function () {
+      [523, 659, 784, 1046, 1318].forEach(function (f, i) { tone(f, 0.3, { type: 'triangle', vol: 0.12, delay: i * 0.11 }); });
+      tone(1568, 0.6, { type: 'sine', vol: 0.08, delay: 0.6 });
+    },
+    coin: function () {
+      tone(1568, 0.08, { type: 'square', vol: 0.04 });
+      tone(2093, 0.16, { type: 'square', vol: 0.04, delay: 0.06 });
+    },
+    nope: function () { tone(330, 0.15, { type: 'triangle', vol: 0.10 }); tone(262, 0.2, { type: 'triangle', vol: 0.10, delay: 0.1 }); },
+    tap: function () { tone(660, 0.06, { type: 'triangle', vol: 0.08 }); }
+  };
+
+  // ================================================================
+  // DOM
+  // ================================================================
+  var $ = function (id) { return document.getElementById(id); };
+  var body = document.body;
+  var canvas = $('scene');
+  var ctx = canvas.getContext('2d');
+
+  function renderMoints() {
+    var nodes = document.querySelectorAll('[data-moints]');
+    for (var i = 0; i < nodes.length; i++) nodes[i].textContent = wallet.balance.toLocaleString('en-US');
+    var best = progress.bestLucky || 0;
+    $('titleLucky').hidden = best < 1;
+    var bl = document.querySelectorAll('[data-best-lucky]');
+    for (var j = 0; j < bl.length; j++) bl[j].textContent = best;
+    renderItems();
+    renderShop();
+  }
+  var toastTimer = 0;
+  function toast(text) {
+    var t = $('toast');
+    t.textContent = text;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove('show'); }, 1600);
+  }
+  var msgTimer = 0;
+  function hudMsg(text, ms) {
+    var m = $('hudMsg');
+    m.textContent = text;
+    m.classList.add('show');
+    clearTimeout(msgTimer);
+    msgTimer = setTimeout(function () { m.classList.remove('show'); }, ms || 1800);
+  }
+  function openOverlay(id) { $(id).classList.add('open'); }
+  function closeOverlay(id) { $(id).classList.remove('open'); }
+
+  // ---------- shop ----------
+  var SHOP_ITEMS = [
+    { id: 'hint', name: 'Hint', icon: 'icoHint', desc: 'The strong panel glows softly for a moment.' },
+    { id: 'carpet', name: 'Magic Carpet', icon: 'icoCarpet', desc: 'Flies Moku 3 glasses ahead. The glasses you skip stay a secret.' }
+  ];
+  function renderShop() {
+    var list = $('shopList');
+    if (!list.childNodes.length) {
+      SHOP_ITEMS.forEach(function (it) {
+        var row = document.createElement('div');
+        row.className = 'shop-item';
+        row.innerHTML =
+          '<svg><use href="#' + it.icon + '"/></svg>' +
+          '<div class="info"><b>' + it.name + '</b><p>' + it.desc + '</p><div class="owned" data-owned="' + it.id + '"></div></div>' +
+          '<button class="buy-btn" type="button" data-buy="' + it.id + '"><span class="moint-coin">M</span>' + PRICES[it.id] + '</button>';
+        list.appendChild(row);
+      });
+      list.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-buy]');
+        if (b) buy(b.getAttribute('data-buy'));
+      });
+    }
+    SHOP_ITEMS.forEach(function (it) {
+      list.querySelector('[data-owned="' + it.id + '"]').textContent = 'You have: ' + (progress.items[it.id] || 0);
+      list.querySelector('[data-buy="' + it.id + '"]').disabled = wallet.balance < PRICES[it.id];
+    });
+  }
+  function buy(id) {
+    refreshWallet();
+    if (wallet.balance < PRICES[id]) { sfx.nope(); toast('Not enough Moints'); return false; }
+    progress.items[id] = (progress.items[id] || 0) + 1;
+    addMoints(-PRICES[id]);
+    sfx.coin();
+    return true;
+  }
+
+  // ================================================================
+  // World / camera
+  //   X: 左右, Y: 上, Z: 奥。ガラス床は Y = 0。
+  // ================================================================
+  var W = 0, H = 0, DPR = 1, F = 300, HY = 300;
+  var SP = 1.7;           // 段の間隔
+  var PD = 1.0;           // パネルの奥行き
+  var PX0 = 0.16, PX1 = 1.36;   // パネルの X 範囲(中心からの距離)
+  var LANE_X = (PX0 + PX1) / 2;
+  var CAM_H = 2.15;       // 後ろ姿のMokuの頭越しに次の段が見える高さ
+  var CAM_BACK = 2.7;
+  var NEAR = 1.2;         // これよりカメラに近い床は描かない(画面下の操作ボタンの裏で切れる)
+
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = Math.round(W * DPR);
+    canvas.height = Math.round(H * DPR);
+    var portrait = H >= W;
+    // iPad(4:3)の縦持ちで橋が大きくなりすぎないよう、縦長は高さでも上限をかける
+    F = Math.min(W, H * (portrait ? 0.6 : 0.85)) * 0.82;
+    HY = H * (portrait ? 0.36 : 0.26);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  var GOAL_STAND = 1.0, GOAL_ARCH = 1.9;   // ゴール台の手前からの距離: Mokuが立つ位置 / アーチ
+  function rowZ(i) { return (i + 1) * SP; }
+  function goalZ() { return rowZ(stepsFor(progress.bridge) - 1) + SP; }
+
+  var cam = { z: -CAM_BACK, x: 0 };
+  function project(X, Y, Z) {
+    var d = Z - cam.z;
+    if (d < 0.25) d = 0.25;
+    var s = F / d;
+    return { x: W / 2 + (X - cam.x) * s, y: HY + (CAM_H - Y) * s, s: s, d: d };
+  }
+  function quad(x0, x1, z0, z1, y) {
+    var a = project(x0, y, z0), b = project(x1, y, z0), c = project(x1, y, z1), d = project(x0, y, z1);
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.lineTo(c.x, c.y); ctx.lineTo(d.x, d.y);
+    ctx.closePath();
+    return [a, b, c, d];
+  }
+
+  // ================================================================
+  // Game state
+  // ================================================================
+  var STATE = { TITLE: 'title', READY: 'ready', HOP: 'hop', FALL: 'fall', GOAL: 'goal', RESULT: 'result' };
+  var state = STATE.TITLE;
+  var step = 0;               // 次に踏む段(0..N)。N はゴール
+  var run = null;             // { lucky, hints, carpets }
+  var moku = { x: 0, y: 0, z: 0, vy: 0, squash: 0, tilt: 0, chute: 0, lean: 0, spin: 0 };
+  var stick = { active: false, id: null, x: 0, aim: -1 };   // aim: 0=左 1=右 -1=なし
+  var hop = null;             // { from, to, t, dur, carpet, outcome }
+  var particles = [];
+  var hintGlow = { row: -1, t: 0 };
+  var carpetFx = null;        // { x, y, z, life }
+  var fallTimer = 0;
+  var goalTimer = 0;
+  var time = 0;
+  var clouds = [];
+  for (var ci = 0; ci < 46; ci++) {
+    clouds.push({ x: (Math.random() * 2 - 1) * 14, z: Math.random() * 40 - 6, r: 1.2 + Math.random() * 2.2, y: -4.6 - Math.random() * 1.2, drift: 0.05 + Math.random() * 0.12 });
+  }
+
+  function resetMoku() {
+    moku.x = 0; moku.y = 0; moku.z = 0; moku.vy = 0; moku.squash = 0; moku.tilt = 0; moku.chute = 0; moku.lean = 0; moku.spin = 0;
+    releaseStick();
+    cam.z = moku.z - CAM_BACK; cam.x = 0;
+    particles = [];
+    hop = null;
+    carpetFx = null;
+    hintGlow.row = -1;
+  }
+
+  function startRun() {
+    ensureBridge();
+    progress.tries = (progress.tries || 0) + 1;
+    progress.totalTries = (progress.totalTries || 0) + 1;
+    saveAll();
+    step = 0;
+    run = { lucky: 0, streak: 0, bestStreak: 0, newRecord: false, hints: 0, hinted: {}, carpets: 0, penalty: 0 };
+    resetMoku();
+    state = STATE.READY;
+    body.classList.remove('on-title');
+    closeOverlay('resultOverlay');
+    buildDots();
+    updateHud();
+    var known = progress.solved.filter(Boolean).length;
+    $('stickHelp').hidden = (progress.totalTries || 0) > 2;
+    if (progress.tries === 1) hudMsg('Which glass is strong? Pick one!', 2200);
+    else hudMsg('Moku remembers ' + known + ' panel' + (known === 1 ? '' : 's') + '. Try #' + progress.tries + '!', 2200);
+  }
+
+  function toTitle() {
+    state = STATE.TITLE;
+    body.classList.add('on-title');
+    closeOverlay('resultOverlay');
+    resetMoku();
+    renderMoints();
+  }
+
+  function buildDots() {
+    var n = stepsFor(progress.bridge);
+    var dots = $('stepDots');
+    dots.innerHTML = '';
+    for (var i = 0; i < n; i++) dots.appendChild(document.createElement('i'));
+    var g = document.createElement('i'); g.className = 'goal'; dots.appendChild(g);
+  }
+  function updateHud() {
+    var n = stepsFor(progress.bridge);
+    $('hudBridge').textContent = 'BRIDGE ' + progress.bridge;
+    $('hudStep').textContent = step >= n ? 'Goal!' : 'Step ' + (step + 1) + ' / ' + n;
+    var dots = $('stepDots').children;
+    for (var i = 0; i < n; i++) {
+      dots[i].className = i < step ? 'done' : (i === step ? 'now' : '');
+    }
+    renderItems();
+  }
+  function canPick() { return state === STATE.READY; }
+  function renderItems() {
+    var n = stepsFor(progress.bridge);
+    var ready = canPick() && step < n;
+    var known = ready && progress.solved[step];
+    $('stick').classList.toggle('off', !ready);
+    ['hint', 'carpet'].forEach(function (id) {
+      var have = progress.items[id] || 0;
+      $(id + 'Count').textContent = have;
+      $(id + 'Count').style.display = have > 0 ? '' : 'none';
+      $(id + 'Sub').textContent = have > 0 ? 'Tap to use' : PRICES[id] + ' Moints';
+      var unknownAhead = false;
+      for (var r = step; ready && r < Math.min(n, step + CARPET_JUMP); r++) if (!progress.solved[r]) unknownAhead = true;
+      var usable = ready && (id === 'carpet' ? unknownAhead : !known) && (have > 0 || wallet.balance >= PRICES[id]);
+      if (id === 'hint' && hintGlow.row === step && hintGlow.t > 0) usable = false;
+      $(id + 'Btn').disabled = !usable;
+    });
+    $('soundBtn').textContent = muted ? '🔇' : '🔊';
+  }
+
+  // ---------- picking ----------
+  function pick(side) {
+    if (!canPick()) return;
+    var n = stepsFor(progress.bridge);
+    if (step >= n) return;
+    var safe = progress.pattern[step] === side;
+    if (!progress.solved[step]) {
+      // ヒントを使った段は、光が消えてから選んでもラッキーにしない
+      if (safe && !run.hinted[step]) {
+        run.lucky++;
+        run.streak++;
+        if (run.streak > run.bestStreak) run.bestStreak = run.streak;
+        if (run.streak > (progress.bestLucky || 0)) {
+          // 記録更新はすぐ保存(このあと落ちても消えない)
+          progress.bestLucky = run.streak;
+          saveAll();
+          renderMoints();
+          if (run.streak >= 2) {
+            if (!run.newRecord) sfx.hint();
+            run.newRecord = true;
+            hudMsg('🍀 New record! ' + run.streak + ' lucky steps in a row!', 1800);
+          }
+        }
+      } else {
+        run.streak = 0;      // ヒントで当てた段・ハズレで連続は途切れる
+      }
+    }
+    beginHop(step, side, safe ? 'safe' : 'break', false);
+  }
+  function useItem(id) {
+    if (!canPick()) return;
+    var n = stepsFor(progress.bridge);
+    if (step >= n) return;
+    if (id === 'hint' && progress.solved[step]) return;
+    if (id === 'carpet' && $('carpetBtn').disabled) return;
+    if (!(progress.items[id] > 0)) {
+      // 持っていなければその場で買って使う
+      if (!buy(id)) return;
+    }
+    progress.items[id]--;
+    saveAll();
+    if (id === 'hint') {
+      run.hints++;
+      hintGlow.row = step;
+      run.hinted[step] = true;
+      hintGlow.t = 2.2;
+      sfx.hint();
+      hudMsg('Look closely… one panel is shining!', 2000);
+      for (var i = 0; i < 14; i++) spawnSparkle(progress.pattern[step] ? LANE_X : -LANE_X, rowZ(step), '#FFF3B0');
+    } else {
+      run.carpets++;
+      run.streak = 0;
+      sfx.carpet();
+      // 3枚先へ。とばした段は踏まないので、正解は分からないまま残る
+      var target = step + CARPET_JUMP - 1;
+      if (target >= n) {
+        hudMsg('Whoosh! Straight to the goal!', 1600);
+        beginHop(n, 0, 'safe', true);
+      } else {
+        hudMsg('Whoosh! 3 glasses ahead!', 1600);
+        beginHop(target, progress.pattern[target], 'safe', true);
+      }
+    }
+    renderItems();
+  }
+
+  function beginHop(row, side, outcome, carpet) {
+    state = STATE.HOP;
+    hop = {
+      row: row, side: side, outcome: outcome, carpet: carpet,
+      fromX: moku.x, fromZ: moku.z,
+      toX: row >= stepsFor(progress.bridge) ? 0 : (side ? LANE_X : -LANE_X),
+      toZ: row >= stepsFor(progress.bridge) ? goalZ() - 0.5 + GOAL_STAND : rowZ(row),
+      t: 0, dur: carpet ? 1.5 : 0.46
+    };
+    if (carpet) carpetFx = { life: 1 };
+    sfx.hop();
+    renderItems();
+  }
+
+  function landHop() {
+    var n = stepsFor(progress.bridge);
+    var h = hop;
+    hop = null;
+    moku.x = h.toX; moku.z = h.toZ; moku.y = 0;
+    if (h.row >= n) {
+      // ゴール!
+      state = STATE.GOAL;
+      goalTimer = 0;
+      moku.squash = 1;
+      sfx.win();
+      if (h.carpet && carpetFx) carpetFx.flyAway = 0;
+      for (var i = 0; i < 70; i++) spawnConfetti();
+      step = n;
+      updateHud();
+      return;
+    }
+    if (h.outcome === 'safe') {
+      progress.solved[h.row] = true;
+      saveAll();
+      moku.squash = 1;
+      sfx.glass();
+      if (!h.carpet) setTimeout(sfx.good, 60);
+      for (var j = 0; j < 8; j++) spawnSparkle(h.toX, h.toZ, '#FFFFFF');
+      if (h.carpet && carpetFx) carpetFx.flyAway = 0;
+      step = h.row + 1;
+      state = STATE.READY;
+      updateHud();
+      if (step >= n) {
+        // 最後の段の次はゴールへ自動で跳ぶ
+        setTimeout(function () { if (state === STATE.READY) beginHop(n, 0, 'safe', false); }, 260);
+      }
+    } else {
+      // ハズレ: パネルが割れて雲の上へふわっと落ちる
+      progress.solved[h.row] = true;
+      progress.broken[h.row] = h.side;
+      refreshWallet();
+      run.penalty = Math.min(FALL_PENALTY, wallet.balance);
+      if (run.penalty) addMoints(-run.penalty); else saveAll();
+      state = STATE.FALL;
+      fallTimer = 0;
+      moku.vy = 1.2;
+      sfx.shatter();
+      setTimeout(sfx.fall, 160);
+      var x0 = h.side ? PX0 : -PX1, x1 = h.side ? PX1 : -PX0;
+      for (var k = 0; k < 34; k++) {
+        particles.push({
+          kind: 'shard',
+          x: x0 + Math.random() * (x1 - x0), y: 0, z: h.toZ - PD / 2 + Math.random() * PD,
+          vx: (Math.random() - 0.5) * 1.6, vy: Math.random() * 1.6, vz: (Math.random() - 0.5) * 1.2,
+          r: 0.06 + Math.random() * 0.12, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 10, life: 2.2
+        });
+      }
+      updateHud();
+    }
+  }
+
+  function spawnSparkle(x, z, color) {
+    particles.push({
+      kind: 'spark', color: color,
+      x: x + (Math.random() - 0.5) * 1.1, y: 0.05 + Math.random() * 0.3, z: z + (Math.random() - 0.5) * 0.8,
+      vx: 0, vy: 0.6 + Math.random() * 0.8, vz: 0, r: 0.04 + Math.random() * 0.05, life: 0.7 + Math.random() * 0.5
+    });
+  }
+  var CONFETTI = ['#FF8FB8', '#FFE27A', '#5ED6E8', '#A8DB6A', '#C9A0F5', '#FFA552'];
+  function spawnConfetti() {
+    particles.push({
+      kind: 'confetti', color: CONFETTI[Math.floor(Math.random() * CONFETTI.length)],
+      x: moku.x + (Math.random() - 0.5) * 2.4, y: 0.6 + Math.random() * 0.8, z: moku.z + (Math.random() - 0.5) * 1.6,
+      vx: (Math.random() - 0.5) * 2.5, vy: 2 + Math.random() * 3.5, vz: (Math.random() - 0.5) * 2,
+      r: 0.05 + Math.random() * 0.04, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 14, life: 2.6
+    });
+  }
+
+  // ---------- results ----------
+  function showClear() {
+    state = STATE.RESULT;
+    var n = stepsFor(progress.bridge);
+    var base = n * 4;
+    var lucky = run.lucky * 5;
+    var first = progress.tries === 1 ? 50 : 0;
+    var total = base + lucky + first;
+    progress.cleared = (progress.cleared || 0) + 1;
+    if (first) progress.bestFirstTry = (progress.bestFirstTry || 0) + 1;
+    var crossedBridge = progress.bridge;
+    var tries = progress.tries;
+    progress.bridge += 1;
+    progress.pattern = null;
+    ensureBridge();      // 次の橋を用意(saveAll も呼ばれる)
+    addMoints(total);
+
+    $('resultIcon').textContent = '🏁';
+    $('resultTitle').textContent = 'You Made It!';
+    $('resultSub').textContent = 'Moku crossed Bridge ' + crossedBridge + ' in ' + tries + ' tr' + (tries === 1 ? 'y' : 'ies') + '!';
+    var lines = [['Goal reward', base]];
+    if (run.lucky) lines.push(['Lucky steps × ' + run.lucky, lucky]);
+    if (first) lines.push(['First try bonus!', first]);
+    var html = lines.map(function (l) { return '<div><span>' + l[0] + '</span><span>+' + l[1] + '</span></div>'; }).join('');
+    html += luckyLine();
+    html += '<div class="total"><span>Moints</span><span>+<b id="countUp">0</b></span></div>';
+    $('rewardLines').innerHTML = html;
+    $('rewardLines').style.display = '';
+    $('resultMain').textContent = 'Next Bridge ▶';
+    openOverlay('resultOverlay');
+    countUp($('countUp'), total);
+  }
+  function showFall() {
+    state = STATE.RESULT;
+    var known = progress.solved.filter(Boolean).length;
+    var n = stepsFor(progress.bridge);
+    $('resultIcon').textContent = '☁️';
+    $('resultTitle').textContent = 'Oops! Poof!';
+    $('resultSub').textContent = 'Moku landed in the fluffy clouds. He now knows ' + known + ' of ' + n + ' steps. You can do it!';
+    var html = run.penalty ? '<div class="total"><span>Fall</span><span>−' + run.penalty + ' Moints</span></div>' : '';
+    html += luckyLine();
+    $('rewardLines').innerHTML = html;
+    $('rewardLines').style.display = html ? '' : 'none';
+    $('resultMain').textContent = '↻ Try Again';
+    openOverlay('resultOverlay');
+  }
+  // この挑戦の「続けて当てた数」と自己ベスト
+  function luckyLine() {
+    if (!run.bestStreak) return '';
+    return '<div class="lucky-line' + (run.newRecord ? ' record' : '') + '"><span>🍀 Lucky in a row' +
+      (run.newRecord ? ' · New record!' : '') + '</span><span>' + run.bestStreak +
+      ' <small>(Best ' + (progress.bestLucky || 0) + ')</small></span></div>';
+  }
+  function countUp(node, total) {
+    var shown = 0;
+    var stepN = Math.max(1, Math.ceil(total / 18));
+    var iv = setInterval(function () {
+      shown = Math.min(total, shown + stepN);
+      node.textContent = shown;
+      sfx.coin();
+      if (shown >= total) clearInterval(iv);
+    }, 55);
+  }
+
+  // ================================================================
+  // Update
+  // ================================================================
+  function easeInOut(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+
+  function update(dt) {
+    time += dt;
+    if (hintGlow.t > 0) {
+      hintGlow.t -= dt;
+      if (hintGlow.t <= 0) { hintGlow.row = -1; renderItems(); }
+    }
+    moku.squash = Math.max(0, moku.squash - dt * 4);
+    // スティックを倒している方へ体を傾ける
+    var leanTarget = (state === STATE.READY && stick.active) ? stick.x : 0;
+    moku.lean += (leanTarget - moku.lean) * Math.min(1, dt * 12);
+
+    if (state === STATE.TITLE) {
+      // タイトル画面ではカメラをゆっくり橋の奥へ揺らす
+      var swing = (Math.sin(time * 0.25) * 0.5 + 0.5);
+      cam.z += ((-CAM_BACK + swing * 2.2) - cam.z) * Math.min(1, dt * 1.5);
+      cam.x = Math.sin(time * 0.33) * 0.25;
+    }
+
+    if (state === STATE.HOP && hop) {
+      hop.t += dt / hop.dur;
+      var t = Math.min(1, hop.t);
+      var e = easeInOut(t);
+      moku.x = hop.fromX + (hop.toX - hop.fromX) * e;
+      moku.z = hop.fromZ + (hop.toZ - hop.fromZ) * e;
+      moku.y = Math.sin(Math.PI * t) * (hop.carpet ? 1.4 : 0.55);
+      moku.tilt = (hop.toX - hop.fromX) * 0.12 * Math.sin(Math.PI * t);
+      if (t >= 1) landHop();
+    }
+
+    if (state === STATE.FALL) {
+      fallTimer += dt;
+      if (fallTimer > 0.55 && !moku.chute) { moku.chute = 0.001; }
+      if (moku.chute) moku.chute = Math.min(1, moku.chute + dt * 3);
+      var g = moku.chute ? 2.0 : 9.0;
+      moku.vy -= g * dt;
+      if (moku.chute) moku.vy = Math.max(moku.vy, -1.1);
+      moku.y += moku.vy * dt;
+      moku.tilt = Math.sin(time * 4) * 0.12 * (moku.chute || 0.3);
+      moku.spin += dt * (moku.chute ? 1.5 : 9);
+      if (fallTimer > 2.0 && state === STATE.FALL) {
+        sfx.poof();
+        showFall();
+      }
+    }
+
+    if (state === STATE.GOAL) {
+      goalTimer += dt;
+      // ゴールで2回ぴょんぴょん
+      var jt = goalTimer % 0.5;
+      moku.y = goalTimer < 1.0 ? Math.sin(Math.PI * jt / 0.5) * 0.35 : 0;
+      if (goalTimer > 1.25) showClear();
+    }
+
+    // camera follows Moku
+    if (state !== STATE.TITLE) {
+      var tz = moku.z - CAM_BACK;
+      cam.z += (tz - cam.z) * Math.min(1, dt * 5);
+      cam.x += (moku.x * 0.35 - cam.x) * Math.min(1, dt * 4);
+    }
+
+    if (carpetFx) {
+      if (carpetFx.flyAway != null) {
+        carpetFx.flyAway += dt;
+        if (carpetFx.flyAway > 1.0) carpetFx = null;
+      }
+    }
+
+    for (var i = particles.length - 1; i >= 0; i--) {
+      var p = particles[i];
+      p.life -= dt;
+      if (p.life <= 0) { particles.splice(i, 1); continue; }
+      if (p.kind === 'shard') { p.vy -= 7 * dt; }
+      if (p.kind === 'confetti') { p.vy -= 5 * dt; p.vx *= 0.98; p.vz *= 0.98; if (p.vy < -1.2) p.vy = -1.2; }
+      p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
+      if (p.rot != null) p.rot += p.vr * dt;
+    }
+    for (var c = 0; c < clouds.length; c++) {
+      var cl = clouds[c];
+      cl.x += cl.drift * dt;
+      if (cl.x > 14) cl.x = -14;
+      if (cl.z < cam.z - 2) cl.z += 42;
+    }
+  }
+
+  // ================================================================
+  // Draw
+  // ================================================================
+  function drawSky() {
+    var g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#F2946A');
+    g.addColorStop(Math.max(0.05, HY / H - 0.12), '#FFC48C');
+    g.addColorStop(HY / H, '#FFE4B8');
+    g.addColorStop(Math.min(1, HY / H + 0.18), '#FBD9CC');
+    g.addColorStop(1, '#F4C9C6');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    // sun
+    var sx = W * 0.72, sy = HY - Math.min(W, H) * 0.06;
+    var sr = Math.min(W, H) * 0.11;
+    var sg = ctx.createRadialGradient(sx, sy, sr * 0.2, sx, sy, sr * 3);
+    sg.addColorStop(0, 'rgba(255,248,220,0.95)');
+    sg.addColorStop(0.3, 'rgba(255,230,170,0.5)');
+    sg.addColorStop(1, 'rgba(255,200,140,0)');
+    ctx.fillStyle = sg;
+    ctx.beginPath(); ctx.arc(sx, sy, sr * 3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#FFF6DC';
+    ctx.beginPath(); ctx.arc(sx, sy, sr, 0, Math.PI * 2); ctx.fill();
+    // far hills (picture-book layers)
+    drawHills(HY + 4, 0.06, '#D99A9A', 0.0);
+    drawHills(HY + 8, 0.04, '#C98A96', 2.1);
+    // high soft clouds
+    ctx.fillStyle = 'rgba(255,250,240,0.55)';
+    for (var i = 0; i < 4; i++) {
+      var cx = ((i * 0.31 + time * 0.004) % 1.2 - 0.1) * W;
+      var cy = HY * (0.25 + 0.17 * (i % 3));
+      puff(cx, cy, Math.min(W, H) * 0.05);
+    }
+  }
+  function drawHills(baseY, amp, color, seed) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(0, baseY);
+    for (var x = 0; x <= W + 10; x += 10) {
+      var k = x / W;
+      var y = baseY - (Math.sin(k * 5.3 + seed) * 0.5 + Math.sin(k * 11.7 + seed * 2) * 0.25 + 0.9) * amp * H;
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(W, baseY + 2); ctx.lineTo(0, baseY + 2);
+    ctx.closePath(); ctx.fill();
+  }
+  function puff(x, y, r) {
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.arc(x + r * 0.9, y + r * 0.2, r * 0.75, 0, Math.PI * 2);
+    ctx.arc(x - r * 0.9, y + r * 0.25, r * 0.7, 0, Math.PI * 2);
+    ctx.arc(x + r * 0.2, y - r * 0.5, r * 0.7, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  function drawCloudSea() {
+    // horizon haze below the hills
+    var g = ctx.createLinearGradient(0, HY, 0, H);
+    g.addColorStop(0, 'rgba(255,236,224,0.95)');
+    g.addColorStop(1, 'rgba(250,214,214,0.7)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, HY + 6, W, H - HY);
+    var sorted = clouds.slice().sort(function (a, b) { return b.z - a.z; });
+    for (var i = 0; i < sorted.length; i++) {
+      var c = sorted[i];
+      var p = project(c.x, c.y, c.z);
+      if (p.d < 0.8) continue;
+      var r = c.r * p.s;
+      if (p.y - r > H || p.x + r * 2 < 0 || p.x - r * 2 > W) continue;
+      var shade = Math.min(1, p.d / 30);
+      ctx.fillStyle = 'rgba(255,' + Math.round(246 - shade * 12) + ',' + Math.round(240 - shade * 10) + ',0.92)';
+      puff(p.x, p.y, r);
+      ctx.fillStyle = 'rgba(240,190,190,0.25)';
+      ctx.beginPath(); ctx.ellipse(p.x, p.y + r * 0.55, r * 1.5, r * 0.25, 0, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  function drawPlatform(z0, z1, isGoal) {
+    var zFront = z0;
+    z0 = Math.max(z0, cam.z + NEAR);
+    if (z1 <= z0) return;
+    // wooden deck
+    quad(-1.7, 1.7, z0, z1, 0);
+    ctx.fillStyle = '#C9935F'; ctx.fill();
+    ctx.strokeStyle = '#7A4F2E'; ctx.lineWidth = 2; ctx.stroke();
+    // planks
+    ctx.strokeStyle = 'rgba(122,79,46,0.45)'; ctx.lineWidth = 1;
+    for (var z = z0 + 0.35; z < z1; z += 0.35) {
+      var a = project(-1.7, 0, z), b = project(1.7, 0, z);
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    }
+    // front face (thickness)
+    if (z0 === zFront) {
+    var fa = project(-1.7, 0, z0), fb = project(1.7, 0, z0), fc = project(1.7, -0.28, z0), fd = project(-1.7, -0.28, z0);
+    ctx.beginPath(); ctx.moveTo(fa.x, fa.y); ctx.lineTo(fb.x, fb.y); ctx.lineTo(fc.x, fc.y); ctx.lineTo(fd.x, fd.y); ctx.closePath();
+    ctx.fillStyle = '#8E5C36'; ctx.fill();
+    }
+    // grass tufts along the edges
+    ctx.fillStyle = '#8CC46A';
+    for (var gz = z0 + 0.2; gz < z1; gz += 0.5) {
+      [-1.6, 1.6].forEach(function (gx) {
+        var p = project(gx, 0, gz);
+        var r = 0.12 * p.s;
+        ctx.beginPath(); ctx.arc(p.x, p.y, r, Math.PI, 0); ctx.fill();
+      });
+    }
+    if (isGoal) drawGoalArch(zFront + GOAL_ARCH);
+  }
+  function drawGoalArch(z) {
+    var l = project(-1.45, 0, z), r = project(1.45, 0, z);
+    var lt = project(-1.45, 2.0, z), rt = project(1.45, 2.0, z);
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#7A4F2E'; ctx.lineWidth = Math.max(3, 0.12 * l.s);
+    ctx.beginPath(); ctx.moveTo(l.x, l.y); ctx.lineTo(lt.x, lt.y); ctx.moveTo(r.x, r.y); ctx.lineTo(rt.x, rt.y); ctx.stroke();
+    // flower arch
+    var top = project(0, 2.5, z);
+    ctx.strokeStyle = '#6FAE4E'; ctx.lineWidth = Math.max(4, 0.16 * l.s);
+    ctx.beginPath(); ctx.moveTo(lt.x, lt.y); ctx.quadraticCurveTo(top.x, top.y - 0.3 * l.s, rt.x, rt.y); ctx.stroke();
+    var cols = ['#FF8FB8', '#FFE27A', '#FFFFFF', '#C9A0F5'];
+    for (var i = 0; i <= 8; i++) {
+      var t = i / 8;
+      var x = (1 - t) * (1 - t) * lt.x + 2 * (1 - t) * t * top.x + t * t * rt.x;
+      var y = (1 - t) * (1 - t) * lt.y + 2 * (1 - t) * t * (top.y - 0.3 * l.s) + t * t * rt.y;
+      ctx.fillStyle = cols[i % cols.length];
+      ctx.beginPath(); ctx.arc(x, y, Math.max(2.5, 0.1 * l.s), 0, Math.PI * 2); ctx.fill();
+    }
+    // GOAL sign
+    var sp = project(0, 2.05, z);
+    var sw = 1.3 * sp.s, sh = 0.42 * sp.s;
+    ctx.fillStyle = '#FBF4E6';
+    roundRect(sp.x - sw / 2, sp.y - sh / 2, sw, sh, sh * 0.3); ctx.fill();
+    ctx.strokeStyle = '#7A4F2E'; ctx.lineWidth = Math.max(1.5, 0.04 * sp.s); ctx.stroke();
+    ctx.fillStyle = '#16596A';
+    ctx.font = '800 ' + Math.max(8, sh * 0.62) + 'px -apple-system, "Segoe UI", Roboto, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('GOAL', sp.x, sp.y + sh * 0.04);
+  }
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function drawPanel(row, side) {
+    var z = rowZ(row);
+    var x0 = side ? PX0 : -PX1, x1 = side ? PX1 : -PX0;
+    var z0 = Math.max(z - PD / 2, cam.z + NEAR), z1 = z + PD / 2;
+    if (z1 <= z0) return;
+    var detail = z - cam.z > NEAR;
+    var broken = progress.broken[row] === side;
+    var known = progress.solved[row];
+    var isSafe = progress.pattern[row] === side;
+    // steel-ish wooden frame under the glass
+    var pts = quad(x0, x1, z0, z1, 0);
+    if (broken) {
+      // 割れたパネル: 枠だけ残る
+      ctx.strokeStyle = '#8E5C36'; ctx.lineWidth = Math.max(2, 0.05 * pts[0].s); ctx.stroke();
+      // a few jagged edge bits
+      ctx.fillStyle = 'rgba(210,245,255,0.55)';
+      var a = pts[0], b = pts[1], c = pts[2], d = pts[3];
+      tri(a, lerpP(a, b, 0.3), lerpP(a, d, 0.35));
+      tri(c, lerpP(c, d, 0.25), lerpP(c, b, 0.3));
+      tri(b, lerpP(b, a, 0.2), lerpP(b, c, 0.4));
+      return;
+    }
+    var gl = ctx.createLinearGradient(pts[3].x, pts[3].y, pts[0].x, pts[0].y);
+    gl.addColorStop(0, 'rgba(225,250,255,0.55)');
+    gl.addColorStop(1, 'rgba(160,225,240,0.62)');
+    ctx.fillStyle = gl; ctx.fill();
+    // glass edge
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = Math.max(1.5, 0.035 * pts[0].s); ctx.stroke();
+    ctx.strokeStyle = 'rgba(22,89,106,0.45)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y); ctx.lineTo(pts[1].x, pts[1].y); ctx.stroke();
+    // shine stripes
+    ctx.save();
+    quad(x0, x1, z0, z1, 0); ctx.clip();
+    var shineX = ((time * 0.15 + row * 0.37 + side * 0.5) % 1.6) - 0.3;
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+    ctx.lineWidth = Math.max(2, 0.07 * pts[0].s);
+    var s0 = project(x0 + (x1 - x0) * shineX, 0, z0), s1 = project(x0 + (x1 - x0) * (shineX + 0.3), 0, z1);
+    ctx.beginPath(); ctx.moveTo(s0.x, s0.y); ctx.lineTo(s1.x, s1.y); ctx.stroke();
+    ctx.lineWidth = Math.max(1, 0.03 * pts[0].s);
+    var s2 = project(x0 + (x1 - x0) * (shineX + 0.12), 0, z0), s3 = project(x0 + (x1 - x0) * (shineX + 0.42), 0, z1);
+    ctx.beginPath(); ctx.moveTo(s2.x, s2.y); ctx.lineTo(s3.x, s3.y); ctx.stroke();
+    ctx.restore();
+
+    if (!detail) return;
+    if (known && isSafe) {
+      // 正解がわかっているパネル: 足あとマーク
+      var cp = project((x0 + x1) / 2, 0, z);
+      ctx.fillStyle = 'rgba(255,214,110,0.30)';
+      quad(x0 + 0.04, x1 - 0.04, z0 + 0.04, z1 - 0.04, 0); ctx.fill();
+      drawFootprint(cp.x, cp.y, cp.s);
+    } else if (known && !isSafe) {
+      // まちがいとわかっているパネル: ひび
+      ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = Math.max(1, 0.02 * pts[0].s);
+      var cc = project((x0 + x1) / 2, 0, z);
+      ctx.beginPath();
+      for (var k = 0; k < 6; k++) {
+        var ang = k * 1.05 + 0.3;
+        ctx.moveTo(cc.x, cc.y);
+        ctx.lineTo(cc.x + Math.cos(ang) * 0.38 * cc.s, cc.y + Math.sin(ang) * 0.16 * cc.s);
+      }
+      ctx.stroke();
+    }
+    if (state === STATE.READY && row === step && stick.aim === side) {
+      // スティックで狙っているパネル
+      ctx.save();
+      var pulseA = 0.5 + 0.5 * Math.sin(time * 10);
+      ctx.globalAlpha = 0.28 + 0.12 * pulseA;
+      ctx.fillStyle = '#FFFFFF';
+      quad(x0, x1, z0, z1, 0); ctx.fill();
+      ctx.globalAlpha = 0.7 + 0.3 * pulseA;
+      ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = Math.max(3, 0.08 * pts[0].s);
+      ctx.stroke();
+      ctx.restore();
+      // 狙っているパネルの奥側に、はねる矢印
+      var tip = project((x0 + x1) / 2, 0.3 + Math.abs(Math.sin(time * 6)) * 0.15, z);
+      var ah = Math.max(8, 0.22 * tip.s);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.strokeStyle = '#16596A'; ctx.lineWidth = Math.max(1.5, ah * 0.12); ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(tip.x, tip.y + ah * 0.6);
+      ctx.lineTo(tip.x - ah * 0.6, tip.y - ah * 0.1);
+      ctx.lineTo(tip.x - ah * 0.22, tip.y - ah * 0.1);
+      ctx.lineTo(tip.x - ah * 0.22, tip.y - ah * 0.6);
+      ctx.lineTo(tip.x + ah * 0.22, tip.y - ah * 0.6);
+      ctx.lineTo(tip.x + ah * 0.22, tip.y - ah * 0.1);
+      ctx.lineTo(tip.x + ah * 0.6, tip.y - ah * 0.1);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+    }
+    if (hintGlow.row === row && isSafe && hintGlow.t > 0) {
+      // ヒント: うっすら光る
+      var fade = Math.min(1, hintGlow.t / 0.5) * Math.min(1, (2.2 - hintGlow.t) / 0.3);
+      var pulse = 0.5 + 0.5 * Math.sin(time * 9);
+      ctx.save();
+      ctx.globalAlpha = fade * (0.22 + 0.14 * pulse);
+      ctx.fillStyle = '#FFF0A0';
+      quad(x0, x1, z0, z1, 0); ctx.fill();
+      ctx.globalAlpha = fade * 0.65;
+      ctx.strokeStyle = '#FFE27A'; ctx.lineWidth = Math.max(2, 0.06 * pts[0].s);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+  function lerpP(a, b, t) { return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }; }
+  function tri(a, b, c) { ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.lineTo(c.x, c.y); ctx.closePath(); ctx.fill(); }
+  function drawFootprint(x, y, s) {
+    ctx.fillStyle = 'rgba(176,122,79,0.55)';
+    var r = 0.07 * s;
+    [-1, 1].forEach(function (k) {
+      var fx = x + k * 0.13 * s, fy = y + (k > 0 ? -0.02 : 0.02) * s;
+      ctx.beginPath(); ctx.ellipse(fx, fy, r, r * 0.55, 0, 0, Math.PI * 2); ctx.fill();
+      for (var t = -1; t <= 1; t++) {
+        ctx.beginPath(); ctx.arc(fx + t * r * 0.8, fy - r * 0.85, r * 0.3, 0, Math.PI * 2); ctx.fill();
+      }
+    });
+  }
+
+  function drawRow(row) {
+    var z = rowZ(row);
+    // support beams along both sides
+    var bz0 = Math.max(z - PD / 2 - 0.36, cam.z + NEAR), bz1 = z + PD / 2 + 0.36;
+    if (bz1 > bz0) {
+      ctx.fillStyle = '#9A6A42';
+      quad(-PX1 - 0.06, -PX1 + 0.02, bz0, bz1, -0.02); ctx.fill();
+      quad(PX1 - 0.02, PX1 + 0.06, bz0, bz1, -0.02); ctx.fill();
+    }
+    drawPanel(row, 0);
+    drawPanel(row, 1);
+  }
+
+  function drawRopes(zStart, zEnd) {
+    var n = stepsFor(progress.bridge);
+    [-1.62, 1.62].forEach(function (x) {
+      // posts
+      for (var i = -1; i <= n; i++) {
+        var z = i < 0 ? 0.4 : (i === n ? goalZ() - 0.4 : rowZ(i));
+        if (z - cam.z < NEAR) continue;
+        var b = project(x, -0.05, z), t = project(x, 0.62, z);
+        ctx.strokeStyle = '#7A4F2E'; ctx.lineWidth = Math.max(2, 0.08 * b.s); ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(t.x, t.y); ctx.stroke();
+        ctx.fillStyle = '#C9935F';
+        ctx.beginPath(); ctx.arc(t.x, t.y, Math.max(1.5, 0.05 * t.s), 0, Math.PI * 2); ctx.fill();
+      }
+      // sagging rope
+      ctx.strokeStyle = '#A0784F'; ctx.lineWidth = 2;
+      ctx.beginPath();
+      var first = true;
+      for (var z2 = Math.max(zStart, cam.z + NEAR); z2 <= zEnd; z2 += 0.2) {
+        var phase = ((z2 - 0.4) / SP) % 1;
+        var sag = Math.sin(phase * Math.PI) * 0.1;
+        var p = project(x, 0.6 - sag, z2);
+        ctx.lineWidth = Math.max(1.2, 0.035 * p.s);
+        if (first) { ctx.moveTo(p.x, p.y); first = false; } else ctx.lineTo(p.x, p.y);
+      }
+      ctx.stroke();
+    });
+  }
+
+  // Flying Moku の3Dモデルと同じデザインを後ろ姿で描く:
+  // ふっくらしたベージュのぬいぐるみボディ、緑の3枚葉のしっぽ、平たい翼、オレンジの足
+  var MOKU_BEIGE = '#C29B75', MOKU_LEAF = '#0FA37F', MOKU_FOOT = '#F59E0B';
+  function leafPath(len, wid) {
+    // 根元(0,0)から +y 方向に伸びる葉っぱ
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(wid, len * 0.45, 0, len);
+    ctx.quadraticCurveTo(-wid, len * 0.45, 0, 0);
+    ctx.closePath();
+  }
+  function drawMoku(x, y, z) {
+    var p = project(x + moku.lean * 0.12, y, z);
+    var s = p.s;
+    var sq = moku.squash;
+    var sx = 1 + sq * 0.18, sy = 1 - sq * 0.16;
+    var r = 0.31 * s;
+    // shadow on the glass/deck (only when above the floor)
+    if (moku.y > -0.1) {
+      var sh = project(x, 0, z);
+      ctx.fillStyle = 'rgba(40,60,80,0.22)';
+      ctx.beginPath(); ctx.ellipse(sh.x, sh.y, r * 1.05 / (1 + Math.max(0, y)), r * 0.3 / (1 + Math.max(0, y)), 0, 0, Math.PI * 2); ctx.fill();
+    }
+    var falling = state === STATE.FALL;
+    var happy = state === STATE.GOAL;
+    var moving = state === STATE.HOP || falling || happy;
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(moku.tilt + moku.lean * 0.18 + (falling && !moku.chute ? Math.sin(moku.spin) * 0.35 : 0));
+    ctx.scale(sx, sy);
+    // leaf parachute
+    if (moku.chute) {
+      var c = moku.chute;
+      ctx.save();
+      ctx.translate(0, -r * 2.5);
+      ctx.scale(c, c);
+      ctx.strokeStyle = '#7A4F2E'; ctx.lineWidth = Math.max(1, r * 0.05);
+      ctx.beginPath(); ctx.moveTo(-r * 1.1, 0); ctx.lineTo(-r * 0.5, r * 1.1); ctx.moveTo(r * 1.1, 0); ctx.lineTo(r * 0.5, r * 1.1); ctx.stroke();
+      ctx.fillStyle = '#8CC46A';
+      ctx.beginPath(); ctx.ellipse(0, 0, r * 1.35, r * 0.55, 0, Math.PI, 0); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#5E9442'; ctx.lineWidth = Math.max(1, r * 0.06);
+      ctx.beginPath(); ctx.moveTo(-r * 1.3, 0); ctx.lineTo(r * 1.3, 0); ctx.moveTo(0, 0); ctx.lineTo(0, -r * 0.55); ctx.stroke();
+      ctx.restore();
+    }
+    var cy = -r * 0.98;           // 体の中心
+    var bw = r * 1.12, bh = r * 0.94;
+    // orange feet peeking out below the body (paddle while moving)
+    var paddle = moving ? Math.sin(time * 18) * r * 0.06 : 0;
+    ctx.fillStyle = MOKU_FOOT;
+    ctx.beginPath(); ctx.ellipse(-r * 0.42, -r * 0.06 + paddle, r * 0.2, r * 0.11, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(r * 0.42, -r * 0.06 - paddle, r * 0.2, r * 0.11, 0, 0, Math.PI * 2); ctx.fill();
+    // soft wings: folded at the sides while standing, spread flat like
+    // Flying Moku while hopping / falling, waving up while celebrating
+    var spread = moving ? 1 : 0;
+    var flap = moving ? Math.sin(time * 22) * 0.35 : Math.sin(time * 2) * 0.04;
+    if (happy) flap = -0.5 + Math.sin(time * 16) * 0.35;
+    [-1, 1].forEach(function (k) {
+      ctx.save();
+      ctx.translate(k * bw * 0.84, cy + r * 0.05);
+      // 立っている時は下向き(たたむ)、動いている時は横に広げる
+      ctx.rotate(-k * (spread ? (Math.PI / 2 - 0.15 + flap) : (0.32 + flap)));
+      var wg = ctx.createLinearGradient(0, 0, 0, r * 0.9);
+      wg.addColorStop(0, '#C9A27C');
+      wg.addColorStop(1, '#A47D58');
+      ctx.fillStyle = wg;
+      ctx.beginPath(); ctx.ellipse(0, r * 0.38, r * 0.24, r * 0.46, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(122,79,46,0.30)'; ctx.lineWidth = Math.max(1, r * 0.035); ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(-r * 0.06, r * 0.5); ctx.lineTo(-r * 0.04, r * 0.74); ctx.moveTo(r * 0.07, r * 0.48); ctx.lineTo(r * 0.06, r * 0.7); ctx.stroke();
+      ctx.restore();
+    });
+    // plump plush body (back side is all beige)
+    var bg = ctx.createRadialGradient(-bw * 0.3, cy - bh * 0.45, r * 0.1, 0, cy, bw * 1.15);
+    bg.addColorStop(0, '#E2C29E');
+    bg.addColorStop(0.55, MOKU_BEIGE);
+    bg.addColorStop(1, '#9E7A57');
+    ctx.fillStyle = bg;
+    ctx.beginPath(); ctx.ellipse(0, cy, bw, bh, 0, 0, Math.PI * 2); ctx.fill();
+    // soft plush sheen across the upper back
+    ctx.fillStyle = 'rgba(255,240,215,0.22)';
+    ctx.beginPath(); ctx.ellipse(-bw * 0.25, cy - bh * 0.5, bw * 0.42, bh * 0.22, -0.25, 0, Math.PI * 2); ctx.fill();
+    // a fluffy tuft on top of the head
+    ctx.fillStyle = '#D6B28C';
+    ctx.beginPath(); ctx.ellipse(-r * 0.1, cy - bh * 0.96, r * 0.09, r * 0.13, -0.4, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(r * 0.08, cy - bh * 0.98, r * 0.08, r * 0.12, 0.35, 0, Math.PI * 2); ctx.fill();
+    // green leaf bow-tie tips just peeking out at the sides of the neck
+    ctx.fillStyle = MOKU_LEAF;
+    ctx.beginPath(); ctx.moveTo(-bw * 0.93, cy + r * 0.32); ctx.lineTo(-bw * 1.08, cy + r * 0.22); ctx.lineTo(-bw * 1.02, cy + r * 0.42); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(bw * 0.93, cy + r * 0.32); ctx.lineTo(bw * 1.08, cy + r * 0.22); ctx.lineTo(bw * 1.02, cy + r * 0.42); ctx.closePath(); ctx.fill();
+    // emerald three-leaf tail feather at the lower back (wags while moving)
+    var wag = moving ? Math.sin(time * 14) * 0.18 : Math.sin(time * 1.6) * 0.06;
+    ctx.save();
+    ctx.translate(0, cy + bh * 0.42);
+    ctx.rotate(wag);
+    [[-0.5, 0.85], [0.5, 0.85], [0, 1]].forEach(function (lf) {
+      ctx.save();
+      ctx.rotate(lf[0]);
+      ctx.fillStyle = lf[0] ? '#0C8E6E' : MOKU_LEAF;
+      leafPath(r * 0.62 * lf[1], r * 0.28 * lf[1]);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(220,255,236,0.55)'; ctx.lineWidth = Math.max(1, r * 0.035);
+      ctx.beginPath(); ctx.moveTo(0, r * 0.04); ctx.lineTo(0, r * 0.5 * lf[1]); ctx.stroke();
+      ctx.restore();
+    });
+    ctx.restore();
+    ctx.restore();
+  }
+
+  function drawCarpet() {
+    if (!carpetFx) return;
+    var cx = moku.x, cy = moku.y - 0.08, cz = moku.z;
+    var alpha = 1;
+    if (carpetFx.flyAway != null) {
+      var t = carpetFx.flyAway;
+      cy += t * t * 3; cx += t * 2.5; alpha = Math.max(0, 1 - t);
+    }
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    var hw = 0.62, hd = 0.4;
+    var N = 8;
+    ctx.beginPath();
+    for (var i = 0; i <= N; i++) {
+      var u = i / N;
+      var wy = Math.sin(time * 10 + u * 6) * 0.05;
+      var p = project(cx - hw + u * hw * 2, cy + wy, cz - hd);
+      if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+    }
+    for (var j = N; j >= 0; j--) {
+      var u2 = j / N;
+      var wy2 = Math.sin(time * 10 + u2 * 6 + 1) * 0.05;
+      var p2 = project(cx - hw + u2 * hw * 2, cy + wy2, cz + hd);
+      ctx.lineTo(p2.x, p2.y);
+    }
+    ctx.closePath();
+    ctx.fillStyle = '#C2456E'; ctx.fill();
+    var ps = project(cx, cy, cz).s;
+    ctx.strokeStyle = '#F5B83D'; ctx.lineWidth = Math.max(2, 0.06 * ps); ctx.stroke();
+    ctx.restore();
+    // trailing sparkles
+    if (Math.random() < 0.5 && carpetFx.flyAway == null) spawnSparkle(cx, cz - 0.2, '#FFE27A');
+  }
+
+  function drawParticles(pass) {
+    for (var i = 0; i < particles.length; i++) {
+      var q = particles[i];
+      var below = q.y < -0.05;
+      if ((pass === 'under') !== below) continue;
+      var p = project(q.x, q.y, q.z);
+      if (p.d < 0.4) continue;
+      var r = q.r * p.s;
+      var a = Math.min(1, q.life * 1.5);
+      ctx.save();
+      ctx.globalAlpha = a;
+      if (q.kind === 'shard') {
+        ctx.translate(p.x, p.y); ctx.rotate(q.rot);
+        ctx.fillStyle = 'rgba(210,245,255,0.85)';
+        ctx.strokeStyle = 'rgba(255,255,255,0.95)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(0, -r); ctx.lineTo(r * 0.8, r * 0.6); ctx.lineTo(-r * 0.7, r * 0.4); ctx.closePath();
+        ctx.fill(); ctx.stroke();
+      } else if (q.kind === 'spark') {
+        ctx.fillStyle = q.color;
+        ctx.translate(p.x, p.y);
+        ctx.beginPath();
+        ctx.moveTo(0, -r * 1.6); ctx.lineTo(r * 0.4, -r * 0.4); ctx.lineTo(r * 1.6, 0); ctx.lineTo(r * 0.4, r * 0.4);
+        ctx.lineTo(0, r * 1.6); ctx.lineTo(-r * 0.4, r * 0.4); ctx.lineTo(-r * 1.6, 0); ctx.lineTo(-r * 0.4, -r * 0.4);
+        ctx.closePath(); ctx.fill();
+      } else {
+        ctx.translate(p.x, p.y); ctx.rotate(q.rot);
+        ctx.fillStyle = q.color;
+        ctx.fillRect(-r, -r * 0.5, r * 2, r);
+      }
+      ctx.restore();
+    }
+  }
+
+  function draw() {
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    drawSky();
+    drawCloudSea();
+
+    var n = stepsFor(progress.bridge);
+    var gz = goalZ();
+    // 落ちているMokuと破片は橋より先(=下)に描く
+    if (state === STATE.FALL) {
+      drawParticles('under');
+      drawMoku(moku.x, moku.y, moku.z);
+    }
+    // far → near
+    drawPlatform(gz - 0.5, gz + 3.2, true);
+    for (var i = n - 1; i >= 0; i--) drawRow(i);
+    drawPlatform(-1.6, 0.5, false);
+    drawRopes(-1.6, gz + 3);
+    // タイトル画面ではヒーローイラストが主役なので、橋の上のMokuは出さない
+    if (state !== STATE.FALL && state !== STATE.TITLE) {
+      drawCarpet();
+      drawMoku(moku.x, moku.y, moku.z);
+    }
+    drawParticles('over');
+
+    // soft vignette (picture-book feel)
+    var v = ctx.createRadialGradient(W / 2, H * 0.5, Math.min(W, H) * 0.35, W / 2, H * 0.5, Math.max(W, H) * 0.8);
+    v.addColorStop(0, 'rgba(120,60,40,0)');
+    v.addColorStop(1, 'rgba(120,60,40,0.22)');
+    ctx.fillStyle = v;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  var last = performance.now();
+  function frame(now) {
+    var dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    update(dt);
+    draw();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // ================================================================
+  // Input
+  // ================================================================
+  $('playBtn').addEventListener('click', function () { sfx.tap(); startRun(); });
+  $('titleShopBtn').addEventListener('click', function () { sfx.tap(); renderShop(); openOverlay('shopOverlay'); });
+  $('helpBtn').addEventListener('click', function () { sfx.tap(); openOverlay('helpOverlay'); });
+  $('helpClose').addEventListener('click', function () { sfx.tap(); closeOverlay('helpOverlay'); });
+  $('shopClose').addEventListener('click', function () { sfx.tap(); closeOverlay('shopOverlay'); renderItems(); });
+  $('backBtn').addEventListener('click', function () { sfx.tap(); toTitle(); });
+  $('hintBtn').addEventListener('click', function () { useItem('hint'); });
+  $('carpetBtn').addEventListener('click', function () { useItem('carpet'); });
+  $('soundBtn').addEventListener('click', function () {
+    muted = !muted;
+    try { localStorage.setItem(MUTE_KEY, muted ? '1' : '0'); } catch (e) {}
+    renderItems();
+    sfx.tap();
+  });
+  $('resultMain').addEventListener('click', function () { sfx.tap(); startRun(); });
+  $('resultShop').addEventListener('click', function () { sfx.tap(); renderShop(); openOverlay('shopOverlay'); });
+  $('resultTitleBtn').addEventListener('click', function () { sfx.tap(); toTitle(); });
+
+  // ---------- joystick: 左右に倒して狙い、離すとその方向へジャンプ ----------
+  var stickEl = $('stick'), knobEl = $('stickKnob');
+  var AIM_AT = 0.45;
+  function stickRadius() { return stickEl.clientWidth * 0.36; }
+  function moveStick(e) {
+    var rect = stickEl.getBoundingClientRect();
+    var R = stickRadius();
+    var dx = e.clientX - (rect.left + rect.width / 2);
+    var dy = e.clientY - (rect.top + rect.height / 2);
+    var len = Math.sqrt(dx * dx + dy * dy);
+    if (len > R) { dx *= R / len; dy *= R / len; }
+    knobEl.style.transform = 'translate(' + dx + 'px,' + dy * 0.5 + 'px)';
+    stick.x = dx / R;
+    var aim = stick.x < -AIM_AT ? 0 : (stick.x > AIM_AT ? 1 : -1);
+    if (aim !== stick.aim && aim >= 0 && canPick()) sfx.tap();
+    stick.aim = aim;
+    $('arrowL').classList.toggle('on', aim === 0);
+    $('arrowR').classList.toggle('on', aim === 1);
+    stickEl.setAttribute('aria-valuenow', stick.x.toFixed(2));
+  }
+  function releaseStick() {
+    stick.active = false; stick.id = null; stick.x = 0; stick.aim = -1;
+    knobEl.classList.remove('active');
+    knobEl.style.transform = 'translate(0px,0px)';
+    $('arrowL').classList.remove('on');
+    $('arrowR').classList.remove('on');
+  }
+  stickEl.addEventListener('pointerdown', function (e) {
+    e.preventDefault();
+    stick.active = true; stick.id = e.pointerId;
+    try { stickEl.setPointerCapture(e.pointerId); } catch (err) {}
+    knobEl.classList.add('active');
+    moveStick(e);
+  });
+  stickEl.addEventListener('pointermove', function (e) {
+    if (stick.active && e.pointerId === stick.id) moveStick(e);
+  });
+  function endStick(e) {
+    if (!stick.active || e.pointerId !== stick.id) return;
+    var aim = stick.aim;
+    releaseStick();
+    if (aim >= 0 && canPick()) {
+      $('stickHelp').hidden = true;
+      pick(aim);
+    }
+  }
+  stickEl.addEventListener('pointerup', endStick);
+  stickEl.addEventListener('pointercancel', function (e) { if (e.pointerId === stick.id) releaseStick(); });
+  document.addEventListener('keydown', function (e) {
+    if (state === STATE.TITLE) {
+      if ((e.key === 'Enter' || e.key === ' ') && !document.querySelector('.overlay.open')) { e.preventDefault(); startRun(); }
+      return;
+    }
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') pick(0);
+    else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') pick(1);
+    else if (e.key === 'h' || e.key === 'H') useItem('hint');
+    else if (e.key === 'c' || e.key === 'C') useItem('carpet');
+  });
+
+  // 別タブ・別ゲームで Moint が増減したら表示を合わせる
+  window.addEventListener('storage', function (e) {
+    if (e.key === WALLET_KEY || e.key === null) { refreshWallet(); renderMoints(); }
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) { refreshWallet(); renderMoints(); }
+  });
+
+  saveAll();
+  renderMoints();
+})();
+</script>
+</body>
+</html>

@@ -2028,6 +2028,32 @@ footer {
       }
     },
     {
+      name: 'Moku Bridge',
+      card: 'mbr',
+      gameId: 'moku-bridge',
+      isCompleted: function () {
+        if (isExplicitlyMarked('completed', 'mbr')) return true;
+        var p = readJSON('moku:moku-bridge:progress');
+        return Boolean(p && p.cleared >= 5);
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'mbr')) return true;
+        var p = readJSON('moku:moku-bridge:progress');
+        return Boolean(p && p.totalTries > 0);
+      },
+      progress: function () {
+        if (this.isCompleted()) return 1;
+        var p = readJSON('moku:moku-bridge:progress');
+        return p ? Math.min(1, (p.cleared || 0) / 5) : 0;
+      },
+      badge: function () {
+        var p = readJSON('moku:moku-bridge:progress');
+        if (!p || !this.isPlayed()) return null;
+        var crossed = (p.cleared || 0) + (p.cleared === 1 ? ' Bridge' : ' Bridges');
+        return p.bestLucky > 0 ? crossed + ' · 🍀 ' + p.bestLucky + ' in a row' : crossed + ' Crossed';
+      }
+    },
+    {
       name: 'Mokuball',
       card: null,
       gameId: 'mokuball',
@@ -2168,13 +2194,16 @@ footer {
            desc: 'Moku’s very own smartwatch! Order Moku Bento, take endless lunch breaks, sleep 24 hours and fill the Mokudex — the lazier, the better.' },
     mr:  { name: 'Moku-rane', gameId: 'moku-rane', genre: '3D Claw Machine', cta: 'Play', hi: '#FF9EAA', lo: '#7A3046',
            tag: 'Aim, drop, grab a prize!',
-           desc: 'Real-physics 3D arcade claw machine — aim, drop, and grab cute Moku prizes for your collection.' }
+           desc: 'Real-physics 3D arcade claw machine — aim, drop, and grab cute Moku prizes for your collection.' },
+    mbr: { name: 'Moku Bridge', gameId: 'moku-bridge', genre: 'Glass Bridge', cta: 'Cross', hi: '#5ED6E8', lo: '#16596A', newUntil: '2026-11-25',
+           tag: 'Pick the right glass. Cross the sky!',
+           desc: 'Left or right? Hop across the glass bridge in the sunset sky. Earn Moints and use Hints or a Magic Carpet to help Moku!' }
   };
   var SHELVES = [
     { title: 'Action & Sports', sub: 'Fling, kick, fight, race', cards: ['am', 'br', 'mk', 'mfg', 'mkt', 'mfr'] },
     { title: 'Puzzle & Brain',  sub: 'Think, match, merge',      cards: ['mm', 'md', 'so'] },
     { title: 'Cozy & Create',   sub: 'Take it slow',             cards: ['mc', 'mf', 'mrc', 'mb', 'fm', 'mw6'] },
-    { title: 'Party & Arcade',  sub: 'Play with friends',        cards: ['mw', 'mr'] }
+    { title: 'Party & Arcade',  sub: 'Play with friends',        cards: ['mw', 'mr', 'mbr'] }
   ];
   // Today's Pick rotates daily through titles whose screenshot shows real gameplay.
   var FEATURED = ['mfg', 'mkt', 'am', 'mc'];
@@ -2197,6 +2226,20 @@ footer {
     'moku-rhythm': ['moku_rhythm_'],
     'moku-wolf': ['moku_wolf_'],
     'moku-rane': ['moku:mr:']
+  };
+  // Profile "My Bests" (shared/moku-account.js): records to show off.
+  // Each title can add its own entry here.
+  window.MOKU_PROFILE_BESTS = function () {
+    var bests = [];
+    var bridge = readJSON('moku:moku-bridge:progress');
+    if (bridge && bridge.bestLucky > 0) {
+      bests.push({
+        title: '🍀 Luckiest Steps', game: 'Moku Bridge',
+        value: bridge.bestLucky + ' in a row',
+        hi: CATALOG.mbr.hi, lo: CATALOG.mbr.lo, icon: 'icons/games/moku-bridge.svg'
+      });
+    }
+    return bests;
   };
   window.MOKU_SAVE_SUMMARY = function (savedAt) {
     var stamped = Object.keys(savedAt || {});
