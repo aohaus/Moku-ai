@@ -87,7 +87,8 @@ Resources:
           KeyType: RANGE
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
-      # Access-log items (pk LOG#<day>) carry `ttl`; DynamoDB deletes them after 90 days.
+      # Access-log items (pk LOG#<day>, 90 days) and error reports (pk ERR,
+      # 60 days after the last one) carry `ttl`; DynamoDB deletes them.
       TimeToLiveSpecification:
         AttributeName: ttl
         Enabled: true
@@ -203,6 +204,30 @@ Resources:
             ApiId: !Ref MokuScoresApi
             Path: /admin/logs
             Method: GET
+        ReportError:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /errors
+            Method: POST
+        AdminListErrors:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /admin/errors
+            Method: GET
+        AdminUpdateError:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /admin/errors/{sig}
+            Method: PATCH
+        AdminDeleteError:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /admin/errors/{sig}
+            Method: DELETE
         AdminCreateUser:
           Type: HttpApi
           Properties:

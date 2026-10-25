@@ -335,10 +335,11 @@
     // ---- hub card (sits on the hub's dark panels) ----
     '.mm-card{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:18px;',
     'background:linear-gradient(135deg,rgba(255,201,74,0.16),rgba(255,143,112,0.10));border:1px solid rgba(255,214,120,0.35)}',
-    '.mm-card-doll{flex:none;width:68px;height:68px;border-radius:16px;background:radial-gradient(circle at 50% 70%,#FFF1D6,#F2C98A);',
-    'box-shadow:inset 0 0 0 2px rgba(255,255,255,0.5);display:flex;align-items:flex-end;justify-content:center;overflow:visible;cursor:pointer;',
-    'border:none;padding:0;-webkit-tap-highlight-color:transparent}',
-    '.mm-card-doll .mm-doll{width:62px;height:62px;margin-bottom:2px}',
+    // the costume Moku stands on the card itself (no tile behind it), about twice the old 68px tile
+    '.mm-card-doll{flex:none;width:clamp(108px,30vw,136px);aspect-ratio:1/1;margin:-10px -4px -10px -8px;background:none;',
+    'display:flex;align-items:flex-end;justify-content:center;overflow:visible;cursor:pointer;',
+    'border:none;padding:0;-webkit-tap-highlight-color:transparent;filter:drop-shadow(0 6px 10px rgba(0,0,0,0.35))}',
+    '.mm-card-doll .mm-doll{width:100%;height:100%;animation:mmBob 3.2s ease-in-out infinite}',
     '.mm-card-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}',
     '.mm-card-title{font-size:12px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,230,170,0.85)}',
     '.mm-card-bal{display:flex;align-items:center;gap:7px;font-size:22px;font-weight:900;color:#FFF3D6;line-height:1}',
@@ -680,7 +681,6 @@
       node.innerHTML =
         '<button class="mm-card-doll" type="button" data-moku-closet aria-label="Open the Moku Closet">' + dollHTML(eq) + '</button>' +
         '<div class="mm-card-main">' +
-        '<div class="mm-card-title">My Moints</div>' +
         '<div class="mm-card-bal">' + COIN + '<span>' + fmt(balance()) + '</span><small>Moints</small></div>' +
         '<div class="mm-card-actions">' +
         (ready

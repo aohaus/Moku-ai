@@ -23,6 +23,10 @@ const ONLINE_WINDOW_MS = 5 * 60 * 1000;
 const LOG_TTL_SEC = 90 * 24 * 60 * 60;
 const MAX_LOG_DAYS = 30;
 const MAX_LOGGED_KEYS = 30;
+// Error reports (shared/moku-errors.js): kept until 60 days after the last one.
+const ERROR_TTL_SEC = 60 * 24 * 60 * 60;
+const ERROR_STATUSES = ["new", "fix", "watch", "ignore"];
+const ERROR_KINDS = ["error", "rejection", "resource"];
 // Save keys that change without anyone playing (sync stamps, hub streak).
 const NOT_PLAY_KEYS = [/^moku:meta:/, /^moku:stats:/];
 
@@ -120,6 +124,47 @@ function changedKeys(before, after) {
   return [...keys]
     .filter((k) => before[k] !== after[k] && !NOT_PLAY_KEYS.some((re) => re.test(k)))
     .sort();
+}
+
+// Validates and trims an error report from the browser. null = drop it.
+function cleanErrorReport(body, device, userAgent, at) {
+  const str = (v, n) => (typeof v === "string" ? v.slice(0, n) : "");
+  const int = (v) => (Number.isInteger(v) && v >= 0 ? v : 0);
+  const message = str(body.message, 500).trim();
+  if (!message) return null;
+  return {
+    at,
+    page: str(body.page, 100).replace(/[^\w.\-/]/g, "") || "unknown",
+    message,
+    source: str(body.source, 300),
+    line: int(body.line),
+    col: int(body.col),
+    stack: str(body.stack, 4000),
+    version: str(body.version, 60),
+    kind: ERROR_KINDS.includes(body.kind) ? body.kind : "error",
+    url: str(body.url, 300),
+    device,
+    userAgent: str(userAgent, 300),
+  };
+}
+
+// Same page + message + file + line = the same error.
+function errorSignature(r) {
+  const file = r.source.split(/[?#]/)[0];
+  return crypto
+    .createHash("sha256")
+    .update([r.page, r.message.slice(0, 200), file, r.line].join("|"))
+    .digest("hex")
+    .slice(0, 16);
+}
+
+// Most important first: "fix" / "new" before "watch" / "ignore", then how
+// many players hit it, how often, and how recently.
+const ERROR_STATUS_ORDER = { fix: 0, new: 1, watch: 2, ignore: 3 };
+function errorRank(a, b) {
+  const order = (e) => ERROR_STATUS_ORDER[e.status] ?? 1;
+  return order(a) - order(b) || b.users.length - a.users.length || b.count - a.count ||
+    (b.lastAt || "").localeCompare(a.lastAt || "");
 }
 
 // Shared by sign-up and the admin page. Returns an error response or null.
@@ -344,6 +389,39 @@ function createAccountApi(store, config) {
     return json(200, { logs, days });
   }
 
+  // POST /errors — no login needed (guests' errors count too). A logged-in
+  // player's token comes in the body so the request stays a simple CORS
+  // request (no preflight); it only adds who was affected.
+  async function reportError(body, device, userAgent) {
+    const report = cleanErrorReport(body, device, userAgent, new Date(now()).toISOString());
+    if (!report) return err(400, "invalid_report", "message is required");
+    const who = typeof body.auth === "string" ? token.verify(body.auth, authSecret, now()) : null;
+    await store.recordError(errorSignature(report), report, who?.lid || null, ERROR_TTL_SEC);
+    return json(200, { ok: true });
+  }
+
+  async function adminListErrors() {
+    const errors = (await store.listErrors()).sort(errorRank);
+    return json(200, { errors });
+  }
+
+  async function adminUpdateError(sig, body) {
+    const fields = {};
+    if (body.status !== undefined) {
+      if (!ERROR_STATUSES.includes(body.status)) return err(400, "invalid_status", "status: new, fix, watch or ignore");
+      fields.status = body.status;
+    }
+    if (body.note !== undefined) fields.note = String(body.note).slice(0, 500);
+    if (!Object.keys(fields).length) return err(400, "invalid_request", "nothing to change");
+    try {
+      await store.updateError(sig, fields);
+    } catch (e) {
+      if (e.code === "not_found") return err(404, "not_found", "No such error.");
+      throw e;
+    }
+    return json(200, { updated: sig });
+  }
+
   async function login(body, device) {
     const loginId = normalizeLoginId(body.loginId);
     const pin = String(body.pin ?? "");
@@ -448,6 +526,12 @@ function createAccountApi(store, config) {
     const device = deviceFromUA(event.headers?.["user-agent"] || event.headers?.["User-Agent"]);
 
     try {
+      if (route === "POST /errors") {
+        const body = parseBody(event);
+        if (!body) return err(400, "invalid_json", "invalid JSON body");
+        return await reportError(body, device, event.headers?.["user-agent"] || event.headers?.["User-Agent"]);
+      }
+
       if (route === "POST /auth/register" || route === "POST /auth/login") {
         const body = parseBody(event);
         if (!body) return err(400, "invalid_json", "invalid JSON body");
@@ -456,9 +540,11 @@ function createAccountApi(store, config) {
 
       const authed = ["GET /auth/me", "POST /auth/pin", "GET /save", "PUT /save", "GET /players"];
       const adminUser = /^\/admin\/users\/([^/]+)$/.exec(path);
+      const adminError = /^\/admin\/errors\/([0-9a-f]{16})$/.exec(path);
       const adminRoute =
         route === "GET /admin/users" || route === "POST /admin/users" || route === "GET /admin/logs" ||
-        (adminUser && (method === "PATCH" || method === "DELETE"));
+        route === "GET /admin/errors" ||
+        ((adminUser || adminError) && (method === "PATCH" || method === "DELETE"));
       if (!authed.includes(route) && !adminRoute) return err(404, "not_found", "not found");
 
       const user = await authenticate(event);
@@ -468,10 +554,16 @@ function createAccountApi(store, config) {
         if (!isAdmin(user)) return err(403, "forbidden", "Admins only.");
         if (route === "GET /admin/users") return await adminListUsers();
         if (route === "GET /admin/logs") return await adminListLogs(event.queryStringParameters || {});
+        if (route === "GET /admin/errors") return await adminListErrors();
+        if (adminError && method === "DELETE") {
+          await store.deleteError(adminError[1]);
+          return json(200, { deleted: adminError[1] });
+        }
         if (method === "DELETE") return await adminDeleteUser(user, decodeURIComponent(adminUser[1]), device);
         const adminBody = parseBody(event);
         if (!adminBody) return err(400, "invalid_json", "invalid JSON body");
         if (route === "POST /admin/users") return await createAccount(adminBody, user, device);
+        if (adminError) return await adminUpdateError(adminError[1], adminBody);
         return await adminUpdateUser(user, decodeURIComponent(adminUser[1]), adminBody, device);
       }
 

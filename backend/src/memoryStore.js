@@ -11,6 +11,7 @@ function createMemoryStore() {
   const users = new Map();
   const saves = new Map();
   const logs = [];
+  const errors = new Map();
 
   return {
     async getUser(loginId) {
@@ -45,6 +46,24 @@ function createMemoryStore() {
     },
     async listLogs(day) {
       return logs.filter((l) => l.at.startsWith(day)).reverse().map((l) => ({ ...l }));
+    },
+    async recordError(sig, report, loginId) {
+      const e = errors.get(sig) || { count: 0, status: "new", firstAt: report.at, users: [] };
+      const { at, device, userAgent, version, ...rest } = report;
+      Object.assign(e, rest, { lastAt: at, lastDevice: device, lastUserAgent: userAgent, lastVersion: version });
+      e.count += 1;
+      if (loginId && !e.users.includes(loginId)) e.users.push(loginId);
+      errors.set(sig, e);
+    },
+    async listErrors() {
+      return [...errors.entries()].map(([sig, e]) => ({ sig, ...e, users: [...e.users] }));
+    },
+    async updateError(sig, fields) {
+      if (!errors.has(sig)) throw codedError("not_found");
+      Object.assign(errors.get(sig), fields);
+    },
+    async deleteError(sig) {
+      errors.delete(sig);
     },
     async listSaves() {
       return [...saves.entries()].map(([loginId, { rev, updatedAt, device }]) => ({ loginId, rev, updatedAt, device }));
