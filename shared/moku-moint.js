@@ -3,9 +3,11 @@
  *
  * Include on a page:
  *   <script src="shared/moku-moint.js"></script>
- *     Full mode (hub.html). Renders the Moint card into [data-moku-moint-card]
- *     (balance, Daily Bonus, a dressed-up Moku), shows the Daily Bonus popup
- *     once a day and opens the Moku Closet from any [data-moku-closet] button.
+ *     Full mode (hub.html). Fills these slots and keeps them up to date:
+ *       [data-moku-moint-bar]   one line: balance + Daily Bonus + Closet
+ *       [data-moku-doll]        the dressed-up Moku alone (avatar)
+ *     shows the Daily Bonus popup once a day and opens the Moku Closet from
+ *     any [data-moku-closet] button.
  *     Load it after shared/moku-account.js: when the player is logged in, the
  *     Daily Bonus waits for the cloud sync so it never causes a save conflict.
  *   <script src="shared/moku-moint.js" data-mode="none"></script>
@@ -332,19 +334,11 @@
   // ================================================================
 
   var CSS = [
-    // ---- hub card (sits on the hub's dark panels) ----
-    '.mm-card{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:18px;',
-    'background:linear-gradient(135deg,rgba(255,201,74,0.16),rgba(255,143,112,0.10));border:1px solid rgba(255,214,120,0.35)}',
-    // the costume Moku stands on the card itself (no tile behind it), about twice the old 68px tile
-    '.mm-card-doll{flex:none;width:clamp(108px,30vw,136px);aspect-ratio:1/1;margin:-10px -4px -10px -8px;background:none;',
-    'display:flex;align-items:flex-end;justify-content:center;overflow:visible;cursor:pointer;',
-    'border:none;padding:0;-webkit-tap-highlight-color:transparent;filter:drop-shadow(0 6px 10px rgba(0,0,0,0.35))}',
-    '.mm-card-doll .mm-doll{width:100%;height:100%;animation:mmBob 3.2s ease-in-out infinite}',
-    '.mm-card-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}',
-    '.mm-card-title{font-size:12px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,230,170,0.85)}',
-    '.mm-card-bal{display:flex;align-items:center;gap:7px;font-size:22px;font-weight:900;color:#FFF3D6;line-height:1}',
-    '.mm-card-bal small{font-size:13px;font-weight:800;color:rgba(255,230,170,0.75)}',
-    '.mm-card-actions{display:flex;gap:8px;flex-wrap:wrap}',
+    // ---- hub slots (sit on the hub's dark panels) ----
+    '.mm-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}',
+    '.mm-bar-bal{display:inline-flex;align-items:center;gap:6px;margin-right:2px;font-size:18px;font-weight:900;color:#FFF3D6;line-height:1}',
+    '.mm-bar-bal small{font-size:12px;font-weight:800;color:rgba(255,230,170,0.75)}',
+    '.mm-bar .mm-pill{font-size:12.5px;padding:7px 12px}',
     '.mm-pill{appearance:none;border:none;font:inherit;font-size:13px;font-weight:800;padding:8px 13px;border-radius:999px;cursor:pointer;',
     'display:inline-flex;align-items:center;gap:6px;-webkit-tap-highlight-color:transparent;transition:transform .12s}',
     '.mm-pill:active{transform:translateY(2px)}',
@@ -670,24 +664,28 @@
     }
   }
 
-  // ---------- hub card ----------
+  // ---------- hub slots: card / bar / doll ----------
+  function dailyPill(ready) {
+    return ready
+      ? '<button class="mm-pill is-gold is-glow" type="button" data-mm-daily>🎁 Daily +' + DAILY_MOINTS + '</button>'
+      : '<button class="mm-pill is-done" type="button" data-mm-daily>✓ Daily bonus</button>';
+  }
   function renderCards() {
-    var nodes = document.querySelectorAll('[data-moku-moint-card]');
-    if (!nodes.length) return;
     var ready = canClaimDaily();
     var eq = readCloset().equipped;
-    Array.prototype.forEach.call(nodes, function (node) {
-      node.classList.add('mm-card');
+    var outfitKey = SLOTS.map(function (s) { return eq[s] || ''; }).join('|');
+    Array.prototype.forEach.call(document.querySelectorAll('[data-moku-doll]'), function (node) {
+      // 服が変わった時だけ描き直す(浮遊アニメーションを途中で止めない)
+      if (node.getAttribute('data-outfit') === outfitKey && node.firstChild) return;
+      node.setAttribute('data-outfit', outfitKey);
+      node.innerHTML = dollHTML(eq);
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-moku-moint-bar]'), function (node) {
+      node.classList.add('mm-bar');
       node.innerHTML =
-        '<button class="mm-card-doll" type="button" data-moku-closet aria-label="Open the Moku Closet">' + dollHTML(eq) + '</button>' +
-        '<div class="mm-card-main">' +
-        '<div class="mm-card-bal">' + COIN + '<span>' + fmt(balance()) + '</span><small>Moints</small></div>' +
-        '<div class="mm-card-actions">' +
-        (ready
-          ? '<button class="mm-pill is-gold is-glow" type="button" data-mm-daily>🎁 Daily +' + DAILY_MOINTS + '</button>'
-          : '<button class="mm-pill is-done" type="button" data-mm-daily>✓ Daily bonus</button>') +
-        '<button class="mm-pill is-soft" type="button" data-moku-closet>👒 Moku Closet</button>' +
-        '</div></div>';
+        '<span class="mm-bar-bal">' + COIN + '<b>' + fmt(balance()) + '</b><small>Moints</small></span>' +
+        dailyPill(ready) +
+        '<button class="mm-pill is-soft" type="button" data-moku-closet>👒 Closet</button>';
     });
   }
 
@@ -716,6 +714,7 @@
   function boot() {
     injectStyle();
     renderCards();
+    changeListeners.push(renderCards);   // 買う・着替える・デイリー → 全部のスロットに反映
     var acc = global.MokuAccount;
     if (acc && acc.onStatusChange) acc.onStatusChange(function () { renderCards(); maybeAutoDaily(); });
     // 同期が始まる前に判定しないよう、ほんの少し待つ

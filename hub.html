@@ -1108,6 +1108,226 @@ footer {
 .nav-item.active .nav-icon { filter: drop-shadow(0 0 8px rgba(110,231,168,0.5)); }
 .nav-item[disabled] { cursor: not-allowed; opacity: 0.55; }
 .nav-item:not([disabled]):not(.active):hover, .nav-item:not([disabled]):not(.active):focus-visible { color: rgba(237,238,246,0.65); }
+
+/* ---------- who's playing: top strip (opens My Moku) ---------- */
+.profile-card.me-strip {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "avatar info open"
+    "avatar moints moints"
+    "xp xp xp"
+    "sky sky sky";
+  align-items: center;
+  column-gap: 14px;
+  row-gap: 10px;
+  padding: 14px 18px 12px 12px;
+}
+.me-strip .me-avatar { grid-area: avatar; }
+.me-strip .profile-info { grid-area: info; min-width: 0; }
+.me-strip .me-open { grid-area: open; }
+.me-strip .me-strip-moints { grid-area: moints; }
+.me-strip .profile-xp { grid-area: xp; min-width: 0; }
+.me-strip #skyMeta { grid-area: sky; }
+@media (min-width: 760px) {
+  .profile-card.me-strip {
+    grid-template-columns: auto minmax(0, 1fr) minmax(240px, 1.1fr) auto;
+    grid-template-areas:
+      "avatar info xp open"
+      "avatar moints moints moints"
+      "sky sky sky sky";
+  }
+}
+.me-avatar {
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  width: clamp(84px, 22vw, 112px);
+  margin: -8px 0 -8px -2px;
+  filter: drop-shadow(0 6px 10px rgba(0,0,0,0.35));
+  -webkit-tap-highlight-color: transparent;
+}
+.me-avatar .mm-doll { width: 100%; animation: bob 3.2s ease-in-out infinite; }
+.me-open {
+  appearance: none;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.07);
+  color: #EDEEF6;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.me-open:hover, .me-open:focus-visible { background: rgba(255,255,255,0.13); outline: none; border-color: rgba(110,231,168,0.55); }
+.nav-item .nav-doll { width: 26px; height: 22px; display: flex; align-items: center; justify-content: center; }
+.nav-item .nav-doll .mm-doll { width: 26px; margin-top: -4px; }
+
+/* ---------- My Moku page (#me) ---------- */
+html.me-open, html.me-open body { overflow: hidden; }
+#mePage {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  color: #EDEEF6;
+  background:
+    radial-gradient(ellipse 70% 40% at 50% 0%, rgba(255,179,107,0.16), transparent 70%),
+    linear-gradient(180deg, #0A0B12 0%, #121320 50%, #0A0B12 100%);
+  animation: meIn 0.22s ease-out;
+}
+#mePage[hidden] { display: none; }
+@keyframes meIn { from { opacity: 0; transform: translateY(12px); } }
+.me-top {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  /* full-width bar, content lined up with the 1000px grid below */
+  padding: calc(12px + env(safe-area-inset-top, 0px)) max(16px, calc((100% - 1000px) / 2 + 16px)) 12px;
+  background: linear-gradient(180deg, rgba(10,11,18,0.96) 60%, rgba(10,11,18,0));
+}
+.me-top h1 { margin: 0; font-size: clamp(18px, 3.6vw, 22px); font-weight: 800; letter-spacing: 0.04em; }
+.me-close {
+  appearance: none;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.07);
+  color: #EDEEF6;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  padding: 9px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.me-close:hover, .me-close:focus-visible { background: rgba(255,255,255,0.14); outline: none; }
+.me-grid {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 4px 16px calc(32px + env(safe-area-inset-bottom, 0px));
+  display: grid;
+  gap: 18px;
+}
+@media (min-width: 820px) {
+  .me-grid { grid-template-columns: 330px minmax(0, 1fr); align-items: start; }
+  .me-side { position: sticky; top: calc(66px + env(safe-area-inset-top, 0px)); }
+}
+.me-side, .me-main { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.me-card {
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.045);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.me-card .mka-meta { margin-bottom: 10px; }
+.me-hero { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.me-stage {
+  position: relative;
+  appearance: none;
+  border: none;
+  background: radial-gradient(ellipse 60% 16% at 50% 92%, rgba(255,201,74,0.28), transparent 70%);
+  padding: 0 0 10px;
+  width: min(200px, 56vw);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.me-stage .mm-doll { width: 100%; animation: bob 3.2s ease-in-out infinite; filter: drop-shadow(0 8px 12px rgba(0,0,0,0.35)); }
+.me-stage-tip {
+  position: absolute;
+  right: -4px;
+  bottom: 10px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #5A3A0A;
+  background: linear-gradient(180deg, #FFE7A3, #F5B83D);
+  box-shadow: 0 2px 0 #9A6512;
+  padding: 5px 10px;
+  border-radius: 999px;
+}
+.me-name { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: 0.01em; overflow-wrap: anywhere; }
+.me-tag { font-size: 13px; font-weight: 700; color: rgba(237,238,246,0.5); }
+.me-level { display: flex; align-items: center; gap: 10px; width: 100%; }
+.me-lv {
+  flex: none;
+  font-size: 13px;
+  font-weight: 800;
+  color: #6EE7A8;
+  border: 1px solid rgba(110,231,168,0.45);
+  background: rgba(110,231,168,0.1);
+  padding: 5px 12px;
+  border-radius: 999px;
+}
+.me-xp { flex: 1; min-width: 0; }
+.me-xp .xp-top { display: flex; justify-content: space-between; gap: 8px; font-size: 11.5px; font-weight: 700; color: rgba(237,238,246,0.6); margin-bottom: 5px; }
+.me-xp .xp-track { height: 8px; border-radius: 999px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); overflow: hidden; }
+.me-xp .xp-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #6EE7A8, #FFC94A); transition: width 0.6s ease; }
+.me-moints { justify-content: center; }
+.me-moints [data-moku-closet] { display: none; } /* the stage's "Dress up" opens the Closet here */
+.me-section { min-width: 0; }
+.me-section > .mka-section { margin-top: 0; }
+.me-h {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0 2px 8px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(237,238,246,0.6);
+}
+.me-h small { font-size: 12px; letter-spacing: 0; text-transform: none; font-weight: 700; color: rgba(237,238,246,0.45); }
+.me-list, .me-games {
+  padding: 4px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.me-games { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 2px 6px; }
+.me-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 9px 8px;
+  border-radius: 10px;
+  min-width: 0;
+  appearance: none;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+button.me-row { cursor: pointer; }
+button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,0.06); outline: none; }
+.me-tile {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 26%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(150deg, var(--hi, #888), var(--lo, #444));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
+}
+.me-tile img { width: 80%; height: 80%; }
+.me-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.me-row-main b { font-size: 14px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.me-row-main span { font-size: 12px; font-weight: 600; color: rgba(237,238,246,0.62); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.me-row-side { flex: none; font-size: 11.5px; font-weight: 700; color: rgba(237,238,246,0.5); text-align: right; }
+.me-best { flex: none; font-size: 15px; font-weight: 800; color: #FFE27A; white-space: nowrap; }
+.me-empty { grid-column: 1 / -1; padding: 14px; font-size: 13px; font-weight: 600; color: rgba(237,238,246,0.55); text-align: center; }
 </style>
 </head>
 <body>
@@ -1132,62 +1352,27 @@ footer {
     </div>
   </div>
 
-  <div class="profile-card">
+  <!-- Who's playing: tap Moku or "My Moku" for the player's own page (#me) -->
+  <div class="profile-card me-strip">
+    <button class="me-avatar" type="button" data-open-me aria-label="Open My Moku"><span data-moku-doll></span></button>
     <div class="profile-info">
       <div id="greeting" data-moku-greeting>Hello, Moku!</div>
       <div class="sub">What will you play today?</div>
     </div>
+    <button class="me-open" type="button" data-open-me>My Moku <span aria-hidden="true">›</span></button>
+    <div class="me-strip-moints" data-moku-moint-bar></div>
     <div class="profile-xp">
-      <div id="xpLevelPill">Lv.1</div>
+      <div id="xpLevelPill" data-xp-level>Lv.1</div>
       <div id="xpBar">
-        <div class="xp-top"><span id="xpNum">0 / 200 XP</span></div>
-        <div class="xp-track"><div class="xp-fill" id="xpFill" style="width:0%"></div></div>
+        <div class="xp-top"><span id="xpNum" data-xp-num>0 / 200 XP</span></div>
+        <div class="xp-track"><div class="xp-fill" id="xpFill" data-xp-fill style="width:0%"></div></div>
       </div>
-      <div id="completedPill" class="completed-summary-pill" title="Overall Series Completion">0 / 6 Completed</div>
+      <div id="completedPill" class="completed-summary-pill" data-xp-completed title="Overall Series Completion">0 / 6 Completed</div>
     </div>
     <div id="skyMeta">
       <span id="placeLabel">···</span>
       <span id="clock">--:--</span>
     </div>
-  </div>
-
-  <!-- Moint (series coin): balance, Daily Bonus, Moku Closet — filled by shared/moku-moint.js -->
-  <section data-moku-moint-card aria-label="My Moints"></section>
-
-  <div class="badge-showcase" id="badgeShowcase" aria-label="Badge Showcase">
-    <div class="badge-showcase-header">
-      <div class="badge-showcase-title-wrap">
-        <span class="badge-showcase-title">🏆 Badge Showcase</span>
-        <span class="badge-showcase-counter" id="hubAchievementsCounter">0 / 5</span>
-      </div>
-      <div class="badge-showcase-stats">
-        <span class="badge-stat-pill" id="hubStatTotalPlayed">🎮 0 Played</span>
-        <span class="badge-stat-pill streak-pill" id="hubStatStreak">🔥 1 Day Streak</span>
-      </div>
-    </div>
-    <div class="badge-showcase-list" role="list" id="hubAchievementsList">
-      <button class="hub-achievement-badge is-locked" type="button" data-id="first_flight" aria-label="First Flight: Play your first game (Locked)">
-        <span>🦉</span>
-        <span class="hub-achievement-status" aria-hidden="true">🔒</span>
-      </button>
-      <button class="hub-achievement-badge is-locked" type="button" data-id="high_five" aria-label="High Five: Play 5 games (Locked)">
-        <span>🖐️</span>
-        <span class="hub-achievement-status" aria-hidden="true">🔒</span>
-      </button>
-      <button class="hub-achievement-badge is-locked" type="button" data-id="on_fire" aria-label="On Fire: 3-day streak (Locked)">
-        <span>🔥</span>
-        <span class="hub-achievement-status" aria-hidden="true">🔒</span>
-      </button>
-      <button class="hub-achievement-badge is-locked" type="button" data-id="globe_trotter" aria-label="Globe Trotter: Play 3 distinct games (Locked)">
-        <span>🗺️</span>
-        <span class="hub-achievement-status" aria-hidden="true">🔒</span>
-      </button>
-      <button class="hub-achievement-badge is-locked" type="button" data-id="champion" aria-label="Series Champion: Complete any game (Locked)">
-        <span>🏆</span>
-        <span class="hub-achievement-status" aria-hidden="true">🔒</span>
-      </button>
-    </div>
-    <div class="hub-achievement-hint" id="hubAchievementHint" aria-live="polite">Hover or tap a badge to view unlock requirements</div>
   </div>
 
   <section id="todayPick" aria-label="Today's pick">
@@ -1237,8 +1422,87 @@ footer {
   <button class="nav-item active" type="button"><span class="nav-icon">🏠</span>Home</button>
   <button class="nav-item" type="button" disabled title="Coming soon"><span class="nav-icon">🏆</span>Achievements</button>
   <button class="nav-item" type="button" disabled title="Coming soon"><span class="nav-icon">📊</span>Ranking</button>
-  <button class="nav-item" type="button" disabled title="Coming soon" data-moku-account="nav"><span class="nav-icon" data-moku-account-icon>👤</span><span data-moku-account-label>Profile</span></button>
+  <button class="nav-item" type="button" data-open-me><span class="nav-icon nav-doll" data-moku-doll aria-hidden="true"></span>My Moku</button>
 </nav>
+
+<!-- My Moku: the player's own page (hash #me). Close goes back to the hub.
+     Left: who you are (dressed-up Moku, name, Lv, Moints, cloud save).
+     Right: your records (bests, badges, games, players). -->
+<section id="mePage" aria-labelledby="meTitle" hidden>
+  <header class="me-top">
+    <h1 id="meTitle">My Moku</h1>
+    <button class="me-close" id="meClose" type="button">✕ Close</button>
+  </header>
+  <div class="me-grid">
+    <aside class="me-side">
+      <div class="me-card me-hero">
+        <button class="me-stage" type="button" data-moku-closet aria-label="Dress up Moku in the Moku Closet">
+          <span data-moku-doll></span>
+          <span class="me-stage-tip">👒 Dress up</span>
+        </button>
+        <h2 class="me-name"><span data-moku-name>Guest</span> <span class="me-tag" data-moku-tag hidden></span></h2>
+        <div class="me-level">
+          <div class="me-lv" data-xp-level>Lv.1</div>
+          <div class="me-xp">
+            <div class="xp-top"><span data-xp-num>0 / 200 XP</span><span data-xp-completed>0 / 6 Completed</span></div>
+            <div class="xp-track"><div class="xp-fill" data-xp-fill style="width:0%"></div></div>
+          </div>
+        </div>
+        <div class="me-moints" data-moku-moint-bar></div>
+      </div>
+      <div class="me-card" data-moku-profile="account" hidden></div>
+    </aside>
+    <div class="me-main">
+      <section class="me-section" id="meBests" hidden>
+        <h3 class="me-h">My Bests</h3>
+        <div class="me-list" id="meBestsList"></div>
+      </section>
+
+      <section class="badge-showcase me-section" id="badgeShowcase" aria-label="Badge Showcase">
+        <div class="badge-showcase-header">
+          <div class="badge-showcase-title-wrap">
+            <span class="badge-showcase-title">🏆 Badge Showcase</span>
+            <span class="badge-showcase-counter" id="hubAchievementsCounter">0 / 5</span>
+          </div>
+          <div class="badge-showcase-stats">
+            <span class="badge-stat-pill" id="hubStatTotalPlayed">🎮 0 Played</span>
+            <span class="badge-stat-pill streak-pill" id="hubStatStreak">🔥 1 Day Streak</span>
+          </div>
+        </div>
+        <div class="badge-showcase-list" role="list" id="hubAchievementsList">
+          <button class="hub-achievement-badge is-locked" type="button" data-id="first_flight" aria-label="First Flight: Play your first game (Locked)">
+            <span>🦉</span>
+            <span class="hub-achievement-status" aria-hidden="true">🔒</span>
+          </button>
+          <button class="hub-achievement-badge is-locked" type="button" data-id="high_five" aria-label="High Five: Play 5 games (Locked)">
+            <span>🖐️</span>
+            <span class="hub-achievement-status" aria-hidden="true">🔒</span>
+          </button>
+          <button class="hub-achievement-badge is-locked" type="button" data-id="on_fire" aria-label="On Fire: 3-day streak (Locked)">
+            <span>🔥</span>
+            <span class="hub-achievement-status" aria-hidden="true">🔒</span>
+          </button>
+          <button class="hub-achievement-badge is-locked" type="button" data-id="globe_trotter" aria-label="Globe Trotter: Play 3 distinct games (Locked)">
+            <span>🗺️</span>
+            <span class="hub-achievement-status" aria-hidden="true">🔒</span>
+          </button>
+          <button class="hub-achievement-badge is-locked" type="button" data-id="champion" aria-label="Series Champion: Complete any game (Locked)">
+            <span>🏆</span>
+            <span class="hub-achievement-status" aria-hidden="true">🔒</span>
+          </button>
+        </div>
+        <div class="hub-achievement-hint" id="hubAchievementHint" aria-live="polite">Hover or tap a badge to view unlock requirements</div>
+      </section>
+
+      <section class="me-section">
+        <h3 class="me-h">My Games <small id="meGamesCount"></small></h3>
+        <div class="me-games" id="meGames"></div>
+      </section>
+
+      <div class="me-section" data-moku-profile="players" hidden></div>
+    </div>
+  </div>
+</section>
 
 <div id="a2hsOverlay">
   <div id="a2hsModal" role="dialog" aria-modal="true" aria-labelledby="a2hsTitle">
@@ -2159,10 +2423,10 @@ footer {
   // Today's Pick rotates daily through titles whose screenshot shows real gameplay.
   var FEATURED = ['mfg', 'mkt', 'am', 'mc'];
 
-  // ---------- Profile: "My Saves" ----------
-  // shared/moku-account.js calls this to list the player's saves: one row per
-  // game with progress, its badge() line, and when that game's save keys last
-  // changed (savedAt = the sync's per-key stamps, moku:meta:saved-at).
+  // ---------- My Moku page: "My Games" ----------
+  // One row per game with its badge() line and when it was last saved
+  // (savedAt = the cloud sync's per-key stamps, moku:meta:saved-at) or, for
+  // guests, last started from the hub (moku:played:<card>).
   // A game's keys are moku:<gameId>:… and moku:completed:<card>, plus the
   // older un-namespaced keys below. New titles only need the moku:<gameId>: form.
   // admin.html (access log) maps keys to games with the same rules — keep both in sync.
@@ -2178,9 +2442,8 @@ footer {
     'moku-wolf': ['moku_wolf_'],
     'moku-rane': ['moku:mr:']
   };
-  // Profile "My Bests" (shared/moku-account.js): records to show off.
-  // Each title can add its own entry here.
-  window.MOKU_PROFILE_BESTS = function () {
+  // My Moku "My Bests": records to show off. Each title can add its own entry here.
+  function profileBests() {
     var bests = [];
     var bridge = readJSON('moku:moku-bridge:progress');
     if (bridge && bridge.bestLucky > 0) {
@@ -2191,8 +2454,8 @@ footer {
       });
     }
     return bests;
-  };
-  window.MOKU_SAVE_SUMMARY = function (savedAt) {
+  }
+  function saveSummary(savedAt) {
     var stamped = Object.keys(savedAt || {});
     return GAMES.map(function (g) {
       var summary = g.badge ? g.badge() : null;
@@ -2204,8 +2467,12 @@ footer {
         var mine = prefixes.some(function (p) { return k.indexOf(p) === 0; });
         if (mine && savedAt[k] > latest) latest = savedAt[k];
       });
+      if (!latest) {
+        try { latest = localStorage.getItem('moku:played:' + g.card) || ''; } catch (e) {}
+      }
       var c = CATALOG[g.card] || {};
       return {
+        card: g.card,
         name: c.name || g.name,
         summary: summary,
         savedAt: latest || null,
@@ -2215,7 +2482,7 @@ footer {
     }).filter(Boolean).sort(function (a, b) {
       return (b.savedAt || '').localeCompare(a.savedAt || '');
     });
-  };
+  }
 
   var lastGameState = {};
   var tileNodes = {};
@@ -2473,17 +2740,12 @@ footer {
     // Update XP and Level
     var level = Math.floor(totalXp / XP_PER_LEVEL) + 1;
     var xpIntoLevel = totalXp % XP_PER_LEVEL;
-    var xpLevelElem = document.getElementById('xpLevelPill');
-    var xpNumElem = document.getElementById('xpNum');
-    var xpFillElem = document.getElementById('xpFill');
-    var completedPill = document.getElementById('completedPill');
-
-    if (xpLevelElem) xpLevelElem.textContent = 'Lv.' + level;
-    if (xpNumElem) xpNumElem.textContent = xpIntoLevel + ' / ' + XP_PER_LEVEL + ' XP';
-    if (xpFillElem) xpFillElem.style.width = Math.round((xpIntoLevel / XP_PER_LEVEL) * 100) + '%';
-    if (completedPill) {
-      completedPill.textContent = completedCount + ' / ' + playableCount + ' Completed';
-    }
+    // Top strip and My Moku page show the same numbers
+    function eachEl(sel, fn) { Array.prototype.forEach.call(document.querySelectorAll(sel), fn); }
+    eachEl('[data-xp-level]', function (n) { n.textContent = 'Lv.' + level; });
+    eachEl('[data-xp-num]', function (n) { n.textContent = xpIntoLevel + ' / ' + XP_PER_LEVEL + ' XP'; });
+    eachEl('[data-xp-fill]', function (n) { n.style.width = Math.round((xpIntoLevel / XP_PER_LEVEL) * 100) + '%'; });
+    eachEl('[data-xp-completed]', function (n) { n.textContent = completedCount + ' / ' + playableCount + ' Completed'; });
 
     // Update Badge Showcase & Statistics on Hub
     var rawTotal = parseInt(localStorage.getItem('moku:stats:total_games_played'), 10);
@@ -2550,7 +2812,132 @@ footer {
     if (hubCounterElem) {
       hubCounterElem.textContent = unlockedAchievements + ' / ' + ACHIEVEMENTS.length;
     }
+    if (meIsOpen()) renderMePage();
   }
+
+  // ---------- My Moku page (#me) ----------
+  // A page of its own over the hub: the player's dressed-up Moku, Lv, Moints
+  // and cloud save on the left; bests, badges, games and players on the
+  // right (one column on phones). Close (or the browser's Back) returns to
+  // the hub. shared/moku-account.js fills [data-moku-profile] / [data-moku-name],
+  // shared/moku-moint.js fills [data-moku-doll] / [data-moku-moint-bar].
+  var mePage = document.getElementById('mePage');
+  var meLastFocus = null;
+
+  function meIsOpen() { return Boolean(mePage) && !mePage.hidden; }
+
+  function relTime(iso) {
+    var t = Date.parse(iso || '');
+    if (!t) return '';
+    var min = Math.floor((Date.now() - t) / 60000);
+    if (min < 1) return 'Just now';
+    if (min < 60) return min + ' min ago';
+    if (min < 24 * 60) return Math.floor(min / 60) + ' h ago';
+    if (min < 48 * 60) return 'Yesterday';
+    var d = new Date(t);
+    return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()] + ' ' + d.getDate();
+  }
+  function meRow(tag, colors, iconSrc, title, sub) {
+    var row = el(tag, 'me-row');
+    if (tag === 'button') row.type = 'button';
+    var tile = el('span', 'me-tile');
+    setGameColors(tile, colors);
+    var img = el('img');
+    img.alt = '';
+    img.src = iconSrc;
+    tile.appendChild(img);
+    var main = el('span', 'me-row-main');
+    main.appendChild(el('b', null, title));
+    main.appendChild(el('span', null, sub));
+    row.appendChild(tile);
+    row.appendChild(main);
+    return row;
+  }
+
+  function renderMePage() {
+    var bests = [];
+    try { bests = profileBests(); } catch (e) {}
+    var bestsList = document.getElementById('meBestsList');
+    bestsList.textContent = '';
+    bests.forEach(function (b) {
+      var row = meRow('div', b, b.icon, b.title, b.game);
+      row.appendChild(el('span', 'me-best', b.value));
+      bestsList.appendChild(row);
+    });
+    document.getElementById('meBests').hidden = !bests.length;
+
+    var savedAt = {};
+    try { savedAt = (window.MokuAccount && window.MokuAccount.getSavedAt()) || {}; } catch (e) {}
+    var games = [];
+    try { games = saveSummary(savedAt); } catch (e) {}
+    var list = document.getElementById('meGames');
+    list.textContent = '';
+    games.forEach(function (g) {
+      var row = meRow('button', g, g.icon, g.name, g.summary);
+      row.setAttribute('aria-label', g.name + ': ' + g.summary);
+      row.appendChild(el('span', 'me-row-side', g.savedAt ? relTime(g.savedAt) : ''));
+      row.addEventListener('click', function () { if (CATALOG[g.card]) openSheet(g.card, row); });
+      list.appendChild(row);
+    });
+    if (!games.length) list.appendChild(el('div', 'me-empty', 'No games yet — go play one! 🎮'));
+    document.getElementById('meGamesCount').textContent = games.length ? String(games.length) : '';
+
+    if (window.MokuAccount && window.MokuAccount.renderProfile) window.MokuAccount.renderProfile();
+  }
+
+  function showMe() {
+    if (!mePage) return;
+    if (!meIsOpen()) {
+      meLastFocus = document.activeElement;
+      mePage.hidden = false;
+      document.documentElement.classList.add('me-open');
+      mePage.scrollTop = 0;
+      renderProgress();   // also fills the page (renderMePage)
+      document.getElementById('meClose').focus();
+    } else {
+      renderMePage();
+    }
+  }
+  function hideMe() {
+    if (!meIsOpen()) return;
+    closeSheet();
+    mePage.hidden = true;
+    document.documentElement.classList.remove('me-open');
+    if (meLastFocus && meLastFocus.focus) meLastFocus.focus();
+  }
+  function openMe() {
+    if (location.hash !== '#me') history.pushState({ mokuMe: true }, '', '#me');
+    showMe();
+  }
+  function closeMe() {
+    if (history.state && history.state.mokuMe) {
+      history.back();   // popstate hides the page
+    } else {
+      history.replaceState(null, '', location.pathname + location.search);
+      hideMe();
+    }
+  }
+  function syncMeToHash() {
+    // Old profile links (hub.html#profile) open My Moku too
+    if (location.hash === '#profile') history.replaceState(null, '', '#me');
+    if (location.hash === '#me') showMe();
+    else hideMe();
+  }
+  window.MOKU_PROFILE_PAGE = { open: openMe, isOpen: meIsOpen };
+  window.addEventListener('popstate', syncMeToHash);
+  window.addEventListener('hashchange', syncMeToHash);
+  document.getElementById('meClose').addEventListener('click', closeMe);
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest ? e.target.closest('[data-open-me]') : null;
+    if (t) openMe();
+  });
+  // Capture phase: runs before the detail sheet's own Escape handler, so one
+  // Escape closes only the top-most thing.
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape' || !meIsOpen()) return;
+    if (document.querySelector('.mka-overlay, .mm-overlay, #gameSheetOverlay.open')) return;
+    closeMe();
+  }, true);
 
   // Auto-record interaction when a user starts a game from any Play link
   // (Today's Pick, the detail sheet). Delegated because the catalog is
@@ -2600,6 +2987,7 @@ footer {
 
   // Initial render
   renderProgress();
+  syncMeToHash();
 
   // Expose global tracker helper for debugging or programmatic game completions
   window.MokuTracker = {

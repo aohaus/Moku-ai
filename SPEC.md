@@ -186,7 +186,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
 - **バックエンド**: `backend/`(AWS SAM)。`/auth/*` と `/save` を既存の HTTP API に追加。DynamoDB `moku-accounts` テーブル。仕様は [`backend/API_SPEC.md`](backend/API_SPEC.md) の「Accounts」。
 - **クライアント**: [`shared/moku-account.js`](shared/moku-account.js)。
   - ハブ(`index.html` / `hub.html`): `<script src="shared/moku-account.js"></script>` + `[data-moku-account]`(ログインボタン/アカウントチップの差し込み先)+ `[data-moku-greeting]`(「Hello, <名前>!」に置き換え)。ページ表示時に同期する。
-    - `hub.html` は下部ナビの **Profile** タブがログイン/アカウントボタン(`data-moku-account="nav"`。中の `[data-moku-account-icon]` と `[data-moku-account-label]` をスクリプトが書き換える。未ログインは 👤 Log In、ログイン中は頭文字アイコン+同期状態の点+表示名)。API未設定の環境では従来どおり非活性の「Coming soon」。`index.html` はログイン前と後で画面を切り替える(2026-10-25〜。`<html>` の `is-in` クラス、`.guest-only` / `.member-only`)。ログイン前は Moku のバッジ+大きいロゴ+Get Started+幅広のカード型ボタン(`data-moku-account="wide"`。☁️ Log In+説明文+光が流れるアニメーション、`data-moku-new-until` の日付まで NEW バッジ)。ログイン後は Moku Closet で着せ替えた Moku(`MokuMoint.outfitSVG()`)+「Welcome back, <名前>!」+Moint 残高と保存状態(`MokuAccount.statusText()`)+▶ Play Games(ハブへ)+小さいロゴ、右上にアカウントチップ(`data-moku-account`)。Share / Transfer Progress / Add to Home Screen は右上の「⋯」メニュー。Total Played・Achievements はハブだけに置く。
+    - `hub.html` は下部ナビの右端が **My Moku** タブ(着せ替えた Moku のアイコン。下の「My Moku 画面」を開く)。`index.html` はログイン前と後で画面を切り替える(2026-10-25〜。`<html>` の `is-in` クラス、`.guest-only` / `.member-only`)。ログイン前は Moku のバッジ+大きいロゴ+Get Started+幅広のカード型ボタン(`data-moku-account="wide"`。☁️ Log In+説明文+光が流れるアニメーション、`data-moku-new-until` の日付まで NEW バッジ)。ログイン後は Moku Closet で着せ替えた Moku(`MokuMoint.outfitSVG()`)+「Welcome back, <名前>!」+Moint 残高と保存状態(`MokuAccount.statusText()`)+▶ Play Games(ハブへ)+小さいロゴ、右上にアカウントチップ(`data-moku-account`)。Share / Transfer Progress / Add to Home Screen は右上の「⋯」メニュー。Total Played・Achievements はハブだけに置く。
   - ゲーム: `<script src="shared/moku-account.js" data-mode="background"></script>` を `</head>` 直前に1行足すだけ。UIは出さず、ページを閉じる/隠す時に進捗をアップロードする。未導入のゲームの進捗も次にハブを開いた時に同期される。
   - APIのURLは `moku-account.js` 冒頭の `API_BASE_URL`(2026-10-24 デプロイ済み: `https://d6hl1cxi0i.execute-api.ap-southeast-5.amazonaws.com`、呼べるのは `https://aohaus.github.io` と `https://dechatgpt.com` からのみ)。`npm run dev`(localhost:3000)では常に `server.js` のモック(招待コード `moku-dev`、メモリ保存)を使う。`API_BASE_URL` が空ならログインUIを出さない。
 - **同期対象**: `localStorage` のうち `moku:` `moku_` `moyomoyo-` `amoku-` で始まるキー全部(`moku:deviceId` `moku:account:*` `moku:sync:*` は除く)。**新規タイトルはこのどれかの接頭辞のキーを使うこと**(§2の `moku:<gameId>:<key>` 規約に従えば自動で対象になる)。
@@ -196,8 +196,14 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
   - 前回の同期の記録がない端末(ゲスト進捗がある端末で初ログイン)は従来どおり全体で「クラウド / この端末」を選ばせる。
   - 経緯: 同じアカウントで2台(またはハブを開いただけでも `moku:stats:streak` などが変わる)を使うと、以前は毎回「どちらを残す?」になり、Cloud を選ぶとその端末でクリアした記録や Moint が消えていた。
 - **ログアウト**: クラウドへ保存してから、その端末のMoku進捗を消す(兄弟で1台のiPadを共有する想定)。オフラインで保存できない時は「進捗を端末に残したままログアウト」を選べる。
-- **プロフィール画面**(ログイン中にハブの Profile タブ / 最初の画面のカードから開く、2026-10-24〜):
-  - **My Saves**: ゲームごとに1行(アイコン・名前・一言サマリー・最後に保存された時刻)。新しい順。サマリーは `hub.html` の `GAMES[].badge()`。`hub.html` が `window.MOKU_SAVE_SUMMARY(savedAt)` で一覧を渡す(`index.html` には `GAMES` がないので「See my saves」で `hub.html#profile` に飛ばす)。ゲームとキーの対応は `moku:<gameId>:…` と `moku:completed:<card>`、古い形式のキーは `hub.html` の `LEGACY_SAVE_PREFIXES`。**新規タイトルは `GAMES` に `badge()` を書けば一覧に出る。**
+- **My Moku 画面**(2026-10-25〜。旧「プロフィール」モーダルとハブ上部のカード類を1つにまとめた、プレイヤー自身のページ):
+  - **開き方**: `hub.html#me`。ハブ上部の帯(着せ替えた Moku・「My Moku ›」ボタン)/下部ナビの My Moku タブ / `index.html` のアカウントチップ(`hub.html#me` へ移動)。古いリンク `hub.html#profile` も開く。✕ Close(またはブラウザの戻る・Esc)でハブに戻る。ゲスト(ゲートのない開発環境など)でも開ける。
+  - **ハブ上部の帯**(`.me-strip`): 着せ替えた Moku+「Hello, <名前>!」+Lv/XP+Completed+Moint 残高・Daily・Closet+My Moku ボタン。旧プロフィールカードと「My Moints」カードを1枚にした。
+  - **レイアウト**: 幅 820px 以上(横向き iPad・PC)は2列(左 330px 固定・スクロールしても残る/右は記録)。それ未満は1列。最大幅 1000px。
+    - 左: 着せ替えた Moku(押すと Moku Closet)・表示名+`#u` タグ・Lv/XP/Completed・Moint 残高と Daily。その下にクラウド保存の状態+Save now / Change PIN / Log Out(/ 🛠 Admin)+Player ID(ゲストは ☁️ Log In)。
+    - 右: My Bests → Badge Showcase(ハブのトップから移した)→ My Games(幅が足りれば2列)→ Players。
+  - **分担**: 画面の骨組みと My Bests / Badge / My Games は `hub.html`。`shared/moku-account.js` が `[data-moku-name]` `[data-moku-tag]` `[data-moku-profile="account"]` `[data-moku-profile="players"]` を、`shared/moku-moint.js` が `[data-moku-doll]` `[data-moku-moint-bar]` を埋める。`hub.html` は `window.MOKU_PROFILE_PAGE = { open, isOpen }` を置き、アカウントのボタンはこれを開く(ない画面ではログイン中は `hub.html#me` へ、ゲストはログイン画面)。Change PIN / Log Out の確認は従来どおりモーダル。
+  - **My Games**: ゲームごとに1行(アイコン・名前・一言サマリー・最後に保存された時刻)。新しい順。押すとそのゲームの詳細シート。サマリーは `hub.html` の `GAMES[].badge()`、一覧は `saveSummary(savedAt)`。時刻は下の保存時刻、なければハブから始めた時刻(`moku:played:<card>`)。ゲームとキーの対応は `moku:<gameId>:…` と `moku:completed:<card>`、古い形式のキーは `hub.html` の `LEGACY_SAVE_PREFIXES`。**新規タイトルは `GAMES` に `badge()` を書けば一覧に出る。**
   - **保存時刻**: 同期のたびに、前回の同期から値が変わったキーに現在時刻を記録する(`moku:meta:saved-at` = キー→時刻のJSON)。このキーもクラウドセーブ・引き継ぎコードに含まれるので、どの端末でも同じ時刻が見える。端末とクラウドが同じかどうかの比較では、この記録は無視してゲームのデータだけを比べる。初回ログインの端末では、既存のセーブはすべてその時刻になる。
   - **Players**: アカウントを持つ全員(最大100人)の表示名・`#u` タグ・最終アクセス時刻。5分以内にアクセスがあれば「● Online」。ログイン中の人だけが見られる(`GET /players`)。Player ID は出さない。開いているページが2分おきに `GET /auth/me` を呼んで「まだいる」ことを伝える(サーバーは1分に1回まで記録)。
 
@@ -219,7 +225,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
 - **管理者アカウント**: プロフィールに `role: "admin"` を持つアカウント。**アプリの画面からは作れず**、CloudShell で `node scripts/accounts.js create-admin <ID> <PIN>` を実行して作る(もう一度実行するとPINの変更)。PINはリポジトリに書かない。
   - `MaxUsers`(100人)には数えない(`uncounted`)。Players 一覧にも出さない。
   - `admin` `administrator` `root` `moku` `mokumoku` `system` は予約IDで、子どもは新規登録に使えない。
-  - 管理者もハブで普通にログインして遊べる。その場合プロフィールに「🛠 Admin」ボタンが出る。
+  - 管理者もハブで普通にログインして遊べる。その場合 My Moku 画面に「🛠 Admin」ボタンが出る。
 - **管理画面へのログイン**: `admin.html` の専用フォーム(ID+PIN)。管理者以外のアカウントは入れない(サーバー側でも全 `/admin/*` で `role` を確認)。セッションは `sessionStorage`(タブを閉じると消える)で、ハブのプレイヤー用ログインとは別。
 - **ユーザー管理**(`/admin/users`):
   - 一覧: 表示名・ID・タグ・オンライン・最終アクセス・登録日時・ロック状態・PIN失敗回数・クラウドセーブ(更新日時・端末・rev)。
@@ -240,9 +246,9 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
 
 ## 13. Moint(シリーズ共通通貨、2026-10-25〜)
 
-- 共通ヘルパー: [`shared/moku-moint.js`](shared/moku-moint.js)(`MokuMoint.balance()` / `add(n)` / `claimDaily()` / `closet()` / `buy(id)` / `equip(id)` / `outfitSVG(equipped)` / `layerImage(slot)`)。ハブは通常モード(カード+デイリーボーナス+Moku Closet のUI)、ゲームは `data-mode="none"`(APIだけ)で読み込む。
+- 共通ヘルパー: [`shared/moku-moint.js`](shared/moku-moint.js)(`MokuMoint.balance()` / `add(n)` / `claimDaily()` / `closet()` / `buy(id)` / `equip(id)` / `outfitSVG(equipped)` / `layerImage(slot)`)。ハブは通常モード(Moint 残高・着せ替えた Moku のスロット+デイリーボーナス+Moku Closet のUI)、ゲームは `data-mode="none"`(APIだけ)で読み込む。
 - **デイリーボーナス**(2026-10-25〜): 1日1回 100 Moint。ハブ(`hub.html`)を開くとポップアップで受け取れる(端末のローカル日付で判定)。記録は `moku:moint:daily` = `{ version: 1, last: 'YYYY-MM-DD', days, updatedAt }`。ログイン中はクラウド同期が終わってから出し、受け取ったらすぐアップロードする(同じ日に別の端末でもう一度もらえない・同期の衝突を起こさない)。ゲストは端末ごと。
-- **Moku Closet**(2026-10-25〜): ハブの「My Moints」カードから開く着せ替えショップ。Hats / Glasses / Necklaces の3枠、各1つずつ着られる。持っていない服はタップで試着(プレビュー)、Buy で購入してすぐ着る。値段は 100〜600 Moint。保存は `moku:moint:closet` = `{ version: 1, owned: [id], equipped: { head, face, neck }, updatedAt }`。
+- **Moku Closet**(2026-10-25〜): ハブ上部の帯の Closet ボタン / My Moku 画面の Moku から開く着せ替えショップ。Hats / Glasses / Necklaces の3枠、各1つずつ着られる。持っていない服はタップで試着(プレビュー)、Buy で購入してすぐ着る。値段は 100〜600 Moint。保存は `moku:moint:closet` = `{ version: 1, owned: [id], equipped: { head, face, neck }, updatedAt }`。
   - 服の絵は `brand/mokumoku-hero.png` にぴったり重なる 100×100 グリッドの SVG(頭のてっぺん ≈ y 8、目 ≈ (35, 41.5) / (65, 41.5)、葉の蝶ネクタイ ≈ y 44〜58)。どの大きさの Moku にも同じ絵を重ねられる。新しい服は `moku-moint.js` の `ITEMS` に足す。
   - Moku Bridge はタイトル画面のヒーロー画像に全部の服を、プレイ中の後ろ姿の Moku には帽子だけを描く。他のタイトルでも `MokuMoint.outfitSVG()` / `layerImage()` で同じ服を着せられる。
 - 最初に導入したのは Moku Bridge。財布は `localStorage` の `moku:moint:wallet` = `{ version: 1, balance, updatedAt }`(ゲームIDを付けないシリーズ共通キー。`moku:` 接頭辞なのでクラウドセーブ・引き継ぎコードの対象)。
@@ -252,7 +258,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
 - Moku Bridge で落ちると 3 Moint 減る(残高が 3 未満ならあるだけ。0 未満にはしない)。
 - Magic Carpet は3枚先のガラスへ飛ぶ。とばした2段は踏まないので正解は分からないまま(次の挑戦でも未知)。
 - **Luckiest Steps**(2026-10-25〜): 1回の挑戦で、ヒントなしで続けて当てた段数の最高記録を `moku:moku-bridge:progress` の `bestLucky` に保存する。答えが分かっている段は数えず連続も切らない。ヒント・カーペット・ハズレで連続が切れる。
-- **プロフィールの My Bests**: `hub.html` の `window.MOKU_PROFILE_BESTS()` が `{ title, game, value, hi, lo, icon }` の一覧を返すと、`shared/moku-account.js` がプロフィールの My Saves の上に「My Bests」として出す。他のタイトルの自慢できる記録もここに足せる。
+- **My Moku の My Bests**: `hub.html` の `profileBests()` が返す `{ title, game, value, hi, lo, icon }` の一覧を My Moku 画面の右列の先頭に出す。他のタイトルの自慢できる記録もここに足せる。
 
 ## 未決事項 / 次に決めること
 
