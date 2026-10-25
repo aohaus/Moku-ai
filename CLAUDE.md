@@ -88,7 +88,7 @@ cd backend && npm test   # アカウントAPIのテスト(AWS不要)
   - アプリアイコン・ファビコン(`icons/icon-*.png` `icons/apple-touch-icon.png` `icons/favicon-32.png` `favicon.ico`)は `python3 scripts/make-icons.py` で `brand/mokumoku-hero.png` から作る。作り直したら `index.html` / `hub.html` / `hub-manifest.json` のアイコンURLの `?v=` を上げる(ブラウザのキャッシュ対策)。
   - 2026-10 に AI Studio の Push で PNG がテキスト扱いされて壊れた(バイト列が `EF BF BD` に化けた)。`.gitattributes` で画像を binary 指定している。
 - 変更したゲームは SPEC.md §5 に従い `#buildInfo` のバージョンと日付を更新する。
-- **`shared/*.js` を変えたら、読み込んでいる全HTMLの `?v=` を上げる**(`src="shared/moku-account.js?v=20261025"` の形。値は全ファイルで同じ日付にそろえる)。上げないと、ブラウザや dechatgpt.com の Cloudflare が古い共通スクリプトを使い続け、新しい HTML と食い違う(2026-10-25 に My Moku 画面が「Guest」・Moku なしで表示された)。
+- **`shared/*.js` を変えたら、読み込んでいる全HTMLの `?v=` を上げる**(`src="shared/moku-account.js?v=20261025"` の形。値は全ファイルで同じにそろえる。日付で、同じ日に2回目以降は `20261025b` のように英字を足す)。上げないと、ブラウザや dechatgpt.com の Cloudflare が古い共通スクリプトを使い続け、新しい HTML と食い違う(2026-10-25 に My Moku 画面が「Guest」・Moku なしで表示された)。
 
 ## 7. コーディング規約(要点)
 

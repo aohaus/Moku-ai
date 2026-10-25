@@ -5,7 +5,8 @@
  *   <script src="shared/moku-moint.js"></script>
  *     Full mode (hub.html). Fills these slots and keeps them up to date:
  *       [data-moku-moint-bar]   one line: balance + Daily Bonus + Closet
- *       [data-moku-doll]        the dressed-up Moku alone (avatar)
+ *       [data-moku-doll]        the dressed-up Moku alone (avatar); add data-moku-scene
+ *                               to put the chosen background card behind him
  *     shows the Daily Bonus popup once a day and opens the Moku Closet from
  *     any [data-moku-closet] button.
  *     Load it after shared/moku-account.js: when the player is logged in, the
@@ -17,7 +18,7 @@
  * Save keys (all synced by cloud save / transfer codes, SPEC.md §10–11):
  *   moku:moint:wallet  { version, balance, updatedAt }  — never below 0
  *   moku:moint:daily   { version, last: 'YYYY-MM-DD', days, updatedAt }
- *   moku:moint:closet  { version, owned: [id], equipped: { head, face, neck }, updatedAt }
+ *   moku:moint:closet  { version, owned: [id], equipped: { head, face, neck, bg }, updatedAt }
  *
  * Items are drawn as SVG on a 100×100 grid laid exactly over
  * brand/mokumoku-hero.png (head top ≈ y 8, eyes ≈ (35, 41.5) / (65, 41.5),
@@ -31,8 +32,9 @@
   var CLOSET_KEY = 'moku:moint:closet';
   var DAILY_MOINTS = 100;
   var HERO_SRC = 'brand/mokumoku-hero.png';
-  var SLOTS = ['head', 'face', 'neck'];
-  var SLOT_LABELS = { head: 'Hats', face: 'Glasses', neck: 'Necklaces' };
+  var SLOTS = ['head', 'face', 'neck'];          // what Moku wears
+  var TABS = SLOTS.concat('bg');                 // Closet tabs (bg = background card behind Moku)
+  var SLOT_LABELS = { head: 'Hats', face: 'Face', neck: 'Necklaces', bg: 'Backgrounds' };
 
   var script = document.currentScript;
   var mode = (script && script.getAttribute('data-mode')) || 'full';
@@ -89,7 +91,7 @@
     if (!Array.isArray(c.owned)) c.owned = [];
     if (!c.equipped) c.equipped = {};
     // 知らないアイテム(古い/壊れたデータ)は着せない
-    SLOTS.forEach(function (s) {
+    TABS.forEach(function (s) {
       var id = c.equipped[s];
       if (id && (!ITEM_BY_ID[id] || ITEM_BY_ID[id].slot !== s || c.owned.indexOf(id) < 0)) c.equipped[s] = null;
     });
@@ -262,20 +264,476 @@
           '<circle cx="50" cy="74.6" r="5.4" fill="url(#mmMedal)" stroke="#C98A14" stroke-width="0.8"/>' +
           '<defs><linearGradient id="mmMedal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFE68A"/><stop offset="1" stop-color="#E0A21B"/></linearGradient></defs>' +
           '<path d="' + starPath(50, 74.8, 3) + '" fill="#FFF3C4"/>';
+      } },
+    // ---- more hats (2026-10-26) ----
+    { id: 'top-hat', slot: 'head', name: 'Top Hat', price: 220, box: [30, -1, 40, 20],
+      svg: function () {
+        return '<ellipse cx="50" cy="15.6" rx="18" ry="3.4" fill="#2E2A3A"/>' +
+          '<path d="M39.2 15 L40.2 1.6 Q50 0 59.8 1.6 L60.8 15 Z" fill="#3A3548"/>' +
+          '<path d="M39.6 10.8 L60.4 10.8 L60.7 14.4 L39.3 14.4 Z" fill="#E8473C"/>' +
+          '<path d="M43 3 L42.4 9.6" stroke="rgba(255,255,255,0.25)" stroke-width="1.2" stroke-linecap="round"/>';
+      } },
+    { id: 'cowboy-hat', slot: 'head', name: 'Cowboy Hat', price: 240, box: [22, 1, 56, 20],
+      svg: function () {
+        return '<path d="M38 14 Q37 3 44 3 Q50 5.6 56 3 Q63 3 62 14 Z" fill="#C98A4E"/>' +
+          '<path d="M38.2 10.8 Q50 12.4 61.8 10.8 L61.9 13.8 Q50 15.2 38.1 13.8 Z" fill="#7A4F2E"/>' +
+          '<path d="M23 14 Q30 20 50 18.6 Q70 20 77 14 Q72 11.6 63 13.6 Q50 15.4 37 13.6 Q28 11.6 23 14 Z" fill="#B9783F" stroke="#8E5A2C" stroke-width="0.6"/>';
+      } },
+    { id: 'chef-hat', slot: 'head', name: 'Chef Hat', price: 160, box: [31, -5, 38, 24],
+      svg: function () {
+        return '<circle cx="40" cy="5.6" r="6.4" fill="#FFFFFF" stroke="#E2D6C4" stroke-width="0.7"/>' +
+          '<circle cx="60" cy="5.6" r="6.4" fill="#FFFFFF" stroke="#E2D6C4" stroke-width="0.7"/>' +
+          '<circle cx="50" cy="2.8" r="7.4" fill="#FFFFFF" stroke="#E2D6C4" stroke-width="0.7"/>' +
+          '<path d="M37 9.4 L63 9.4 L63 16.4 Q50 18 37 16.4 Z" fill="#FFFFFF" stroke="#E2D6C4" stroke-width="0.7"/>' +
+          '<path d="M43 10.6 L43 16 M50 10.6 L50 16.8 M57 10.6 L57 16" stroke="#EFE6D8" stroke-width="0.7"/>';
+      } },
+    { id: 'pirate-hat', slot: 'head', name: 'Pirate Hat', price: 260, box: [25, 0, 50, 18],
+      svg: function () {
+        return '<path d="M26.5 15.4 Q34 3.6 50 2.6 Q66 3.6 73.5 15.4 Q62 11 50 12.6 Q38 11 26.5 15.4 Z" fill="#2E2A3A"/>' +
+          '<path d="M26.5 15.4 Q38 11 50 12.6 Q62 11 73.5 15.4" stroke="#FFD25A" stroke-width="1.2" fill="none"/>' +
+          '<path d="' + starPath(50, 8.2, 3) + '" fill="#FFF6E8"/>';
+      } },
+    { id: 'blue-cap', slot: 'head', name: 'Blue Cap', price: 140, box: [28, 1, 54, 21],
+      svg: function () {
+        return '<path d="M30 16 Q30 3 50 3 Q70 3 70 16 Z" fill="#4E7BE0"/>' +
+          '<path d="M50 3.2 L50 15.6 M40 4.6 Q38.6 10 38.6 15.6 M60 4.6 Q61.4 10 61.4 15.6" stroke="#3A63C4" stroke-width="0.7" fill="none"/>' +
+          '<path d="M47 15 Q66 12.6 81 17.6 Q66 20.8 47 18 Z" fill="#3A63C4"/>' +
+          '<circle cx="50" cy="3.4" r="1.6" fill="#FFD25A"/>';
+      } },
+    { id: 'sun-hat', slot: 'head', name: 'Straw Sun Hat', price: 200, box: [22, 2, 56, 19],
+      svg: function () {
+        return '<ellipse cx="50" cy="15.2" rx="26" ry="5" fill="#F2D27A" stroke="#D9B055" stroke-width="0.6"/>' +
+          '<path d="M36 14.6 Q36 4 50 4 Q64 4 64 14.6 Z" fill="#EBC45E"/>' +
+          '<path d="M36.1 11.4 Q50 13 63.9 11.4 L64 14.4 Q50 16 36 14.4 Z" fill="#FF8FB8"/>' +
+          flower(62.4, 11.4, 3, '#FFFFFF', '#FFC94A');
+      } },
+    { id: 'bunny-ears', slot: 'head', name: 'Bunny Ears', price: 180, box: [28, -10, 44, 27],
+      svg: function () {
+        return '<g transform="rotate(-12 40 3)"><ellipse cx="40" cy="1" rx="4.2" ry="9.4" fill="#FFF6F0" stroke="#F2C7D6" stroke-width="0.7"/>' +
+          '<ellipse cx="40" cy="1.6" rx="2" ry="6.6" fill="#FFB3CA"/></g>' +
+          '<g transform="rotate(12 60 3)"><ellipse cx="60" cy="1" rx="4.2" ry="9.4" fill="#FFF6F0" stroke="#F2C7D6" stroke-width="0.7"/>' +
+          '<ellipse cx="60" cy="1.6" rx="2" ry="6.6" fill="#FFB3CA"/></g>' +
+          '<path d="M29 15.4 Q50 5.4 71 15.4" stroke="#FF8FB8" stroke-width="2.2" fill="none" stroke-linecap="round"/>';
+      } },
+    { id: 'cat-ears', slot: 'head', name: 'Cat Ears', price: 160, box: [28, -1, 44, 18],
+      svg: function () {
+        return '<path d="M29.6 15.6 L32.6 0.8 L43.4 9 Z" fill="#4A3A35" stroke-linejoin="round"/>' +
+          '<path d="M32.6 12.6 L34.2 4.8 L40 9.6 Z" fill="#FF9FB8"/>' +
+          '<path d="M70.4 15.6 L67.4 0.8 L56.6 9 Z" fill="#4A3A35"/>' +
+          '<path d="M67.4 12.6 L65.8 4.8 L60 9.6 Z" fill="#FF9FB8"/>';
+      } },
+    { id: 'bear-ears', slot: 'head', name: 'Bear Ears', price: 160, box: [24, 1, 52, 16],
+      svg: function () {
+        return '<circle cx="31.6" cy="9.4" r="6.2" fill="#8A5A3A"/><circle cx="31.6" cy="9.4" r="3.4" fill="#E8B48A"/>' +
+          '<circle cx="68.4" cy="9.4" r="6.2" fill="#8A5A3A"/><circle cx="68.4" cy="9.4" r="3.4" fill="#E8B48A"/>';
+      } },
+    { id: 'big-bow', slot: 'head', name: 'Big Bow', price: 150, box: [26, 0, 28, 18],
+      svg: function () {
+        return '<g transform="rotate(-15 40 9)">' +
+          '<path d="M40 9 Q30 0.6 28.6 9 Q30 17.4 40 9 Z" fill="#FF6F91" stroke="#E0466F" stroke-width="0.6"/>' +
+          '<path d="M40 9 Q50 0.6 51.4 9 Q50 17.4 40 9 Z" fill="#FF6F91" stroke="#E0466F" stroke-width="0.6"/>' +
+          '<path d="M38.6 10 L35.6 16.4 M41.4 10 L44.4 16.4" stroke="#FF6F91" stroke-width="1.6" stroke-linecap="round"/>' +
+          '<circle cx="40" cy="9" r="2.4" fill="#E0466F"/></g>';
+      } },
+    { id: 'halo', slot: 'head', name: 'Halo', price: 300, box: [33, -6, 34, 12],
+      svg: function () {
+        return '<ellipse cx="50" cy="0" rx="14" ry="3.4" fill="none" stroke="rgba(255,230,140,0.45)" stroke-width="4.4"/>' +
+          '<ellipse cx="50" cy="0" rx="14" ry="3.4" fill="none" stroke="#FFD54A" stroke-width="2"/>';
+      } },
+    { id: 'tiara', slot: 'head', name: 'Silver Tiara', price: 280, box: [32, 2, 36, 15],
+      svg: function () {
+        return '<path d="M34 15.2 Q42 9 50 3.6 Q58 9 66 15.2 Q58 12 50 12 Q42 12 34 15.2 Z" fill="#E4E8F0" stroke="#A9B2C3" stroke-width="0.7"/>' +
+          '<circle cx="50" cy="8" r="1.9" fill="#5ED6E8"/><circle cx="43.4" cy="11.2" r="1.1" fill="#FF8FB8"/><circle cx="56.6" cy="11.2" r="1.1" fill="#FF8FB8"/>';
+      } },
+    { id: 'propeller-cap', slot: 'head', name: 'Propeller Cap', price: 180, box: [28, -4, 44, 21],
+      svg: function () {
+        return '<path d="M30 16 Q30 4 50 4 Q70 4 70 16 Z" fill="#FFD25A"/>' +
+          '<path d="M50 4 Q42 6 38.4 16 L44 16 Q46 7 50 4 Z" fill="#E8473C"/>' +
+          '<path d="M50 4 Q58 6 61.6 16 L56 16 Q54 7 50 4 Z" fill="#4E7BE0"/>' +
+          '<rect x="49.3" y="-1" width="1.4" height="5.2" fill="#5A3A22"/>' +
+          '<ellipse cx="43.6" cy="-1.4" rx="6.2" ry="1.6" fill="#E8473C"/><ellipse cx="56.4" cy="-1.4" rx="6.2" ry="1.6" fill="#4E7BE0"/>' +
+          '<circle cx="50" cy="-1.4" r="1.2" fill="#FFD25A"/>';
+      } },
+    { id: 'viking-helmet', slot: 'head', name: 'Viking Helmet', price: 320, box: [19, -2, 62, 20],
+      svg: function () {
+        return '<path d="M32.4 12.4 Q22 10.6 20.6 -0.4 Q27 6 34.4 7 Z" fill="#FFF3DC" stroke="#D9C7A3" stroke-width="0.7"/>' +
+          '<path d="M67.6 12.4 Q78 10.6 79.4 -0.4 Q73 6 65.6 7 Z" fill="#FFF3DC" stroke="#D9C7A3" stroke-width="0.7"/>' +
+          '<path d="M31 16.4 Q31 3 50 3 Q69 3 69 16.4 Z" fill="#B8C2CF"/>' +
+          '<path d="M50 3.2 L50 16 M30.8 13.8 Q50 10.6 69.2 13.8" stroke="#8A94A3" stroke-width="1.4" fill="none"/>' +
+          '<circle cx="40" cy="12.6" r="0.8" fill="#8A94A3"/><circle cx="60" cy="12.6" r="0.8" fill="#8A94A3"/>';
+      } },
+    { id: 'grad-cap', slot: 'head', name: 'Graduation Cap', price: 260, box: [24, 0, 52, 19],
+      svg: function () {
+        return '<path d="M37 9 L63 9 L62 16 Q50 18 38 16 Z" fill="#2E2A3A"/>' +
+          '<path d="M50 1 L74 7 L50 13 L26 7 Z" fill="#3A3548" stroke="#2E2A3A" stroke-width="0.6"/>' +
+          '<path d="M50 7 L68 8.2 L68 14" stroke="#FFD25A" stroke-width="0.8" fill="none"/>' +
+          '<path d="M66.6 13.6 L69.4 13.6 L70 18 L66 18 Z" fill="#FFD25A"/><circle cx="50" cy="7" r="1.1" fill="#FFD25A"/>';
+      } },
+    { id: 'santa-hat', slot: 'head', name: 'Santa Hat', price: 200, box: [26, -1, 50, 20],
+      svg: function () {
+        return '<path d="M30 15.6 Q32 2 50 2.4 Q63 2.6 69.6 9.6 Q64 8.8 61 10 Q66.4 12 70 15.6 Z" fill="#E8473C"/>' +
+          '<path d="M28.4 13.4 Q50 9.4 71.6 13.4 L71.6 18.2 Q50 14.2 28.4 18.2 Z" fill="#FFFFFF" stroke="#EADFD3" stroke-width="0.6"/>' +
+          '<circle cx="70.4" cy="9.6" r="3.3" fill="#FFFFFF" stroke="#EADFD3" stroke-width="0.6"/>';
+      } },
+    { id: 'sprout', slot: 'head', name: 'Leaf Sprout', price: 120, box: [40, -5, 20, 14],
+      svg: function () {
+        return '<path d="M50 9.4 Q49.4 4.6 50.4 0.6" stroke="#6BA84F" stroke-width="1.4" fill="none" stroke-linecap="round"/>' +
+          '<ellipse cx="45.6" cy="1.8" rx="4.6" ry="2.4" fill="#8CC46A" transform="rotate(-25 45.6 1.8)"/>' +
+          '<ellipse cx="54.8" cy="0" rx="4.6" ry="2.4" fill="#6BB34E" transform="rotate(25 54.8 0)"/>';
+      } },
+    { id: 'headphones', slot: 'head', name: 'Headphones', price: 240, box: [14, 0, 72, 34],
+      svg: function () {
+        return '<path d="M21 24 Q21 2 50 2 Q79 2 79 24" stroke="#4A4A5A" stroke-width="3" fill="none" stroke-linecap="round"/>' +
+          '<rect x="15.4" y="19" width="10" height="15" rx="4.4" fill="#FF8FB8" stroke="#4A4A5A" stroke-width="1.2"/>' +
+          '<rect x="74.6" y="19" width="10" height="15" rx="4.4" fill="#FF8FB8" stroke="#4A4A5A" stroke-width="1.2"/>';
+      } },
+    { id: 'beret', slot: 'head', name: 'Red Beret', price: 150, box: [27, -1, 46, 18],
+      svg: function () {
+        return '<path d="M30 13.4 Q27.6 3 48 2.6 Q71 2 70.6 10 Q66.6 15.2 50 15.2 Q36 15.6 30 13.4 Z" fill="#D9465A"/>' +
+          '<path d="M33 12.4 Q50 15 67 9.6" stroke="#B83246" stroke-width="0.8" fill="none"/>' +
+          '<circle cx="51" cy="2.2" r="1.5" fill="#B83246"/>';
+      } },
+    // ---- more glasses & face (2026-10-26) ----
+    { id: 'cool-shades', slot: 'face', name: 'Cool Shades', price: 180, box: [17, 29, 66, 25],
+      svg: function () {
+        return '<path d="M26 36 Q35 34 43.6 36 Q44 45 36 48 Q27 47 26 36 Z" fill="#2E2A3A"/>' +
+          '<path d="M74 36 Q65 34 56.4 36 Q56 45 64 48 Q73 47 74 36 Z" fill="#2E2A3A"/>' +
+          '<path d="M43.6 37.4 Q50 35.4 56.4 37.4" stroke="#2E2A3A" stroke-width="1.6" fill="none"/>' +
+          '<path d="M26 36.4 L19 35 M74 36.4 L81 35" stroke="#2E2A3A" stroke-width="1.5" stroke-linecap="round"/>' +
+          '<path d="M29 38 L33 37.4 M59 38 L63 37.4" stroke="rgba(255,255,255,0.6)" stroke-width="1.2" stroke-linecap="round"/>';
+      } },
+    { id: 'monocle', slot: 'face', name: 'Monocle', price: 160, box: [54, 31, 26, 36],
+      svg: function () {
+        return '<circle cx="65" cy="41.5" r="8.6" fill="rgba(220,240,255,0.2)" stroke="#C98A14" stroke-width="1.6"/>' +
+          '<path d="M65 50.1 Q69 60 76 64" stroke="#C98A14" stroke-width="0.8" fill="none"/>' +
+          '<path d="M60.4 37.4 Q62 36 64 35.6" stroke="rgba(255,255,255,0.75)" stroke-width="1" fill="none" stroke-linecap="round"/>';
+      } },
+    { id: 'ski-goggles', slot: 'face', name: 'Ski Goggles', price: 220, box: [16, 28, 68, 23],
+      svg: function () {
+        return '<defs><linearGradient id="mmGoggle" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFB36B"/><stop offset="1" stop-color="#FF6F91"/></linearGradient></defs>' +
+          '<path d="M18 39.4 L82 39.4" stroke="#4E7BE0" stroke-width="4"/>' +
+          '<path d="M25 33 Q50 30 75 33 Q77 44 66 48 Q58 47.4 50 43 Q42 47.4 34 48 Q23 44 25 33 Z" fill="url(#mmGoggle)" fill-opacity="0.88" stroke="#3A3A4A" stroke-width="1.4"/>' +
+          '<path d="M30 35.6 Q38 34 44 35" stroke="rgba(255,255,255,0.7)" stroke-width="1.2" fill="none" stroke-linecap="round"/>';
+      } },
+    { id: '3d-glasses', slot: 'face', name: '3D Glasses', price: 140, box: [17, 31, 66, 20],
+      svg: function () {
+        return '<rect x="27" y="35.6" width="16.4" height="11" rx="2" fill="rgba(232,71,60,0.75)" stroke="#FFFFFF" stroke-width="1.8"/>' +
+          '<rect x="56.6" y="35.6" width="16.4" height="11" rx="2" fill="rgba(78,123,224,0.75)" stroke="#FFFFFF" stroke-width="1.8"/>' +
+          '<path d="M43.4 38.4 Q50 36.6 56.6 38.4 M27 37.4 L19 36 M73 37.4 L81 36" stroke="#FFFFFF" stroke-width="1.6" fill="none" stroke-linecap="round"/>';
+      } },
+    { id: 'smart-glasses', slot: 'face', name: 'Smart Glasses', price: 120, box: [17, 30, 66, 22],
+      svg: function () {
+        return '<rect x="26.8" y="34.4" width="16.6" height="14" rx="3" fill="rgba(210,235,255,0.16)" stroke="#2E2A3A" stroke-width="1.8"/>' +
+          '<rect x="56.6" y="34.4" width="16.6" height="14" rx="3" fill="rgba(210,235,255,0.16)" stroke="#2E2A3A" stroke-width="1.8"/>' +
+          '<path d="M43.4 38.6 Q50 36.4 56.6 38.6 M26.8 37.4 L19 36 M73.2 37.4 L81 36" stroke="#2E2A3A" stroke-width="1.5" fill="none" stroke-linecap="round"/>';
+      } },
+    { id: 'cat-eye-glasses', slot: 'face', name: 'Cat-Eye Glasses', price: 200, box: [17, 29, 66, 24],
+      svg: function () {
+        return '<path d="M26 35.4 Q34 34 43.4 36.8 Q43.4 46 35 48 Q27 47 26.4 40 L23.4 32.6 Z" fill="rgba(255,143,184,0.25)" stroke="#C2185B" stroke-width="1.6" stroke-linejoin="round"/>' +
+          '<path d="M74 35.4 Q66 34 56.6 36.8 Q56.6 46 65 48 Q73 47 73.6 40 L76.6 32.6 Z" fill="rgba(255,143,184,0.25)" stroke="#C2185B" stroke-width="1.6" stroke-linejoin="round"/>' +
+          '<path d="M43.4 38 Q50 36 56.6 38" stroke="#C2185B" stroke-width="1.5" fill="none"/>' +
+          '<circle cx="24" cy="33.6" r="1.2" fill="#FFE27A"/><circle cx="76" cy="33.6" r="1.2" fill="#FFE27A"/>';
+      } },
+    { id: 'flower-shades', slot: 'face', name: 'Flower Shades', price: 260, box: [17, 29, 66, 25],
+      svg: function () {
+        var s = '';
+        [35, 65].forEach(function (x) {
+          for (var i = 0; i < 6; i++) {
+            var a = i / 6 * Math.PI * 2;
+            s += '<circle cx="' + (x + Math.cos(a) * 5.6).toFixed(2) + '" cy="' + (41.5 + Math.sin(a) * 5.6).toFixed(2) + '" r="4" fill="#FFD25A" stroke="#F0A830" stroke-width="0.6"/>';
+          }
+          s += '<circle cx="' + x + '" cy="41.5" r="5" fill="rgba(255,143,60,0.88)"/>';
+        });
+        return s + '<path d="M44.6 39.4 Q50 37 55.4 39.4" stroke="#F0A830" stroke-width="1.5" fill="none"/>';
+      } },
+    { id: 'rainbow-shades', slot: 'face', name: 'Rainbow Shades', price: 240, box: [17, 29, 66, 25],
+      svg: function () {
+        return '<defs><linearGradient id="mmRainbow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF6F91"/><stop offset="0.25" stop-color="#FFB36B"/>' +
+          '<stop offset="0.5" stop-color="#FFE27A"/><stop offset="0.75" stop-color="#8CC46A"/><stop offset="1" stop-color="#5ED6E8"/></linearGradient></defs>' +
+          '<circle cx="35" cy="41.5" r="8.4" fill="url(#mmRainbow)" fill-opacity="0.86" stroke="#FFFFFF" stroke-width="1.6"/>' +
+          '<circle cx="65" cy="41.5" r="8.4" fill="url(#mmRainbow)" fill-opacity="0.86" stroke="#FFFFFF" stroke-width="1.6"/>' +
+          '<path d="M43.4 40.4 Q50 37.4 56.6 40.4" stroke="#FFFFFF" stroke-width="1.5" fill="none"/>' + FRAME_ARMS;
+      } },
+    { id: 'diving-mask', slot: 'face', name: 'Diving Mask', price: 280, box: [17, 6, 74, 46],
+      svg: function () {
+        return '<path d="M18 39 L82 39" stroke="#2EC4B6" stroke-width="3"/>' +
+          '<path d="M24 33 Q50 28 76 33 Q78 46 64 49 L56 47 Q50 44 44 47 L36 49 Q22 46 24 33 Z" fill="rgba(150,220,255,0.35)" stroke="#F59E2A" stroke-width="2.4" stroke-linejoin="round"/>' +
+          '<path d="M80 36 L84.4 36 L84.4 14 Q84.4 9.6 88.6 9.6" stroke="#F59E2A" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' +
+          '<path d="M30 35.4 Q38 33.4 44 34.6" stroke="rgba(255,255,255,0.75)" stroke-width="1.2" fill="none" stroke-linecap="round"/>';
+      } },
+    { id: 'heart-cheeks', slot: 'face', name: 'Heart Cheeks', price: 100, box: [20, 42, 60, 14],
+      svg: function () {
+        return '<path d="' + heartPath(26, 50, 3.6) + '" fill="#FF6F91" fill-opacity="0.9"/>' +
+          '<path d="' + heartPath(74, 50, 3.6) + '" fill="#FF6F91" fill-opacity="0.9"/>';
+      } },
+    { id: 'star-cheeks', slot: 'face', name: 'Star Cheeks', price: 100, box: [20, 42, 60, 14],
+      svg: function () {
+        return '<path d="' + starPath(26, 49.6, 4) + '" fill="#FFD25A" stroke="#F0A830" stroke-width="0.5"/>' +
+          '<path d="' + starPath(74, 49.6, 4) + '" fill="#FFD25A" stroke="#F0A830" stroke-width="0.5"/>';
+      } },
+    { id: 'pirate-patch', slot: 'face', name: 'Pirate Patch', price: 150, box: [20, 28, 62, 26],
+      svg: function () {
+        return '<path d="M22 31 L78 50" stroke="#2E2A3A" stroke-width="1.2"/>' +
+          '<ellipse cx="35" cy="41.8" rx="8.2" ry="8.6" fill="#2E2A3A"/>' +
+          '<path d="' + starPath(35, 42, 3) + '" fill="#FFD25A"/>';
+      } },
+    { id: 'golden-rounds', slot: 'face', name: 'Golden Rounds', price: 300, box: [17, 29, 66, 25],
+      svg: function () {
+        return '<circle cx="35" cy="41.5" r="8.4" fill="rgba(255,214,120,0.35)" stroke="#E0A21B" stroke-width="2"/>' +
+          '<circle cx="65" cy="41.5" r="8.4" fill="rgba(255,214,120,0.35)" stroke="#E0A21B" stroke-width="2"/>' +
+          '<path d="M43.4 40.4 Q50 37.4 56.6 40.4 M26.6 40.2 L19 38.6 M73.4 40.2 L81 38.6" stroke="#E0A21B" stroke-width="1.6" fill="none" stroke-linecap="round"/>' +
+          '<path d="M30.4 37 Q32 35.4 34.2 35" stroke="rgba(255,255,255,0.8)" stroke-width="1" fill="none" stroke-linecap="round"/>';
+      } },
+    // ---- more necklaces (2026-10-26) ----
+    { id: 'cozy-scarf', slot: 'neck', name: 'Cozy Scarf', price: 200, box: [22, 55, 56, 27],
+      svg: function () {
+        return '<path d="M61 63 L66 80 L57.6 80 L55.4 65 Z" fill="#C93A30"/>' +
+          '<path d="M58 80 L58 82 M60.6 80 L60.6 82.4 M63.2 80 L63.2 82.4 M65.6 80 L65.8 82" stroke="#C93A30" stroke-width="0.9"/>' +
+          '<path d="M24 58 Q50 70 76 58 L77 64.4 Q50 77 23 64.4 Z" fill="#E8473C"/>' +
+          '<path d="M23.6 61.2 Q50 73.6 76.4 61.2" stroke="#FFF6E8" stroke-width="1" fill="none" stroke-dasharray="3 2"/>';
+      } },
+    { id: 'bell-collar', slot: 'neck', name: 'Bell Collar', price: 160, box: [28, 55, 44, 16],
+      svg: function () {
+        return '<path d="M30 58 Q50 66 70 58" stroke="#E8473C" stroke-width="2.6" fill="none" stroke-linecap="round"/>' +
+          '<circle cx="50" cy="65.6" r="3.7" fill="#FFD54A" stroke="#C98A14" stroke-width="0.7"/>' +
+          '<path d="M47.2 66.6 L52.8 66.6" stroke="#C98A14" stroke-width="0.7"/><circle cx="50" cy="68" r="0.7" fill="#7A4A0C"/>' +
+          '<circle cx="48.8" cy="64.4" r="0.8" fill="rgba(255,255,255,0.8)"/>';
+      } },
+    { id: 'star-necklace', slot: 'neck', name: 'Star Necklace', price: 200, box: [30, 56, 40, 18],
+      svg: function () {
+        return '<path d="M32 58 Q50 72 68 58" stroke="#E0A21B" stroke-width="0.7" fill="none"/>' +
+          '<path d="' + starPath(50, 67.8, 4) + '" fill="#FFD25A" stroke="#E0A21B" stroke-width="0.6" stroke-linejoin="round"/>';
+      } },
+    { id: 'heart-locket', slot: 'neck', name: 'Heart Locket', price: 240, box: [30, 56, 40, 18],
+      svg: function () {
+        return '<path d="M32 58 Q50 72 68 58" stroke="#B8C2CF" stroke-width="0.7" fill="none"/>' +
+          '<path d="' + heartPath(50, 67.6, 4.2) + '" fill="#FF6F91" stroke="#D9446C" stroke-width="0.6"/>' +
+          '<circle cx="48.4" cy="66.2" r="0.8" fill="rgba(255,255,255,0.85)"/>';
+      } },
+    { id: 'shell-necklace', slot: 'neck', name: 'Shell Necklace', price: 180, box: [28, 55, 44, 19],
+      svg: function () {
+        var s = '<path d="M30.5 58 Q50 72 69.5 58" stroke="#C9A27C" stroke-width="0.7" fill="none"/>';
+        along(30.5, 58, 50, 72, 69.5, 58, 7).forEach(function (p, i) {
+          var x = +p[0].toFixed(2), y = +p[1].toFixed(2), r = i === 3 ? 3.2 : 1.9;
+          s += '<path d="M' + (x - r) + ' ' + y + ' Q' + x + ' ' + (y - r * 1.5) + ' ' + (x + r) + ' ' + y + ' Q' + x + ' ' + (y + r * 0.9) + ' ' + (x - r) + ' ' + y + ' Z" fill="' +
+            (i % 2 ? '#FFE0C8' : '#FFC9A8') + '" stroke="#E6A07A" stroke-width="0.5"/>';
+        });
+        return s;
+      } },
+    { id: 'candy-necklace', slot: 'neck', name: 'Candy Necklace', price: 160, box: [28, 55, 44, 18],
+      svg: function () {
+        var s = '';
+        var colors = ['#FFB3CA', '#FFE27A', '#B5E8D0', '#C9A0F5', '#FFC9A8'];
+        along(31, 58, 50, 72, 69, 58, 13).forEach(function (p, i) {
+          s += '<circle cx="' + p[0].toFixed(2) + '" cy="' + p[1].toFixed(2) + '" r="1.55" fill="' + colors[i % colors.length] + '" stroke="rgba(0,0,0,0.08)" stroke-width="0.3"/>';
+        });
+        return s;
+      } },
+    { id: 'red-bandana', slot: 'neck', name: 'Red Bandana', price: 180, box: [28, 55, 44, 25],
+      svg: function () {
+        return '<path d="M30 57 Q50 63 70 57 L50 78 Z" fill="#E8473C" stroke="#C93A30" stroke-width="0.6" stroke-linejoin="round"/>' +
+          '<circle cx="42" cy="62" r="1" fill="#FFF6E8"/><circle cx="50" cy="64.6" r="1" fill="#FFF6E8"/><circle cx="58" cy="62" r="1" fill="#FFF6E8"/>' +
+          '<circle cx="46" cy="69" r="1" fill="#FFF6E8"/><circle cx="54" cy="69" r="1" fill="#FFF6E8"/><circle cx="50" cy="74" r="0.9" fill="#FFF6E8"/>';
+      } },
+    { id: 'silver-medal', slot: 'neck', name: 'Silver Medal', price: 250, box: [36, 57, 28, 25],
+      svg: function () {
+        return '<defs><linearGradient id="mmSilver" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F6F8FB"/><stop offset="1" stop-color="#A9B2C3"/></linearGradient></defs>' +
+          '<path d="M42 58 L48.6 71 L51.4 71 L45.4 58 Z" fill="#4E7BE0"/><path d="M58 58 L51.4 71 L48.6 71 L54.6 58 Z" fill="#8CC46A"/>' +
+          '<circle cx="50" cy="74.6" r="5.4" fill="url(#mmSilver)" stroke="#8A94A3" stroke-width="0.8"/>' +
+          '<path d="' + starPath(50, 74.8, 3) + '" fill="#FFFFFF"/>';
+      } },
+    { id: 'bronze-medal', slot: 'neck', name: 'Bronze Medal', price: 150, box: [36, 57, 28, 25],
+      svg: function () {
+        return '<defs><linearGradient id="mmBronze" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F6C7A0"/><stop offset="1" stop-color="#B5713E"/></linearGradient></defs>' +
+          '<path d="M42 58 L48.6 71 L51.4 71 L45.4 58 Z" fill="#E8604C"/><path d="M58 58 L51.4 71 L48.6 71 L54.6 58 Z" fill="#FFD25A"/>' +
+          '<circle cx="50" cy="74.6" r="5.4" fill="url(#mmBronze)" stroke="#94582C" stroke-width="0.8"/>' +
+          '<path d="' + starPath(50, 74.8, 3) + '" fill="#FFE6CF"/>';
+      } },
+    { id: 'lucky-clover', slot: 'neck', name: 'Lucky Clover', price: 220, box: [30, 56, 40, 20],
+      svg: function () {
+        var s = '<path d="M32 58 Q50 72 68 58" stroke="#6BA84F" stroke-width="0.7" fill="none"/>';
+        [0, 90, 180, 270].forEach(function (r) {
+          s += '<path d="' + heartPath(50, 65.4, 2.7) + '" fill="#5BB55B" transform="rotate(' + (r + 180) + ' 50 68.4)"/>';
+        });
+        return s + '<circle cx="50" cy="68.4" r="0.8" fill="#3E8E3E"/>';
+      } },
+    { id: 'rainbow-scarf', slot: 'neck', name: 'Rainbow Scarf', price: 280, box: [22, 55, 56, 27],
+      svg: function () {
+        var colors = ['#FF6F91', '#FFB36B', '#FFE27A', '#8CC46A', '#5ED6E8'];
+        var s = '';
+        colors.forEach(function (c, i) {
+          s += '<path d="M' + (56 + i * 2) + ' 65 L' + (57.6 + i * 2) + ' 80 L' + (59.6 + i * 2) + ' 80 L' + (58 + i * 2) + ' 65 Z" fill="' + c + '"/>';
+        });
+        colors.forEach(function (c, i) {
+          var y = 58.6 + i * 1.4;
+          s += '<path d="M' + (24 - i * 0.2) + ' ' + y + ' Q50 ' + (70.4 + i * 1.4) + ' ' + (76 + i * 0.2) + ' ' + y + '" stroke="' + c + '" stroke-width="1.6" fill="none"/>';
+        });
+        return s;
+      } },
+    { id: 'sakura-lei', slot: 'neck', name: 'Sakura Lei', price: 220, box: [25, 56, 50, 16],
+      svg: function () {
+        var s = '';
+        var colors = ['#FFC1D9', '#FF8FB8', '#FFE4EE'];
+        along(29.5, 59, 50, 74, 70.5, 59, 11).forEach(function (p, i) {
+          s += flower(+p[0].toFixed(2), +p[1].toFixed(2), 2.7, colors[i % colors.length], '#FFE27A');
+        });
+        return s;
       } }
   ];
+  // ---------- backgrounds (shown behind Moku on My Moku / in the Closet) ----------
+  // Pop art: a flat sky, sunburst rays, halftone dots and a landmark in two or
+  // three flat colors with a bold outline. Own 100×100 grid (the whole card).
+  // Moku stands in the middle, so landmarks sit at the top and both sides.
+  var INK = '#2A1F3D';
+  function bgDots(id, color) {
+    return '<pattern id="' + id + '" width="4" height="4" patternUnits="userSpaceOnUse">' +
+      '<circle cx="2" cy="2" r="0.75" fill="' + color + '"/></pattern>';
+  }
+  function bgRays(cx, cy, color, n) {
+    var s = '';
+    for (var i = 0; i < n; i++) {
+      var a0 = i / n * Math.PI * 2, a1 = (i + 0.5) / n * Math.PI * 2;
+      s += '<path d="M' + cx + ' ' + cy + ' L' + (cx + Math.cos(a0) * 160).toFixed(1) + ' ' + (cy + Math.sin(a0) * 160).toFixed(1) +
+        ' L' + (cx + Math.cos(a1) * 160).toFixed(1) + ' ' + (cy + Math.sin(a1) * 160).toFixed(1) + ' Z" fill="' + color + '"/>';
+    }
+    return s;
+  }
+  function bgBase(id, sky, ray, dot, cx, cy) {
+    return '<defs>' + bgDots(id, dot) + '</defs><rect width="100" height="100" fill="' + sky + '"/>' +
+      bgRays(cx, cy, ray, 18) + '<rect width="100" height="100" fill="url(#' + id + ')"/>';
+  }
+  var BACKGROUNDS = [
+    { id: 'bg-japan', slot: 'bg', name: 'Japan', price: 300,
+      svg: function () {
+        return bgBase('mmDotJp', '#FFF1D6', '#FFE3B8', 'rgba(232,71,60,0.18)', 78, 20) +
+          '<circle cx="78" cy="20" r="13" fill="#E8473C" stroke="' + INK + '" stroke-width="1.4"/>' +
+          // Mt. Fuji on the left
+          '<path d="M-4 100 L20 36 Q23 31 26 36 L58 100 Z" fill="#4E6FB8" stroke="' + INK + '" stroke-width="1.4" stroke-linejoin="round"/>' +
+          '<path d="M14.6 50 L20 36 Q23 31 26 36 L31.4 50 L27 46.6 L23 51 L19 46.6 Z" fill="#FFFFFF" stroke="' + INK + '" stroke-width="1.2" stroke-linejoin="round"/>' +
+          // torii on the right
+          '<path d="M74 58 L98 58 M72 54 Q86 51 100 54" stroke="#E8473C" stroke-width="3.2" stroke-linecap="round"/>' +
+          '<path d="M78 56 L78 100 M94 56 L94 100" stroke="#E8473C" stroke-width="3"/>' +
+          '<path d="M72 54 Q86 51 100 54 M78 58 L78 100 M94 58 L94 100" stroke="' + INK + '" stroke-width="0.6" fill="none"/>' +
+          // waves
+          '<path d="M0 92 Q6 84 12 92 Q18 84 24 92 Q30 84 36 92 Q42 84 48 92 Q54 84 60 92 Q66 84 72 92 Q78 84 84 92 Q90 84 96 92 Q102 84 108 92 L108 100 L0 100 Z" fill="#2E4A7A" stroke="' + INK + '" stroke-width="1"/>';
+      } },
+    { id: 'bg-kl', slot: 'bg', name: 'Kuala Lumpur', price: 300,
+      svg: function () {
+        var tower = function (x) {
+          return '<path d="M' + (x - 5) + ' 100 L' + (x - 5) + ' 34 L' + (x - 3.6) + ' 26 L' + (x - 2.4) + ' 18 L' + x + ' 6 L' + (x + 2.4) + ' 18 L' + (x + 3.6) + ' 26 L' + (x + 5) + ' 34 L' + (x + 5) + ' 100 Z" fill="#2D6E8E" stroke="' + INK + '" stroke-width="1.2" stroke-linejoin="round"/>' +
+            '<path d="M' + (x - 5) + ' 44 L' + (x + 5) + ' 44 M' + (x - 5) + ' 58 L' + (x + 5) + ' 58 M' + (x - 5) + ' 72 L' + (x + 5) + ' 72 M' + (x - 5) + ' 86 L' + (x + 5) + ' 86" stroke="#7FC4DE" stroke-width="1"/>';
+        };
+        return bgBase('mmDotKl', '#FFD45A', '#FFE58C', 'rgba(232,96,40,0.22)', 50, 14) +
+          '<circle cx="50" cy="14" r="9" fill="#FFF6E0" stroke="' + INK + '" stroke-width="1.2"/>' +
+          // Petronas Twin Towers (left)
+          tower(8) + tower(24) +
+          '<path d="M13 50 L19 50" stroke="' + INK + '" stroke-width="2.4"/>' +
+          // KL Tower (right)
+          '<path d="M88 100 L89.4 40 L90.6 40 L92 100 Z" fill="#2D6E8E" stroke="' + INK + '" stroke-width="1.2"/>' +
+          '<ellipse cx="90" cy="38" rx="6" ry="4" fill="#E8604C" stroke="' + INK + '" stroke-width="1.2"/>' +
+          '<path d="M90 34 L90 18" stroke="' + INK + '" stroke-width="1.2"/>' +
+          // hibiscus
+          flower(80, 90, 7, '#E8473C', '#FFD45A');
+      } },
+    { id: 'bg-singapore', slot: 'bg', name: 'Singapore', price: 300,
+      svg: function () {
+        var tree = function (x, h) {
+          return '<path d="M' + (x - 1.4) + ' 100 L' + (x - 1.4) + ' ' + h + ' L' + (x - 7) + ' ' + (h - 8) + ' L' + (x + 7) + ' ' + (h - 8) + ' L' + (x + 1.4) + ' ' + h + ' L' + (x + 1.4) + ' 100 Z" fill="#7E4BC4" stroke="' + INK + '" stroke-width="1.1" stroke-linejoin="round"/>' +
+            '<path d="M' + (x - 7) + ' ' + (h - 8) + ' L' + (x + 7) + ' ' + (h - 8) + '" stroke="#FFE27A" stroke-width="1.2"/>';
+        };
+        return bgBase('mmDotSg', '#FF9A8B', '#FFB4A6', 'rgba(126,75,196,0.2)', 50, 12) +
+          '<circle cx="50" cy="12" r="8" fill="#FFF6E0" stroke="' + INK + '" stroke-width="1.1"/>' +
+          // Supertrees (left)
+          tree(8, 46) + tree(22, 60) +
+          // Marina Bay Sands (right)
+          '<path d="M74 100 L75.4 44 L80.6 44 L81 100 Z M83 100 L83.6 44 L88.6 44 L89.4 100 Z M91.4 100 L92 44 L97 44 L98.6 100 Z" fill="#4A3A78" stroke="' + INK + '" stroke-width="1.1" stroke-linejoin="round"/>' +
+          '<path d="M70 41 L100 39.6 L100 44 Q86 45 72 44.6 Z" fill="#2EC4B6" stroke="' + INK + '" stroke-width="1.1" stroke-linejoin="round"/>' +
+          '<path d="M0 94 L100 94 L100 100 L0 100 Z" fill="#5ED6E8" stroke="' + INK + '" stroke-width="1"/>';
+      } },
+    { id: 'bg-vietnam', slot: 'bg', name: 'Vietnam', price: 300,
+      svg: function () {
+        var lantern = function (x, y) {
+          return '<path d="M' + x + ' 0 L' + x + ' ' + (y - 5) + '" stroke="' + INK + '" stroke-width="0.8"/>' +
+            '<ellipse cx="' + x + '" cy="' + y + '" rx="4.6" ry="5.6" fill="#E8473C" stroke="' + INK + '" stroke-width="1.1"/>' +
+            '<path d="M' + (x - 2) + ' ' + (y - 5.4) + ' L' + (x + 2) + ' ' + (y - 5.4) + ' M' + (x - 2) + ' ' + (y + 5.4) + ' L' + (x + 2) + ' ' + (y + 5.4) + '" stroke="#FFD25A" stroke-width="1.6"/>' +
+            '<path d="M' + x + ' ' + (y + 6) + ' L' + x + ' ' + (y + 10) + '" stroke="#FFD25A" stroke-width="0.9"/>';
+        };
+        return bgBase('mmDotVn', '#8ED8B6', '#A8E4C8', 'rgba(30,110,80,0.18)', 50, 18) +
+          lantern(10, 16) + lantern(22, 10) + lantern(78, 10) + lantern(90, 18) +
+          // Ha Long Bay islands
+          '<path d="M-4 100 L-4 70 Q2 54 8 64 Q12 50 18 58 Q22 72 26 100 Z" fill="#2F7A55" stroke="' + INK + '" stroke-width="1.2" stroke-linejoin="round"/>' +
+          '<path d="M74 100 Q76 76 82 70 Q86 58 92 66 Q98 56 104 72 L104 100 Z" fill="#2F7A55" stroke="' + INK + '" stroke-width="1.2" stroke-linejoin="round"/>' +
+          // junk boat with a red sail
+          '<path d="M78 84 L78 66 L90 82 Z" fill="#E8604C" stroke="' + INK + '" stroke-width="1"/>' +
+          '<path d="M70 85 L94 85 L90 90 L74 90 Z" fill="#8A5A3A" stroke="' + INK + '" stroke-width="1"/>' +
+          '<path d="M0 92 L100 92 L100 100 L0 100 Z" fill="#3FA6A0" stroke="' + INK + '" stroke-width="1"/>';
+      } },
+    { id: 'bg-indonesia', slot: 'bg', name: 'Indonesia', price: 300,
+      svg: function () {
+        return bgBase('mmDotId', '#FFA45A', '#FFBD80', 'rgba(200,60,40,0.2)', 20, 18) +
+          '<circle cx="20" cy="18" r="10" fill="#FFE27A" stroke="' + INK + '" stroke-width="1.2"/>' +
+          // volcano with a puff of smoke (right)
+          '<circle cx="86" cy="22" r="5" fill="#FFFFFF" stroke="' + INK + '" stroke-width="1"/><circle cx="92" cy="16" r="4" fill="#FFFFFF" stroke="' + INK + '" stroke-width="1"/>' +
+          '<path d="M64 100 L80 34 L92 34 L108 100 Z" fill="#7A4A6A" stroke="' + INK + '" stroke-width="1.3" stroke-linejoin="round"/>' +
+          '<path d="M80 34 L92 34 L89 40 L83 40 Z" fill="#E8473C"/>' +
+          // Borobudur-style stupa (left)
+          '<path d="M2 100 L2 86 L24 86 L24 100 Z M5 86 L5 78 L21 78 L21 86 Z" fill="#B9906A" stroke="' + INK + '" stroke-width="1.1"/>' +
+          '<path d="M7 78 Q7 66 13 64 Q19 66 19 78 Z" fill="#C9A27C" stroke="' + INK + '" stroke-width="1.1"/>' +
+          '<path d="M13 64 L13 56" stroke="' + INK + '" stroke-width="1.6" stroke-linecap="round"/>' +
+          // rice terraces
+          '<path d="M0 100 L0 94 Q50 88 100 94 L100 100 Z" fill="#6BB34E" stroke="' + INK + '" stroke-width="1"/>' +
+          '<path d="M0 97 Q50 92 100 97" stroke="#A8DB6A" stroke-width="1" fill="none"/>';
+      } },
+    { id: 'bg-thailand', slot: 'bg', name: 'Thailand', price: 300,
+      svg: function () {
+        var roof = function (x, y, w, c) {
+          return '<path d="M' + (x - w) + ' ' + (y + 6) + ' L' + x + ' ' + (y - 4) + ' L' + (x + w) + ' ' + (y + 6) + ' Z" fill="' + c + '" stroke="' + INK + '" stroke-width="1.1" stroke-linejoin="round"/>' +
+            '<path d="M' + (x - w) + ' ' + (y + 6) + ' L' + (x - w - 2) + ' ' + (y + 2) + ' M' + (x + w) + ' ' + (y + 6) + ' L' + (x + w + 2) + ' ' + (y + 2) + '" stroke="#FFC94A" stroke-width="1.4" stroke-linecap="round"/>';
+        };
+        return bgBase('mmDotTh', '#FF8FC0', '#FFADD2', 'rgba(150,40,120,0.18)', 50, 16) +
+          '<circle cx="50" cy="16" r="9" fill="#FFE27A" stroke="' + INK + '" stroke-width="1.2"/>' +
+          // golden prang (left)
+          '<path d="M4 100 L6 70 Q8 50 13 40 Q18 50 20 70 L22 100 Z" fill="#FFC94A" stroke="' + INK + '" stroke-width="1.2" stroke-linejoin="round"/>' +
+          '<path d="M13 40 L13 28" stroke="' + INK + '" stroke-width="1.4" stroke-linecap="round"/>' +
+          '<path d="M7 62 L19 62 M6.4 76 L19.6 76 M6 88 L20 88" stroke="#E8604C" stroke-width="1.2"/>' +
+          // temple with layered roofs (right)
+          '<path d="M76 100 L76 74 L98 74 L98 100 Z" fill="#FFF1D6" stroke="' + INK + '" stroke-width="1.1"/>' +
+          '<path d="M84 100 L84 84 L90 84 L90 100 Z" fill="#E8473C" stroke="' + INK + '" stroke-width="1"/>' +
+          roof(87, 66, 15, '#E8473C') + roof(87, 56, 11, '#3A9A7A') + roof(87, 46, 7, '#E8473C') +
+          '<path d="M87 42 L87 34" stroke="#FFC94A" stroke-width="1.6" stroke-linecap="round"/>';
+      } },
+    { id: 'bg-cambodia', slot: 'bg', name: 'Cambodia', price: 300,
+      svg: function () {
+        var tower = function (x, h, w) {
+          return '<path d="M' + (x - w) + ' 90 L' + (x - w) + ' ' + (h + 12) + ' Q' + (x - w * 0.8) + ' ' + (h + 2) + ' ' + x + ' ' + h +
+            ' Q' + (x + w * 0.8) + ' ' + (h + 2) + ' ' + (x + w) + ' ' + (h + 12) + ' L' + (x + w) + ' 90 Z" fill="#7A3E2E" stroke="' + INK + '" stroke-width="1.2" stroke-linejoin="round"/>' +
+            '<path d="M' + (x - w * 0.7) + ' ' + (h + 10) + ' L' + (x + w * 0.7) + ' ' + (h + 10) + ' M' + (x - w * 0.9) + ' ' + (h + 18) + ' L' + (x + w * 0.9) + ' ' + (h + 18) + '" stroke="#C26A4A" stroke-width="1"/>';
+        };
+        return bgBase('mmDotKh', '#C9A0F5', '#D9BBF8', 'rgba(255,140,90,0.25)', 50, 40) +
+          '<circle cx="50" cy="40" r="22" fill="#FFB36B" stroke="' + INK + '" stroke-width="1.3"/>' +
+          // Angkor Wat: five towers on a long base
+          '<path d="M-2 90 L102 90 L102 80 L-2 80 Z" fill="#8E4C38" stroke="' + INK + '" stroke-width="1.1"/>' +
+          tower(8, 48, 5) + tower(92, 48, 5) + tower(22, 38, 6) + tower(78, 38, 6) + tower(50, 26, 7) +
+          // moat with lotus
+          '<path d="M0 90 L100 90 L100 100 L0 100 Z" fill="#5ED6E8" stroke="' + INK + '" stroke-width="1"/>' +
+          flower(14, 95, 4, '#FF8FB8', '#FFE27A') + flower(86, 95, 4, '#FF8FB8', '#FFE27A');
+      } }
+  ];
+
   var ITEM_BY_ID = {};
-  ITEMS.forEach(function (it) { ITEM_BY_ID[it.id] = it; });
+  ITEMS.concat(BACKGROUNDS).forEach(function (it) { ITEM_BY_ID[it.id] = it; });
 
   function itemSVG(id, viewBox) {
     var it = ITEM_BY_ID[id];
     if (!it) return '';
+    if (it.slot === 'bg') return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">' + it.svg() + '</svg>';
     var vb = viewBox || '0 0 100 100';
     return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + vb + '" overflow="visible">' + it.svg() + '</svg>';
   }
   function iconSVG(id) {
     var it = ITEM_BY_ID[id];
     if (!it) return '';
+    if (it.slot === 'bg') return '<span class="mm-bg-icon">' + itemSVG(id) + '</span>';
     var b = it.box, pad = 2;
     var size = Math.max(b[2], b[3]) + pad * 2;
     var x = b[0] + b[2] / 2 - size / 2, y = b[1] + b[3] / 2 - size / 2;
@@ -309,6 +767,7 @@
   global.MokuMoint = {
     DAILY_MOINTS: DAILY_MOINTS,
     ITEMS: ITEMS,
+    BACKGROUNDS: BACKGROUNDS,
     SLOTS: SLOTS,
     balance: balance,
     add: addMoints,
@@ -389,16 +848,25 @@
     '.mm-stage::before{content:"";position:absolute;left:12%;right:12%;bottom:2px;height:26px;border-radius:50%;',
     'background:radial-gradient(ellipse at center,#B9834F 0%,#9A6A3C 70%);box-shadow:0 4px 0 #7A4F2E}',
     '.mm-stage .mm-doll{position:absolute;left:10px;right:10px;bottom:12px;animation:mmBob 2.6s ease-in-out infinite}',
+    '.mm-stage.has-bg::before{display:none}',
+    '.mm-stage > .mm-scene{position:absolute;inset:0}',
+    // background card + Moku (pop-art card with a bold outline)
+    '.mm-scene{position:relative;display:block;aspect-ratio:1/1;border-radius:18px;overflow:hidden;border:2.5px solid #2A1F3D;box-sizing:border-box}',
+    '.mm-scene-bg,.mm-scene-bg svg{position:absolute;inset:0;width:100%;height:100%;display:block}',
+    '.mm-scene .mm-doll,.mm-stage .mm-scene .mm-doll{position:absolute;left:16%;right:16%;bottom:1%;width:auto}',
+    '.mm-bg-icon{display:block;width:56px;height:56px;border-radius:12px;overflow:hidden;border:2px solid #2A1F3D;box-sizing:border-box}',
+    '.mm-bg-icon svg{width:100%;height:100%;display:block}',
     '@keyframes mmBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}',
     '.mm-stage .mm-doll.is-new{animation:mmHop .5s cubic-bezier(.2,1.6,.4,1)}',
     '@keyframes mmHop{0%{transform:scale(1,1)}30%{transform:scale(1.08,.9)}60%{transform:translateY(-10px) scale(.96,1.05)}100%{transform:none}}',
     '.mm-bal{display:inline-flex;align-items:center;gap:6px;margin:10px auto 0;padding:6px 14px;border-radius:999px;background:#FFFFFF;',
     'font-size:16px;font-weight:900;color:#7A4A0C;box-shadow:inset 0 0 0 2px #F1D9B5}',
+    '.mm-panel.mm-closet{max-width:500px}',
     '.mm-tabs{display:flex;gap:6px;justify-content:center;margin:14px 14px 0}',
-    '.mm-tab{flex:1;appearance:none;border:none;font:inherit;font-size:13.5px;font-weight:800;padding:9px 6px;border-radius:12px;cursor:pointer;',
+    '.mm-tab{flex:1 1 auto;appearance:none;border:none;font:inherit;font-size:13px;font-weight:800;padding:9px 8px;border-radius:12px;cursor:pointer;white-space:nowrap;',
     'background:#F3E3CB;color:#8A5A2E}',
     '.mm-tab.is-on{background:#7A4F2E;color:#FFF6E8;box-shadow:0 3px 0 #4A2F1A}',
-    '.mm-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:14px}',
+    '.mm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;padding:14px}',
     '.mm-item{position:relative;appearance:none;border:none;font:inherit;cursor:pointer;background:#FFFFFF;border-radius:16px;padding:8px 6px 9px;',
     'box-shadow:0 3px 0 #EAD6BA,inset 0 0 0 2px #F6E8D3;display:flex;flex-direction:column;align-items:center;gap:4px;color:#4A2F1A;',
     'transition:transform .12s}',
@@ -430,6 +898,13 @@
   var COIN = '<i class="mm-coin">M</i>';
   function dollHTML(equipped, cls) {
     return '<span class="mm-doll' + (cls ? ' ' + cls : '') + '"><img src="' + HERO_SRC + '" alt="Moku">' + outfitSVG(equipped) + '</span>';
+  }
+  // Moku in front of his background card (My Moku page, Closet stage).
+  // Without a background it is just Moku, as big as before.
+  function sceneHTML(equipped, cls) {
+    var bg = equipped && ITEM_BY_ID[equipped.bg];
+    if (!bg) return dollHTML(equipped, cls);
+    return '<span class="mm-scene"><span class="mm-scene-bg">' + itemSVG(bg.id) + '</span>' + dollHTML(equipped, cls) + '</span>';
   }
 
   // ---------- sound (Web Audio, no files) ----------
@@ -573,7 +1048,7 @@
       '<div class="mm-head"><h2>Moku Closet</h2><p>Dress up your own Moku!</p>' +
       '<div class="mm-stage" data-mm-stage></div>' +
       '<div class="mm-bal">' + COIN + '<span data-mm-bal></span></div></div>' +
-      '<div class="mm-tabs" role="tablist">' + SLOTS.map(function (s) {
+      '<div class="mm-tabs" role="tablist">' + TABS.map(function (s) {
         return '<button class="mm-tab" type="button" role="tab" data-mm-tab="' + s + '">' + SLOT_LABELS[s] + '</button>';
       }).join('') + '</div>' +
       '<div class="mm-grid" data-mm-grid></div>' +
@@ -613,7 +1088,10 @@
     if (!openOverlay || !openOverlay.querySelector('.mm-closet')) return;
     var ov = openOverlay;
     var c = readCloset();
-    ov.querySelector('[data-mm-stage]').innerHTML = dollHTML(previewOutfit(), hop ? 'is-new' : '');
+    var outfit = previewOutfit();
+    var stage = ov.querySelector('[data-mm-stage]');
+    stage.classList.toggle('has-bg', Boolean(ITEM_BY_ID[outfit.bg]));
+    stage.innerHTML = sceneHTML(outfit, hop ? 'is-new' : '');
     ov.querySelector('[data-mm-bal]').textContent = fmt(balance());
     Array.prototype.forEach.call(ov.querySelectorAll('[data-mm-tab]'), function (b) {
       var on = b.getAttribute('data-mm-tab') === closetState.tab;
@@ -624,7 +1102,7 @@
     var html = '<button class="mm-item mm-none' + (!worn && (!closetState.sel || closetState.sel === 'none') ? ' is-sel' : '') + '" type="button" data-mm-item="none">' +
       '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="#C9A27C" stroke-width="2"/><path d="M6.5 17.5 L17.5 6.5" stroke="#C9A27C" stroke-width="2"/></svg>' +
       '<span class="mm-item-name">Nothing</span>' + (!worn ? '<span class="mm-tag is-wear">Wearing</span>' : '<span class="mm-tag">Take off</span>') + '</button>';
-    ITEMS.filter(function (it) { return it.slot === closetState.tab; }).forEach(function (it) {
+    ITEMS.concat(BACKGROUNDS).filter(function (it) { return it.slot === closetState.tab; }).forEach(function (it) {
       var have = c.owned.indexOf(it.id) >= 0;
       var wearing = worn === it.id;
       var sel = closetState.sel ? closetState.sel === it.id : wearing;
@@ -673,12 +1151,13 @@
   function renderCards() {
     var ready = canClaimDaily();
     var eq = readCloset().equipped;
-    var outfitKey = SLOTS.map(function (s) { return eq[s] || ''; }).join('|');
     Array.prototype.forEach.call(document.querySelectorAll('[data-moku-doll]'), function (node) {
+      var scene = node.hasAttribute('data-moku-scene');
+      var key = (scene ? TABS : SLOTS).map(function (s) { return eq[s] || ''; }).join('|');
       // 服が変わった時だけ描き直す(浮遊アニメーションを途中で止めない)
-      if (node.getAttribute('data-outfit') === outfitKey && node.firstChild) return;
-      node.setAttribute('data-outfit', outfitKey);
-      node.innerHTML = dollHTML(eq);
+      if (node.getAttribute('data-outfit') === key && node.firstChild) return;
+      node.setAttribute('data-outfit', key);
+      node.innerHTML = scene ? sceneHTML(eq) : dollHTML(eq);
     });
     Array.prototype.forEach.call(document.querySelectorAll('[data-moku-moint-bar]'), function (node) {
       node.classList.add('mm-bar');
