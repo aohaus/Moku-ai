@@ -24,7 +24,8 @@
 
   function resolveBase() {
     if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) && location.port === '3000') return '';
-    if (location.hostname === 'aohaus.github.io') return API_BASE_URL;
+    // The published sites (backend/template.yaml AllowedOrigin / ExtraAllowedOrigin).
+    if (/^(aohaus\.github\.io|dechatgpt\.com)$/.test(location.hostname)) return API_BASE_URL;
     return null; // elsewhere (file://, previews) the API wouldn't accept us anyway
   }
   var base = resolveBase();

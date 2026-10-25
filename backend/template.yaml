@@ -21,6 +21,12 @@ Parameters:
     Description: >
       CORS origin allowed to call this API (e.g. https://aohaus.github.io).
       Use "*" during development only.
+  ExtraAllowedOrigin:
+    Type: String
+    Default: "https://dechatgpt.com"
+    Description: >
+      A second site allowed to call this API: the Cloudflare domain that
+      serves the same pages (https://dechatgpt.com/Moku-ai/). Origin only, no path.
   AuthSecret:
     Type: String
     NoEcho: true
@@ -104,6 +110,7 @@ Resources:
       CorsConfiguration:
         AllowOrigins:
           - !Ref AllowedOrigin
+          - !Ref ExtraAllowedOrigin
         AllowMethods:
           - GET
           - POST
