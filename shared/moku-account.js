@@ -975,6 +975,7 @@
     getUser: getUser,
     getToken: getToken,
     getStatus: function () { return status; },
+    statusText: statusText,
     getSavedAt: function () { return readSavedAt(); },
     onStatusChange: function (fn) { listeners.push(fn); },
     openLogin: function () { if (enabled) openModal(getUser() ? 'account' : 'login'); },
