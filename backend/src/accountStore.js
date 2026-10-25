@@ -292,7 +292,88 @@ async function listLogs(day) {
   return (res.Items || []).map(({ pk, sk, ttl, ...entry }) => entry);
 }
 
+// ---------- error reports ----------
+// pk "ERR", sk = signature (same page + message + file + line → one item).
+
+const errKey = (sig) => ({ pk: "ERR", sk: sig });
+
+// Adds one occurrence: bumps `count`, keeps the latest details, remembers
+// who was affected, and pushes `ttl` forward so quiet errors expire.
+async function recordError(sig, report, loginId, ttlSec) {
+  const names = {
+    "#count": "count", "#status": "status", "#ttl": "ttl", "#page": "page", "#message": "message",
+    "#source": "source", "#line": "line", "#col": "col", "#stack": "stack", "#lastAt": "lastAt",
+    "#firstAt": "firstAt", "#lastDevice": "lastDevice", "#lastUserAgent": "lastUserAgent",
+    "#lastVersion": "lastVersion", "#kind": "kind", "#url": "url",
+  };
+  const values = {
+    ":one": 1, ":new": "new", ":ttl": Math.floor(Date.parse(report.at) / 1000) + ttlSec,
+    ":page": report.page, ":message": report.message, ":source": report.source, ":line": report.line,
+    ":col": report.col, ":stack": report.stack, ":at": report.at, ":device": report.device,
+    ":ua": report.userAgent, ":version": report.version, ":kind": report.kind, ":url": report.url,
+  };
+  let update =
+    "SET #page = :page, #message = :message, #source = :source, #line = :line, #col = :col, " +
+    "#stack = :stack, #lastAt = :at, #firstAt = if_not_exists(#firstAt, :at), #lastDevice = :device, " +
+    "#lastUserAgent = :ua, #lastVersion = :version, #kind = :kind, #url = :url, " +
+    "#status = if_not_exists(#status, :new), #ttl = :ttl ADD #count :one";
+  if (loginId) {
+    names["#users"] = "users";
+    values[":user"] = new Set([loginId]);
+    update += ", #users :user";
+  }
+  await doc.send(
+    new UpdateCommand({
+      TableName: TABLE,
+      Key: errKey(sig),
+      UpdateExpression: update,
+      ExpressionAttributeNames: names,
+      ExpressionAttributeValues: values,
+    })
+  );
+}
+
+async function listErrors() {
+  const res = await doc.send(
+    new QueryCommand({
+      TableName: TABLE,
+      KeyConditionExpression: "pk = :pk",
+      ExpressionAttributeValues: { ":pk": "ERR" },
+    })
+  );
+  return (res.Items || []).map(({ pk, sk, ttl, users, ...e }) => ({ sig: sk, users: users ? [...users] : [], ...e }));
+}
+
+async function updateError(sig, fields) {
+  const names = {};
+  const values = {};
+  const sets = Object.keys(fields).map((k, i) => {
+    names[`#f${i}`] = k;
+    values[`:v${i}`] = fields[k];
+    return `#f${i} = :v${i}`;
+  });
+  try {
+    await doc.send(
+      new UpdateCommand({
+        TableName: TABLE,
+        Key: errKey(sig),
+        UpdateExpression: `SET ${sets.join(", ")}`,
+        ConditionExpression: "attribute_exists(pk)",
+        ExpressionAttributeNames: names,
+        ExpressionAttributeValues: values,
+      })
+    );
+  } catch (e) {
+    if (e.name === "ConditionalCheckFailedException") throw codedError("not_found");
+    throw e;
+  }
+}
+
+async function deleteError(sig) {
+  await doc.send(new DeleteCommand({ TableName: TABLE, Key: errKey(sig) }));
+}
+
 module.exports = {
   getUser, createUser, updateUser, getSave, putSave, listUsers, listSaves, deleteUser, renameUser,
-  addLog, listLogs,
+  addLog, listLogs, recordError, listErrors, updateError, deleteError,
 };

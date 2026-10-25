@@ -290,3 +290,47 @@ test("access log: wrong PINs, lock and admin create/delete", async () => {
   assert.ok(types.includes("admin_create") && types.includes("admin_delete"));
   assert.equal(logs.find((l) => l.type === "admin_delete").loginId, "ren");
 });
+
+test("errors: anyone can report; same error is grouped; admin ranks, triages, deletes", async () => {
+  const { call, register, makeAdmin, advance } = setup();
+  const admin = await makeAdmin();
+  const aoi = (await register("aoi")).body.token;
+  const boom = { page: "moku-fight.html", message: "TypeError: x is undefined", source: "https://aohaus.github.io/Moku-ai/moku-fight.html?v=1", line: 120, col: 7, stack: "at f (moku-fight.html:120:7)", version: "v0.7.1", kind: "error" };
+
+  assert.equal((await call("POST", "/errors", { ...boom, auth: aoi })).status, 200);
+  advance(1000);
+  await call("POST", "/errors", { ...boom, source: "https://aohaus.github.io/Moku-ai/moku-fight.html?v=2" }); // guest, same error
+  await call("POST", "/errors", { ...boom, auth: "forged.token" });
+  for (let i = 0; i < 5; i++) await call("POST", "/errors", { page: "hub.html", message: "ReferenceError: y", line: 9 });
+  await call("POST", "/errors", { page: "moku-kart.html", message: "Failed to load script", kind: "resource" });
+  assert.equal((await call("POST", "/errors", { page: "hub.html" })).status, 400);
+
+  assert.equal((await call("GET", "/admin/errors", null, aoi)).status, 403);
+  let list = (await call("GET", "/admin/errors", null, admin)).body.errors;
+  assert.equal(list.length, 3);
+  // Hit by a logged-in player first, then by count.
+  assert.equal(list[0].page, "moku-fight.html");
+  assert.equal(list[0].count, 3);
+  assert.deepEqual(list[0].users, ["aoi"]);
+  assert.equal(list[0].status, "new");
+  assert.equal(list[0].lastVersion, "v0.7.1");
+  assert.equal(list[1].count, 5);
+  assert.match(list[0].sig, /^[0-9a-f]{16}$/);
+
+  // Triage: ignored errors sink to the bottom; "fix" rises to the top.
+  await call("PATCH", `/admin/errors/${list[0].sig}`, { status: "ignore", note: "known" }, admin);
+  await call("PATCH", `/admin/errors/${list[2].sig}`, { status: "fix" }, admin);
+  assert.equal((await call("PATCH", `/admin/errors/${list[1].sig}`, { status: "boom" }, admin)).status, 400);
+  list = (await call("GET", "/admin/errors", null, admin)).body.errors;
+  assert.deepEqual(list.map((e) => e.status), ["fix", "new", "ignore"]);
+  assert.equal(list[2].note, "known");
+  // A new occurrence of an ignored error stays ignored.
+  await call("POST", "/errors", boom);
+  list = (await call("GET", "/admin/errors", null, admin)).body.errors;
+  assert.equal(list[2].status, "ignore");
+  assert.equal(list[2].count, 4);
+
+  await call("DELETE", `/admin/errors/${list[0].sig}`, null, admin);
+  assert.equal((await call("GET", "/admin/errors", null, admin)).body.errors.length, 2);
+  assert.equal((await call("PATCH", "/admin/errors/0000000000000000", { status: "fix" }, admin)).status, 404);
+});

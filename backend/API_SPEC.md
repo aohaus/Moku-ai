@@ -260,3 +260,33 @@ IDが存在しない場合と PIN 違いは同じ応答(`401 bad_credentials`)�
 | `admin_update` | 管理者が変更 | `by`・`changes`(`loginId` `displayName` `pin` `unlock`)・`from`(旧ID)・`fromName`(旧表示名) |
 
 PINはどこにも記録しない。DynamoDB の `ttl` で90日後に自動削除。
+
+---
+
+# Error reports(SPEC.md §12)
+
+## `POST /errors`(ログイン不要)
+
+`shared/moku-errors.js` が送る。本文は JSON(`content-type: text/plain` で送ってよい)。
+
+```json
+{ "page": "moku-fight.html", "message": "TypeError: …", "source": "https://…/moku-fight.html", "line": 120, "col": 7,
+  "stack": "…", "kind": "error", "version": "v0.7.1 · Updated Oct 24, 2026", "url": "…", "auth": "<ログイン中ならトークン>" }
+```
+- `kind`: `error` / `rejection` / `resource`(スクリプトの読み込み失敗)。`message` 必須(500文字まで)、`stack` は4000文字まで。
+- ページ+エラー文+ファイル(クエリ除く)+行が同じなら同じエラーとして回数を足す。`auth` が有効なら、そのプレイヤーのIDを「影響した人」に足す。
+- **200** `{ "ok": true }` / **400** `invalid_report`。
+
+## `GET /admin/errors`
+
+**200** `{ "errors": [ { "sig": "3f…(16桁)", "page", "message", "source", "line", "col", "stack", "kind", "count", "users": ["aoi"],
+"firstAt", "lastAt", "lastDevice", "lastUserAgent", "lastVersion", "url", "status": "new", "note": "" } ] }`
+並びは重要な順(`fix` → `new` → `watch` → `ignore`、同じなら影響人数・回数・新しさ)。
+
+## `PATCH /admin/errors/{sig}`
+
+`{ "status": "fix" | "watch" | "ignore" | "new", "note": "…" }` → **200**。`404 not_found` / `400 invalid_status`。
+
+## `DELETE /admin/errors/{sig}`
+
+**200** `{ "deleted": "<sig>" }`。同じエラーがまた起きれば `new` で作り直される。

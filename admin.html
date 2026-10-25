@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<script src="shared/moku-errors.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <title>Moku Admin</title>
@@ -14,7 +15,8 @@
   create-admin <id> <pin>` in backend/ — it can't be created from any page.
   The session lives in sessionStorage (gone when the tab closes) and is
   separate from the player login in shared/moku-account.js.
-  Tabs: players (/admin/users) and the access log (/admin/logs).
+  Tabs: players (/admin/users), the access log (/admin/logs) and error
+  reports from shared/moku-errors.js (/admin/errors).
 -->
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -158,6 +160,41 @@ button, input { font: inherit; color: inherit; }
 .log-title.bad { color: var(--red); }
 .log-sub { font-size: 12px; font-weight: 600; color: var(--muted); }
 
+/* ---------- errors ---------- */
+.err-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.err-head h2 { flex: 1; font-size: 15px; font-weight: 800; }
+.errs { display: flex; flex-direction: column; gap: 12px; }
+.err { display: flex; flex-direction: column; gap: 10px; }
+.err.is-ignore { opacity: 0.6; }
+.err-title { display: flex; gap: 8px; align-items: flex-start; }
+.err-rank { flex: none; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: rgba(255,138,138,0.16); color: var(--red); font-size: 13px; font-weight: 900; }
+.err-msg { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 800; line-height: 1.45; word-break: break-word; }
+.err-meta { font-size: 12.5px; font-weight: 600; color: var(--muted); line-height: 1.65; }
+.err-meta b { color: var(--text); }
+.seg { display: flex; gap: 4px; padding: 3px; border-radius: 11px; background: rgba(255,255,255,0.05); }
+.seg button { flex: 1; height: 34px; border: 0; border-radius: 8px; background: transparent; color: var(--muted);
+  font-size: 13px; font-weight: 800; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: rgba(255,255,255,0.13); color: var(--text); }
+.seg button[data-status="fix"][aria-pressed="true"] { background: rgba(110,231,168,0.18); color: var(--green); }
+.seg button[data-status="ignore"][aria-pressed="true"] { background: rgba(255,255,255,0.08); }
+.err-note { display: flex; gap: 6px; }
+.err-note .input { flex: 1; height: 38px; font-size: 14px; }
+.pill.st-new { background: rgba(255,201,74,0.15); color: var(--gold); }
+.pill.st-fix { background: rgba(110,231,168,0.15); color: var(--green); }
+.pill.st-watch { background: rgba(110,160,255,0.15); color: #9DB8FF; }
+.pill.st-ignore { background: rgba(255,255,255,0.08); color: var(--muted); }
+.copy-box { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 12px; background: rgba(0,0,0,0.2);
+  border: 1px solid rgba(255,255,255,0.08); }
+.copy-box .checks { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.copy-box .check { font-size: 13px; }
+.copy-box .check input { width: 16px; height: 16px; }
+.copy-box textarea { width: 100%; height: 150px; resize: vertical; padding: 10px; border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12); background: rgba(0,0,0,0.3); color: var(--text);
+  font: 600 12px/1.45 ui-monospace, Menlo, Consolas, monospace; }
+.err-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+details.more > summary { cursor: pointer; margin: 18px 2px 10px; font-size: 13px; font-weight: 800; color: var(--muted); }
+
 /* ---------- dialog ---------- */
 .overlay {
   position: fixed; inset: 0; z-index: 50;
@@ -226,7 +263,7 @@ button, input { font: inherit; color: inherit; }
     <div class="tabs" role="tablist">
       <button class="tab" type="button" role="tab" aria-selected="true" data-tab="users">👥 ユーザー</button>
       <button class="tab" type="button" role="tab" aria-selected="false" data-tab="logs">📜 アクセスログ</button>
-      <button class="tab" type="button" role="tab" aria-selected="false" disabled>🚨 エラー <small>準備中</small></button>
+      <button class="tab" type="button" role="tab" aria-selected="false" data-tab="errors">🚨 エラー</button>
     </div>
 
     <div id="usersView">
@@ -258,6 +295,16 @@ button, input { font: inherit; color: inherit; }
       </div>
       <div id="logList"></div>
       <p class="note" style="margin-top:14px">ログは 90 日で自動的に消えます。PIN は記録していません。</p>
+    </div>
+
+    <div id="errorsView" hidden>
+      <div class="err-head">
+        <h2>対応が必要なエラー(上位 3 件)</h2>
+        <button class="btn small" id="errReload" type="button">↻ 更新</button>
+      </div>
+      <div id="errList"></div>
+      <p class="note" style="margin-top:14px">ゲームやハブで起きた JavaScript のエラーが自動で届きます(セーブデータや PIN は送りません)。
+        同じエラーは 1 件にまとめ、最後の発生から 60 日で消えます。直したら「削除」してください。また起きれば新しく表示されます。</p>
     </div>
   </section>
 </div>
@@ -424,7 +471,7 @@ button, input { font: inherit; color: inherit; }
 
   var overlay = null;
   function closeDialog() { if (overlay) overlay.remove(); overlay = null; }
-  function openDialog(html, onSubmit) {
+  function openDialog(html, onSubmit, afterSuccess) {
     closeDialog();
     overlay = document.createElement('div');
     overlay.className = 'overlay';
@@ -442,7 +489,7 @@ button, input { font: inherit; color: inherit; }
       form.querySelector('.error').textContent = '';
       onSubmit(form).then(function () {
         closeDialog();
-        loadUsers();
+        (afterSuccess || loadUsers)();
       }, function (err) {
         form.querySelector('.error').textContent = message(err);
         submit.disabled = false;
@@ -639,12 +686,164 @@ button, input { font: inherit; color: inherit; }
     $('logList').innerHTML = html + '</div>';
   }
 
+  // ---------- errors ----------
+
+  var errors = [];
+  var openCopy = {};
+  var STATUS_LABELS = { new: '未対応', fix: '直す', watch: '様子見', ignore: '無視' };
+  var KIND_LABELS = { error: '実行時エラー', rejection: 'Promise のエラー', resource: 'スクリプトの読み込み失敗' };
+  var PAGE_NAMES = { 'index.html': '最初の画面', 'hub.html': 'ハブ', 'admin.html': '管理画面' };
+  var COPY_FIELDS = [
+    ['message', 'エラー文', true], ['page', 'ページ', true], ['where', '場所(ファイル・行)', true],
+    ['stack', 'スタックトレース', true], ['count', '回数・期間', true], ['device', '端末・ブラウザ', true],
+    ['version', 'ゲームのバージョン', true], ['users', '影響した人の ID', false], ['url', 'URL', false], ['note', 'メモ', false]
+  ];
+  var copyChoice = {};
+  COPY_FIELDS.forEach(function (f) { copyChoice[f[0]] = f[2]; });
+
+  function pageName(file) {
+    if (PAGE_NAMES[file]) return PAGE_NAMES[file];
+    return GAME_NAMES[file.replace(/\.html$/, '')] || file;
+  }
+  function fileOf(src) {
+    return String(src || '').split(/[?#]/)[0].split('/').pop() || '';
+  }
+
+  // The text to paste into Claude Code, from the ticked fields.
+  function copyText(e) {
+    var lines = ['Moku Series でエラーが報告されています。原因を調べて直してください。', ''];
+    var add = function (key, label, value) { if (copyChoice[key] && value) lines.push('- ' + label + ': ' + value); };
+    add('page', 'ページ', e.page + '(' + pageName(e.page) + ')');
+    add('message', 'エラー', e.message);
+    add('where', '場所', (fileOf(e.source) || e.page) + (e.line ? ' ' + e.line + '行' + (e.col ? ' ' + e.col + '列' : '') : '') +
+      '(' + (KIND_LABELS[e.kind] || e.kind) + ')');
+    add('count', '回数', e.count + '回(' + fmt(e.firstAt) + ' 〜 ' + fmt(e.lastAt) + ')、影響 ' + e.users.length + '人');
+    add('users', '影響した人の ID', e.users.join(', '));
+    add('device', '端末', (e.lastDevice || '?') + ' / ' + (e.lastUserAgent || ''));
+    add('version', 'バージョン', e.lastVersion);
+    add('url', 'URL', e.url);
+    add('note', 'メモ', e.note);
+    if (copyChoice.stack && e.stack) lines.push('', 'スタックトレース:', '```', e.stack, '```');
+    return lines.join('\n');
+  }
+
+  function errorCard(e, rank) {
+    var i = errors.indexOf(e);
+    var copyOpen = !!openCopy[e.sig];
+    return '<div class="card err' + (e.status === 'ignore' ? ' is-ignore' : '') + '">' +
+      '<div class="err-title">' + (rank ? '<span class="err-rank">' + rank + '</span>' : '') +
+      '<span class="err-msg">' + esc(e.message) + '</span>' +
+      '<span class="pill st-' + esc(e.status) + '">' + esc(STATUS_LABELS[e.status] || e.status) + '</span></div>' +
+      '<div class="err-meta"><b>' + esc(pageName(e.page)) + '</b>(' + esc(e.page) + ')' +
+      (e.line ? ' · ' + esc(fileOf(e.source) || e.page) + ' ' + e.line + '行' : '') + ' · ' + esc(KIND_LABELS[e.kind] || e.kind) + '<br>' +
+      '<b>' + e.count + ' 回</b> · 影響 <b>' + e.users.length + ' 人</b>' +
+      (e.users.length ? '(' + esc(e.users.join(', ')) + ')' : '') + '<br>' +
+      '最初 ' + esc(fmt(e.firstAt)) + ' · 最後 ' + esc(fmt(e.lastAt)) + '(' + esc(ago(e.lastAt)) + ')<br>' +
+      '端末 ' + esc(e.lastDevice || '?') + (e.lastVersion ? ' · ' + esc(e.lastVersion) : '') + '</div>' +
+      '<div class="seg" role="group" aria-label="改修判断">' + ['fix', 'watch', 'ignore'].map(function (st) {
+        return '<button type="button" data-err="' + i + '" data-status="' + st + '" aria-pressed="' + (e.status === st) + '">' +
+          { fix: '🛠 直す', watch: '👀 様子見', ignore: '🙈 無視' }[st] + '</button>';
+      }).join('') + '</div>' +
+      '<div class="err-note"><input class="input" data-note="' + i + '" maxlength="500" placeholder="メモ(例:iPad だけで起きる)" value="' + esc(e.note || '') + '">' +
+      '<button class="btn small" type="button" data-save-note="' + i + '">保存</button></div>' +
+      '<div class="err-actions">' +
+      '<button class="btn small" type="button" data-toggle-copy="' + i + '">📋 Claude Code に渡す情報を選ぶ</button>' +
+      '<button class="btn small danger" type="button" data-del-err="' + i + '">削除(直した)</button></div>' +
+      (copyOpen ? '<div class="copy-box"><div class="checks">' + COPY_FIELDS.map(function (f) {
+        return '<label class="check"><input type="checkbox" data-copy-field="' + f[0] + '" data-err="' + i + '"' +
+          (copyChoice[f[0]] ? ' checked' : '') + '> ' + f[1] + '</label>';
+      }).join('') + '</div>' +
+        '<textarea readonly data-copy-text="' + i + '">' + esc(copyText(e)) + '</textarea>' +
+        '<button class="btn small primary" type="button" data-copy="' + i + '">📋 コピーする</button></div>' : '') +
+      '</div>';
+  }
+
+  function loadErrors() {
+    $('errList').innerHTML = '<div class="card empty">読み込み中…</div>';
+    return api('GET', '/admin/errors').then(function (res) {
+      errors = res.errors;
+      renderErrors();
+    }, function (err) {
+      if (err.code !== 'unauthorized') $('errList').innerHTML = '<div class="card empty">' + esc(message(err)) + '</div>';
+    });
+  }
+
+  function renderErrors() {
+    if (!errors.length) {
+      $('errList').innerHTML = '<div class="card empty">エラーは届いていません 🎉</div>';
+      return;
+    }
+    // The server already sorts: "直す"・未対応 → 様子見 → 無視, then players hit, count, recency.
+    var top = errors.filter(function (e) { return e.status !== 'ignore'; }).slice(0, 3);
+    var rest = errors.filter(function (e) { return top.indexOf(e) < 0; });
+    $('errList').innerHTML =
+      (top.length ? '<div class="errs">' + top.map(function (e, n) { return errorCard(e, n + 1); }).join('') + '</div>'
+        : '<div class="card empty">対応が必要なエラーはありません(無視にしたものは下にあります)</div>') +
+      (rest.length ? '<details class="more"' + (rest.some(function (e) { return openCopy[e.sig]; }) ? ' open' : '') +
+        '><summary>その他のエラー ' + rest.length + ' 件</summary><div class="errs">' +
+        rest.map(function (e) { return errorCard(e, 0); }).join('') + '</div></details>' : '');
+  }
+
+  function patchError(e, body) {
+    return api('PATCH', '/admin/errors/' + e.sig, body).then(function () {
+      Object.keys(body).forEach(function (k) { e[k] = body[k]; });
+    });
+  }
+
+  $('errList').addEventListener('click', function (ev) {
+    var b = ev.target.closest('button');
+    if (!b) return;
+    var e = errors[+(b.getAttribute('data-err') || b.getAttribute('data-save-note') || b.getAttribute('data-toggle-copy') ||
+      b.getAttribute('data-del-err') || b.getAttribute('data-copy'))];
+    if (!e) return;
+    if (b.hasAttribute('data-status')) {
+      var st = b.getAttribute('data-status');
+      patchError(e, { status: e.status === st ? 'new' : st }).then(function () {
+        toast('「' + (STATUS_LABELS[e.status]) + '」にしました');
+        loadErrors();
+      }, function (err) { toast(message(err)); });
+    } else if (b.hasAttribute('data-save-note')) {
+      var note = document.querySelector('[data-note="' + b.getAttribute('data-save-note') + '"]').value.trim();
+      patchError(e, { note: note }).then(function () { toast('メモを保存しました'); renderErrors(); }, function (err) { toast(message(err)); });
+    } else if (b.hasAttribute('data-toggle-copy')) {
+      openCopy[e.sig] = !openCopy[e.sig];
+      renderErrors();
+    } else if (b.hasAttribute('data-copy')) {
+      var text = copyText(e);
+      var done = function () { toast('コピーしました。Claude Code に貼り付けてください'); };
+      var fallback = function () {
+        var ta = document.querySelector('[data-copy-text="' + b.getAttribute('data-copy') + '"]');
+        ta.value = text;
+        ta.select();
+        try { if (document.execCommand('copy')) done(); } catch (x) {}
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback);
+      else fallback();
+    } else if (b.hasAttribute('data-del-err')) {
+      openDialog('<h2>このエラーを削除しますか?</h2><p class="note">' + esc(e.message) +
+        '</p><p class="note">直し終わったときに削除してください。また起きれば、新しいエラーとして表示されます。</p>' +
+        BUTTONS('削除する', 'danger'), function () {
+        return api('DELETE', '/admin/errors/' + e.sig).then(function () { toast('削除しました'); });
+      }, loadErrors);
+    }
+  });
+  $('errList').addEventListener('change', function (ev) {
+    var box = ev.target.closest('[data-copy-field]');
+    if (!box) return;
+    copyChoice[box.getAttribute('data-copy-field')] = box.checked;
+    var i = box.getAttribute('data-err');
+    var ta = document.querySelector('[data-copy-text="' + i + '"]');
+    if (ta) ta.value = copyText(errors[+i]);
+  });
+
   function showTab(name) {
     Array.prototype.forEach.call(document.querySelectorAll('[data-tab]'), function (t) {
       t.setAttribute('aria-selected', String(t.getAttribute('data-tab') === name));
     });
     $('usersView').hidden = name !== 'users';
     $('logsView').hidden = name !== 'logs';
+    $('errorsView').hidden = name !== 'errors';
+    if (name === 'errors') loadErrors();
     if (name === 'logs') {
       fillUserFilter();
       loadLogs();
@@ -683,6 +882,7 @@ button, input { font: inherit; color: inherit; }
   $('logUser').addEventListener('change', loadLogs);
   $('logType').addEventListener('change', renderLogs);
   $('logReload').addEventListener('click', loadLogs);
+  $('errReload').addEventListener('click', loadErrors);
   $('addBtn').addEventListener('click', openAdd);
   $('userList').addEventListener('click', function (e) {
     var edit = e.target.closest('[data-edit]');
