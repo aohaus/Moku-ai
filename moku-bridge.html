@@ -208,10 +208,13 @@ body.on-title #controls { display: none; }
 #controls {
   position: fixed; left: 0; right: 0; bottom: 0;
   z-index: 20;
-  padding: 0 calc(env(safe-area-inset-right, 0px) + 14px) calc(env(safe-area-inset-bottom, 0px) + 14px) calc(env(safe-area-inset-left, 0px) + 14px);
-  display: flex; flex-direction: column; gap: 10px; align-items: center;
+  padding: 0 calc(env(safe-area-inset-right, 0px) + 16px) calc(env(safe-area-inset-bottom, 0px) + 18px) calc(env(safe-area-inset-left, 0px) + 18px);
+  display: flex; justify-content: space-between; align-items: flex-end; gap: 12px;
+  pointer-events: none;
 }
-#itemRow { display: flex; gap: 10px; justify-content: center; }
+#controls > * { pointer-events: auto; }
+#itemRow { display: flex; flex-direction: column; gap: 10px; align-items: stretch; }
+#soundBtn { align-self: flex-end; }
 .item-btn {
   position: relative;
   display: flex; align-items: center; gap: 6px;
@@ -236,20 +239,65 @@ body.on-title #controls { display: none; }
   display: grid; place-items: center;
   box-shadow: 0 0 0 2px var(--paper);
 }
-#pickRow { display: flex; gap: 14px; width: 100%; max-width: 460px; }
-.pick-btn {
-  flex: 1;
-  padding: 16px 0;
-  border-radius: 18px;
-  font-size: 20px; font-weight: 800; letter-spacing: 0.02em;
-  color: #FFFFFF;
-  background: linear-gradient(180deg, #8FE6F2 0%, var(--hi) 55%, #39B5C9 100%);
-  box-shadow: 0 5px 0 var(--lo), 0 8px 16px rgba(22,89,106,0.35), inset 0 2px 0 rgba(255,255,255,0.55);
-  text-shadow: 0 2px 0 rgba(22,89,106,0.6);
-  transition: transform 0.08s, box-shadow 0.08s, filter 0.2s;
+/* 左下のジョイスティック: 倒して狙い、離すとジャンプ(Flying Moku と同じ左手スティック) */
+#stick {
+  position: relative;
+  width: 148px; height: 148px;
+  flex: none;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, rgba(255,255,255,0.40), rgba(94,214,232,0.22) 70%, rgba(22,89,106,0.18));
+  border: 2px solid rgba(255,255,255,0.75);
+  box-shadow: 0 6px 14px rgba(60,30,20,0.25), inset 0 0 18px rgba(94,214,232,0.35);
+  touch-action: none;
+  cursor: grab;
+  transition: opacity 0.2s, filter 0.2s;
 }
-.pick-btn:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 1px 0 var(--lo), 0 3px 8px rgba(22,89,106,0.35), inset 0 2px 0 rgba(255,255,255,0.55); }
-.pick-btn:disabled { filter: saturate(0.4) brightness(0.92); cursor: default; }
+#stick.off { opacity: 0.45; filter: saturate(0.5); }
+#stick::before {
+  content: '';
+  position: absolute; left: 14%; right: 14%; top: 50%;
+  height: 2px; margin-top: -1px;
+  background: rgba(255,255,255,0.45);
+  border-radius: 1px;
+}
+.stick-arrow {
+  position: absolute; top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px; font-weight: 900;
+  color: rgba(255,255,255,0.9);
+  text-shadow: 0 1px 2px rgba(22,89,106,0.7);
+  transition: transform 0.15s, color 0.15s;
+  pointer-events: none;
+}
+.stick-arrow.l { left: 10px; }
+.stick-arrow.r { right: 10px; }
+.stick-arrow.on { color: #FFF3B0; transform: translateY(-50%) scale(1.35); }
+#stickKnob {
+  position: absolute; left: 50%; top: 50%;
+  width: 66px; height: 66px; margin: -33px 0 0 -33px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #FFFFFF 0%, #BDF1F8 35%, var(--hi) 75%, #39B5C9 100%);
+  border: 2px solid rgba(255,255,255,0.9);
+  box-shadow: 0 4px 0 var(--lo), 0 8px 14px rgba(22,89,106,0.35);
+  pointer-events: none;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+#stickKnob.active { transition: none; box-shadow: 0 2px 0 var(--lo), 0 0 16px rgba(255,243,176,0.8); }
+#stickHelp {
+  position: absolute; left: 50%; bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  white-space: nowrap;
+  padding: 4px 10px;
+  border-radius: 10px;
+  background: rgba(251,244,230,0.94);
+  color: var(--ink);
+  font-size: 12px; font-weight: 800;
+  box-shadow: 0 2px 0 rgba(122,79,46,0.4);
+  pointer-events: none;
+  animation: helpBob 1.4s ease-in-out infinite;
+}
+#stickHelp[hidden] { display: none; }
+@keyframes helpBob { 0%, 100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, -4px); } }
 
 /* ---------- panels (shop / help / result) ---------- */
 .overlay {
@@ -344,8 +392,9 @@ body.on-title #controls { display: none; }
 @media (orientation: landscape) and (max-height: 500px) {
   #titleHero { width: min(120px, 24vh); }
   #titleName { font-size: 40px; }
-  .pick-btn { padding: 11px 0; font-size: 18px; }
-  #pickRow { max-width: 520px; }
+  #stick { width: 124px; height: 124px; }
+  #stickKnob { width: 56px; height: 56px; margin: -28px 0 0 -28px; }
+  #itemRow { gap: 8px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition: none !important; }
@@ -359,7 +408,7 @@ body.on-title #controls { display: none; }
 
 <div id="title-frame"></div>
 <a id="hub-link" href="index.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.1.0 · Updated Oct 25, 2026</div>
+<div id="buildInfo">v0.2.0 · Updated Oct 25, 2026</div>
 
 <!-- Item icons, reused by the HUD and the shop -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -407,6 +456,12 @@ body.on-title #controls { display: none; }
 </div>
 
 <div id="controls">
+  <div id="stick" role="slider" aria-label="Joystick: push left or right, then let go to hop" aria-valuemin="-1" aria-valuemax="1" aria-valuenow="0">
+    <span class="stick-arrow l" id="arrowL">◀</span>
+    <span class="stick-arrow r" id="arrowR">▶</span>
+    <div id="stickKnob"></div>
+    <div id="stickHelp" hidden>Push, then let go!</div>
+  </div>
   <div id="itemRow">
     <button class="item-btn" id="hintBtn" type="button">
       <svg><use href="#icoHint"/></svg>
@@ -419,10 +474,6 @@ body.on-title #controls { display: none; }
       <span class="item-count" id="carpetCount">0</span>
     </button>
     <button class="chip-btn" id="soundBtn" type="button" aria-label="Sound">🔊</button>
-  </div>
-  <div id="pickRow">
-    <button class="pick-btn" id="leftBtn" type="button">◀ Left</button>
-    <button class="pick-btn" id="rightBtn" type="button">Right ▶</button>
   </div>
 </div>
 
@@ -443,8 +494,8 @@ body.on-title #controls { display: none; }
     <h2>How to Play</h2>
     <ul class="help-list">
       <li><span>🪟</span><span>Each step has two glass panels. Only one is strong!</span></li>
-      <li><span>👆</span><span>Tap <b>Left</b> or <b>Right</b> to hop.</span></li>
-      <li><span>☁️</span><span>Pick the weak one and Moku falls into the soft clouds.</span></li>
+      <li><span>🕹️</span><span>Push the <b>stick</b> left or right, then let go to hop.</span></li>
+      <li><span>☁️</span><span>Pick the weak one and Moku falls into the soft clouds. A fall costs <b>3 Moints</b>.</span></li>
       <li><span>🧠</span><span>Moku remembers every panel he tried. Try again and get farther!</span></li>
       <li><span>🏁</span><span>Reach the goal to win <b>Moints</b>. Lucky guesses give bonus Moints.</span></li>
       <li><span>💡</span><span><b>Hint</b>: the strong panel glows for a moment.</span></li>
@@ -487,6 +538,7 @@ body.on-title #controls { display: none; }
   var PROGRESS_KEY = 'moku:' + GAME_ID + ':progress';
   var MUTE_KEY = 'moku:' + GAME_ID + ':muted';
   var WELCOME_MOINTS = 40;
+  var FALL_PENALTY = 3;   // 落ちたら Moint を少しだけ失う(0 未満にはしない)
   var PRICES = { hint: 15, carpet: 40 };
 
   function readJSON(key) {
@@ -729,7 +781,7 @@ body.on-title #controls { display: none; }
   var PD = 1.0;           // パネルの奥行き
   var PX0 = 0.16, PX1 = 1.36;   // パネルの X 範囲(中心からの距離)
   var LANE_X = (PX0 + PX1) / 2;
-  var CAM_H = 1.65;
+  var CAM_H = 2.15;       // 後ろ姿のMokuの頭越しに次の段が見える高さ
   var CAM_BACK = 2.7;
   var NEAR = 1.2;         // これよりカメラに近い床は描かない(画面下の操作ボタンの裏で切れる)
 
@@ -772,7 +824,8 @@ body.on-title #controls { display: none; }
   var state = STATE.TITLE;
   var step = 0;               // 次に踏む段(0..N)。N はゴール
   var run = null;             // { lucky, hints, carpets }
-  var moku = { x: 0, y: 0, z: 0, vy: 0, squash: 0, tilt: 0, chute: 0, blink: 0, face: 0 };
+  var moku = { x: 0, y: 0, z: 0, vy: 0, squash: 0, tilt: 0, chute: 0, lean: 0, spin: 0 };
+  var stick = { active: false, id: null, x: 0, aim: -1 };   // aim: 0=左 1=右 -1=なし
   var hop = null;             // { from, to, t, dur, carpet, outcome }
   var particles = [];
   var hintGlow = { row: -1, t: 0 };
@@ -786,7 +839,8 @@ body.on-title #controls { display: none; }
   }
 
   function resetMoku() {
-    moku.x = 0; moku.y = 0; moku.z = 0; moku.vy = 0; moku.squash = 0; moku.tilt = 0; moku.chute = 0;
+    moku.x = 0; moku.y = 0; moku.z = 0; moku.vy = 0; moku.squash = 0; moku.tilt = 0; moku.chute = 0; moku.lean = 0; moku.spin = 0;
+    releaseStick();
     cam.z = moku.z - CAM_BACK; cam.x = 0;
     particles = [];
     hop = null;
@@ -800,7 +854,7 @@ body.on-title #controls { display: none; }
     progress.totalTries = (progress.totalTries || 0) + 1;
     saveAll();
     step = 0;
-    run = { lucky: 0, hints: 0, carpets: 0 };
+    run = { lucky: 0, hints: 0, carpets: 0, penalty: 0 };
     resetMoku();
     state = STATE.READY;
     body.classList.remove('on-title');
@@ -808,6 +862,7 @@ body.on-title #controls { display: none; }
     buildDots();
     updateHud();
     var known = progress.solved.filter(Boolean).length;
+    $('stickHelp').hidden = (progress.totalTries || 0) > 2;
     if (progress.tries === 1) hudMsg('Which glass is strong? Pick one!', 2200);
     else hudMsg('Moku remembers ' + known + ' panel' + (known === 1 ? '' : 's') + '. Try #' + progress.tries + '!', 2200);
   }
@@ -842,8 +897,7 @@ body.on-title #controls { display: none; }
     var n = stepsFor(progress.bridge);
     var ready = canPick() && step < n;
     var known = ready && progress.solved[step];
-    var pick = $('leftBtn'), pick2 = $('rightBtn');
-    pick.disabled = pick2.disabled = !ready;
+    $('stick').classList.toggle('off', !ready);
     ['hint', 'carpet'].forEach(function (id) {
       var have = progress.items[id] || 0;
       $(id + 'Count').textContent = have;
@@ -940,7 +994,8 @@ body.on-title #controls { display: none; }
       // ハズレ: パネルが割れて雲の上へふわっと落ちる
       progress.solved[h.row] = true;
       progress.broken[h.row] = h.side;
-      saveAll();
+      run.penalty = Math.min(FALL_PENALTY, wallet.balance);
+      if (run.penalty) addMoints(-run.penalty); else saveAll();
       state = STATE.FALL;
       fallTimer = 0;
       moku.vy = 1.2;
@@ -1014,8 +1069,13 @@ body.on-title #controls { display: none; }
     $('resultIcon').textContent = '☁️';
     $('resultTitle').textContent = 'Oops! Poof!';
     $('resultSub').textContent = 'Moku landed in the fluffy clouds. He now knows ' + known + ' of ' + n + ' steps. You can do it!';
-    $('rewardLines').innerHTML = '';
-    $('rewardLines').style.display = 'none';
+    if (run.penalty) {
+      $('rewardLines').innerHTML = '<div class="total"><span>Fall</span><span>−' + run.penalty + ' Moints</span></div>';
+      $('rewardLines').style.display = '';
+    } else {
+      $('rewardLines').innerHTML = '';
+      $('rewardLines').style.display = 'none';
+    }
     $('resultMain').textContent = '↻ Try Again';
     openOverlay('resultOverlay');
   }
@@ -1042,8 +1102,9 @@ body.on-title #controls { display: none; }
       if (hintGlow.t <= 0) { hintGlow.row = -1; renderItems(); }
     }
     moku.squash = Math.max(0, moku.squash - dt * 4);
-    moku.blink -= dt;
-    if (moku.blink < -3 - Math.random() * 2) moku.blink = 0.14;
+    // スティックを倒している方へ体を傾ける
+    var leanTarget = (state === STATE.READY && stick.active) ? stick.x : 0;
+    moku.lean += (leanTarget - moku.lean) * Math.min(1, dt * 12);
 
     if (state === STATE.TITLE) {
       // タイトル画面ではカメラをゆっくり橋の奥へ揺らす
@@ -1072,6 +1133,7 @@ body.on-title #controls { display: none; }
       if (moku.chute) moku.vy = Math.max(moku.vy, -1.1);
       moku.y += moku.vy * dt;
       moku.tilt = Math.sin(time * 4) * 0.12 * (moku.chute || 0.3);
+      moku.spin += dt * (moku.chute ? 1.5 : 9);
       if (fallTimer > 2.0 && state === STATE.FALL) {
         sfx.poof();
         showFall();
@@ -1325,6 +1387,33 @@ body.on-title #controls { display: none; }
       }
       ctx.stroke();
     }
+    if (state === STATE.READY && row === step && stick.aim === side) {
+      // スティックで狙っているパネル
+      ctx.save();
+      var pulseA = 0.5 + 0.5 * Math.sin(time * 10);
+      ctx.globalAlpha = 0.28 + 0.12 * pulseA;
+      ctx.fillStyle = '#FFFFFF';
+      quad(x0, x1, z0, z1, 0); ctx.fill();
+      ctx.globalAlpha = 0.7 + 0.3 * pulseA;
+      ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = Math.max(3, 0.08 * pts[0].s);
+      ctx.stroke();
+      ctx.restore();
+      // 狙っているパネルの奥側に、はねる矢印
+      var tip = project((x0 + x1) / 2, 0.3 + Math.abs(Math.sin(time * 6)) * 0.15, z);
+      var ah = Math.max(8, 0.22 * tip.s);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.strokeStyle = '#16596A'; ctx.lineWidth = Math.max(1.5, ah * 0.12); ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(tip.x, tip.y + ah * 0.6);
+      ctx.lineTo(tip.x - ah * 0.6, tip.y - ah * 0.1);
+      ctx.lineTo(tip.x - ah * 0.22, tip.y - ah * 0.1);
+      ctx.lineTo(tip.x - ah * 0.22, tip.y - ah * 0.6);
+      ctx.lineTo(tip.x + ah * 0.22, tip.y - ah * 0.6);
+      ctx.lineTo(tip.x + ah * 0.22, tip.y - ah * 0.1);
+      ctx.lineTo(tip.x + ah * 0.6, tip.y - ah * 0.1);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+    }
     if (hintGlow.row === row && isSafe && hintGlow.t > 0) {
       // ヒント: うっすら光る
       var fade = Math.min(1, hintGlow.t / 0.5) * Math.min(1, (2.2 - hintGlow.t) / 0.3);
@@ -1394,108 +1483,110 @@ body.on-title #controls { display: none; }
     });
   }
 
+  // Flying Moku の3Dモデルと同じデザインを後ろ姿で描く:
+  // ふっくらしたベージュのぬいぐるみボディ、緑の3枚葉のしっぽ、平たい翼、オレンジの足
+  var MOKU_BEIGE = '#C29B75', MOKU_LEAF = '#0FA37F', MOKU_FOOT = '#F59E0B';
+  function leafPath(len, wid) {
+    // 根元(0,0)から +y 方向に伸びる葉っぱ
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(wid, len * 0.45, 0, len);
+    ctx.quadraticCurveTo(-wid, len * 0.45, 0, 0);
+    ctx.closePath();
+  }
   function drawMoku(x, y, z) {
-    var p = project(x, y, z);
+    var p = project(x + moku.lean * 0.12, y, z);
     var s = p.s;
     var sq = moku.squash;
     var sx = 1 + sq * 0.18, sy = 1 - sq * 0.16;
-    var r = 0.36 * s;
+    var r = 0.31 * s;
     // shadow on the glass/deck (only when above the floor)
     if (moku.y > -0.1) {
       var sh = project(x, 0, z);
       ctx.fillStyle = 'rgba(40,60,80,0.22)';
-      ctx.beginPath(); ctx.ellipse(sh.x, sh.y, r * 0.95 / (1 + Math.max(0, y)), r * 0.3 / (1 + Math.max(0, y)), 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(sh.x, sh.y, r * 1.05 / (1 + Math.max(0, y)), r * 0.3 / (1 + Math.max(0, y)), 0, 0, Math.PI * 2); ctx.fill();
     }
+    var falling = state === STATE.FALL;
+    var happy = state === STATE.GOAL;
+    var moving = state === STATE.HOP || falling || happy;
     ctx.save();
     ctx.translate(p.x, p.y);
-    ctx.rotate(moku.tilt);
+    ctx.rotate(moku.tilt + moku.lean * 0.18 + (falling && !moku.chute ? Math.sin(moku.spin) * 0.35 : 0));
     ctx.scale(sx, sy);
     // leaf parachute
     if (moku.chute) {
       var c = moku.chute;
       ctx.save();
-      ctx.translate(0, -r * 2.6);
+      ctx.translate(0, -r * 2.5);
       ctx.scale(c, c);
       ctx.strokeStyle = '#7A4F2E'; ctx.lineWidth = Math.max(1, r * 0.05);
-      ctx.beginPath(); ctx.moveTo(-r * 1.1, 0); ctx.lineTo(-r * 0.4, r * 1.3); ctx.moveTo(r * 1.1, 0); ctx.lineTo(r * 0.4, r * 1.3); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-r * 1.1, 0); ctx.lineTo(-r * 0.5, r * 1.1); ctx.moveTo(r * 1.1, 0); ctx.lineTo(r * 0.5, r * 1.1); ctx.stroke();
       ctx.fillStyle = '#8CC46A';
       ctx.beginPath(); ctx.ellipse(0, 0, r * 1.35, r * 0.55, 0, Math.PI, 0); ctx.closePath(); ctx.fill();
       ctx.strokeStyle = '#5E9442'; ctx.lineWidth = Math.max(1, r * 0.06);
       ctx.beginPath(); ctx.moveTo(-r * 1.3, 0); ctx.lineTo(r * 1.3, 0); ctx.moveTo(0, 0); ctx.lineTo(0, -r * 0.55); ctx.stroke();
       ctx.restore();
     }
-    // feet
-    ctx.fillStyle = '#F2A33A';
-    ctx.beginPath(); ctx.ellipse(-r * 0.32, -r * 0.05, r * 0.2, r * 0.1, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(r * 0.32, -r * 0.05, r * 0.2, r * 0.1, 0, 0, Math.PI * 2); ctx.fill();
-    // ear tufts
-    ctx.fillStyle = '#7A4F2E';
-    ctx.beginPath(); ctx.moveTo(-r * 0.75, -r * 1.55); ctx.lineTo(-r * 0.55, -r * 2.15); ctx.lineTo(-r * 0.25, -r * 1.7); ctx.closePath(); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(r * 0.75, -r * 1.55); ctx.lineTo(r * 0.55, -r * 2.15); ctx.lineTo(r * 0.25, -r * 1.7); ctx.closePath(); ctx.fill();
-    // body
-    var bg = ctx.createRadialGradient(-r * 0.3, -r * 1.3, r * 0.2, 0, -r * 0.95, r * 1.1);
-    bg.addColorStop(0, '#A87650'); bg.addColorStop(1, '#7E5233');
-    ctx.fillStyle = bg;
-    ctx.beginPath(); ctx.ellipse(0, -r * 0.95, r * 0.95, r * 1.0, 0, 0, Math.PI * 2); ctx.fill();
-    // wings (flap while hopping/falling)
-    var flap = (state === STATE.HOP || state === STATE.FALL || state === STATE.GOAL) ? Math.sin(time * 22) * 0.5 : 0;
-    ctx.fillStyle = '#6E4529';
-    ctx.save(); ctx.translate(-r * 0.85, -r * 0.95); ctx.rotate(0.3 + flap);
-    ctx.beginPath(); ctx.ellipse(0, r * 0.15, r * 0.22, r * 0.5, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-    ctx.save(); ctx.translate(r * 0.85, -r * 0.95); ctx.rotate(-0.3 - flap);
-    ctx.beginPath(); ctx.ellipse(0, r * 0.15, r * 0.22, r * 0.5, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-    // belly
-    ctx.fillStyle = '#F3DDB8';
-    ctx.beginPath(); ctx.ellipse(0, -r * 0.62, r * 0.6, r * 0.55, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = 'rgba(176,122,79,0.5)'; ctx.lineWidth = Math.max(1, r * 0.05);
-    for (var f = 0; f < 3; f++) {
-      ctx.beginPath(); ctx.arc((f - 1) * r * 0.22, -r * 0.62 + (f % 2) * r * 0.1, r * 0.09, 0.2, Math.PI - 0.2); ctx.stroke();
-    }
-    // face disc
-    ctx.fillStyle = '#E9C99C';
-    ctx.beginPath(); ctx.ellipse(-r * 0.33, -r * 1.32, r * 0.36, r * 0.34, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(r * 0.33, -r * 1.32, r * 0.36, r * 0.34, 0, 0, Math.PI * 2); ctx.fill();
-    // eyes
-    var falling = state === STATE.FALL;
-    var happy = state === STATE.GOAL;
-    var blinking = moku.blink > 0;
+    var cy = -r * 0.98;           // 体の中心
+    var bw = r * 1.12, bh = r * 0.94;
+    // orange feet peeking out below the body (paddle while moving)
+    var paddle = moving ? Math.sin(time * 18) * r * 0.06 : 0;
+    ctx.fillStyle = MOKU_FOOT;
+    ctx.beginPath(); ctx.ellipse(-r * 0.42, -r * 0.06 + paddle, r * 0.2, r * 0.11, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(r * 0.42, -r * 0.06 - paddle, r * 0.2, r * 0.11, 0, 0, Math.PI * 2); ctx.fill();
+    // soft wings: folded at the sides while standing, spread flat like
+    // Flying Moku while hopping / falling, waving up while celebrating
+    var spread = moving ? 1 : 0;
+    var flap = moving ? Math.sin(time * 22) * 0.35 : Math.sin(time * 2) * 0.04;
+    if (happy) flap = -0.5 + Math.sin(time * 16) * 0.35;
     [-1, 1].forEach(function (k) {
-      var ex = k * r * 0.33, ey = -r * 1.32;
-      if (happy || blinking) {
-        ctx.strokeStyle = '#26262E'; ctx.lineWidth = Math.max(1.5, r * 0.08); ctx.lineCap = 'round';
-        ctx.beginPath();
-        if (happy) ctx.arc(ex, ey + r * 0.06, r * 0.14, Math.PI * 1.1, Math.PI * 1.9);
-        else { ctx.moveTo(ex - r * 0.13, ey); ctx.lineTo(ex + r * 0.13, ey); }
-        ctx.stroke();
-      } else {
-        ctx.fillStyle = '#FFFFFF';
-        ctx.beginPath(); ctx.arc(ex, ey, r * 0.24, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#26262E';
-        var pr = falling ? r * 0.17 : r * 0.13;
-        ctx.beginPath(); ctx.arc(ex + k * r * 0.02, ey + r * 0.02, pr, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#FFFFFF';
-        ctx.beginPath(); ctx.arc(ex - r * 0.04, ey - r * 0.05, r * 0.045, 0, Math.PI * 2); ctx.fill();
-      }
+      ctx.save();
+      ctx.translate(k * bw * 0.84, cy + r * 0.05);
+      // 立っている時は下向き(たたむ)、動いている時は横に広げる
+      ctx.rotate(-k * (spread ? (Math.PI / 2 - 0.15 + flap) : (0.32 + flap)));
+      var wg = ctx.createLinearGradient(0, 0, 0, r * 0.9);
+      wg.addColorStop(0, '#C9A27C');
+      wg.addColorStop(1, '#A47D58');
+      ctx.fillStyle = wg;
+      ctx.beginPath(); ctx.ellipse(0, r * 0.38, r * 0.24, r * 0.46, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(122,79,46,0.30)'; ctx.lineWidth = Math.max(1, r * 0.035); ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(-r * 0.06, r * 0.5); ctx.lineTo(-r * 0.04, r * 0.74); ctx.moveTo(r * 0.07, r * 0.48); ctx.lineTo(r * 0.06, r * 0.7); ctx.stroke();
+      ctx.restore();
     });
-    // beak (open "O" while falling)
-    ctx.fillStyle = '#F2A33A';
-    if (falling) {
-      ctx.beginPath(); ctx.ellipse(0, -r * 1.05, r * 0.1, r * 0.13, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#7A3A1A';
-      ctx.beginPath(); ctx.ellipse(0, -r * 1.04, r * 0.05, r * 0.07, 0, 0, Math.PI * 2); ctx.fill();
-    } else {
-      ctx.beginPath(); ctx.moveTo(-r * 0.1, -r * 1.14); ctx.lineTo(r * 0.1, -r * 1.14); ctx.lineTo(0, -r * 0.96); ctx.closePath(); ctx.fill();
-    }
-    // cheeks
-    ctx.fillStyle = 'rgba(255,143,184,0.45)';
-    ctx.beginPath(); ctx.ellipse(-r * 0.62, -r * 1.08, r * 0.1, r * 0.06, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(r * 0.62, -r * 1.08, r * 0.1, r * 0.06, 0, 0, Math.PI * 2); ctx.fill();
-    // teal bow tie
-    ctx.fillStyle = '#2EC4B6';
-    ctx.beginPath(); ctx.moveTo(0, -r * 0.88); ctx.lineTo(-r * 0.24, -r * 1.0); ctx.lineTo(-r * 0.24, -r * 0.76); ctx.closePath(); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(0, -r * 0.88); ctx.lineTo(r * 0.24, -r * 1.0); ctx.lineTo(r * 0.24, -r * 0.76); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#145A55';
-    ctx.beginPath(); ctx.arc(0, -r * 0.88, r * 0.06, 0, Math.PI * 2); ctx.fill();
+    // plump plush body (back side is all beige)
+    var bg = ctx.createRadialGradient(-bw * 0.3, cy - bh * 0.45, r * 0.1, 0, cy, bw * 1.15);
+    bg.addColorStop(0, '#E2C29E');
+    bg.addColorStop(0.55, MOKU_BEIGE);
+    bg.addColorStop(1, '#9E7A57');
+    ctx.fillStyle = bg;
+    ctx.beginPath(); ctx.ellipse(0, cy, bw, bh, 0, 0, Math.PI * 2); ctx.fill();
+    // soft plush sheen across the upper back
+    ctx.fillStyle = 'rgba(255,240,215,0.22)';
+    ctx.beginPath(); ctx.ellipse(-bw * 0.25, cy - bh * 0.5, bw * 0.42, bh * 0.22, -0.25, 0, Math.PI * 2); ctx.fill();
+    // a fluffy tuft on top of the head
+    ctx.fillStyle = '#D6B28C';
+    ctx.beginPath(); ctx.ellipse(-r * 0.1, cy - bh * 0.96, r * 0.09, r * 0.13, -0.4, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(r * 0.08, cy - bh * 0.98, r * 0.08, r * 0.12, 0.35, 0, Math.PI * 2); ctx.fill();
+    // green leaf bow-tie tips just peeking out at the sides of the neck
+    ctx.fillStyle = MOKU_LEAF;
+    ctx.beginPath(); ctx.moveTo(-bw * 0.93, cy + r * 0.32); ctx.lineTo(-bw * 1.08, cy + r * 0.22); ctx.lineTo(-bw * 1.02, cy + r * 0.42); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(bw * 0.93, cy + r * 0.32); ctx.lineTo(bw * 1.08, cy + r * 0.22); ctx.lineTo(bw * 1.02, cy + r * 0.42); ctx.closePath(); ctx.fill();
+    // emerald three-leaf tail feather at the lower back (wags while moving)
+    var wag = moving ? Math.sin(time * 14) * 0.18 : Math.sin(time * 1.6) * 0.06;
+    ctx.save();
+    ctx.translate(0, cy + bh * 0.42);
+    ctx.rotate(wag);
+    [[-0.5, 0.85], [0.5, 0.85], [0, 1]].forEach(function (lf) {
+      ctx.save();
+      ctx.rotate(lf[0]);
+      ctx.fillStyle = lf[0] ? '#0C8E6E' : MOKU_LEAF;
+      leafPath(r * 0.62 * lf[1], r * 0.28 * lf[1]);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(220,255,236,0.55)'; ctx.lineWidth = Math.max(1, r * 0.035);
+      ctx.beginPath(); ctx.moveTo(0, r * 0.04); ctx.lineTo(0, r * 0.5 * lf[1]); ctx.stroke();
+      ctx.restore();
+    });
+    ctx.restore();
     ctx.restore();
   }
 
@@ -1617,8 +1708,6 @@ body.on-title #controls { display: none; }
   $('helpClose').addEventListener('click', function () { sfx.tap(); closeOverlay('helpOverlay'); });
   $('shopClose').addEventListener('click', function () { sfx.tap(); closeOverlay('shopOverlay'); renderItems(); });
   $('backBtn').addEventListener('click', function () { sfx.tap(); toTitle(); });
-  $('leftBtn').addEventListener('click', function () { pick(0); });
-  $('rightBtn').addEventListener('click', function () { pick(1); });
   $('hintBtn').addEventListener('click', function () { useItem('hint'); });
   $('carpetBtn').addEventListener('click', function () { useItem('carpet'); });
   $('soundBtn').addEventListener('click', function () {
@@ -1631,12 +1720,54 @@ body.on-title #controls { display: none; }
   $('resultShop').addEventListener('click', function () { sfx.tap(); renderShop(); openOverlay('shopOverlay'); });
   $('resultTitleBtn').addEventListener('click', function () { sfx.tap(); toTitle(); });
 
-  // ガラスを直接タップしても選べる(画面の左半分 / 右半分)
-  canvas.addEventListener('pointerdown', function (e) {
-    if (!canPick()) return;
-    if (e.clientY < H * 0.15) return;
-    pick(e.clientX < W / 2 ? 0 : 1);
+  // ---------- joystick: 左右に倒して狙い、離すとその方向へジャンプ ----------
+  var stickEl = $('stick'), knobEl = $('stickKnob');
+  var AIM_AT = 0.45;
+  function stickRadius() { return stickEl.clientWidth * 0.36; }
+  function moveStick(e) {
+    var rect = stickEl.getBoundingClientRect();
+    var R = stickRadius();
+    var dx = e.clientX - (rect.left + rect.width / 2);
+    var dy = e.clientY - (rect.top + rect.height / 2);
+    var len = Math.sqrt(dx * dx + dy * dy);
+    if (len > R) { dx *= R / len; dy *= R / len; }
+    knobEl.style.transform = 'translate(' + dx + 'px,' + dy * 0.5 + 'px)';
+    stick.x = dx / R;
+    var aim = stick.x < -AIM_AT ? 0 : (stick.x > AIM_AT ? 1 : -1);
+    if (aim !== stick.aim && aim >= 0 && canPick()) sfx.tap();
+    stick.aim = aim;
+    $('arrowL').classList.toggle('on', aim === 0);
+    $('arrowR').classList.toggle('on', aim === 1);
+    stickEl.setAttribute('aria-valuenow', stick.x.toFixed(2));
+  }
+  function releaseStick() {
+    stick.active = false; stick.id = null; stick.x = 0; stick.aim = -1;
+    knobEl.classList.remove('active');
+    knobEl.style.transform = 'translate(0px,0px)';
+    $('arrowL').classList.remove('on');
+    $('arrowR').classList.remove('on');
+  }
+  stickEl.addEventListener('pointerdown', function (e) {
+    e.preventDefault();
+    stick.active = true; stick.id = e.pointerId;
+    try { stickEl.setPointerCapture(e.pointerId); } catch (err) {}
+    knobEl.classList.add('active');
+    moveStick(e);
   });
+  stickEl.addEventListener('pointermove', function (e) {
+    if (stick.active && e.pointerId === stick.id) moveStick(e);
+  });
+  function endStick(e) {
+    if (!stick.active || e.pointerId !== stick.id) return;
+    var aim = stick.aim;
+    releaseStick();
+    if (aim >= 0 && canPick()) {
+      $('stickHelp').hidden = true;
+      pick(aim);
+    }
+  }
+  stickEl.addEventListener('pointerup', endStick);
+  stickEl.addEventListener('pointercancel', function (e) { if (e.pointerId === stick.id) releaseStick(); });
   document.addEventListener('keydown', function (e) {
     if (state === STATE.TITLE) {
       if ((e.key === 'Enter' || e.key === ' ') && !document.querySelector('.overlay.open')) { e.preventDefault(); startRun(); }
