@@ -25,7 +25,7 @@ echo $SECRET
 sam deploy --parameter-overrides AllowedOrigin=https://aohaus.github.io AuthSecret=$SECRET InviteCode=<招待コード> MaxUsers=100
 ```
 
-- 途中の `Deploy this changeset? [y/N]:` には `y`。
+- 途中の `Deploy this changeset? [y/N]:` には **`y` を入力してから Enter**。Enter だけだと初期値の `N`(デプロイしない)になり、何も更新されないまま終わる(2026-10-24 に実際に起きた)。
 - **2回目以降(コードの更新だけ)**: `cd ~/Moku-ai && git pull && cd backend && sam deploy`(保存済みの値で更新される)。
   - 新しいエンドポイントを足した時(例: 2026-10-24 の `GET /players`)もこれでよい。デプロイ前の古い API でもクライアントは壊れない(プロフィールの Players 欄が出ないだけ)。
 - **AuthSecret を変えずに招待コードだけ変える**: 保管している AuthSecret を `SECRET=...` に入れてから、上の `sam deploy --parameter-overrides ...` を新しい招待コードで実行する。AuthSecret を変えると全員ログアウトされる。
@@ -33,6 +33,23 @@ sam deploy --parameter-overrides AllowedOrigin=https://aohaus.github.io AuthSecr
   貼り付けは1回だけにすること。見えない制御文字が混ざると `ParameterValue for ParameterKey AuthSecret contains invalid characters` で失敗する。
   上の `--parameter-overrides` 方式なら入力欄に貼らないのでこの問題が起きない。
 - 質問形式の場合、`... has no authentication. Is this okay?` には `y`(ログイン確認は Lambda の中で行っている)。
+
+### デプロイ後の確認
+
+`Successfully created/updated stack - moku-backend` と出たら、本当に更新されたかを確かめる。
+
+```sh
+aws cloudformation describe-stacks --stack-name moku-backend --query "Stacks[0].[StackStatus,LastUpdatedTime]" --output text
+```
+
+- `UPDATE_COMPLETE` と**今デプロイした日時**(UTC)が出れば成功。
+- `CREATE_COMPLETE` のまま、または日時が古い場合は更新されていない。もう一度 `sam deploy` して、最後の質問に `y` と答える。
+
+新しいエンドポイントは、ログインなしで呼んで `401`(ログインが必要)が返れば存在している(`404` ならまだデプロイされていない)。
+
+```sh
+curl -s -w ' HTTP %{http_code}\n' https://d6hl1cxi0i.execute-api.ap-southeast-5.amazonaws.com/players
+```
 
 パラメータ:
 
