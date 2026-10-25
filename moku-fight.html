@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<script src="shared/moku-errors.js?v=20261025b"></script>
-<script src="shared/moku-gate.js?v=20261025b"></script>
+<script src="shared/moku-errors.js?v=20261025c"></script>
+<script src="shared/moku-gate.js?v=20261025c"></script>
 <meta name="viewport" id="viewportMeta" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>Moku Fight</title>
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
@@ -326,13 +326,36 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
 #resultTitle.win { color: #FFD27A; text-shadow: 0 0 22px rgba(255,190,90,0.6); }
 #resultTitle.lose { color: #C4B5FD; text-shadow: 0 0 22px rgba(167,139,250,0.5); }
 #resultDesc { font-size: 13px; color: rgba(237,238,246,0.65); line-height: 1.6; }
+/* Moint (series coin, SPEC.md §13) */
+.coin { display: inline-flex; align-items: center; justify-content: center; width: 1.25em; height: 1.25em; margin-right: 5px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #FFE7A3, #F5B83D 60%, #D9931E); box-shadow: inset 0 -1.5px 0 rgba(154,101,18,0.6);
+  color: #7A4A0C; font-size: 0.72em; font-weight: 900; font-style: normal; vertical-align: -0.2em; }
+#titleMoints { font-size: 12px; font-weight: 800; color: #ffd86a; min-height: 1em; }
+#titleMoints small { font-weight: 700; color: rgba(237,238,246,0.6); }
+.mointBox { width: min(340px, 82vw); display: flex; flex-direction: column; gap: 3px; padding: 9px 14px; border-radius: 12px;
+  background: rgba(255,216,106,0.08); border: 1px solid rgba(255,216,106,0.32); font-size: 12.5px; }
+.mointBox[hidden] { display: none; }
+.mointBox > div { display: flex; justify-content: space-between; gap: 16px; font-weight: 700; color: rgba(237,238,246,0.82); }
+.mointBox b { color: #ffd86a; white-space: nowrap; }
+.mointBox .mointTotal { margin-top: 3px; padding-top: 5px; border-top: 1px solid rgba(255,216,106,0.25); font-size: 14px; color: #fff; }
+.mointBox .mointCap { margin: 2px 0 0; font-size: 11.5px; font-weight: 700; color: #ffd86a; text-align: center; }
+/* the result screen grew with the Moint lines: never clip the top, scroll if it can't fit */
+#resultScreen { justify-content: safe center; overflow-y: auto; }
+#resultScreen > * { flex: none; }
+@media (max-height: 500px) {
+  /* phone held sideways: Moint lines in two columns, a little smaller */
+  #resultScreen { gap: 5px; padding-top: 12px; padding-bottom: 12px; }
+  .mointBox { width: min(600px, 92vw); display: grid; grid-template-columns: 1fr 1fr; column-gap: 22px; row-gap: 1px; padding: 6px 14px; font-size: 11.5px; }
+  .mointBox .mointTotal, .mointBox .mointCap { grid-column: 1 / -1; font-size: 13px; }
+}
 </style>
-<script src="shared/moku-account.js?v=20261025b" data-mode="background"></script>
+<script src="shared/moku-account.js?v=20261025c" data-mode="background"></script>
+<script src="shared/moku-moint.js?v=20261025c" data-mode="none"></script>
 </head>
 <body class="on-title">
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.7.1 · Updated Oct 24, 2026</div>
+<div id="buildInfo">v0.8.0 · Updated Oct 25, 2026</div>
 
 <div id="wrapper">
   <canvas id="c"></canvas>
@@ -355,6 +378,7 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
     <p id="titleSub">Moku vs Rivals — Showdown at the Sunset Arena</p>
     <div id="titleRecord"></div>
     <div class="xpLine" id="titleXp"></div>
+    <div id="titleMoints"></div>
     <nav class="menu" id="titleMenu">
       <div class="titleMenuItem sel" data-action="fight">Fight!</div>
       <div class="titleMenuItem" data-action="train">Training</div>
@@ -457,6 +481,7 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
     <h1 id="resultTitle">YOU WIN!</h1>
     <p id="resultDesc"></p>
     <div class="xpLine" id="resultXp"></div>
+    <div class="mointBox" id="resultMoint" hidden></div>
     <nav class="menu" id="resultMenu">
       <div class="titleMenuItem sel" data-action="rematch">Rematch</div>
       <div class="titleMenuItem" data-action="select">Change Rival</div>
@@ -552,7 +577,8 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
     go: function () { tone('square', 880, 880, 0.08, 0.08); tone('square', 1320, 1320, 0.16, 0.08, 0.08); },
     select: function () { tone('sine', 880, 1100, 0.06, 0.07); },
     win: function () { [523, 659, 784, 1046].forEach(function (f, i) { tone('triangle', f, f, 0.18, 0.1, i * 0.12); }); },
-    lose: function () { [392, 330, 262].forEach(function (f, i) { tone('triangle', f, f * 0.98, 0.25, 0.09, i * 0.18); }); }
+    lose: function () { [392, 330, 262].forEach(function (f, i) { tone('triangle', f, f * 0.98, 0.25, 0.09, i * 0.18); }); },
+    coin: function () { tone('square', 1568, 1568, 0.07, 0.03); tone('square', 2093, 2093, 0.12, 0.03, 0.05); }
   };
 
   // ---------- canvas ----------
@@ -2803,8 +2829,11 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
   function finishPractice() {
     var pr = game.practice, m = moveById(pr.move);
     save.practiced = save.practiced || {};
+    var firstTime = !save.practiced[pr.move];
     save.practiced[pr.move] = true; writeSave();
-    document.getElementById('practiceDoneDesc').textContent = 'You can use ' + m.name + ' in battle now!  ' + m.cmd;
+    // finishing a move's practice for the first time: a small one-time Moint reward
+    var bonus = firstTime && window.MokuMoint ? MokuMoint.earn(GAME_ID, MOINT.practice, { capped: false }) : 0;
+    document.getElementById('practiceDoneDesc').textContent = 'You can use ' + m.name + ' in battle now!  ' + m.cmd + (bonus ? '  (+' + bonus + ' Moints!)' : '');
     game.phase = 'done';
     setMode('result');
     showScreen('practiceDone');
@@ -2818,12 +2847,74 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
     game.p2 = new Fighter(rival, 660, -1);
     game.p1.meter = 0; game.p2.meter = 0;
     game.round = 1;
+    game.p1Perfect = false;
     game.in1 = makeInput(); game.in2 = makeInput();
     game.ai2 = makeCpu(save.difficulty);
     game.ai1 = game.demo ? makeCpu('normal') : null;
     startRound();
     setMode('playing');
   }
+  // ---- Moint rewards (SPEC.md §13) ----
+  // Every win counts toward the game's daily cap (MokuMoint.DAILY_GAME_CAP);
+  // first wins over each rival at each CPU level, Goro, and new moves are
+  // one-time and don't. Paid ones are remembered in save.mointClaims.
+  var MOINT = {
+    win: { easy: 30, normal: 60, hard: 120 },
+    firstWin: { easy: 100, normal: 200, hard: 300 },
+    boss: 500, perfect: 20, streakStep: 10, streakMax: 50, move: 50, practice: 10
+  };
+  function payMoints(res, rival, learned) {
+    if (!window.MokuMoint) return null;
+    if (!save.mointClaims) save.mointClaims = {};
+    var diff = DIFF[save.difficulty] ? save.difficulty : 'normal';
+    var out = { lines: [], capHit: false, move: 0 };
+    function pay(label, amount, capped) {
+      var got = MokuMoint.earn(GAME_ID, amount, { capped: capped });
+      if (capped && got < amount) out.capHit = true;
+      if (got) out.lines.push([label, got]);
+      return got;
+    }
+    if (res === 'win') {
+      pay('Win · CPU ' + DIFF[diff].label, MOINT.win[diff], true);
+      if (game.p1Perfect) pay('Perfect round!', MOINT.perfect, true);
+      if (save.streak >= 2) pay(save.streak + ' wins in a row', Math.min(MOINT.streakMax, (save.streak - 1) * MOINT.streakStep), true);
+      var key = rival + ':' + diff;
+      if (rival === 'goro' && !save.mointClaims.boss) {
+        save.mointClaims.boss = true;
+        save.mointClaims[key] = true;
+        pay('First win vs ' + CHARS.goro.name + '! 🏆', MOINT.boss, false);
+      } else if (!save.mointClaims[key]) {
+        save.mointClaims[key] = true;
+        pay('First win vs ' + CHARS[rival].name + ' (' + DIFF[diff].label + ')', MOINT.firstWin[diff], false);
+      }
+    }
+    if (learned) out.move = pay('New move: ' + learned.name, MOINT.move, false);
+    return out;
+  }
+  function renderMoints(el, m) {
+    if (!m || (!m.lines.length && !m.capHit)) { el.hidden = true; el.innerHTML = ''; return; }
+    var total = m.lines.reduce(function (a, l) { return a + l[1]; }, 0);
+    el.innerHTML = m.lines.map(function (l) { return '<div><span>' + l[0] + '</span><b>+' + l[1] + '</b></div>'; }).join('') +
+      (total ? '<div class="mointTotal"><span><i class="coin">M</i>Moints</span><b>+<span data-count>0</span></b></div>' : '') +
+      (m.capHit ? '<p class="mointCap">You got all of today\'s win Moints! Come back tomorrow for more.</p>' : '');
+    el.hidden = false;
+    var node = el.querySelector('[data-count]');
+    if (!node) return;
+    var shown = 0, step = Math.max(1, Math.ceil(total / 16));
+    var iv = setInterval(function () {
+      shown = Math.min(total, shown + step);
+      node.textContent = shown;
+      sfx.coin();
+      if (shown >= total) clearInterval(iv);
+    }, 55);
+  }
+  function renderTitleMoints() {
+    var el = document.getElementById('titleMoints');
+    if (!window.MokuMoint) { el.textContent = ''; return; }
+    el.innerHTML = '<i class="coin">M</i>' + MokuMoint.balance().toLocaleString('en-US') + ' Moints' +
+      ' <small>· Today ' + MokuMoint.earnedToday(GAME_ID) + ' / ' + MokuMoint.DAILY_GAME_CAP + '</small>';
+  }
+
   // XP bar towards the next move
   function renderXp(el, gained) {
     var nm = nextMove(), prevXp = 0;
@@ -2950,6 +3041,7 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
     if (winner) winner.rounds++;
     else { p1.rounds++; p2.rounds++; }
     var perfect = winner && winner.hp >= 100;
+    if (perfect && winner === p1) game.p1Perfect = true;
     game.roundResult = { kind: kind, winner: winner, perfect: perfect };
     game.phase = 'end'; game.phaseT = 0;
     if (kind === 'ko') { sfx.ko(); game.hitstop = 30; game.shake = 16; }
@@ -2959,7 +3051,7 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
   function finishMatch() {
     var p1 = game.p1, p2 = game.p2, rival = p2.charId;
     var res = p1.rounds > p2.rounds ? 'win' : p2.rounds > p1.rounds ? 'lose' : 'draw';
-    var gained = 0, learned = null;
+    var gained = 0, learned = null, moint = null;
     if (!game.demo) {
       gained = res === 'win' ? (save.difficulty === 'hard' ? 150 : 100) : res === 'draw' ? 60 : 40;
       if (res === 'win' && rival === 'goro') { gained += 100; save.bossBeaten = true; }
@@ -2976,6 +3068,7 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
       if (res === 'win' && !save.bossMet && bossTime()) save.bossPending = true;
       // every win brings a new guest rival into the arena
       if (res === 'win') game.newRival = unlockNextRival();
+      moint = payMoints(res, rival, learned);
       writeSave();
     }
     game.phase = 'done';
@@ -2988,13 +3081,14 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
       : 'An even match!';
     document.getElementById('resultDesc').innerHTML = msg + '<br>Record: ' + save.wins + 'W - ' + save.losses + 'L' + (save.streak > 1 ? ' · ' + save.streak + ' win streak!' : '');
     renderXp(document.getElementById('resultXp'), gained);
+    renderMoints(document.getElementById('resultMoint'), moint);
     if (res === 'win') sfx.win(); else sfx.lose();
     setMode('result');
     if (learned) {
       document.getElementById('unlockIcon').textContent = learned.icon;
       document.getElementById('unlockName').textContent = learned.name;
       document.getElementById('unlockCmd').textContent = learned.cmd;
-      document.getElementById('unlockDesc').textContent = learned.desc;
+      document.getElementById('unlockDesc').textContent = learned.desc + (moint && moint.move ? '  (+' + moint.move + ' Moints!)' : '');
       document.getElementById('unlockBonus').style.display = reward ? '' : 'none';
       document.querySelector('#unlockMenu [data-action="practice"]').setAttribute('data-move', learned.id);
       showScreen('unlock');
@@ -3259,6 +3353,7 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
     document.querySelector('[data-action="difficulty"]').textContent = 'CPU: ' + DIFF[save.difficulty].label;
     document.querySelector('[data-action="sound"]').textContent = 'Sound: ' + (save.sound ? 'ON' : 'OFF');
     renderXp(document.getElementById('titleXp'), 0);
+    renderTitleMoints();
     var played = save.wins + save.losses + save.draws;
     document.getElementById('titleRecord').textContent = played
       ? 'Record ' + save.wins + 'W - ' + save.losses + 'L' + (save.bestStreak > 1 ? ' · Best streak ' + save.bestStreak : '') + (save.bossBeaten ? ' · 🏆 Champion' : '')

@@ -18,6 +18,13 @@
  * Save keys (all synced by cloud save / transfer codes, SPEC.md §10–11):
  *   moku:moint:wallet  { version, balance, updatedAt }  — never below 0
  *   moku:moint:daily   { version, last: 'YYYY-MM-DD', days, updatedAt }
+ *   moku:moint:earned  { version, day: 'YYYY-MM-DD', games: { gameId: n }, updatedAt }
+ *                      — what each game paid out today, for the daily cap
+ *
+ * Games hand out Moints with MokuMoint.earn(gameId, amount):
+ *   repeatable rewards (a win, a clear) count toward DAILY_GAME_CAP per game;
+ *   one-time achievements pass { capped: false }. The game itself remembers
+ *   which achievements it already paid (in its own moku:<gameId>: save).
  *   moku:moint:closet  { version, owned: [id], equipped: { head, face, neck, bg }, updatedAt }
  *
  * Items are drawn as SVG on a 100×100 grid laid exactly over
@@ -31,6 +38,8 @@
   var DAILY_KEY = 'moku:moint:daily';
   var CLOSET_KEY = 'moku:moint:closet';
   var DAILY_MOINTS = 100;
+  var EARNED_KEY = 'moku:moint:earned';
+  var DAILY_GAME_CAP = 500;     // 1ゲームで1日にもらえる「毎回もらえる分」の上限(実績は別)
   var HERO_SRC = 'brand/mokumoku-hero.png';
   var SLOTS = ['head', 'face', 'neck'];          // what Moku wears
   var TABS = SLOTS.concat('bg');                 // Closet tabs (bg = background card behind Moku)
@@ -66,6 +75,30 @@
     writeJSON(WALLET_KEY, w);
     changed();
     return w.balance;
+  }
+
+  function readEarned() {
+    var e = readJSON(EARNED_KEY);
+    if (!e || e.version !== 1 || e.day !== todayStr()) e = { version: 1, day: todayStr(), games: {}, updatedAt: null };
+    if (!e.games) e.games = {};
+    return e;
+  }
+  function earnedToday(gameId) { return readEarned().games[gameId] || 0; }
+  // Moints from a game. Returns how many were really added (less than asked,
+  // or 0, once the game's daily cap is used up).
+  function earn(gameId, amount, opts) {
+    amount = Math.max(0, Math.floor(amount || 0));
+    if (!amount) return 0;
+    if (!(opts && opts.capped === false)) {
+      var e = readEarned();
+      amount = Math.min(amount, Math.max(0, DAILY_GAME_CAP - (e.games[gameId] || 0)));
+      if (!amount) return 0;
+      e.games[gameId] = (e.games[gameId] || 0) + amount;
+      e.updatedAt = new Date().toISOString();
+      writeJSON(EARNED_KEY, e);
+    }
+    addMoints(amount);
+    return amount;
   }
 
   function readDaily() {
@@ -766,6 +799,9 @@
 
   global.MokuMoint = {
     DAILY_MOINTS: DAILY_MOINTS,
+    DAILY_GAME_CAP: DAILY_GAME_CAP,
+    earn: earn,
+    earnedToday: earnedToday,
     ITEMS: ITEMS,
     BACKGROUNDS: BACKGROUNDS,
     SLOTS: SLOTS,

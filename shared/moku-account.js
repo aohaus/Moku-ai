@@ -71,7 +71,7 @@
   // Bookkeeping (visit streak, "last played" times, completed flags, the
   // Daily Bonus record): if both sides changed one, keep this device's —
   // nobody loses progress over these.
-  var SOFT_PREFIXES = ['moku:stats:', 'moku:played:', 'moku:completed:', 'moku:meta:', 'moku:moint:daily'];
+  var SOFT_PREFIXES = ['moku:stats:', 'moku:played:', 'moku:completed:', 'moku:meta:', 'moku:moint:daily', 'moku:moint:earned'];
   var HEARTBEAT_MS = 2 * 60 * 1000; // keeps "online" in the players list fresh
   var PLAYERS_TTL_MS = 60 * 1000;
   var KEEPALIVE_MAX_BYTES = 60000; // browsers cap keepalive bodies at 64 KB
