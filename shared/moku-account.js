@@ -48,6 +48,8 @@
   var TOKEN_KEY = 'moku:account:token';
   var USER_KEY = 'moku:account:user';
   var SYNC_KEY = 'moku:sync:state';
+  // A merged save being uploaded (see keepMerged). Never synced (moku:sync:).
+  var PENDING_KEY = 'moku:sync:pending';
   // Every save key the games use today. moku:deviceId stays per-device.
   var SYNC_PREFIXES = ['moku:', 'moku_', 'moyomoyo-', 'amoku-'];
   var NO_SYNC = ['moku:deviceId', 'moku:account:', 'moku:sync:'];
@@ -217,13 +219,22 @@
   var LEGACY_GAMES = { 'amoku-': 'Angry Mokumoku', 'moyomoyo-': 'Moyomoyo', 'moku:save': 'Battle Royal',
     'moku_drop_': 'Moku Drop', 'moku_bento_': 'Moku Bento', 'moku_fishing_': 'Moku Fishing Pond',
     'moku_kart_': 'Moku Kart Dash', 'moku_rhythm_': 'Moku Rhythm Cafe', 'moku_wolf_': 'Moku Wolf', 'moku:mr:': 'Moku-rane' };
+  // Which game a save key belongs to ("moku:moku-bridge:", "moku_kart_" …).
+  // A game may spread one save over several keys (Moku Kart: bank, unlocked
+  // karts, chosen kart), so a conflict is settled for the whole group.
+  function saveGroup(key) {
+    var legacy = Object.keys(LEGACY_GAMES).filter(function (p) { return key.indexOf(p) === 0; })[0];
+    if (legacy) return legacy;
+    var m = /^moku:([a-z0-9-]+):/.exec(key);
+    return m ? 'moku:' + m[1] + ':' : key;
+  }
   function gameNames(keys) {
     var names = [];
     keys.forEach(function (k) {
-      var name = null;
-      Object.keys(LEGACY_GAMES).forEach(function (p) { if (!name && k.indexOf(p) === 0) name = LEGACY_GAMES[p]; });
-      var m = !name && /^moku:([a-z0-9-]+):/.exec(k);
-      if (m) name = m[1].split('-').map(function (w) { return w.charAt(0).toUpperCase() + w.slice(1); }).join(' ');
+      var g = saveGroup(k);
+      var m = /^moku:([a-z0-9-]+):$/.exec(g);
+      var name = LEGACY_GAMES[g] ||
+        (m ? m[1].split('-').map(function (w) { return w.charAt(0).toUpperCase() + w.slice(1); }).join(' ') : null);
       if (name && names.indexOf(name) < 0) names.push(name);
     });
     return names;
@@ -386,6 +397,17 @@
 
       return api('GET', '/save').then(function (res) {
         var remote = res.save;
+        var pending = readJson(PENDING_KEY);
+        if (pending) {
+          if (remote && pending.lid === user.loginId && remote.rev === pending.rev && hashData(remote.data) === pending.hash) {
+            // Our last merged upload reached the cloud but its reply got lost.
+            // Compare against the device save that merge was made from, so
+            // nothing (Moints above all) is added a second time.
+            st = { lid: pending.lid, rev: -1, hash: pending.localHash, keys: pending.keys, wallet: pending.wallet };
+            lsSet(SYNC_KEY, JSON.stringify(st));
+          }
+          lsRemove(PENDING_KEY);
+        }
         if (!remote) return send(0);
 
         var remoteHash = hashData(remote.data);
@@ -413,9 +435,16 @@
           if (!interactive) return 'conflict';
           return chooseSave(remote, local, merged.conflicts).then(function (choice) {
             if (choice !== 'cloud' && choice !== 'device') return 'conflict';
-            merged.conflicts.forEach(function (k) {
-              var v = choice === 'cloud' ? remote.data[k] : local[k];
-              if (v !== undefined) merged.data[k] = v;
+            // The chosen side's save for each of these games, all of its keys
+            // together, so e.g. a kart bought here never sticks to the
+            // cloud's coin bank.
+            var groups = {};
+            merged.conflicts.forEach(function (k) { groups[saveGroup(k)] = true; });
+            var picked = choice === 'cloud' ? remote.data : local;
+            Object.keys(local).concat(Object.keys(remote.data)).forEach(function (k) {
+              if (k === SAVED_AT_KEY || k === WALLET_KEY || !groups[saveGroup(k)]) return;
+              if (picked[k] === undefined) delete merged.data[k];
+              else merged.data[k] = picked[k];
               merged.pickedLocal[k] = choice === 'device';
             });
             return keepMerged(user, merged, local, remote, true);
@@ -464,7 +493,14 @@
     Object.keys(stamps).forEach(function (k) { if (!(k in data)) delete stamps[k]; });
     Object.keys(data).forEach(function (k) { if (merged.pickedLocal[k] || !stamps[k]) stamps[k] = now; });
     data[SAVED_AT_KEY] = JSON.stringify(stamps);
+    // If the upload lands but its reply is lost, the next sync can tell from
+    // this record and won't merge the same changes again.
+    lsSet(PENDING_KEY, JSON.stringify({
+      lid: user.loginId, rev: remote.rev + 1, hash: hashData(data),
+      localHash: hashData(local), keys: keyHashes(local), wallet: local[WALLET_KEY] || null
+    }));
     return upload(user, data, remote.rev).then(function () {
+      lsRemove(PENDING_KEY);
       if (changesHere) {
         replaceLocal(data);
         location.reload();
@@ -526,6 +562,7 @@
       if (!force) replaceLocal(null);
       clearSession();
       lsRemove(SYNC_KEY);
+      lsRemove(PENDING_KEY);
       location.reload();
       return 'ok';
     });
