@@ -235,6 +235,26 @@ body.on-title #controls { display: none; }
 }
 .item-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 rgba(122,79,46,0.5); }
 .item-btn:disabled { opacity: 0.45; cursor: default; }
+/* お助けセール: 苦戦している橋では Hint / Magic Carpet を半額で強調する */
+.item-btn.sale { background: #FFF6D6; box-shadow: 0 3px 0 #C99A1E, 0 0 0 2px #FFD34D; animation: saleGlow 1.2s ease-in-out infinite; }
+.item-btn.sale:disabled { animation: none; }
+@keyframes saleGlow {
+  0%, 100% { box-shadow: 0 3px 0 #C99A1E, 0 0 0 2px #FFD34D, 0 0 0 rgba(255,211,77,0); }
+  50% { box-shadow: 0 3px 0 #C99A1E, 0 0 0 2px #FFD34D, 0 0 16px rgba(255,211,77,0.9); }
+}
+.sale-tag {
+  position: absolute; top: -9px; left: -6px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: #E8505B; color: #FFFFFF;
+  font-size: 10px; font-weight: 900; letter-spacing: 0.02em;
+  transform: rotate(-8deg);
+  box-shadow: 0 2px 0 #9E2A33;
+  pointer-events: none;
+}
+.item-btn small s, .buy-btn s { opacity: 0.55; font-weight: 700; margin-right: 3px; }
+.shop-item.sale { box-shadow: 0 0 0 2px #FFD34D; background: #FFFBEA; position: relative; }
+.shop-item .sale-tag { top: -8px; left: 10px; }
 .item-btn svg { width: 28px; height: 28px; flex: none; }
 .item-btn small { display: block; font-size: 10.5px; font-weight: 700; color: #8A6A52; line-height: 1.1; }
 .item-count {
@@ -380,6 +400,8 @@ body.on-title #controls { display: none; }
 .reward-lines div.total { background: #FFF3D1; box-shadow: 0 0 0 2px #F0CF7A; font-size: 17px; }
 .reward-lines span:last-child { color: var(--moint-dk); }
 .reward-lines div.lucky-line { background: #EEF8E6; box-shadow: 0 0 0 2px #BFE3A8; }
+.reward-lines div.sale-line { background: #FFF6D6; box-shadow: 0 0 0 2px #FFD34D; font-size: 14px; justify-content: center; }
+.reward-lines div.sale-line span:last-child { color: var(--ink); }
 .reward-lines div.lucky-line span:last-child { color: #2F7D3A; }
 .reward-lines div.lucky-line small { font-size: 12px; color: #6A8A5A; }
 .reward-lines div.lucky-line.record { animation: recordPop 0.9s ease-in-out 2; }
@@ -421,7 +443,7 @@ body.on-title #controls { display: none; }
 
 <div id="title-frame"></div>
 <a id="hub-link" href="index.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.4.0 · Updated Oct 25, 2026</div>
+<div id="buildInfo">v0.5.0 · Updated Oct 25, 2026</div>
 
 <!-- Item icons, reused by the HUD and the shop -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -515,6 +537,7 @@ body.on-title #controls { display: none; }
       <li><span>🧠</span><span>Moku remembers every panel he tried. Try again and get farther!</span></li>
       <li><span>🏁</span><span>Reach the goal to win <b>100+ Moints</b>. Lucky guesses give bonus Moints.</span></li>
       <li><span>💡</span><span><b>Hint</b>: the strong panel glows for a moment.</span></li>
+      <li><span>🎁</span><span>Having a tough time? Miss a lot on one bridge and <b>Hint</b> and <b>Magic Carpet</b> go <b>50% OFF</b> (one of each).</span></li>
       <li><span>✨</span><span><b>Magic Carpet</b>: flies Moku 3 glasses ahead. The glasses you skip stay a secret!</span></li>
       <li><span>🍀</span><span><b>Luckiest Steps</b>: lucky guesses in a row. Beat your record and show it off in your profile!</span></li>
     </ul>
@@ -557,6 +580,10 @@ body.on-title #controls { display: none; }
   var WELCOME_MOINTS = 40;
   var FALL_PENALTY = 3;   // 落ちたら Moint を少しだけ失う(0 未満にはしない)
   var PRICES = { hint: 15, carpet: 40 };
+  // お助けセール: この橋で、まだ分からないガラスを選んだうち7割以上ハズレたら
+  // (3回以上選んでから)、次の挑戦から Hint / Magic Carpet を1つずつ半額にする
+  var SALE_MISS_RATE = 0.7;
+  var SALE_MIN_GUESSES = 3;
   var GOAL_MOINTS = 100;  // ゴールしたら最低 100 Moint(長い橋ほど少し多い)
   var LUCKY_MOINTS = 10;  // ヒントなしで当てた段ごとのボーナス
   var CARPET_JUMP = 3;    // Magic Carpet は3枚先のガラスまで飛ぶ(とばした段は踏まないので分からないまま)
@@ -638,10 +665,31 @@ body.on-title #controls { display: none; }
         progress.broken.push(-1);
       }
       progress.tries = 0;
+      // 橋ごとの成績(お助けセールの判定用)
+      progress.bridgeStats = { guesses: 0, misses: 0, saleUsed: { hint: false, carpet: false } };
       saveAll();
     }
   }
   ensureBridge();
+
+  function bridgeStats() {
+    var b = progress.bridgeStats;
+    if (!b) b = progress.bridgeStats = { guesses: 0, misses: 0, saleUsed: { hint: false, carpet: false } };
+    if (!b.saleUsed) b.saleUsed = { hint: false, carpet: false };
+    return b;
+  }
+  function missRateHigh(b) {
+    return b.guesses >= SALE_MIN_GUESSES && b.misses / b.guesses >= SALE_MISS_RATE;
+  }
+  // 一度始まったセールは、この橋を渡りきるまで続ける(次の挑戦で当てて
+  // 割合が下がっても、約束した半額を途中で取り消さない)
+  function saleActive() {
+    var b = bridgeStats();
+    return !!b.saleOn || missRateHigh(b);
+  }
+  // このアイテムを今いくらで買えるか(セール中は半額。1つ買ったら元の値段)
+  function onSale(id) { return saleActive() && !bridgeStats().saleUsed[id]; }
+  function priceOf(id) { return onSale(id) ? Math.ceil(PRICES[id] / 2) : PRICES[id]; }
 
   // ================================================================
   // Sound (Web Audio synth, no files)
@@ -782,7 +830,7 @@ body.on-title #controls { display: none; }
         row.innerHTML =
           '<svg><use href="#' + it.icon + '"/></svg>' +
           '<div class="info"><b>' + it.name + '</b><p>' + it.desc + '</p><div class="owned" data-owned="' + it.id + '"></div></div>' +
-          '<button class="buy-btn" type="button" data-buy="' + it.id + '"><span class="moint-coin">M</span>' + PRICES[it.id] + '</button>';
+          '<button class="buy-btn" type="button" data-buy="' + it.id + '"></button>';
         list.appendChild(row);
       });
       list.addEventListener('click', function (e) {
@@ -791,15 +839,28 @@ body.on-title #controls { display: none; }
       });
     }
     SHOP_ITEMS.forEach(function (it) {
+      var sale = onSale(it.id);
+      var btn = list.querySelector('[data-buy="' + it.id + '"]');
+      var row = btn.closest('.shop-item');
       list.querySelector('[data-owned="' + it.id + '"]').textContent = 'You have: ' + (progress.items[it.id] || 0);
-      list.querySelector('[data-buy="' + it.id + '"]').disabled = wallet.balance < PRICES[it.id];
+      btn.innerHTML = '<span class="moint-coin">M</span>' + (sale ? '<s>' + PRICES[it.id] + '</s>' : '') + priceOf(it.id);
+      btn.disabled = wallet.balance < priceOf(it.id);
+      row.classList.toggle('sale', sale);
+      var tag = row.querySelector('.sale-tag');
+      if (sale && !tag) row.insertAdjacentHTML('afterbegin', '<span class="sale-tag">50% OFF</span>');
+      if (!sale && tag) tag.remove();
     });
   }
   function buy(id) {
     refreshWallet();
-    if (wallet.balance < PRICES[id]) { sfx.nope(); toast('Not enough Moints'); return false; }
+    var price = priceOf(id);
+    if (wallet.balance < price) { sfx.nope(); toast('Not enough Moints'); return false; }
     progress.items[id] = (progress.items[id] || 0) + 1;
-    addMoints(-PRICES[id]);
+    if (price < PRICES[id]) {
+      bridgeStats().saleUsed[id] = true;
+      toast('Got it for half price!');
+    }
+    addMoints(-price);
     sfx.coin();
     return true;
   }
@@ -896,6 +957,7 @@ body.on-title #controls { display: none; }
     var known = progress.solved.filter(Boolean).length;
     $('stickHelp').hidden = (progress.totalTries || 0) > 2;
     if (progress.tries === 1) hudMsg('Which glass is strong? Pick one!', 2200);
+    else if (onSale('hint') || onSale('carpet')) hudMsg('🎁 Tough bridge! Helpers are 50% OFF!', 2600);
     else hudMsg('Moku remembers ' + known + ' panel' + (known === 1 ? '' : 's') + '. Try #' + progress.tries + '!', 2200);
   }
 
@@ -932,12 +994,18 @@ body.on-title #controls { display: none; }
     $('stick').classList.toggle('off', !ready);
     ['hint', 'carpet'].forEach(function (id) {
       var have = progress.items[id] || 0;
+      // セール中で、持っていない時(=タップで買う時)だけ強調して半額を見せる
+      var sale = have === 0 && onSale(id);
       $(id + 'Count').textContent = have;
       $(id + 'Count').style.display = have > 0 ? '' : 'none';
-      $(id + 'Sub').textContent = have > 0 ? 'Tap to use' : PRICES[id] + ' Moints';
+      $(id + 'Sub').innerHTML = have > 0 ? 'Tap to use' : (sale ? '<s>' + PRICES[id] + '</s>' : '') + priceOf(id) + ' Moints';
+      $(id + 'Btn').classList.toggle('sale', sale);
+      var tag = $(id + 'Btn').querySelector('.sale-tag');
+      if (sale && !tag) $(id + 'Btn').insertAdjacentHTML('afterbegin', '<span class="sale-tag">50% OFF</span>');
+      if (!sale && tag) tag.remove();
       var unknownAhead = false;
       for (var r = step; ready && r < Math.min(n, step + CARPET_JUMP); r++) if (!progress.solved[r]) unknownAhead = true;
-      var usable = ready && (id === 'carpet' ? unknownAhead : !known) && (have > 0 || wallet.balance >= PRICES[id]);
+      var usable = ready && (id === 'carpet' ? unknownAhead : !known) && (have > 0 || wallet.balance >= priceOf(id));
       if (id === 'hint' && hintGlow.row === step && hintGlow.t > 0) usable = false;
       $(id + 'Btn').disabled = !usable;
     });
@@ -950,6 +1018,13 @@ body.on-title #controls { display: none; }
     var n = stepsFor(progress.bridge);
     if (step >= n) return;
     var safe = progress.pattern[step] === side;
+    if (!progress.solved[step] && !run.hinted[step]) {
+      // まだ分からないガラスを自分で選んだ回数とハズレ(お助けセールの判定)
+      var b = bridgeStats();
+      b.guesses++;
+      if (!safe) b.misses++;
+      if (missRateHigh(b)) b.saleOn = true;
+    }
     if (!progress.solved[step]) {
       // ヒントを使った段は、光が消えてから選んでもラッキーにしない
       if (safe && !run.hinted[step]) {
@@ -1139,6 +1214,9 @@ body.on-title #controls { display: none; }
     $('resultSub').textContent = 'Moku landed in the fluffy clouds. He now knows ' + known + ' of ' + n + ' steps. You can do it!';
     var html = run.penalty ? '<div class="total"><span>Fall</span><span>−' + run.penalty + ' Moints</span></div>' : '';
     html += luckyLine();
+    if (onSale('hint') || onSale('carpet')) {
+      html += '<div class="sale-line"><span>🎁 Hint &amp; Magic Carpet are <b>50% OFF</b> on your next try!</span></div>';
+    }
     $('rewardLines').innerHTML = html;
     $('rewardLines').style.display = html ? '' : 'none';
     $('resultMain').textContent = '↻ Try Again';
