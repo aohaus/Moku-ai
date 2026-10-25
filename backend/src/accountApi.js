@@ -19,6 +19,12 @@ const MAX_DEVICE_LEN = 40;
 // within ONLINE_WINDOW_MS counts as "online" in GET /players.
 const SEEN_WRITE_EVERY_MS = 60 * 1000;
 const ONLINE_WINDOW_MS = 5 * 60 * 1000;
+// Access log (admin page): kept 90 days, at most 30 days per request.
+const LOG_TTL_SEC = 90 * 24 * 60 * 60;
+const MAX_LOG_DAYS = 30;
+const MAX_LOGGED_KEYS = 30;
+// Save keys that change without anyone playing (sync stamps, hub streak).
+const NOT_PLAY_KEYS = [/^moku:meta:/, /^moku:stats:/];
 
 // Every 5th wrong PIN in a row locks the ID: 15 min, then 30, 60 … up to 24 h.
 const FAILS_PER_LOCK = 5;
@@ -96,6 +102,26 @@ function adminView(user, save, t) {
   };
 }
 
+// Same rough labels as shared/moku-account.js deviceLabel().
+function deviceFromUA(ua) {
+  ua = String(ua || "");
+  if (/iPad/.test(ua)) return "iPad";
+  if (/iPhone|iPod/.test(ua)) return "iPhone";
+  if (/Android/.test(ua)) return /Mobile/.test(ua) ? "Android phone" : "Android tablet";
+  if (/CrOS/.test(ua)) return "Chromebook";
+  if (/Macintosh/.test(ua)) return "Mac";
+  if (/Windows/.test(ua)) return "Windows PC";
+  return ua ? "Browser" : "";
+}
+
+// Save keys whose values differ between two saves (added, changed or removed).
+function changedKeys(before, after) {
+  const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
+  return [...keys]
+    .filter((k) => before[k] !== after[k] && !NOT_PLAY_KEYS.some((re) => re.test(k)))
+    .sort();
+}
+
 // Shared by sign-up and the admin page. Returns an error response or null.
 function checkLoginId(loginId) {
   if (!LOGIN_ID_RE.test(loginId)) return err(400, "invalid_login_id", "Player ID: 3–16 letters, numbers, - or _.");
@@ -137,6 +163,26 @@ function createAccountApi(store, config) {
     return user;
   }
 
+  // Access log for the admin page. Best effort: never fails the request.
+  // Never pass PINs in `detail`.
+  async function record(type, who, detail, device) {
+    try {
+      await store.addLog(
+        {
+          at: new Date(now()).toISOString(),
+          type,
+          loginId: who?.loginId || null,
+          displayName: who?.displayName || null,
+          device: device || "",
+          ...(detail ? { detail } : {}),
+        },
+        LOG_TTL_SEC
+      );
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
   // Feeds the "online" list. Best effort: a failed write never fails the request.
   async function markSeen(user) {
     const t = now();
@@ -163,16 +209,17 @@ function createAccountApi(store, config) {
     return json(200, { players, onlineWindowSec: ONLINE_WINDOW_MS / 1000 });
   }
 
-  async function register(body) {
+  async function register(body, device) {
     if (!inviteCode) return err(403, "registration_closed", "New accounts are closed.");
     if (!sameSecret(String(body.inviteCode || "").trim(), inviteCode)) {
       return err(403, "bad_invite", "That invite code doesn't work.");
     }
-    return createAccount(body, true);
+    return createAccount(body, null, device);
   }
 
-  // Sign-up (signIn: log the new player in) or the admin page adding someone.
-  async function createAccount(body, signIn) {
+  // Sign-up (admin = null: log the new player in) or the admin page adding someone.
+  async function createAccount(body, admin, device) {
+    const signIn = !admin;
     const loginId = normalizeLoginId(body.loginId);
     const pin = String(body.pin ?? "");
     const invalid = checkLoginId(loginId) || checkPin(pin);
@@ -197,7 +244,11 @@ function createAccountApi(store, config) {
       if (e.code === "full") return err(403, "full", "Moku Series is full right now.");
       throw e;
     }
-    if (!signIn) return json(201, { user: adminView(user, null, now()) });
+    if (!signIn) {
+      await record("admin_create", user, { by: admin.loginId }, device);
+      return json(201, { user: adminView(user, null, now()) });
+    }
+    await record("register", user, null, device);
     return json(201, { token: issueToken(user, authSecret, now()), user: publicUser(user) });
   }
 
@@ -215,7 +266,7 @@ function createAccountApi(store, config) {
 
   // Change any of: displayName, pin (logs their devices out), unlock,
   // loginId (moves the account + save; also logs their devices out).
-  async function adminUpdateUser(loginId, body) {
+  async function adminUpdateUser(admin, loginId, body, device) {
     const target = await store.getUser(loginId);
     if (!target) return err(404, "not_found", "No such player.");
     const fields = {};
@@ -249,23 +300,51 @@ function createAccountApi(store, config) {
     } else if (Object.keys(fields).length) {
       await store.updateUser(loginId, fields);
     }
+    const changes = [];
+    if (newId !== loginId) changes.push("loginId");
+    if (fields.displayName) changes.push("displayName");
+    if (body.pin) changes.push("pin");
+    else if (body.unlock) changes.push("unlock");
     const saves = await store.listSaves();
     const updated = await store.getUser(newId);
+    if (changes.length) {
+      await record("admin_update", updated, {
+        by: admin.loginId, changes,
+        ...(newId !== loginId ? { from: loginId } : {}),
+        ...(fields.displayName && fields.displayName !== target.displayName ? { fromName: target.displayName } : {}),
+      }, device);
+    }
     return json(200, { user: adminView(updated, saves.find((sv) => sv.loginId === newId), now()) });
   }
 
-  async function adminDeleteUser(me, loginId) {
+  async function adminDeleteUser(me, loginId, device) {
     if (loginId === me.loginId) return err(400, "cannot_delete_self", "You can't delete your own admin account.");
+    const target = await store.getUser(loginId);
     try {
       await store.deleteUser(loginId);
     } catch (e) {
       if (e.code === "not_found") return err(404, "not_found", "No such player.");
       throw e;
     }
+    await record("admin_delete", target, { by: me.loginId }, device);
     return json(200, { deleted: loginId });
   }
 
-  async function login(body) {
+  // GET /admin/logs?days=7&loginId=aoi — newest first.
+  async function adminListLogs(query) {
+    const days = Math.min(Math.max(parseInt(query.days, 10) || 7, 1), MAX_LOG_DAYS);
+    const only = query.loginId ? normalizeLoginId(query.loginId) : null;
+    const today = now();
+    const lists = await Promise.all(
+      Array.from({ length: days }, (_, i) => store.listLogs(new Date(today - i * 86400000).toISOString().slice(0, 10)))
+    );
+    let logs = lists.flat();
+    if (only) logs = logs.filter((l) => l.loginId === only || l.detail?.from === only);
+    logs.sort((a, b) => b.at.localeCompare(a.at));
+    return json(200, { logs, days });
+  }
+
+  async function login(body, device) {
     const loginId = normalizeLoginId(body.loginId);
     const pin = String(body.pin ?? "");
     const badCredentials = () => err(401, "bad_credentials", "Player ID or PIN is wrong.");
@@ -274,10 +353,12 @@ function createAccountApi(store, config) {
     const user = await store.getUser(loginId);
     if (!user) {
       await burnPinCheck(pin);
+      await record("login_failed", { loginId }, { reason: "unknown_id" }, device);
       return badCredentials();
     }
     const t = now();
     if (user.lockedUntil > t) {
+      await record("login_failed", user, { reason: "locked" }, device);
       return err(429, "locked", "Too many tries. Please wait and try again.", {
         retryAfterSec: Math.ceil((user.lockedUntil - t) / 1000),
       });
@@ -287,6 +368,7 @@ function createAccountApi(store, config) {
       const locking = failCount % FAILS_PER_LOCK === 0;
       const lockedUntil = locking ? t + lockMs(failCount) : user.lockedUntil || 0;
       await store.updateUser(loginId, { failCount, lockedUntil });
+      await record(locking ? "locked" : "login_failed", user, { reason: "wrong_pin", failCount }, device);
       if (locking) {
         return err(429, "locked", "Too many tries. Please wait and try again.", {
           retryAfterSec: Math.ceil((lockedUntil - t) / 1000),
@@ -295,10 +377,11 @@ function createAccountApi(store, config) {
       return badCredentials();
     }
     await store.updateUser(loginId, { failCount: 0, lockedUntil: 0, lastSeenAt: t });
+    await record("login", user, null, device);
     return json(200, { token: issueToken(user, authSecret, t), user: publicUser(user) });
   }
 
-  async function changePin(user, body) {
+  async function changePin(user, body, device) {
     if (!(await verifyPin(String(body.currentPin ?? ""), user.pinHash))) {
       return err(401, "bad_credentials", "Current PIN is wrong.");
     }
@@ -307,6 +390,7 @@ function createAccountApi(store, config) {
     if (isWeakPin(pin)) return err(400, "weak_pin", "That PIN is too easy to guess.");
     const updated = { ...user, pinHash: await hashPin(pin), tv: user.tv + 1 };
     await store.updateUser(user.loginId, { pinHash: updated.pinHash, tv: updated.tv });
+    await record("pin_change", user, null, device);
     return json(200, { token: issueToken(updated, authSecret, now()), user: publicUser(updated) });
   }
 
@@ -318,7 +402,7 @@ function createAccountApi(store, config) {
     });
   }
 
-  async function putSave(user, body) {
+  async function putSave(user, body, device) {
     const { data, baseRev } = body;
     if (!data || typeof data !== "object" || Array.isArray(data)) {
       return err(400, "invalid_save", "data must be an object of strings.");
@@ -335,38 +419,45 @@ function createAccountApi(store, config) {
     if (Buffer.byteLength(serialized, "utf8") > MAX_SAVE_BYTES) {
       return err(413, "too_large", "Save data is too big.");
     }
-    const record = {
+    const saved = {
       data: serialized,
       rev: baseRev + 1,
       updatedAt: new Date(now()).toISOString(),
       device: typeof body.device === "string" ? body.device.slice(0, MAX_DEVICE_LEN) : "",
     };
+    const before = await store.getSave(user.loginId);
     try {
-      await store.putSave(user.loginId, record, baseRev);
+      await store.putSave(user.loginId, saved, baseRev);
     } catch (e) {
       if (e.code !== "conflict") throw e;
       const current = await store.getSave(user.loginId);
       return err(409, "conflict", "Cloud save changed on another device.", { rev: current?.rev ?? 0 });
     }
-    return json(200, { rev: record.rev, updatedAt: record.updatedAt });
+    // "Play" = which save keys this upload changed (the admin page maps them to games).
+    const keys = changedKeys(before ? JSON.parse(before.data) : {}, data);
+    if (keys.length) {
+      await record("play", user, { keys: keys.slice(0, MAX_LOGGED_KEYS), rev: saved.rev }, saved.device || device);
+    }
+    return json(200, { rev: saved.rev, updatedAt: saved.updatedAt });
   }
 
   return async function handler(event) {
     const method = event.requestContext?.http?.method || "GET";
     const path = (event.rawPath || "/").replace(/\/+$/, "") || "/";
     const route = `${method} ${path}`;
+    const device = deviceFromUA(event.headers?.["user-agent"] || event.headers?.["User-Agent"]);
 
     try {
       if (route === "POST /auth/register" || route === "POST /auth/login") {
         const body = parseBody(event);
         if (!body) return err(400, "invalid_json", "invalid JSON body");
-        return route === "POST /auth/login" ? await login(body) : await register(body);
+        return route === "POST /auth/login" ? await login(body, device) : await register(body, device);
       }
 
       const authed = ["GET /auth/me", "POST /auth/pin", "GET /save", "PUT /save", "GET /players"];
       const adminUser = /^\/admin\/users\/([^/]+)$/.exec(path);
       const adminRoute =
-        route === "GET /admin/users" || route === "POST /admin/users" ||
+        route === "GET /admin/users" || route === "POST /admin/users" || route === "GET /admin/logs" ||
         (adminUser && (method === "PATCH" || method === "DELETE"));
       if (!authed.includes(route) && !adminRoute) return err(404, "not_found", "not found");
 
@@ -376,11 +467,12 @@ function createAccountApi(store, config) {
       if (adminRoute) {
         if (!isAdmin(user)) return err(403, "forbidden", "Admins only.");
         if (route === "GET /admin/users") return await adminListUsers();
-        if (method === "DELETE") return await adminDeleteUser(user, decodeURIComponent(adminUser[1]));
+        if (route === "GET /admin/logs") return await adminListLogs(event.queryStringParameters || {});
+        if (method === "DELETE") return await adminDeleteUser(user, decodeURIComponent(adminUser[1]), device);
         const adminBody = parseBody(event);
         if (!adminBody) return err(400, "invalid_json", "invalid JSON body");
-        if (route === "POST /admin/users") return await createAccount(adminBody, false);
-        return await adminUpdateUser(decodeURIComponent(adminUser[1]), adminBody);
+        if (route === "POST /admin/users") return await createAccount(adminBody, user, device);
+        return await adminUpdateUser(user, decodeURIComponent(adminUser[1]), adminBody, device);
       }
 
       if (route === "GET /auth/me") {
@@ -394,7 +486,7 @@ function createAccountApi(store, config) {
 
       const body = parseBody(event);
       if (!body) return err(400, "invalid_json", "invalid JSON body");
-      return route === "POST /auth/pin" ? await changePin(user, body) : await putSave(user, body);
+      return route === "POST /auth/pin" ? await changePin(user, body, device) : await putSave(user, body, device);
     } catch (e) {
       console.error(e);
       return err(500, "internal", "internal error");

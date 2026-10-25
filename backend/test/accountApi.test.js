@@ -17,10 +17,12 @@ function setup({ maxUsers = 100 } = {}) {
     now: () => clock,
   });
   const call = async (method, path, body, tok) => {
+    const [rawPath, qs] = path.split("?");
     const res = await api({
       requestContext: { http: { method } },
-      rawPath: path,
-      headers: tok ? { authorization: `Bearer ${tok}` } : {},
+      rawPath,
+      queryStringParameters: qs ? Object.fromEntries(new URLSearchParams(qs)) : undefined,
+      headers: { "user-agent": "Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X)", ...(tok ? { authorization: `Bearer ${tok}` } : {}) },
       body: body ? JSON.stringify(body) : "",
     });
     return { status: res.statusCode, body: JSON.parse(res.body) };
@@ -238,4 +240,53 @@ test("admin: add, rename, change PIN, unlock and delete a player", async () => {
   assert.equal((await call("DELETE", "/admin/users/aoi2", null, admin)).status, 200);
   assert.equal((await call("POST", "/auth/login", { loginId: "aoi2", pin: "3691" })).status, 401);
   assert.equal((await call("DELETE", "/admin/users/aoi2", null, admin)).status, 404);
+});
+
+test("access log: logins, play (changed save keys), settings changes — never PINs", async () => {
+  const { call, register, makeAdmin, advance } = setup();
+  const admin = await makeAdmin();
+  const aoi = (await register("aoi")).body.token;
+  await call("POST", "/auth/login", { loginId: "aoi", pin: "9999" });
+  await call("POST", "/auth/login", { loginId: "nobody", pin: "2580" });
+  await call("POST", "/auth/login", { loginId: "aoi", pin: "2580" });
+  advance(1000);
+  await call("PUT", "/save", { data: { "moku:moku-fight:progress": "{}", "moku:stats:streak": "1" }, baseRev: 0, device: "iPad" }, aoi);
+  // Only the sync stamp changed → not a "play".
+  await call("PUT", "/save", { data: { "moku:moku-fight:progress": "{}", "moku:stats:streak": "1", "moku:meta:saved-at": "{}" }, baseRev: 1 }, aoi);
+  advance(1000);
+  assert.equal((await call("GET", "/admin/logs", null, aoi)).status, 403);
+  await call("POST", "/auth/pin", { currentPin: "2580", newPin: "4826" }, aoi);
+  await call("PATCH", "/admin/users/aoi", { displayName: "Aoi-chan", pin: "3691" }, admin);
+
+  const { logs } = (await call("GET", "/admin/logs?days=1", null, admin)).body;
+  const types = logs.map((l) => l.type);
+  assert.deepEqual(types.filter((t) => t !== "login").slice(0, 6),
+    ["admin_update", "pin_change", "play", "login_failed", "login_failed", "register"]);
+  const play = logs.find((l) => l.type === "play");
+  assert.deepEqual(play.detail.keys, ["moku:moku-fight:progress"]);
+  assert.equal(play.device, "iPad");
+  assert.equal(logs.find((l) => l.type === "register").device, "iPad");
+  assert.deepEqual(logs.find((l) => l.type === "admin_update").detail,
+    { by: "admin", changes: ["displayName", "pin"], fromName: "Aoi" });
+  assert.equal(logs.find((l) => l.detail?.reason === "unknown_id").loginId, "nobody");
+  assert.ok(!JSON.stringify(logs).match(/2580|4826|3691|pinHash/));
+
+  // Filter by player.
+  const mine = (await call("GET", "/admin/logs?loginId=nobody", null, admin)).body.logs;
+  assert.equal(mine.length, 1);
+});
+
+test("access log: wrong PINs, lock and admin create/delete", async () => {
+  const { call, register, makeAdmin } = setup();
+  const admin = await makeAdmin();
+  await register("aoi");
+  for (let i = 0; i < 5; i++) await call("POST", "/auth/login", { loginId: "aoi", pin: "9999" });
+  await call("POST", "/admin/users", { loginId: "ren", pin: "4826" }, admin);
+  await call("DELETE", "/admin/users/ren", null, admin);
+  const { logs } = (await call("GET", "/admin/logs", null, admin)).body;
+  const types = logs.map((l) => l.type);
+  assert.equal(types.filter((t) => t === "login_failed").length, 4);
+  assert.equal(types.filter((t) => t === "locked").length, 1);
+  assert.ok(types.includes("admin_create") && types.includes("admin_delete"));
+  assert.equal(logs.find((l) => l.type === "admin_delete").loginId, "ren");
 });

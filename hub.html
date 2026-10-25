@@ -2185,6 +2185,7 @@ footer {
   // changed (savedAt = the sync's per-key stamps, moku:meta:saved-at).
   // A game's keys are moku:<gameId>:… and moku:completed:<card>, plus the
   // older un-namespaced keys below. New titles only need the moku:<gameId>: form.
+  // admin.html (access log) maps keys to games with the same rules — keep both in sync.
   var LEGACY_SAVE_PREFIXES = {
     'angry-mokumoku': ['amoku-'],
     'moyomoyo': ['moyomoyo-'],

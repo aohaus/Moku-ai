@@ -26,10 +26,11 @@ module.exports = function mountDevAccounts(app) {
     maxUsers: 100,
   });
 
-  app.all(["/auth/:action", "/save", "/players", "/admin/users", "/admin/users/:loginId"], async (req, res) => {
+  app.all(["/auth/:action", "/save", "/players", "/admin/users", "/admin/users/:loginId", "/admin/logs"], async (req, res) => {
     const result = await handler({
       requestContext: { http: { method: req.method } },
       rawPath: req.path,
+      queryStringParameters: req.query,
       headers: req.headers,
       body: req.body && Object.keys(req.body).length ? JSON.stringify(req.body) : "",
     });
