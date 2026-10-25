@@ -416,7 +416,7 @@ body.on-title #controls { display: none; }
 
 <div id="title-frame"></div>
 <a id="hub-link" href="index.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.3.0 · Updated Oct 25, 2026</div>
+<div id="buildInfo">v0.3.1 · Updated Oct 25, 2026</div>
 
 <!-- Item icons, reused by the HUD and the shop -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -595,15 +595,21 @@ body.on-title #controls { display: none; }
   var muted = false;
   try { muted = localStorage.getItem(MUTE_KEY) === '1'; } catch (e) {}
 
+  // 財布はシリーズ共通なので、別タブ・別ゲームが書き換えているかもしれない。
+  // 残高を変える直前に読み直し、財布を書くのは残高を変えた時だけにする。
+  function refreshWallet() {
+    var w = readJSON(WALLET_KEY);
+    if (w && typeof w.balance === 'number') wallet = w;
+  }
   function saveAll() {
-    var now = new Date().toISOString();
-    progress.updatedAt = now;
+    progress.updatedAt = new Date().toISOString();
     writeJSON(PROGRESS_KEY, progress);
-    writeJSON(WALLET_KEY, wallet);
   }
   function addMoints(n) {
+    refreshWallet();
     wallet.balance = Math.max(0, wallet.balance + n);
     wallet.updatedAt = new Date().toISOString();
+    writeJSON(WALLET_KEY, wallet);
     if (n > 0) progress.mointsEarned = (progress.mointsEarned || 0) + n;
     saveAll();
     renderMoints();
@@ -783,6 +789,7 @@ body.on-title #controls { display: none; }
     });
   }
   function buy(id) {
+    refreshWallet();
     if (wallet.balance < PRICES[id]) { sfx.nope(); toast('Not enough Moints'); return false; }
     progress.items[id] = (progress.items[id] || 0) + 1;
     addMoints(-PRICES[id]);
@@ -872,7 +879,7 @@ body.on-title #controls { display: none; }
     progress.totalTries = (progress.totalTries || 0) + 1;
     saveAll();
     step = 0;
-    run = { lucky: 0, streak: 0, bestStreak: 0, newRecord: false, hints: 0, carpets: 0, penalty: 0 };
+    run = { lucky: 0, streak: 0, bestStreak: 0, newRecord: false, hints: 0, hinted: {}, carpets: 0, penalty: 0 };
     resetMoku();
     state = STATE.READY;
     body.classList.remove('on-title');
@@ -937,7 +944,8 @@ body.on-title #controls { display: none; }
     if (step >= n) return;
     var safe = progress.pattern[step] === side;
     if (!progress.solved[step]) {
-      if (safe && hintGlow.row !== step) {
+      // ヒントを使った段は、光が消えてから選んでもラッキーにしない
+      if (safe && !run.hinted[step]) {
         run.lucky++;
         run.streak++;
         if (run.streak > run.bestStreak) run.bestStreak = run.streak;
@@ -973,6 +981,7 @@ body.on-title #controls { display: none; }
     if (id === 'hint') {
       run.hints++;
       hintGlow.row = step;
+      run.hinted[step] = true;
       hintGlow.t = 2.2;
       sfx.hint();
       hudMsg('Look closely… one panel is shining!', 2000);
@@ -1044,6 +1053,7 @@ body.on-title #controls { display: none; }
       // ハズレ: パネルが割れて雲の上へふわっと落ちる
       progress.solved[h.row] = true;
       progress.broken[h.row] = h.side;
+      refreshWallet();
       run.penalty = Math.min(FALL_PENALTY, wallet.balance);
       if (run.penalty) addMoints(-run.penalty); else saveAll();
       state = STATE.FALL;
@@ -1832,6 +1842,14 @@ body.on-title #controls { display: none; }
     else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') pick(1);
     else if (e.key === 'h' || e.key === 'H') useItem('hint');
     else if (e.key === 'c' || e.key === 'C') useItem('carpet');
+  });
+
+  // 別タブ・別ゲームで Moint が増減したら表示を合わせる
+  window.addEventListener('storage', function (e) {
+    if (e.key === WALLET_KEY || e.key === null) { refreshWallet(); renderMoints(); }
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) { refreshWallet(); renderMoints(); }
   });
 
   saveAll();
