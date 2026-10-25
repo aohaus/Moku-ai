@@ -1345,7 +1345,7 @@ footer {
     var arc = Math.sin(frac * Math.PI);
     var root = document.documentElement.style;
     root.setProperty('--sun-x', (10 + frac * 80) + '%');
-    root.setProperty('--sun-y', (12 - arc * 8) + '%');
+    root.setProperty('--sun-y', (40 - arc * 12) + 'px'); // along the top bar, above the profile card
     root.setProperty('--sun-color', band.sunColor);
     root.setProperty('--sun-glow', band.sunGlow);
     root.setProperty('--sun-size', band.sunSize);

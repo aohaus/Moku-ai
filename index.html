@@ -16,6 +16,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Moku Series">
+<script>
+  // Logged-in layout before first paint (same keys as shared/moku-account.js).
+  try { if (localStorage.getItem('moku:account:token') && localStorage.getItem('moku:account:user')) document.documentElement.classList.add('is-in'); } catch (e) {}
+</script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
@@ -94,7 +98,7 @@ body[data-band="morning"] #starsLayer { --star-opacity: 0.15; }
 
 /* ---------- page chrome ---------- */
 .topbar {
-  position: relative; z-index: 1;
+  position: relative; z-index: 5; /* its menu opens over .main-shell */
   display: flex; align-items: center; justify-content: space-between;
   padding: 18px 20px 0;
   max-width: 1040px; margin: 0 auto;
@@ -113,12 +117,36 @@ body[data-band="morning"] #starsLayer { --star-opacity: 0.15; }
   border-color: #93A0FF;
   box-shadow: 0 0 0 3px rgba(147,160,255,0.45);
 }
-#settingsBtn {
+/* Logged-in players see a "welcome back" layout instead of the sign-up pitch.
+   The class is set in <head> from the saved session (no flash) and kept in
+   sync by the script at the bottom once shared/moku-account.js is loaded. */
+html:not(.is-in) .member-only { display: none !important; }
+html.is-in .guest-only { display: none !important; }
+
+.topbar-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.icon-btn {
   appearance: none; border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.05); color: rgba(237,238,246,0.6);
-  width: 36px; height: 36px; border-radius: 50%;
-  font-size: 15px; cursor: not-allowed;
+  background: rgba(255,255,255,0.06); color: #EDEEF6;
+  width: 38px; height: 38px; border-radius: 50%;
+  font-size: 15px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
 }
+.icon-btn:hover, .icon-btn:focus-visible { background: rgba(255,255,255,0.12); outline: none; }
+.settings-wrap { position: relative; }
+#settingsMenu {
+  position: absolute; top: calc(100% + 8px); right: 0; min-width: 210px;
+  background: #16171F; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px;
+  padding: 6px; box-shadow: 0 16px 40px rgba(0,0,0,0.45);
+  display: none; z-index: 20; text-align: left;
+}
+#settingsMenu.open { display: block; }
+#settingsMenu button {
+  appearance: none; width: 100%; text-align: left; border: none; background: none;
+  color: #EDEEF6; font: inherit; font-size: 13.5px; font-weight: 600;
+  padding: 10px; border-radius: 8px; cursor: pointer;
+}
+#settingsMenu button:hover, #settingsMenu button:focus-visible { background: rgba(255,255,255,0.08); outline: none; }
+#settingsMenu button[hidden] { display: none; }
 #whatsPanel {
   position: relative; z-index: 1;
   max-width: 480px; margin: 10px auto 0;
@@ -169,201 +197,38 @@ body[data-band="morning"] #starsLayer { --star-opacity: 0.15; }
 .owl-inner img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; }
 @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 
-.stats-summary {
-  display: inline-flex;
-  align-items: center;
-  gap: 16px;
-  padding: 8px 18px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  margin-top: 4px;
-  margin-bottom: 2px;
-  animation: statsFadeIn 0.6s ease 0.2s both;
+/* ---------- logged-in "welcome back" hero ---------- */
+.member-hero { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.member-doll {
+  position: relative; width: clamp(150px, 42vw, 200px); aspect-ratio: 1 / 1;
+  animation: bob 3.2s ease-in-out infinite;
+  filter: drop-shadow(0 10px 18px rgba(0,0,0,0.4));
 }
-@keyframes statsFadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+/* Closet outfits are drawn on the same 100x100 grid as the hero art (SPEC.md §13). */
+.member-doll img, .member-doll svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.member-doll img { object-fit: contain; }
+#welcome { font-size: clamp(22px, 5.6vw, 28px); font-weight: 800; letter-spacing: 0.01em; }
+.member-meta {
+  display: inline-flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 6px 12px;
+  padding: 7px 16px; border-radius: 999px;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  font-size: 13px; font-weight: 700; color: rgba(237,238,246,0.75);
 }
-@media (prefers-reduced-motion: reduce) {
-  .stats-summary { animation: none; }
+.member-meta b { color: #FFF3D6; font-weight: 900; font-variant-numeric: tabular-nums; }
+.member-meta .sep { width: 1px; height: 14px; background: rgba(255,255,255,0.16); }
+.coin {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.3em; height: 1.3em; margin-right: 5px; border-radius: 50%; vertical-align: -0.3em;
+  background: radial-gradient(circle at 35% 30%, #FFE7A3, #F5B83D 60%, #D9931E);
+  box-shadow: inset 0 -1.5px 0 rgba(154,101,18,0.6);
+  color: #7A4A0C; font-size: 10px; font-weight: 900;
 }
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.stat-icon {
-  font-size: 16px;
-  line-height: 1;
-}
-.stat-meta {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1px;
-}
-.stat-label {
-  font-size: 10px;
-  font-weight: 700;
-  color: rgba(237, 238, 246, 0.5);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  line-height: 1;
-}
-.stat-value {
-  font-size: 13px;
-  font-weight: 800;
-  color: #EDEEF6;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.1;
-}
-.stat-item.streak-item .stat-value {
-  color: #FFC94A;
-}
-.stat-divider {
-  width: 1px;
-  height: 20px;
-  background: rgba(255, 255, 255, 0.12);
-}
-
-/* Achievements Section */
-.achievements-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  max-width: 380px;
-  width: 100%;
-  padding: 10px 16px 12px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  margin-top: 2px;
-  animation: statsFadeIn 0.6s ease 0.3s both;
-}
-.achievements-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 0 2px;
-}
-.achievements-title {
-  font-size: 10.5px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(237, 238, 246, 0.55);
-}
-.achievements-counter {
-  font-size: 11px;
-  font-weight: 800;
-  color: #FFC94A;
-  font-variant-numeric: tabular-nums;
-  background: rgba(255, 201, 74, 0.12);
-  border: 1px solid rgba(255, 201, 74, 0.3);
-  padding: 2px 8px;
-  border-radius: 999px;
-}
-.achievements-list {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  width: 100%;
-  flex-wrap: wrap;
-}
-.achievement-badge {
-  position: relative;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1.5px solid rgba(255, 255, 255, 0.12);
-  cursor: pointer;
-  padding: 0;
-  font-size: 20px;
-  line-height: 1;
-  color: inherit;
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease, filter 0.2s ease, opacity 0.2s ease;
-  outline: none;
-}
-.achievement-badge.is-locked {
-  opacity: 0.32;
-  filter: grayscale(1);
-  border-style: dashed;
-  background: rgba(0, 0, 0, 0.25);
-}
-.achievement-badge.is-locked:hover,
-.achievement-badge.is-locked:focus-visible {
-  opacity: 0.7;
-  transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.35);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-.achievement-badge.is-unlocked {
-  opacity: 1;
-  filter: none;
-  background: linear-gradient(135deg, rgba(255, 201, 74, 0.2), rgba(124, 58, 237, 0.2));
-  border: 1.5px solid #FFC94A;
-  box-shadow: 0 0 14px rgba(255, 201, 74, 0.35);
-}
-.achievement-badge.is-unlocked:hover,
-.achievement-badge.is-unlocked:focus-visible {
-  transform: translateY(-3px) scale(1.08);
-  box-shadow: 0 0 22px rgba(255, 201, 74, 0.55);
-}
-.achievement-badge:focus-visible {
-  outline: 2px solid #FFFFFF;
-  outline-offset: 2px;
-}
-.achievement-status-indicator {
-  position: absolute;
-  bottom: -3px;
-  right: -3px;
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
-  font-size: 8.5px;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-  pointer-events: none;
-}
-.achievement-badge.is-locked .achievement-status-indicator {
-  background: rgba(15, 10, 25, 0.85);
-  color: rgba(237, 238, 246, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-.achievement-badge.is-unlocked .achievement-status-indicator {
-  background: #22C55E;
-  color: #0F172A;
-  border: 1px solid #86EFAC;
-  box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
-}
-.achievement-hint {
-  font-size: 11.5px;
-  color: rgba(237, 238, 246, 0.6);
-  min-height: 16px;
-  line-height: 1.35;
-  text-align: center;
-  transition: color 0.2s ease;
-}
-.achievement-hint.hint-active {
-  color: #FFE699;
-}
+html.is-in .main-shell { gap: 24px; }
+html.is-in h1 { order: 3; opacity: 0.85; }
+html.is-in h1 .wm-moku { font-size: clamp(22px, 5vw, 28px); }
+html.is-in h1 .wm-series { font-size: clamp(11px, 2.4vw, 14px); }
+html.is-in .cta-group { order: 2; }
 
 h1 { display: flex; flex-direction: column; align-items: center; gap: 2px; line-height: 1; }
 h1 .wm-moku {
@@ -417,39 +282,6 @@ h1 .wm-series {
 }
 #getStartedBtn:active { transform: translateY(1px); }
 
-#shareHubBtn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  appearance: none;
-  border: 1.5px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.08);
-  color: #EDEEF6; font-weight: 700; font-size: 15px;
-  padding: 14px 22px; border-radius: 999px;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  outline: none;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease, color .15s ease;
-}
-#shareHubBtn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.35);
-  box-shadow: 0 0 24px rgba(255, 255, 255, 0.18);
-}
-#shareHubBtn:focus-visible {
-  border-color: #FFFFFF;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35), 0 0 24px rgba(255, 255, 255, 0.25);
-}
-#shareHubBtn:active { transform: translateY(1px); }
-
-#shareHubBtn.is-copied {
-  background: rgba(34, 197, 94, 0.18);
-  border-color: #22C55E;
-  color: #86EFAC;
-  box-shadow: 0 0 24px rgba(34, 197, 94, 0.4);
-}
-
 .share-toast {
   position: fixed;
   bottom: 28px;
@@ -501,17 +333,100 @@ h1 .wm-series {
 /* Once accounts are on, shared/moku-account.js fills it with a full-width card. */
 #loginLink:has(.mka-wide) { cursor: auto; margin-top: -10px; }
 #loginLink > span { font-weight: 600; opacity: 0.75; }
-#transferLink {
-  appearance: none; border: 0; background: none; padding: 4px 8px;
-  font: inherit; font-size: 12.5px; font-weight: 700;
-  color: rgba(237,238,246,0.55); cursor: pointer;
-  text-decoration: underline; text-underline-offset: 3px;
-}
-#transferLink:hover, #transferLink:focus-visible { color: #EDEEF6; }
-
 .quick-row {
-  display: flex; gap: 14px; font-size: 22px;
+  display: flex; gap: clamp(6px, 2vw, 14px); font-size: clamp(17px, 4.6vw, 22px);
   opacity: 0.55;
+}
+
+/* ---------- Add to Home Screen guide (same as hub.html) ---------- */
+#a2hsOverlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(5,5,10,0.68);
+  backdrop-filter: blur(3px);
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+#a2hsOverlay.open { display: flex; }
+#a2hsModal {
+  position: relative;
+  width: min(420px, 100%);
+  max-height: 86vh;
+  overflow-y: auto;
+  background: #16171F;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 20px;
+  padding: 28px 24px 24px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+}
+#a2hsClose {
+  position: absolute;
+  top: 14px; right: 14px;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.08);
+  color: #EDEEF6;
+  font-size: 14px;
+  cursor: pointer;
+}
+#a2hsClose:hover { background: rgba(255,255,255,0.16); }
+.a2hs-panel h2 {
+  font-size: 19px;
+  font-weight: 800;
+  margin-bottom: 6px;
+  padding-right: 26px;
+}
+.a2hs-sub {
+  font-size: 13.5px;
+  color: rgba(237,238,246,0.65);
+  margin-bottom: 18px;
+  line-height: 1.6;
+}
+.a2hs-steps {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.a2hs-steps li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 1.55;
+}
+.a2hs-icon {
+  flex: none;
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.08);
+  font-size: 16px;
+}
+.a2hs-step-text { flex: 1 1 auto; min-width: 0; }
+.a2hs-note {
+  font-size: 12px;
+  color: rgba(237,238,246,0.45);
+  line-height: 1.6;
+}
+#a2hsInstallBtn {
+  appearance: none;
+  border: none;
+  width: 100%;
+  padding: 13px 18px;
+  border-radius: 12px;
+  background: var(--place-accent, #93A0FF);
+  color: #10111A;
+  font: inherit;
+  font-weight: 800;
+  font-size: 14.5px;
+  cursor: pointer;
+  margin-bottom: 14px;
 }
 
 footer.page-footer {
@@ -533,85 +448,48 @@ footer.page-footer {
 <div id="celestialLayer"><div id="celestialBody"></div></div>
 
 <div class="topbar">
-  <button id="whatsBtn" type="button" aria-expanded="false" aria-controls="whatsPanel">🎮 What's Moku Series?</button>
-  <button id="settingsBtn" type="button" title="Coming soon">⚙️</button>
+  <button id="whatsBtn" class="guest-only" type="button" aria-expanded="false" aria-controls="whatsPanel">🎮 What's Moku Series?</button>
+  <div class="topbar-right">
+    <!-- Logged in: account chip (opens the profile). Filled by shared/moku-account.js. -->
+    <div class="member-only" data-moku-account></div>
+    <div class="settings-wrap">
+      <button class="icon-btn" id="settingsBtn" type="button" aria-label="Menu" aria-haspopup="true" aria-expanded="false">⋯</button>
+      <div id="settingsMenu">
+        <button id="shareHubBtn" type="button">🔗 Share Moku Series</button>
+        <button id="transferBtn" type="button" data-moku-transfer>🔁 Transfer Progress</button>
+        <button id="a2hsBtn" type="button">📲 Add to Home Screen</button>
+      </div>
+    </div>
+  </div>
 </div>
 <p id="whatsPanel" hidden>
-  Moku Series is a free collection of bite-sized mobile mini-games starring Mokumoku the owl —
-  slingshot action, falling-block puzzles, soccer, battle royale, chat quizzes, and pinball. No account, no install — just pick a game and play.
+  Moku Series is a free collection of bite-sized mini-games starring Mokumoku the owl —
+  action, puzzles, sports, racing and cozy games. Just pick a game and play.
+  Log in to keep your progress on every device.
 </p>
 
 <div class="main-shell">
-  <div class="owl-badge">
+  <div class="owl-badge guest-only">
     <div class="owl-inner">
       <img src="brand/mokumoku-hero.png" alt="Mokumoku">
     </div>
   </div>
-  <div class="stats-summary" id="statsSummary" aria-label="Player Statistics">
-    <div class="stat-item">
-      <span class="stat-icon" aria-hidden="true">🎮</span>
-      <div class="stat-meta">
-        <span class="stat-label">Total Played</span>
-        <span class="stat-value" id="statTotalPlayed">0 Games</span>
-      </div>
+  <div class="member-hero member-only">
+    <div class="member-doll" id="memberDoll"><img src="brand/mokumoku-hero.png" alt="Your Moku"></div>
+    <div id="welcome">Welcome back!</div>
+    <div class="member-meta">
+      <span><span class="coin" aria-hidden="true">M</span><b id="memberMoints">0</b> Moints</span>
+      <span class="sep" aria-hidden="true"></span>
+      <span id="memberSync">☁️ Saved</span>
     </div>
-    <div class="stat-divider" aria-hidden="true"></div>
-    <div class="stat-item streak-item">
-      <span class="stat-icon" aria-hidden="true">🔥</span>
-      <div class="stat-meta">
-        <span class="stat-label">Current Streak</span>
-        <span class="stat-value" id="statStreak">1 Day</span>
-      </div>
-    </div>
-  </div>
-
-  <div class="achievements-section" id="achievementsSection" aria-label="Achievements Showcase">
-    <div class="achievements-header">
-      <span class="achievements-title">Achievements</span>
-      <span class="achievements-counter" id="achievementsCounter">0 / 5</span>
-    </div>
-    <div class="achievements-list" role="list" id="achievementsList">
-      <button class="achievement-badge is-locked" type="button" data-id="first_flight" aria-label="First Flight: Play your first game (Locked)">
-        <span>🦉</span>
-        <span class="achievement-status-indicator" aria-hidden="true">🔒</span>
-      </button>
-      <button class="achievement-badge is-locked" type="button" data-id="high_five" aria-label="High Five: Play 5 games (Locked)">
-        <span>🖐️</span>
-        <span class="achievement-status-indicator" aria-hidden="true">🔒</span>
-      </button>
-      <button class="achievement-badge is-locked" type="button" data-id="on_fire" aria-label="On Fire: 3-day streak (Locked)">
-        <span>🔥</span>
-        <span class="achievement-status-indicator" aria-hidden="true">🔒</span>
-      </button>
-      <button class="achievement-badge is-locked" type="button" data-id="globe_trotter" aria-label="Globe Trotter: Play 3 distinct games (Locked)">
-        <span>🗺️</span>
-        <span class="achievement-status-indicator" aria-hidden="true">🔒</span>
-      </button>
-      <button class="achievement-badge is-locked" type="button" data-id="champion" aria-label="Series Champion: Complete any game (Locked)">
-        <span>🏆</span>
-        <span class="achievement-status-indicator" aria-hidden="true">🔒</span>
-      </button>
-    </div>
-    <div class="achievement-hint" id="achievementHint" aria-live="polite">Hover or tap a badge to view details</div>
   </div>
   <h1><span class="wm-moku">MOKU</span><span class="wm-series">SERIES</span></h1>
-  <p class="tagline">Play <span class="c1">small</span>. Have <span class="c1">fun</span>. Get <span class="c2">better</span>.</p>
+  <p class="tagline guest-only">Play <span class="c1">small</span>. Have <span class="c1">fun</span>. Get <span class="c2">better</span>.</p>
   <div class="cta-group">
-    <a id="getStartedBtn" href="hub.html" role="button">▶ Get Started</a>
-    <button id="shareHubBtn" type="button" aria-label="Share Moku Series Hub (Copy Link)" title="Copy link to Moku Series Hub">
-      <svg class="share-btn-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="18" cy="5" r="3"></circle>
-        <circle cx="6" cy="12" r="3"></circle>
-        <circle cx="18" cy="19" r="3"></circle>
-        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-      </svg>
-      <span id="shareBtnLabel">Share</span>
-    </button>
+    <a id="getStartedBtn" href="hub.html" role="button"><span class="guest-only">▶ Get Started</span><span class="member-only">▶ Play Games</span></a>
   </div>
-  <div id="loginLink" data-moku-account="wide" data-moku-new-until="2026-11-24">Log In <span>(Coming Soon)</span></div>
-  <button id="transferLink" type="button" data-moku-transfer>🔁 Transfer Progress</button>
-  <div class="quick-row" aria-hidden="true">🦉 🍬 ⚽ 🏆 💬 🕹️ 🍉 🍱 🎣 🏎️ 🎹 🏃</div>
+  <div id="loginLink" class="guest-only" data-moku-account="wide" data-moku-new-until="2026-11-24">Log In <span>(Coming Soon)</span></div>
+  <div class="quick-row guest-only" aria-hidden="true">🦉 🍬 ⚽ 🏆 💬 🕹️ 🍉 🍱 🎣 🏎️ 🎹 🏃</div>
 </div>
 
 <div id="shareToast" class="share-toast" role="status" aria-live="polite" aria-hidden="true">
@@ -620,6 +498,35 @@ footer.page-footer {
 </div>
 
 <footer class="page-footer">aohaus/Moku</footer>
+
+<div id="a2hsOverlay">
+  <div id="a2hsModal" role="dialog" aria-modal="true" aria-labelledby="a2hsTitle">
+    <button id="a2hsClose" type="button" aria-label="Close">✕</button>
+
+    <div class="a2hs-panel" id="a2hsIOS">
+      <h2 id="a2hsTitle">📲 Add to Home Screen (iPhone / iPad)</h2>
+      <p class="a2hs-sub">If you're using Safari, follow these steps to launch it like an app.</p>
+      <ol class="a2hs-steps">
+        <li><span class="a2hs-icon">📤</span><span class="a2hs-step-text">Tap the <strong>Share button</strong> (bottom on iPhone, top on iPad)</span></li>
+        <li><span class="a2hs-icon">➕</span><span class="a2hs-step-text">Choose <strong>"Add to Home Screen"</strong> from the menu</span></li>
+        <li><span class="a2hs-icon">✅</span><span class="a2hs-step-text">Tap <strong>"Add"</strong> in the top-right corner to finish</span></li>
+      </ol>
+      <p class="a2hs-note">If you're using Chrome or another browser, please reopen this page in Safari first.</p>
+    </div>
+
+    <div class="a2hs-panel" id="a2hsAndroid" hidden>
+      <h2>📲 Add to Home Screen (Android)</h2>
+      <p class="a2hs-sub">On this device, you can add it directly with the button below.</p>
+      <button id="a2hsInstallBtn" type="button">Add to Home Screen</button>
+      <p class="a2hs-note">If the button doesn't respond, choose "Add to Home Screen" from the browser menu (⋮) instead.</p>
+    </div>
+
+    <div class="a2hs-panel" id="a2hsDesktop" hidden>
+      <h2>📲 Add to Home Screen</h2>
+      <p class="a2hs-sub">This feature is available in iPhone, iPad, and Android browsers. Please open this page on one of those devices and follow the instructions.</p>
+    </div>
+  </div>
+</div>
 
 <script>
 (function () {
@@ -661,7 +568,7 @@ footer.page-footer {
     var arc = Math.sin(frac * Math.PI);
     var root = document.documentElement.style;
     root.setProperty('--sun-x', (10 + frac * 80) + '%');
-    root.setProperty('--sun-y', (18 - arc * 10) + '%');
+    root.setProperty('--sun-y', (9 - arc * 3) + '%'); // sky above Moku, below the top bar
   }
   function updateSky() {
     var now = new Date();
@@ -712,281 +619,114 @@ footer.page-footer {
 })();
 
 (function () {
-  // Statistics, streak tracking, and Achievements system using localStorage
-  var ACHIEVEMENTS = [
-    {
-      id: 'first_flight',
-      name: 'First Flight',
-      icon: '🦉',
-      description: 'Play your first game in Moku Series',
-      check: function (stats) { return stats.totalPlayed >= 1; },
-      progress: function (stats) { return Math.min(stats.totalPlayed, 1) + ' / 1 Game'; }
-    },
-    {
-      id: 'high_five',
-      name: 'High Five',
-      icon: '🖐️',
-      description: 'Play 5 total games across the series',
-      check: function (stats) { return stats.totalPlayed >= 5; },
-      progress: function (stats) { return Math.min(stats.totalPlayed, 5) + ' / 5 Games'; }
-    },
-    {
-      id: 'on_fire',
-      name: 'On Fire',
-      icon: '🔥',
-      description: 'Maintain a 3-day daily streak',
-      check: function (stats) { return stats.streak >= 3 || stats.bestStreak >= 3; },
-      progress: function (stats) { return Math.min(Math.max(stats.streak, stats.bestStreak), 3) + ' / 3 Days'; }
-    },
-    {
-      id: 'globe_trotter',
-      name: 'Globe Trotter',
-      icon: '🗺️',
-      description: 'Play at least 3 distinct game titles',
-      check: function (stats) { return stats.distinctGames >= 3; },
-      progress: function (stats) { return Math.min(stats.distinctGames, 3) + ' / 3 Titles'; }
-    },
-    {
-      id: 'champion',
-      name: 'Series Champion',
-      icon: '🏆',
-      description: 'Complete all stages or master any game',
-      check: function (stats) { return stats.completedGames >= 1; },
-      progress: function (stats) { return Math.min(stats.completedGames, 1) + ' / 1 Complete'; }
-    }
-  ];
-
-  var hintElem = document.getElementById('achievementHint');
-  var hintTimeout = null;
-
-  function showHint(text, isActive) {
-    if (!hintElem) return;
-    if (hintTimeout) clearTimeout(hintTimeout);
-    hintElem.textContent = text;
-    hintElem.classList.toggle('hint-active', Boolean(isActive));
+  var settingsBtn = document.getElementById('settingsBtn');
+  var settingsMenu = document.getElementById('settingsMenu');
+  function closeMenu() {
+    settingsMenu.classList.remove('open');
+    settingsBtn.setAttribute('aria-expanded', 'false');
   }
+  settingsBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var willOpen = !settingsMenu.classList.contains('open');
+    settingsMenu.classList.toggle('open', willOpen);
+    settingsBtn.setAttribute('aria-expanded', String(willOpen));
+  });
+  // Each item opens its own dialog, so the menu closes on any choice.
+  settingsMenu.addEventListener('click', function (e) {
+    if (e.target.closest('button')) closeMenu();
+  });
+  document.addEventListener('click', function (e) {
+    if (!settingsMenu.contains(e.target) && e.target !== settingsBtn) closeMenu();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeMenu();
+  });
+  window.__closeSettingsMenu = closeMenu;
 
-  function resetHintDefault() {
-    if (hintTimeout) clearTimeout(hintTimeout);
-    hintTimeout = setTimeout(function () {
-      showHint('Hover or tap a badge to view details', false);
-    }, 1800);
-  }
+  // Already launched from the home screen: nothing to add.
+  var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+  if (standalone) document.getElementById('a2hsBtn').hidden = true;
+})();
 
-  function getStats() {
-    var now = new Date();
-    var todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+(function () {
+  // "Add to Home Screen" helper. iOS/iPadOS Safari has no JS API to
+  // trigger the install prompt, so those platforms just get an
+  // illustrated instruction panel (share icon → Add to Home Screen).
+  // Chrome/Edge on Android (and desktop) expose beforeinstallprompt,
+  // which we capture and wire to a real "install" button instead.
+  var overlay = document.getElementById('a2hsOverlay');
+  var openBtn = document.getElementById('a2hsBtn');
+  var closeBtn = document.getElementById('a2hsClose');
+  var panelIOS = document.getElementById('a2hsIOS');
+  var panelAndroid = document.getElementById('a2hsAndroid');
+  var panelDesktop = document.getElementById('a2hsDesktop');
+  var installBtn = document.getElementById('a2hsInstallBtn');
 
-    // 1. Current streak calculation
-    var streakData = null;
-    try {
-      var rawStreak = localStorage.getItem('moku:stats:streak');
-      if (rawStreak) streakData = JSON.parse(rawStreak);
-    } catch (e) {}
+  var ua = navigator.userAgent || '';
+  var isIOS = /iPad|iPhone|iPod/.test(ua) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPadOS "desktop" UA
+  var isAndroid = /Android/.test(ua);
 
-    if (!streakData || typeof streakData.count !== 'number') {
-      streakData = { count: 1, lastDate: todayStr, bestStreak: 1 };
-      try { localStorage.setItem('moku:stats:streak', JSON.stringify(streakData)); } catch (e) {}
-    } else if (streakData.lastDate !== todayStr) {
-      var lastDate = new Date(streakData.lastDate);
-      var diffDays = Math.round((new Date(todayStr) - lastDate) / (1000 * 60 * 60 * 24));
-      if (diffDays === 1) {
-        streakData.count = (streakData.count || 0) + 1;
-        streakData.bestStreak = Math.max(streakData.bestStreak || 1, streakData.count);
-      } else if (diffDays > 1) {
-        streakData.count = 1;
-      }
-      streakData.lastDate = todayStr;
-      try { localStorage.setItem('moku:stats:streak', JSON.stringify(streakData)); } catch (e) {}
-    }
-
-    // 2. Total games and distinct games played
-    var gameKeys = ['am', 'mm', 'mk', 'br', 'so', 'mc', 'mr', 'md', 'mb', 'mf', 'mkt', 'mrc', 'mw6', 'mbr'];
-    var distinctCount = 0;
-    var completedCount = 0;
-
-    gameKeys.forEach(function (k) {
-      var isPlayed = Boolean(localStorage.getItem('moku:played:' + k));
-      var isCompleted = Boolean(localStorage.getItem('moku:completed:' + k));
-
-      // Check per-game saves
-      if (k === 'am') {
-        var lvl = parseInt(localStorage.getItem('amoku-level'), 10);
-        if (lvl > 0) isPlayed = true;
-        if (lvl >= 30) isCompleted = true;
-      } else if (k === 'mm') {
-        var best = parseInt(localStorage.getItem('moyomoyo-best'), 10);
-        var quest = parseInt(localStorage.getItem('moyomoyo-quest-best'), 10);
-        if (best > 0 || quest > 0) isPlayed = true;
-        if (quest >= 1000 || best >= 3000) isCompleted = true;
-      } else if (k === 'mk') {
-        try {
-          var p = JSON.parse(localStorage.getItem('moku:mk-mobile:profile') || 'null');
-          if (p && p.updatedAt) isPlayed = true;
-          if (p && (p.points >= 1000 || p.completed)) isCompleted = true;
-        } catch (e) {}
-      } else if (k === 'br') {
-        try {
-          var s = JSON.parse(localStorage.getItem('moku:save') || 'null');
-          if (s && (s.level > 1 || s.coins > 0 || s.updatedAt)) isPlayed = true;
-          if (s && (s.level >= 20 || s.completed)) isCompleted = true;
-        } catch (e) {}
-      } else if (k === 'so') {
-        try {
-          var sp = JSON.parse(localStorage.getItem('moku:shiri-of-moku:progress') || 'null');
-          if (sp && (sp.unlockedStage > 1 || sp.updatedAt)) isPlayed = true;
-          if (sp && sp.unlockedStage >= 20) isCompleted = true;
-        } catch (e) {}
-      } else if (k === 'mc') {
-        try {
-          var mp = JSON.parse(localStorage.getItem('moku:mokucity:progress') || 'null');
-          if (mp && (mp.level > 1 || mp.coins > 0 || mp.updatedAt)) isPlayed = true;
-          if (mp && (mp.level >= 10 || mp.completed)) isCompleted = true;
-        } catch (e) {}
-      } else if (k === 'mr') {
-        var cranePlays = parseInt(localStorage.getItem('moku:mr:plays') || '0', 10);
-        if (cranePlays > 0) isPlayed = true;
-      } else if (k === 'md') {
-        var dropBest = parseInt(localStorage.getItem('moku_drop_best') || '0', 10);
-        if (dropBest > 0) isPlayed = true;
-        if (dropBest >= 2048) isCompleted = true;
-      } else if (k === 'mb') {
-        var bentoBest = parseInt(localStorage.getItem('moku_bento_best') || '0', 10);
-        if (bentoBest > 0) isPlayed = true;
-        if (bentoBest >= 1500) isCompleted = true;
-      } else if (k === 'mf') {
-        var fishCount = parseInt(localStorage.getItem('moku_fishing_count') || '0', 10);
-        if (fishCount > 0) isPlayed = true;
-        if (fishCount >= 10) isCompleted = true;
-      } else if (k === 'mkt') {
-        var kartTime = localStorage.getItem('moku_kart_best_time');
-        if (kartTime !== null) { isPlayed = true; isCompleted = true; }
-      } else if (k === 'mrc') {
-        var rhythmBest = parseInt(localStorage.getItem('moku_rhythm_best') || '0', 10);
-        if (rhythmBest > 0) isPlayed = true;
-        if (rhythmBest >= 2000) isCompleted = true;
-      } else if (k === 'mw6') {
-        try {
-          var wp = JSON.parse(localStorage.getItem('moku:moku-watch-6-lazy:progress') || 'null');
-          if (wp && wp.lazy > 0) isPlayed = true;
-          if (wp && Array.isArray(wp.dex) && wp.dex.length >= 14) isCompleted = true;
-        } catch (e) {}
-      } else if (k === 'mbr') {
-        try {
-          var bp = JSON.parse(localStorage.getItem('moku:moku-bridge:progress') || 'null');
-          if (bp && bp.totalTries > 0) isPlayed = true;
-          if (bp && bp.cleared >= 5) isCompleted = true;
-        } catch (e) {}
-      }
-
-      if (isPlayed || isCompleted) distinctCount++;
-      if (isCompleted) completedCount++;
-    });
-
-    var rawTotal = parseInt(localStorage.getItem('moku:stats:total_games_played'), 10);
-    var totalPlayed = (!isNaN(rawTotal) && rawTotal > distinctCount) ? rawTotal : distinctCount;
-
-    return {
-      totalPlayed: totalPlayed,
-      streak: streakData.count || 1,
-      bestStreak: streakData.bestStreak || streakData.count || 1,
-      distinctGames: distinctCount,
-      completedGames: completedCount
-    };
-  }
-
-  function updateStatsDisplay() {
-    var stats = getStats();
-
-    // 1. Update stats summary bar
-    var playedElem = document.getElementById('statTotalPlayed');
-    var streakElem = document.getElementById('statStreak');
-
-    if (playedElem) {
-      playedElem.textContent = stats.totalPlayed === 1 ? '1 Game' : stats.totalPlayed + ' Games';
-    }
-    if (streakElem) {
-      streakElem.textContent = stats.streak === 1 ? '1 Day' : stats.streak + ' Days';
-    }
-
-    // 2. Update achievements badges
-    var unlockedCount = 0;
-
-    ACHIEVEMENTS.forEach(function (ach) {
-      var isUnlocked = ach.check(stats);
-      if (isUnlocked) unlockedCount++;
-
-      var btn = document.querySelector('.achievement-badge[data-id="' + ach.id + '"]');
-      if (!btn) return;
-
-      btn.classList.toggle('is-unlocked', isUnlocked);
-      btn.classList.toggle('is-locked', !isUnlocked);
-
-      var indicator = btn.querySelector('.achievement-status-indicator');
-      if (indicator) {
-        indicator.textContent = isUnlocked ? '✓' : '🔒';
-      }
-
-      var statusText = isUnlocked ? 'Unlocked ✓' : 'Locked 🔒 (' + ach.progress(stats) + ')';
-      btn.setAttribute('aria-label', ach.name + ': ' + ach.description + ' (' + statusText + ')');
-      btn.setAttribute('title', ach.name + ' — ' + statusText);
-
-      // Event listeners for interactive tooltip feedback
-      btn.onmouseenter = function () {
-        showHint(ach.icon + ' ' + ach.name + ': ' + ach.description + ' — ' + statusText, true);
-      };
-      btn.onmouseleave = resetHintDefault;
-      btn.onfocus = function () {
-        showHint(ach.icon + ' ' + ach.name + ': ' + ach.description + ' — ' + statusText, true);
-      };
-      btn.onblur = resetHintDefault;
-      btn.onclick = function (e) {
-        e.preventDefault();
-        showHint(ach.icon + ' ' + ach.name + ': ' + ach.description + ' — ' + statusText, true);
-      };
-    });
-
-    var counterElem = document.getElementById('achievementsCounter');
-    if (counterElem) {
-      counterElem.textContent = unlockedCount + ' / ' + ACHIEVEMENTS.length;
-    }
-  }
-
-  updateStatsDisplay();
-  window.addEventListener('focus', updateStatsDisplay);
-  document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState === 'visible') updateStatsDisplay();
+  var deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    deferredPrompt = e;
   });
 
-  // Share Hub Link to Clipboard Handler
+  function showPanel() {
+    [panelIOS, panelAndroid, panelDesktop].forEach(function (p) { p.hidden = true; });
+    if (isIOS) {
+      panelIOS.hidden = false;
+    } else if (isAndroid) {
+      panelAndroid.hidden = false;
+    } else {
+      panelDesktop.hidden = false;
+    }
+  }
+
+  function openModal() {
+    if (window.__closeSettingsMenu) window.__closeSettingsMenu();
+    showPanel();
+    overlay.classList.add('open');
+  }
+  function closeModal() {
+    overlay.classList.remove('open');
+  }
+
+  openBtn.addEventListener('click', openModal);
+  closeBtn.addEventListener('click', closeModal);
+  overlay.addEventListener('click', function (e) {
+    if (e.target === overlay) closeModal();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && overlay.classList.contains('open')) closeModal();
+  });
+
+  installBtn.addEventListener('click', function () {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.finally(function () { deferredPrompt = null; });
+  });
+})();
+
+(function () {
+  // Share the hub link: the share sheet (LINE, AirDrop…) where there is one,
+  // otherwise copy it to the clipboard.
   var shareBtn = document.getElementById('shareHubBtn');
-  var shareBtnLabel = document.getElementById('shareBtnLabel');
   var shareToast = document.getElementById('shareToast');
   var toastTimer = null;
-  var btnResetTimer = null;
 
   function showShareFeedback(msg) {
-    if (shareToast) {
-      var msgElem = shareToast.querySelector('.share-toast-msg');
-      if (msgElem && msg) msgElem.textContent = msg;
-      shareToast.classList.add('is-visible');
-      shareToast.setAttribute('aria-hidden', 'false');
-      clearTimeout(toastTimer);
-      toastTimer = setTimeout(function () {
-        shareToast.classList.remove('is-visible');
-        shareToast.setAttribute('aria-hidden', 'true');
-      }, 2600);
-    }
-
-    if (shareBtn && shareBtnLabel) {
-      shareBtn.classList.add('is-copied');
-      shareBtnLabel.textContent = 'Copied!';
-      clearTimeout(btnResetTimer);
-      btnResetTimer = setTimeout(function () {
-        shareBtn.classList.remove('is-copied');
-        shareBtnLabel.textContent = 'Share';
-      }, 2400);
-    }
+    if (!shareToast) return;
+    var msgElem = shareToast.querySelector('.share-toast-msg');
+    if (msgElem && msg) msgElem.textContent = msg;
+    shareToast.classList.add('is-visible');
+    shareToast.setAttribute('aria-hidden', 'false');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () {
+      shareToast.classList.remove('is-visible');
+      shareToast.setAttribute('aria-hidden', 'true');
+    }, 2600);
   }
 
   function getHubShareUrl() {
@@ -1016,32 +756,71 @@ footer.page-footer {
     return successful;
   }
 
-  if (shareBtn) {
-    shareBtn.addEventListener('click', function () {
-      var hubUrl = getHubShareUrl();
-
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(hubUrl).then(function () {
-          showShareFeedback('Moku Series hub link copied!');
-        }).catch(function () {
-          if (copyTextFallback(hubUrl)) {
-            showShareFeedback('Moku Series hub link copied!');
-          } else {
-            showShareFeedback('Hub link: ' + hubUrl);
-          }
-        });
-      } else {
-        if (copyTextFallback(hubUrl)) {
-          showShareFeedback('Moku Series hub link copied!');
-        } else {
-          showShareFeedback('Hub link: ' + hubUrl);
-        }
-      }
-    });
+  function copyLink(hubUrl) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(hubUrl).then(function () {
+        showShareFeedback('Moku Series hub link copied!');
+      }).catch(function () {
+        showShareFeedback(copyTextFallback(hubUrl) ? 'Moku Series hub link copied!' : 'Hub link: ' + hubUrl);
+      });
+    } else {
+      showShareFeedback(copyTextFallback(hubUrl) ? 'Moku Series hub link copied!' : 'Hub link: ' + hubUrl);
+    }
   }
+
+  shareBtn.addEventListener('click', function () {
+    var hubUrl = getHubShareUrl();
+    if (navigator.share) {
+      navigator.share({ title: 'Moku Series', text: 'Play mini-games with Moku the owl!', url: hubUrl }).catch(function (err) {
+        if (!err || err.name !== 'AbortError') copyLink(hubUrl);
+      });
+    } else {
+      copyLink(hubUrl);
+    }
+  });
 })();
 </script>
 <script src="shared/moku-account.js"></script>
 <script src="shared/moku-transfer.js"></script>
+<script src="shared/moku-moint.js" data-mode="none"></script>
+<script>
+(function () {
+  // Guest vs. logged-in layout. Logged in, the page greets the player with
+  // their dressed-up Moku (Moku Closet), Moint balance and cloud-save state.
+  var acc = window.MokuAccount;
+  var moint = window.MokuMoint;
+
+  function currentUser() {
+    return acc && acc.isEnabled() ? acc.getUser() : null;
+  }
+
+  function render() {
+    var user = currentUser();
+    document.documentElement.classList.toggle('is-in', !!user);
+    if (!user) return;
+    document.getElementById('welcome').textContent = 'Welcome back, ' + user.displayName + '!';
+    document.getElementById('memberSync').textContent = acc.statusText();
+    if (moint) {
+      document.getElementById('memberMoints').textContent = moint.balance().toLocaleString('en-US');
+      var doll = document.getElementById('memberDoll');
+      var outfit = moint.outfitSVG(moint.closet().equipped);
+      if (doll.__outfit !== outfit) {
+        doll.__outfit = outfit;
+        doll.innerHTML = '<img src="brand/mokumoku-hero.png" alt="Your Moku">' + outfit;
+      }
+    }
+  }
+
+  render();
+  if (acc) acc.onStatusChange(render);
+  if (moint) moint.onChange(render);
+  window.addEventListener('storage', function (e) {
+    if (!e.key || e.key.indexOf('moku:account:') === 0 || e.key.indexOf('moku:moint:') === 0) render();
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') render();
+  });
+})();
+</script>
 </body>
 </html>
