@@ -140,6 +140,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
 - **詳細シート**: タイルを押すと開く。スクリーンショット(`screenshots/<gameId>.jpg`)・説明文・ローカル進捗(`GAMES[].badge()` / `progress()`)・Playボタン。
 - **NEW表示**は `CATALOG[].newUntil` の日付まで自動で出る(付けっぱなしにしない)。
 - 表示用データは `hub.html` の `CATALOG`、進捗ロジックは従来どおり `GAMES`(同じ `card` キー)。新規タイトル追加時は両方+`SHELVES`+アイコンSVG+スクリーンショットを追加する。
+- **Moint の印**: `CATALOG[].moint` があるゲームはタイルの左上に金色のMコイン、詳細シートに「Earn Moints」(§13)。
 
 **ハブ背景の写真化(完了、2026-08-14)**: 手描きSVGシルエットは廃止し、`backgrounds/<city>.jpg`(都市ごとに1枚、JPEG・軽量化済み)を実背景として採用。時間帯ごとの見た目は画像を差し替えず、CSSの `filter`(brightness/saturate/hue-rotate)+ `mix-blend-mode: multiply` の色調オーバーレイのみで作る。太陽/月の可動域は狭い帯に収めてある(`hub.html` は上部バーの高さ(28〜40px)でプロフィールカードに重ならない、`index.html` は上部バーのすぐ下(画面の高さの6〜9%))。新しい都市を追加する場合は `backgrounds/<key>.jpg` を追加し、`hub.html`/`index.html` 両方の `PLACES` 配列にエントリを足すだけでよい。
 
@@ -254,6 +255,15 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
   - Moku Bridge はタイトル画面のヒーロー画像に全部の服を、プレイ中の後ろ姿の Moku には帽子だけを描く。他のタイトルでも `MokuMoint.outfitSVG()` / `layerImage()` で同じ服を着せられる。
 - 最初に導入したのは Moku Bridge。財布は `localStorage` の `moku:moint:wallet` = `{ version: 1, balance, updatedAt }`(ゲームIDを付けないシリーズ共通キー。`moku:` 接頭辞なのでクラウドセーブ・引き継ぎコードの対象)。
 - 他のタイトルで Moint を配る・使う場合も同じキーを読み書きする。`balance` は 0 未満にしない。
+- **他のゲームへの展開**(2026-10-25〜、1本ずつ): 相場は「1回遊ぶ(2〜3分)と 50〜150、毎日遊べば 300 Moint の物が1日1個買える」。
+  - 配る時は `MokuMoint.earn(gameId, amount)`。毎回もらえる分(勝ち・クリアなど)は**1ゲーム1日 500 まで**(`DAILY_GAME_CAP`)。1回きりの実績は `{ capped: false }` で上限の外。今日の分は `moku:moint:earned` = `{ version: 1, day, games: { gameId: n }, updatedAt }`(クラウドセーブではこの端末の値を使う)。実績を受け取ったかどうかはそのゲーム自身のセーブに記録する(2台で食い違った時、ゲームごとに選ばせるため)。
+  - **ハブの印**: `hub.html` の `CATALOG` に `moint: { how, cap }` を書いたゲームは、タイルの左上に小さい金色のMコインが付き、詳細シートに「Earn Moints」(もらい方の説明。`cap` があれば今日の分 n / 500)が出る。今は Moku Fight と Moku Bridge。
+  - 次の候補: Moku Drop / Moyomoyo(自己ベスト・スコア突破)、Moku Kart(独自コインがあるので実績だけにするか要相談)など。
+- **Moku Fight**(2026-10-25〜): 結果画面に内訳(コインが数え上がる)。タイトル画面に残高と今日の分。負けても減らない。
+  - 毎回(上限 500/日): 勝ち Easy 30 / Normal 60 / Hard 120。ノーダメージで取ったラウンドがあれば +20。連勝ボーナスは2連勝目から1つごとに +10(最大 +50)。
+  - 1回きり: ライバルごと・CPUの難易度ごとの初勝利 100 / 200 / 300(ゲストのライバルも)。Goro への初勝利は 500(その時の難易度の初勝利も済みにする)。新しい技を覚えた 50。技の練習を初めて終えた 10。
+  - 受け取り済みは `moku:moku-fight:progress` の `mointClaims`(`"kon:normal": true` `boss` など)。Moint 導入前に覚えた技・勝った相手には払わない(勝ち直せばライバルの初勝利はもらえる)。
+  - 今回は貯めるだけ(Moku Fight の中で使う場所はない)。使い道は Moku Closet。
 - Moku Bridge 内の買い物(Hint 15 / Magic Carpet 40)と所持数は `moku:moku-bridge:progress` の `items`。初回だけお試し用に 40 Moint 配る(`welcomeGift`)。
 - Moku Bridge で橋を渡りきると最低 100 Moint(8段の橋 100 / 9段 110 / 10段 120)+ヒントなしで当てた段ごとに 10 + 1回目でクリアなら 50。
 - Moku Bridge で落ちると 3 Moint 減る(残高が 3 未満ならあるだけ。0 未満にはしない)。

@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<script src="shared/moku-errors.js?v=20261025b"></script>
-<script src="shared/moku-gate.js?v=20261025b"></script>
+<script src="shared/moku-errors.js?v=20261025c"></script>
+<script src="shared/moku-gate.js?v=20261025c"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Moku Series</title>
 <!-- Icons: made by scripts/make-icons.py. Bump ?v= when they change so browsers refetch. -->
@@ -875,6 +875,38 @@ body[data-band="morning"] #starsLayer { --star-opacity: 0.15; }
   box-shadow: 0 0 10px rgba(110,231,168,0.6);
 }
 .tile.is-completed .tile-check { display: flex; }
+/* Moint games (SPEC.md §13): a small gold coin at the tile's top-left */
+.tile-moint {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 35% 30%, #FFE7A3, #F5B83D 60%, #D9931E);
+  box-shadow: inset 0 -1.5px 0 rgba(154,101,18,0.6), 0 2px 6px rgba(0,0,0,0.35);
+  color: #7A4A0C;
+  font-size: 11.5px;
+  font-weight: 900;
+  line-height: 1;
+}
+.sheet-moint {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255,201,74,0.08);
+  border: 1px solid rgba(255,201,74,0.3);
+}
+.sheet-moint[hidden] { display: none; }
+.sheet-moint .tile-moint { position: static; flex: none; margin-top: 1px; }
+.sheet-moint b { display: block; font-size: 13px; font-weight: 800; color: #FFD27A; margin-bottom: 2px; }
+.sheet-moint span:not(.tile-moint) { font-size: 12.5px; line-height: 1.5; color: rgba(237,238,246,0.75); }
 .tile-name {
   font-weight: 800;
   text-shadow: 0 1px 4px rgba(0,0,0,0.85);
@@ -1548,6 +1580,10 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
       <h2 id="sheetName"></h2>
       <p class="sheet-tag" id="sheetTag"></p>
       <p class="sheet-desc" id="sheetDesc"></p>
+      <div class="sheet-moint" id="sheetMoint" hidden>
+        <span class="tile-moint" aria-hidden="true">M</span>
+        <div><b>Earn Moints</b><span id="sheetMointText"></span></div>
+      </div>
       <div class="sheet-progress" id="sheetProgress">
         <div class="sheet-progress-label" id="sheetProgressLabel"></div>
         <div class="meter"><div class="meter-fill" id="sheetMeter"></div></div>
@@ -2361,6 +2397,8 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
   // by the same `card`. To add a title: add its GAMES entry, a CATALOG entry,
   // put its key in one of SHELVES, and add icons/games/<gameId>.svg and
   // screenshots/<gameId>.jpg. `newUntil` shows a NEW pill until that date.
+  // `moint` = the game hands out Moints (SPEC.md §13): a small coin on its
+  // tile, and `how` (+ today's total when `cap` is set) in the detail sheet.
   var CATALOG = {
     am:  { name: 'Angry Mokumoku', gameId: 'angry-mokumoku', genre: 'Slingshot Action', cta: 'Play', hi: '#4CBE55', lo: '#1A5020',
            tag: 'Fling Moku. Topple the fort.',
@@ -2373,7 +2411,8 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
            desc: 'Score more goals than your opponent before time runs out in this quick soccer match.' },
     mfg: { name: 'Moku Fight', gameId: 'moku-fight', genre: 'Fighting', cta: 'Fight', hi: '#2EC4B6', lo: '#145A55', newUntil: '2026-11-10',
            tag: 'Peck, combo, Leaf Storm!',
-           desc: 'Moku vs Rivals! Take on Kon, Ponta and Nox with pecks, Razor Leaf, combos and Leaf Storm!' },
+           desc: 'Moku vs Rivals! Take on Kon, Ponta and Nox with pecks, Razor Leaf, combos and Leaf Storm!',
+           moint: { cap: true, how: 'Win a match: +30 to +120 (Easy to Hard). First win over each rival: +100 to +300. Beat Goro: +500. New move: +50.' } },
     mkt: { name: 'Moku Kart Dash', gameId: 'moku-kart', genre: 'Circuit Race', cta: 'Race', hi: '#9BD770', lo: '#2F5A1A',
            tag: 'Drift through forest circuits.',
            desc: 'Drift and dash across forest circuits using acorns and mini-turbos!' },
@@ -2415,7 +2454,8 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
            desc: 'Real-physics 3D arcade claw machine — aim, drop, and grab cute Moku prizes for your collection.' },
     mbr: { name: 'Moku Bridge', gameId: 'moku-bridge', genre: 'Glass Bridge', cta: 'Cross', hi: '#5ED6E8', lo: '#16596A', newUntil: '2026-11-25',
            tag: 'Pick the right glass. Cross the sky!',
-           desc: 'Left or right? Hop across the glass bridge in the sunset sky. Earn Moints and use Hints or a Magic Carpet to help Moku!' }
+           desc: 'Left or right? Hop across the glass bridge in the sunset sky. Earn Moints and use Hints or a Magic Carpet to help Moku!',
+           moint: { how: 'Cross a bridge: +100 or more. Lucky steps: +10 each. First try: +50.' } }
   };
   var SHELVES = [
     { title: 'Action & Sports', sub: 'Fling, kick, fight, race', cards: ['am', 'br', 'mk', 'mfg', 'mkt', 'mfr'] },
@@ -2547,9 +2587,15 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
         var tile = el('button', 'tile');
         tile.type = 'button';
         tile.setAttribute('data-game', key);
-        tile.setAttribute('aria-label', c.name + ': ' + c.tag);
+        tile.setAttribute('aria-label', c.name + ': ' + c.tag + (c.moint ? ' (Earn Moints)' : ''));
         var icon = makeIcon(c);
         if (isNewTitle(c)) icon.appendChild(el('span', 'new-pill', 'NEW'));
+        if (c.moint) {
+          var coin = el('span', 'tile-moint', 'M');
+          coin.title = 'Earn Moints';
+          coin.setAttribute('aria-hidden', 'true');
+          icon.appendChild(coin);
+        }
         var check = el('span', 'tile-check', '✓');
         check.setAttribute('aria-hidden', 'true');
         icon.appendChild(check);
@@ -2643,6 +2689,13 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     document.getElementById('sheetName').textContent = c.name;
     document.getElementById('sheetTag').textContent = c.tag;
     document.getElementById('sheetDesc').textContent = c.desc;
+    var mo = document.getElementById('sheetMoint');
+    mo.hidden = !c.moint;
+    if (c.moint) {
+      var today = c.moint.cap && window.MokuMoint
+        ? ' Today: ' + MokuMoint.earnedToday(c.gameId) + ' / ' + MokuMoint.DAILY_GAME_CAP + ' from wins.' : '';
+      document.getElementById('sheetMointText').textContent = c.moint.how + today;
+    }
 
     var prog = document.getElementById('sheetProgress');
     var hasProgress = Boolean(st.played || st.completed);
@@ -3019,8 +3072,8 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
   };
 })();
 </script>
-<script src="shared/moku-account.js?v=20261025b"></script>
-<script src="shared/moku-transfer.js?v=20261025b"></script>
-<script src="shared/moku-moint.js?v=20261025b"></script>
+<script src="shared/moku-account.js?v=20261025c"></script>
+<script src="shared/moku-transfer.js?v=20261025c"></script>
+<script src="shared/moku-moint.js?v=20261025c"></script>
 </body>
 </html>
