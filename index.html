@@ -465,7 +465,7 @@ footer.page-footer {
 <p id="whatsPanel" hidden>
   Moku Series is a free collection of bite-sized mini-games starring Mokumoku the owl —
   action, puzzles, sports, racing and cozy games. Just pick a game and play.
-  Log in to keep your progress on every device.
+  Log in to play (ask a parent for an invite code), and your progress is saved on every device.
 </p>
 
 <div class="main-shell">
@@ -811,8 +811,40 @@ footer.page-footer {
     }
   }
 
+  // Games and the hub are for logged-in players (shared/moku-gate.js sends
+  // guests here with ?next=<page>). Guests' Get Started opens the login, and
+  // once logged in and synced the player goes on to the page they wanted.
+  var next = null;
+  try {
+    var asked = new URLSearchParams(location.search).get('next') || '';
+    if (/^(?!index\.html|admin\.html)[a-z0-9-]+\.html([?#].*)?$/.test(asked)) next = asked;
+  } catch (e) {}
+
+  // Only after a sync has run on this page (the boot sync, or the one right
+  // after logging in), so the game starts from the newest cloud save.
+  var synced = false;
+  function goNext() {
+    if (!next || !synced || !currentUser()) return;
+    var st = acc.getStatus();
+    if (st === 'syncing' || st === 'conflict') return; // wait for the save to settle
+    location.replace(next);
+  }
+
+  var startBtn = document.getElementById('getStartedBtn');
+  startBtn.addEventListener('click', function (e) {
+    if (acc && acc.isEnabled() && !currentUser()) {
+      e.preventDefault();
+      acc.openLogin();
+    }
+  });
+
   render();
-  if (acc) acc.onStatusChange(render);
+  if (acc) acc.onStatusChange(function (st) {
+    if (st !== 'syncing') synced = true;
+    render();
+    goNext();
+  });
+  if (next && acc && acc.isEnabled() && !currentUser()) acc.openLogin();
   if (moint) moint.onChange(render);
   window.addEventListener('storage', function (e) {
     if (!e.key || e.key.indexOf('moku:account:') === 0 || e.key.indexOf('moku:moint:') === 0) render();
