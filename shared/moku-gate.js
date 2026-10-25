@@ -50,8 +50,11 @@
   window.addEventListener('storage', function (e) {
     if ((e.key === null || e.key === 'moku:account:token') && !hasSession()) toLogin();
   });
-  window.addEventListener('load', function () {
+  // DOMContentLoaded: moku-account.js is loaded by then, and this handler
+  // (added from <head>) runs before its boot sync, so no status change is missed.
+  document.addEventListener('DOMContentLoaded', function () {
     var acc = window.MokuAccount;
     if (acc && acc.onStatusChange) acc.onStatusChange(function () { if (!hasSession()) toLogin(); });
+    if (!hasSession()) toLogin();
   });
 })();

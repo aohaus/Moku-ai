@@ -820,8 +820,11 @@ footer.page-footer {
     if (/^(?!index\.html|admin\.html)[a-z0-9-]+\.html([?#].*)?$/.test(asked)) next = asked;
   } catch (e) {}
 
+  // Only after a sync has run on this page (the boot sync, or the one right
+  // after logging in), so the game starts from the newest cloud save.
+  var synced = false;
   function goNext() {
-    if (!next || !currentUser()) return;
+    if (!next || !synced || !currentUser()) return;
     var st = acc.getStatus();
     if (st === 'syncing' || st === 'conflict') return; // wait for the save to settle
     location.replace(next);
@@ -836,8 +839,11 @@ footer.page-footer {
   });
 
   render();
-  goNext();
-  if (acc) acc.onStatusChange(function () { render(); goNext(); });
+  if (acc) acc.onStatusChange(function (st) {
+    if (st !== 'syncing') synced = true;
+    render();
+    goNext();
+  });
   if (next && acc && acc.isEnabled() && !currentUser()) acc.openLogin();
   if (moint) moint.onChange(render);
   window.addEventListener('storage', function (e) {
