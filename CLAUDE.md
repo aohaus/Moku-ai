@@ -33,6 +33,7 @@
 | Moku Wolf | `moku-wolf.html` | パーティー(ワードウルフ、1台を回して遊ぶ) |
 | Moku Watch 6 Lazy | `moku-watch-6-lazy.html` | 怠け者のスマートウォッチ |
 | Moku-rane | `moku-rane.html` | 3Dクレーンゲーム |
+| Moku Bridge | `moku-bridge.html` | ガラスの橋渡り(左右を選ぶ運試し+Mointショップ) |
 | Mokuball | `mokuball.html` | サッカー/ピンボール風(ハブ未公開) |
 
 ハブは `index.html`(入口のスプラッシュ)と `hub.html`(ゲーム一覧)。最新の一覧は `hub.html` の `CATALOG` が正。

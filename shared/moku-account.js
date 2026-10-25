@@ -11,8 +11,9 @@
  *     full-width call-to-action card instead of the small chip (index.html);
  *     add data-moku-new-until="YYYY-MM-DD" to show a NEW pill until that day.
  *     The account panel lists the player's saves when the page defines
- *     window.MOKU_SAVE_SUMMARY(savedAt) (hub.html does), and everyone else
- *     with an account (GET /players). Opening a page with #profile shows it.
+ *     window.MOKU_SAVE_SUMMARY(savedAt) (hub.html does), records to show off
+ *     ("My Bests") when it defines window.MOKU_PROFILE_BESTS(), and everyone
+ *     else with an account (GET /players). Opening a page with #profile shows it.
  *     Swaps the text of [data-moku-greeting]
  *     to "Hello, <name>!", and syncs progress with the cloud on load.
  *   <script src="shared/moku-account.js" data-mode="none"></script>
@@ -422,6 +423,7 @@
     '.mka-row-main span{font-size:12px;font-weight:600;color:rgba(237,238,246,0.62);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
     '.mka-row-side{flex:none;font-size:11.5px;font-weight:700;color:rgba(237,238,246,0.5);text-align:right}',
     '.mka-row-side.is-online{color:#6EE7A8}',
+    '.mka-best{flex:none;font-size:15px;font-weight:800;color:#FFE27A;text-align:right;white-space:nowrap}',
     '.mka-row .mka-avatar{width:32px;height:32px;font-size:14px}',
     '.mka-you{margin-left:6px;font-size:10px;font-weight:800;letter-spacing:0.06em;color:#10121E;background:#6EE7A8;',
     'padding:2px 6px;border-radius:999px;vertical-align:2px}',
@@ -701,7 +703,7 @@
         '<p class="mka-sub">Player ID: ' + esc(user.loginId) + '</p></div>' +
         '<div class="mka-meta"><span>' + esc(statusText()) + '</span>' +
         '<span>Leaderboard name: <b>' + esc(user.displayName) + '</b> #' + esc(user.tag) + '</span></div>' +
-        savesSection() + playersSection() +
+        bestsSection() + savesSection() + playersSection() +
         '<div class="mka-actions mka-section">' +
         '<button class="mka-secondary" type="button" data-act="sync">☁️ Save now</button>' +
         '<button class="mka-secondary" type="button" data-go="pin">🔑 Change PIN</button>' +
@@ -830,6 +832,22 @@
   function moreButton(name, total) {
     if (expanded[name] || total <= LIST_PREVIEW) return '';
     return '<button class="mka-link mka-more" type="button" data-more="' + name + '">Show all (' + total + ')</button>';
+  }
+
+  // "My Bests": records worth showing off (hub.html provides them with
+  // window.MOKU_PROFILE_BESTS(); pages without it simply skip the section).
+  function bestsSection() {
+    if (typeof global.MOKU_PROFILE_BESTS !== 'function') return '';
+    var bests = [];
+    try { bests = global.MOKU_PROFILE_BESTS() || []; } catch (e) {}
+    if (!bests.length) return '';
+    return '<div class="mka-section"><h3 class="mka-section-h">My Bests</h3><div class="mka-list">' + bests.map(function (b) {
+      return '<div class="mka-row">' +
+        '<span class="mka-tile" style="background:linear-gradient(150deg,' + esc(b.hi || '#888') + ',' + esc(b.lo || '#444') + ')">' +
+        (b.icon ? '<img src="' + esc(b.icon) + '" alt="">' : '') + '</span>' +
+        '<span class="mka-row-main"><b>' + esc(b.title) + '</b><span>' + esc(b.game) + '</span></span>' +
+        '<span class="mka-best">' + esc(b.value) + '</span></div>';
+    }).join('') + '</div></div>';
   }
 
   function savesSection() {
