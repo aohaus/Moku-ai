@@ -10,6 +10,7 @@
 - **スタック名**: `moku-backend`(リージョン `ap-southeast-5` マレーシア。dreamlo-proxy と同じ)
 - **ApiUrl**: `https://d6hl1cxi0i.execute-api.ap-southeast-5.amazonaws.com`(`shared/moku-account.js` の `API_BASE_URL` に設定済み)
 - **AllowedOrigin**: `https://aohaus.github.io`(これ以外のサイトからはブラウザが API を呼べない。公開先を変えたら再デプロイが必要)
+- **ExtraAllowedOrigin**: `https://dechatgpt.com`(2026-10-25〜。Cloudflare で `https://dechatgpt.com/Moku-ai/` から同じページを配信している。初期値に入っているので `sam deploy` だけで反映される。パスは付けず scheme+host だけ)
 - `AuthSecret` / `InviteCode` の値はリポジトリには書かない(保護者が保管)。
 
 ## デプロイ / 更新の手順(AWS CloudShell を使う)

@@ -10,19 +10,18 @@
  * so the game never flashes on screen.
  *
  * The check is local (the saved session token and its expiry), so a logged-in
- * player can still play offline. It only runs where the account API runs
- * (aohaus.github.io and `npm run dev`); a file opened straight from disk
- * still works for development. GitHub Pages is a static host, so this keeps
- * casual visitors out but cannot stop someone who reads the page source.
+ * player can still play offline. It runs on every web address the pages are
+ * served from (aohaus.github.io, dechatgpt.com via Cloudflare, `npm run dev`,
+ * and any future one), so a new domain can't skip it. Only a file opened
+ * straight from disk, or a local server other than `npm run dev`, is left
+ * open for development. GitHub Pages is a static host, so this keeps casual
+ * visitors out but cannot stop someone who reads the page source.
  */
 (function () {
   'use strict';
 
-  // Same hosts as resolveBase() in shared/moku-account.js — keep in sync.
-  var host = location.hostname;
-  var gated = host === 'aohaus.github.io' ||
-    (/^(localhost|127\.0\.0\.1)$/.test(host) && location.port === '3000');
-  if (!gated) return;
+  var isLocal = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+  if (location.protocol === 'file:' || (isLocal && location.port !== '3000')) return;
 
   // Token = base64url(JSON payload) + "." + signature (backend/src/token.js).
   // The signature is checked by the server; here we only read the expiry.
