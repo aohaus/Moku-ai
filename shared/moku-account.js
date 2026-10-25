@@ -58,6 +58,14 @@
   // "saved" times in the profile.
   var SAVED_AT_KEY = 'moku:meta:saved-at';
   var NOT_PROGRESS = ['moku:stats:streak', SAVED_AT_KEY];
+  // The series-wide Moint wallet (shared/moku-moint.js). When both this
+  // device and the cloud changed it, the two changes are added together.
+  var WALLET_KEY = 'moku:moint:wallet';
+  var CLOSET_KEY = 'moku:moint:closet';
+  // Bookkeeping (visit streak, "last played" times, completed flags, the
+  // Daily Bonus record): if both sides changed one, keep this device's —
+  // nobody loses progress over these.
+  var SOFT_PREFIXES = ['moku:stats:', 'moku:played:', 'moku:completed:', 'moku:meta:', 'moku:moint:daily'];
   var HEARTBEAT_MS = 2 * 60 * 1000; // keeps "online" in the players list fresh
   var PLAYERS_TTL_MS = 60 * 1000;
   var KEEPALIVE_MAX_BYTES = 60000; // browsers cap keepalive bodies at 64 KB
@@ -173,8 +181,84 @@
   // hashes let the next sync tell which saves changed in between.
   function setSyncState(user, rev, data) {
     lsSet(SYNC_KEY, JSON.stringify({
-      lid: user.loginId, rev: rev, hash: hashData(data), keys: keyHashes(data), at: new Date().toISOString()
+      lid: user.loginId, rev: rev, hash: hashData(data), keys: keyHashes(data),
+      wallet: data[WALLET_KEY] || null, at: new Date().toISOString()
     }));
+  }
+
+  function walletBalance(raw) {
+    try { var w = JSON.parse(raw); return w && typeof w.balance === 'number' ? w.balance : null; } catch (e) { return null; }
+  }
+  // Moints earned or spent on this device since the last sync are added to
+  // the cloud's balance, so playing on two devices never loses coins.
+  function mergeWallet(localRaw, remoteRaw, baseRaw) {
+    var l = walletBalance(localRaw), r = walletBalance(remoteRaw), b = walletBalance(baseRaw);
+    if (l === null) return remoteRaw;
+    if (r === null) return localRaw;
+    var w = JSON.parse(remoteRaw);
+    w.balance = Math.max(0, b === null ? Math.max(l, r) : r + (l - b));
+    w.updatedAt = new Date().toISOString();
+    return JSON.stringify(w);
+  }
+  // Moku Closet: keep every outfit bought on either device; wear this device's.
+  function mergeCloset(localRaw, remoteRaw) {
+    try {
+      var l = JSON.parse(localRaw), r = JSON.parse(remoteRaw);
+      (r.owned || []).forEach(function (id) { if (l.owned.indexOf(id) < 0) l.owned.push(id); });
+      l.updatedAt = new Date().toISOString();
+      return JSON.stringify(l);
+    } catch (e) { return localRaw; }
+  }
+  function isSoftKey(key) {
+    return SOFT_PREFIXES.some(function (p) { return key.indexOf(p) === 0; });
+  }
+
+  // "moku:moku-bridge:progress" → "Moku Bridge" (older key styles too).
+  var LEGACY_GAMES = { 'amoku-': 'Angry Mokumoku', 'moyomoyo-': 'Moyomoyo', 'moku:save': 'Battle Royal',
+    'moku_drop_': 'Moku Drop', 'moku_bento_': 'Moku Bento', 'moku_fishing_': 'Moku Fishing Pond',
+    'moku_kart_': 'Moku Kart Dash', 'moku_rhythm_': 'Moku Rhythm Cafe', 'moku_wolf_': 'Moku Wolf', 'moku:mr:': 'Moku-rane' };
+  function gameNames(keys) {
+    var names = [];
+    keys.forEach(function (k) {
+      var name = null;
+      Object.keys(LEGACY_GAMES).forEach(function (p) { if (!name && k.indexOf(p) === 0) name = LEGACY_GAMES[p]; });
+      var m = !name && /^moku:([a-z0-9-]+):/.exec(k);
+      if (m) name = m[1].split('-').map(function (w) { return w.charAt(0).toUpperCase() + w.slice(1); }).join(' ');
+      if (name && names.indexOf(name) < 0) names.push(name);
+    });
+    return names;
+  }
+
+  // Three-way merge against what this device and the cloud last agreed on
+  // (st.keys). A save changed on one side only is taken from that side; the
+  // wallet and hub bookkeeping settle themselves; only a save changed on
+  // both sides (the same game played on two devices) is a real conflict.
+  // Returns { data, conflicts: [key], pickedLocal: { key: true } }.
+  function mergeSaves(local, remote, st) {
+    var base = st.keys || {};
+    var data = {}, conflicts = [], pickedLocal = {};
+    var seen = {};
+    Object.keys(local).concat(Object.keys(remote)).forEach(function (k) {
+      if (seen[k] || k === SAVED_AT_KEY) return;
+      seen[k] = true;
+      var l = local[k], r = remote[k];
+      var localChanged = (l === undefined ? undefined : hashStr(l)) !== base[k];
+      var remoteChanged = (r === undefined ? undefined : hashStr(r)) !== base[k];
+      var v;
+      if (!remoteChanged) { v = l; pickedLocal[k] = localChanged; }
+      else if (!localChanged || l === r) v = r;
+      else if (k === WALLET_KEY) {
+        // No wallet at the last sync = it started at 0. A sync state saved
+        // before balances were recorded (no st.wallet) can't tell → max.
+        v = mergeWallet(l, r, base[k] === undefined ? '{"balance":0}' : st.wallet);
+        pickedLocal[k] = true;
+      }
+      else if (k === CLOSET_KEY && l !== undefined && r !== undefined) { v = mergeCloset(l, r); pickedLocal[k] = true; }
+      else if (isSoftKey(k)) { v = l !== undefined ? l : r; pickedLocal[k] = true; }
+      else { conflicts.push(k); return; }
+      if (v !== undefined) data[k] = v;
+    });
+    return { data: data, conflicts: conflicts, pickedLocal: pickedLocal };
   }
 
   function readSavedAt(data) {
@@ -321,6 +405,22 @@
           adoptRemote(user, remote);
           return 'ok';
         }
+        if (st) {
+          // Both sides changed since the last sync: combine them instead of
+          // making the player throw one side away.
+          var merged = mergeSaves(local, remote.data, st);
+          if (!merged.conflicts.length) return keepMerged(user, merged, local, remote, interactive);
+          if (!interactive) return 'conflict';
+          return chooseSave(remote, local, merged.conflicts).then(function (choice) {
+            if (choice !== 'cloud' && choice !== 'device') return 'conflict';
+            merged.conflicts.forEach(function (k) {
+              var v = choice === 'cloud' ? remote.data[k] : local[k];
+              if (v !== undefined) merged.data[k] = v;
+              merged.pickedLocal[k] = choice === 'device';
+            });
+            return keepMerged(user, merged, local, remote, true);
+          });
+        }
         if (!interactive) return 'conflict';
         return chooseSave(remote, local).then(function (choice) {
           if (choice === 'cloud') {
@@ -346,6 +446,33 @@
       return result;
     });
     return running;
+  }
+
+  // Uploads a merged save, then puts it on this device. Nothing local is
+  // written until the cloud has it, so a failed try can simply run again
+  // (re-merging a half-written result would count Moints twice).
+  function keepMerged(user, merged, local, remote, interactive) {
+    var data = merged.data;
+    var changesHere = Object.keys(data).some(function (k) { return data[k] !== local[k]; }) ||
+      Object.keys(local).some(function (k) { return k !== SAVED_AT_KEY && !(k in data); });
+    // Pages read localStorage once on load; only the hub (interactive) may
+    // rewrite it and reload. Background calls leave it for the next visit.
+    if (changesHere && !interactive) return Promise.resolve('conflict');
+    // "Saved at" stamps: the cloud's, plus "now" for what this device adds.
+    var stamps = readSavedAt(remote.data);
+    var now = new Date().toISOString();
+    Object.keys(stamps).forEach(function (k) { if (!(k in data)) delete stamps[k]; });
+    Object.keys(data).forEach(function (k) { if (merged.pickedLocal[k] || !stamps[k]) stamps[k] = now; });
+    data[SAVED_AT_KEY] = JSON.stringify(stamps);
+    return upload(user, data, remote.rev).then(function () {
+      if (changesHere) {
+        replaceLocal(data);
+        location.reload();
+      } else {
+        lsSet(SAVED_AT_KEY, data[SAVED_AT_KEY]);
+      }
+      return 'ok';
+    });
   }
 
   // Best-effort upload when the page goes away. Only when this device is
@@ -746,8 +873,12 @@
         '<div class="mka-actions"><button class="mka-secondary" type="button" data-act="logout-force">Log Out & Keep Progress Here</button>' +
         '<button class="mka-link" type="button" data-go="account">Cancel</button></div>';
     } else if (view === 'conflict') {
+      var games = data.games && data.games.length ? data.games : null;
       html += HERO + '<h2 class="mka-title" id="mkaTitle">Which save should we use?</h2>' +
-        '<p class="mka-sub">This device and the cloud have different progress. The one you don’t pick will be replaced.</p></div>' +
+        (games
+          ? '<p class="mka-sub">You played <b>' + esc(games.join(', ')) + '</b> here and on another device. ' +
+            'Everything else is already saved together. Pick which progress to keep for ' + (games.length > 1 ? 'these games' : 'this game') + '.</p></div>'
+          : '<p class="mka-sub">This device and the cloud have different progress. The one you don’t pick will be replaced.</p></div>') +
         '<div class="mka-actions">' +
         '<button class="mka-choice" type="button" data-pick="cloud"><span class="mka-icon">☁️</span><span><b>Cloud save</b>' +
         '<span>Saved ' + esc(fmtDate(data.remote.updatedAt)) + (data.remote.device ? ' on ' + esc(data.remote.device) : '') + '</span></span></button>' +
@@ -926,10 +1057,12 @@
     }).join('') + '</div>' + moreButton('players', players.length) + '</div>';
   }
 
-  function chooseSave(remote, local) {
+  // `keys` (optional) = the saves changed on both sides; everything else is
+  // already combined, so the question is only about these games.
+  function chooseSave(remote, local, keys) {
     return new Promise(function (resolve) {
       if (conflictResolve) conflictResolve(null);
-      openModal('conflict', { remote: remote, local: local });
+      openModal('conflict', { remote: remote, local: local, games: keys ? gameNames(keys) : null });
       conflictResolve = resolve;
     });
   }
