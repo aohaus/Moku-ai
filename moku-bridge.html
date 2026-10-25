@@ -89,11 +89,13 @@ body.on-title #controls { display: none; }
 #titleHero {
   width: min(200px, 44vw, 26vh);
   aspect-ratio: 1;
-  object-fit: cover;
-  object-position: center 30%;
+  position: relative;
   filter: drop-shadow(0 0 18px rgba(94,214,232,0.65)) drop-shadow(0 6px 10px rgba(60,30,20,0.35));
   animation: heroFloat 3.2s ease-in-out infinite;
 }
+/* ハブの Moku Closet で選んだ服を同じ 100×100 グリッドで重ねる */
+#titleHero img, #titleHero svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#titleHero img { object-fit: cover; object-position: center 30%; }
 @keyframes heroFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 #titleName {
   margin-top: 6px;
@@ -409,6 +411,7 @@ body.on-title #controls { display: none; }
 }
 </style>
 <script src="shared/moku-account.js" data-mode="background"></script>
+<script src="shared/moku-moint.js" data-mode="none"></script>
 </head>
 <body class="on-title">
 
@@ -416,7 +419,7 @@ body.on-title #controls { display: none; }
 
 <div id="title-frame"></div>
 <a id="hub-link" href="index.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.3.1 · Updated Oct 25, 2026</div>
+<div id="buildInfo">v0.4.0 · Updated Oct 25, 2026</div>
 
 <!-- Item icons, reused by the HUD and the shop -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -439,7 +442,7 @@ body.on-title #controls { display: none; }
 </svg>
 
 <section id="titleScreen" aria-label="Title">
-  <img id="titleHero" src="brand/mokumoku-hero.png" alt="Moku">
+  <div id="titleHero"><img src="brand/mokumoku-hero.png" alt="Moku"><span id="titleOutfit"></span></div>
   <h1 id="titleName">Moku<span>BRIDGE</span></h1>
   <p id="titleTag">Pick the right glass. Cross the sky!</p>
   <div class="titleMenu">
@@ -491,7 +494,7 @@ body.on-title #controls { display: none; }
 <div class="overlay" id="shopOverlay" role="dialog" aria-label="Moint Shop">
   <div class="card">
     <h2>Moint Shop</h2>
-    <p class="sub">Spend Moints on helpers for the bridge.</p>
+    <p class="sub">Spend Moints on helpers for the bridge. Outfits for Moku are in the Moku Closet on the Moku Series page.</p>
     <div class="moint-chip shop-bal"><span class="moint-coin">M</span><span data-moints>0</span></div>
     <div class="shop-list" id="shopList"></div>
     <div class="card-actions">
@@ -508,7 +511,7 @@ body.on-title #controls { display: none; }
       <li><span>🕹️</span><span>Push the <b>stick</b> left or right, then let go to hop.</span></li>
       <li><span>☁️</span><span>Pick the weak one and Moku falls into the soft clouds. A fall costs <b>3 Moints</b>.</span></li>
       <li><span>🧠</span><span>Moku remembers every panel he tried. Try again and get farther!</span></li>
-      <li><span>🏁</span><span>Reach the goal to win <b>Moints</b>. Lucky guesses give bonus Moints.</span></li>
+      <li><span>🏁</span><span>Reach the goal to win <b>100+ Moints</b>. Lucky guesses give bonus Moints.</span></li>
       <li><span>💡</span><span><b>Hint</b>: the strong panel glows for a moment.</span></li>
       <li><span>✨</span><span><b>Magic Carpet</b>: flies Moku 3 glasses ahead. The glasses you skip stay a secret!</span></li>
       <li><span>🍀</span><span><b>Luckiest Steps</b>: lucky guesses in a row. Beat your record and show it off in your profile!</span></li>
@@ -552,6 +555,8 @@ body.on-title #controls { display: none; }
   var WELCOME_MOINTS = 40;
   var FALL_PENALTY = 3;   // 落ちたら Moint を少しだけ失う(0 未満にはしない)
   var PRICES = { hint: 15, carpet: 40 };
+  var GOAL_MOINTS = 100;  // ゴールしたら最低 100 Moint(長い橋ほど少し多い)
+  var LUCKY_MOINTS = 10;  // ヒントなしで当てた段ごとのボーナス
   var CARPET_JUMP = 3;    // Magic Carpet は3枚先のガラスまで飛ぶ(とばした段は踏まないので分からないまま)
 
   function readJSON(key) {
@@ -1095,8 +1100,8 @@ body.on-title #controls { display: none; }
   function showClear() {
     state = STATE.RESULT;
     var n = stepsFor(progress.bridge);
-    var base = n * 4;
-    var lucky = run.lucky * 5;
+    var base = GOAL_MOINTS + (n - stepsFor(1)) * 10;   // 100 / 110 / 120
+    var lucky = run.lucky * LUCKY_MOINTS;
     var first = progress.tries === 1 ? 50 : 0;
     var total = base + lucky + first;
     progress.cleared = (progress.cleared || 0) + 1;
@@ -1632,6 +1637,12 @@ body.on-title #controls { display: none; }
     ctx.fillStyle = '#D6B28C';
     ctx.beginPath(); ctx.ellipse(-r * 0.1, cy - bh * 0.96, r * 0.09, r * 0.13, -0.4, 0, Math.PI * 2); ctx.fill();
     ctx.beginPath(); ctx.ellipse(r * 0.08, cy - bh * 0.98, r * 0.08, r * 0.12, 0.35, 0, Math.PI * 2); ctx.fill();
+    // ハブの Moku Closet でかぶせた帽子(shared/moku-moint.js の 100×100 グリッドの絵。頭のてっぺん ≈ y 8)
+    var hat = window.MokuMoint && MokuMoint.layerImage('head');
+    if (hat) {
+      var u = bw * 2 / 76;
+      ctx.drawImage(hat, -50 * u, cy - bh - 10 * u, 100 * u, 100 * u);
+    }
     // green leaf bow-tie tips just peeking out at the sides of the neck
     ctx.fillStyle = MOKU_LEAF;
     ctx.beginPath(); ctx.moveTo(-bw * 0.93, cy + r * 0.32); ctx.lineTo(-bw * 1.08, cy + r * 0.22); ctx.lineTo(-bw * 1.02, cy + r * 0.42); ctx.closePath(); ctx.fill();
@@ -1847,13 +1858,21 @@ body.on-title #controls { display: none; }
   // 別タブ・別ゲームで Moint が増減したら表示を合わせる
   window.addEventListener('storage', function (e) {
     if (e.key === WALLET_KEY || e.key === null) { refreshWallet(); renderMoints(); }
+    if (!e.key || e.key.indexOf('moku:moint:') === 0) renderOutfit();
   });
   document.addEventListener('visibilitychange', function () {
-    if (!document.hidden) { refreshWallet(); renderMoints(); }
+    if (!document.hidden) { refreshWallet(); renderMoints(); renderOutfit(); }
   });
+
+  // タイトル画面の Moku にも、ハブの Moku Closet で選んだ服を着せる
+  function renderOutfit() {
+    if (!window.MokuMoint) return;
+    $('titleOutfit').innerHTML = MokuMoint.outfitSVG(MokuMoint.closet().equipped);
+  }
 
   saveAll();
   renderMoints();
+  renderOutfit();
 })();
 </script>
 </body>

@@ -224,9 +224,15 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
 
 ## 13. Moint(シリーズ共通通貨、2026-10-25〜)
 
+- 共通ヘルパー: [`shared/moku-moint.js`](shared/moku-moint.js)(`MokuMoint.balance()` / `add(n)` / `claimDaily()` / `closet()` / `buy(id)` / `equip(id)` / `outfitSVG(equipped)` / `layerImage(slot)`)。ハブは通常モード(カード+デイリーボーナス+Moku Closet のUI)、ゲームは `data-mode="none"`(APIだけ)で読み込む。
+- **デイリーボーナス**(2026-10-25〜): 1日1回 100 Moint。ハブ(`hub.html`)を開くとポップアップで受け取れる(端末のローカル日付で判定)。記録は `moku:moint:daily` = `{ version: 1, last: 'YYYY-MM-DD', days, updatedAt }`。ログイン中はクラウド同期が終わってから出し、受け取ったらすぐアップロードする(同じ日に別の端末でもう一度もらえない・同期の衝突を起こさない)。ゲストは端末ごと。
+- **Moku Closet**(2026-10-25〜): ハブの「My Moints」カードから開く着せ替えショップ。Hats / Glasses / Necklaces の3枠、各1つずつ着られる。持っていない服はタップで試着(プレビュー)、Buy で購入してすぐ着る。値段は 100〜600 Moint。保存は `moku:moint:closet` = `{ version: 1, owned: [id], equipped: { head, face, neck }, updatedAt }`。
+  - 服の絵は `brand/mokumoku-hero.png` にぴったり重なる 100×100 グリッドの SVG(頭のてっぺん ≈ y 8、目 ≈ (35, 41.5) / (65, 41.5)、葉の蝶ネクタイ ≈ y 44〜58)。どの大きさの Moku にも同じ絵を重ねられる。新しい服は `moku-moint.js` の `ITEMS` に足す。
+  - Moku Bridge はタイトル画面のヒーロー画像に全部の服を、プレイ中の後ろ姿の Moku には帽子だけを描く。他のタイトルでも `MokuMoint.outfitSVG()` / `layerImage()` で同じ服を着せられる。
 - 最初に導入したのは Moku Bridge。財布は `localStorage` の `moku:moint:wallet` = `{ version: 1, balance, updatedAt }`(ゲームIDを付けないシリーズ共通キー。`moku:` 接頭辞なのでクラウドセーブ・引き継ぎコードの対象)。
 - 他のタイトルで Moint を配る・使う場合も同じキーを読み書きする。`balance` は 0 未満にしない。
 - Moku Bridge 内の買い物(Hint 15 / Magic Carpet 40)と所持数は `moku:moku-bridge:progress` の `items`。初回だけお試し用に 40 Moint 配る(`welcomeGift`)。
+- Moku Bridge で橋を渡りきると最低 100 Moint(8段の橋 100 / 9段 110 / 10段 120)+ヒントなしで当てた段ごとに 10 + 1回目でクリアなら 50。
 - Moku Bridge で落ちると 3 Moint 減る(残高が 3 未満ならあるだけ。0 未満にはしない)。
 - Magic Carpet は3枚先のガラスへ飛ぶ。とばした2段は踏まないので正解は分からないまま(次の挑戦でも未知)。
 - **Luckiest Steps**(2026-10-25〜): 1回の挑戦で、ヒントなしで続けて当てた段数の最高記録を `moku:moku-bridge:progress` の `bestLucky` に保存する。答えが分かっている段は数えず連続も切らない。ヒント・カーペット・ハズレで連続が切れる。
