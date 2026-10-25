@@ -10,10 +10,14 @@
  *     [data-moku-account-label] children. data-moku-account="wide" renders a
  *     full-width call-to-action card instead of the small chip (index.html);
  *     add data-moku-new-until="YYYY-MM-DD" to show a NEW pill until that day.
- *     The account panel lists the player's saves when the page defines
- *     window.MOKU_SAVE_SUMMARY(savedAt) (hub.html does), records to show off
- *     ("My Bests") when it defines window.MOKU_PROFILE_BESTS(), and everyone
- *     else with an account (GET /players). Opening a page with #profile shows it.
+ *     The hub has a full "My Moku" page (window.MOKU_PROFILE_PAGE = { open,
+ *     isOpen }). Account buttons open it there; other pages send logged-in
+ *     players to hub.html#me and show guests the login form. The page owns
+ *     its layout; this script fills these slots on it:
+ *       [data-moku-name] / [data-moku-tag]   who is playing (guests keep the page's text)
+ *       [data-moku-profile="account"]        cloud-save status + Save now / Change PIN /
+ *                                            Log Out (/ Admin), or Log In for guests
+ *       [data-moku-profile="players"]        everyone with an account (GET /players)
  *     Swaps the text of [data-moku-greeting]
  *     to "Hello, <name>!", and syncs progress with the cloud on load.
  *   <script src="shared/moku-account.js" data-mode="none"></script>
@@ -584,7 +588,6 @@
     '.mka-avatar-wrap .mka-avatar{width:20px;height:20px;font-size:11px}',
     '.mka-avatar-wrap .mka-dot{position:absolute;right:-2px;bottom:-1px;box-shadow:0 0 0 2px rgba(12,13,22,0.95)}',
     '.mka-nav-label{max-width:76px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
-    '.mka-panel.is-profile{max-width:420px}',
     '.mka-section{margin-top:18px}',
     '.mka-section-h{display:flex;align-items:baseline;justify-content:space-between;margin:0 2px 8px;',
     'font-size:12px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:rgba(237,238,246,0.6)}',
@@ -593,15 +596,11 @@
     'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)}',
     '.mka-row{display:flex;align-items:center;gap:11px;padding:8px;border-radius:10px;min-width:0}',
     '.mka-row + .mka-row{border-top:1px solid rgba(255,255,255,0.05)}',
-    '.mka-tile{flex:none;width:36px;height:36px;border-radius:26%;display:flex;align-items:center;justify-content:center;',
-    'box-shadow:inset 0 0 0 1px rgba(255,255,255,0.18)}',
-    '.mka-tile img{width:80%;height:80%}',
     '.mka-row-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}',
     '.mka-row-main b{font-size:14px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
     '.mka-row-main span{font-size:12px;font-weight:600;color:rgba(237,238,246,0.62);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
     '.mka-row-side{flex:none;font-size:11.5px;font-weight:700;color:rgba(237,238,246,0.5);text-align:right}',
     '.mka-row-side.is-online{color:#6EE7A8}',
-    '.mka-best{flex:none;font-size:15px;font-weight:800;color:#FFE27A;text-align:right;white-space:nowrap}',
     '.mka-row .mka-avatar{width:32px;height:32px;font-size:14px}',
     '.mka-you{margin-left:6px;font-size:10px;font-weight:800;letter-spacing:0.06em;color:#10121E;background:#6EE7A8;',
     'padding:2px 6px;border-radius:999px;vertical-align:2px}',
@@ -676,6 +675,12 @@
     '.mka-meta{display:flex;flex-direction:column;gap:6px;padding:12px 14px;margin-bottom:14px;border-radius:14px;',
     'background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);font-size:13px;font-weight:600;color:rgba(237,238,246,0.75)}',
     '.mka-meta b{color:#EDEEF6}',
+    '.mka-status{display:flex;align-items:center;gap:8px}',
+    '.mka-status .mka-dot{flex:none}',
+    '.mka-profile-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}',
+    '.mka-profile-actions .mka-secondary{height:42px;font-size:14px;padding:0 8px}',
+    '.mka-profile-actions .is-wide{grid-column:1/-1}',
+    '.mka-id{margin:10px 2px 0;font-size:11.5px;font-weight:600;color:rgba(237,238,246,0.45);text-align:center}',
     '.mka-actions{display:flex;flex-direction:column;gap:10px}',
     '.mka-choice{display:flex;align-items:center;gap:12px;width:100%;padding:14px;border-radius:14px;text-align:left;',
     'border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.05);color:#EDEEF6;font:inherit;cursor:pointer}',
@@ -756,7 +761,7 @@
         (isNew ? '<em class="mka-new">NEW</em>' : '') + '</span>' +
         '<span class="mka-wide-sub">Log in to play · saved on every device</span></span>' +
         '<span class="mka-wide-arrow" aria-hidden="true">›</span></button>';
-    slot.firstChild.addEventListener('click', function () { openModal(user ? 'account' : 'login'); });
+    slot.firstChild.addEventListener('click', openProfile);
   }
 
   // A page-owned button (the hub's bottom-nav Profile tab). It ships
@@ -779,7 +784,7 @@
     }
     if (!btn.__mokuAccount) {
       btn.__mokuAccount = true;
-      btn.addEventListener('click', function () { openModal(getUser() ? 'account' : 'login'); });
+      btn.addEventListener('click', openProfile);
     }
   }
 
@@ -798,7 +803,7 @@
           '<span class="mka-name">' + esc(user.displayName) + '</span>' +
           '<span class="mka-dot" data-status="' + status + '" aria-hidden="true"></span></button>'
         : '<button class="mka-chip" type="button"><span aria-hidden="true">👤</span>Log In</button>';
-      slot.firstChild.addEventListener('click', function () { openModal(user ? 'account' : 'login'); });
+      slot.firstChild.addEventListener('click', openProfile);
     });
 
     Array.prototype.forEach.call(document.querySelectorAll('[data-moku-greeting]'), function (el) {
@@ -807,7 +812,16 @@
       else if (greetingDefaults) el.textContent = greetingDefaults.get(el);
     });
 
-    if (modalView === 'account') renderModal('account');
+    renderProfile();
+  }
+
+  // The player's own page: the hub's "My Moku" page when there is one.
+  // Elsewhere logged-in players go to it; guests get the login form.
+  function openProfile() {
+    var page = global.MOKU_PROFILE_PAGE;
+    if (page) page.open();
+    else if (getUser()) location.href = 'hub.html#me';
+    else openModal('login');
   }
 
   var overlay = null;
@@ -852,6 +866,13 @@
   }
 
   function renderModal(view, data) {
+    // "Back" from Change PIN / Log Out returns to the player's page.
+    if (view === 'account') {
+      closeModal();
+      if (global.MOKU_PROFILE_PAGE) renderProfile();
+      else if (getUser()) location.href = 'hub.html#me';
+      return;
+    }
     modalView = view;
     var user = getUser();
     var html = '<div class="mka-panel" role="dialog" aria-modal="true" aria-labelledby="mkaTitle">';
@@ -875,18 +896,6 @@
         '<button class="mka-primary" type="submit">' + (isLogin ? 'Log In' : 'Create Account') + '</button>' +
         (isLogin ? '<p class="mka-sub" style="text-align:center">Forgot your PIN? Ask a grown-up to reset it.</p>' : '') +
         '</form>';
-    } else if (view === 'account' && user) {
-      html = html.replace('class="mka-panel"', 'class="mka-panel is-profile"');
-      html += HERO + '<h2 class="mka-title" id="mkaTitle">' + esc(user.displayName) + '</h2>' +
-        '<p class="mka-sub">Player ID: ' + esc(user.loginId) + '</p></div>' +
-        '<div class="mka-meta"><span>' + esc(statusText()) + '</span>' +
-        '<span>Leaderboard name: <b>' + esc(user.displayName) + '</b> #' + esc(user.tag) + '</span></div>' +
-        bestsSection() + savesSection() + playersSection() +
-        '<div class="mka-actions mka-section">' +
-        '<button class="mka-secondary" type="button" data-act="sync">☁️ Save now</button>' +
-        '<button class="mka-secondary" type="button" data-go="pin">🔑 Change PIN</button>' +
-        '<button class="mka-secondary" type="button" data-go="logout">👋 Log Out</button>' +
-        (user.admin ? '<a class="mka-secondary" href="admin.html">🛠 Admin</a>' : '') + '</div>';
     } else if (view === 'pin') {
       html += HERO + '<h2 class="mka-title" id="mkaTitle">Change PIN</h2>' +
         '<p class="mka-sub">Your other devices will need the new PIN.</p></div>' +
@@ -955,14 +964,6 @@
       errorEl.textContent = msg;
     }
 
-    Array.prototype.forEach.call(panel.querySelectorAll('[data-more]'), function (b) {
-      b.addEventListener('click', function () {
-        expanded[b.getAttribute('data-more')] = true;
-        renderModal('account');
-      });
-    });
-    if (view === 'account') loadPlayers();
-
     var syncBtn = panel.querySelector('[data-act="sync"]');
     if (syncBtn) syncBtn.addEventListener('click', function () { syncNow({ interactive: true }); });
 
@@ -1006,7 +1007,7 @@
     }
   }
 
-  // ---------- profile: my saves + players ----------
+  // ---------- "My Moku" page: account box + players ----------
 
   var expanded = {};
   var LIST_PREVIEW = 5;
@@ -1014,41 +1015,6 @@
   function moreButton(name, total) {
     if (expanded[name] || total <= LIST_PREVIEW) return '';
     return '<button class="mka-link mka-more" type="button" data-more="' + name + '">Show all (' + total + ')</button>';
-  }
-
-  // "My Bests": records worth showing off (hub.html provides them with
-  // window.MOKU_PROFILE_BESTS(); pages without it simply skip the section).
-  function bestsSection() {
-    if (typeof global.MOKU_PROFILE_BESTS !== 'function') return '';
-    var bests = [];
-    try { bests = global.MOKU_PROFILE_BESTS() || []; } catch (e) {}
-    if (!bests.length) return '';
-    return '<div class="mka-section"><h3 class="mka-section-h">My Bests</h3><div class="mka-list">' + bests.map(function (b) {
-      return '<div class="mka-row">' +
-        '<span class="mka-tile" style="background:linear-gradient(150deg,' + esc(b.hi || '#888') + ',' + esc(b.lo || '#444') + ')">' +
-        (b.icon ? '<img src="' + esc(b.icon) + '" alt="">' : '') + '</span>' +
-        '<span class="mka-row-main"><b>' + esc(b.title) + '</b><span>' + esc(b.game) + '</span></span>' +
-        '<span class="mka-best">' + esc(b.value) + '</span></div>';
-    }).join('') + '</div></div>';
-  }
-
-  function savesSection() {
-    var head = '<div class="mka-section"><h3 class="mka-section-h">My Saves</h3>';
-    if (typeof global.MOKU_SAVE_SUMMARY !== 'function') {
-      // Only the hub knows how to summarize each game.
-      return head + '<a class="mka-secondary" href="hub.html#profile">📒 See my saves</a></div>';
-    }
-    var saves = [];
-    try { saves = global.MOKU_SAVE_SUMMARY(readSavedAt()) || []; } catch (e) {}
-    if (!saves.length) return head + '<div class="mka-list"><div class="mka-empty">No saves yet — go play a game! 🎮</div></div></div>';
-    var shown = expanded.saves ? saves : saves.slice(0, LIST_PREVIEW);
-    return head + '<div class="mka-list">' + shown.map(function (g) {
-      return '<div class="mka-row">' +
-        '<span class="mka-tile" style="background:linear-gradient(150deg,' + esc(g.hi || '#888') + ',' + esc(g.lo || '#444') + ')">' +
-        (g.icon ? '<img src="' + esc(g.icon) + '" alt="">' : '') + '</span>' +
-        '<span class="mka-row-main"><b>' + esc(g.name) + '</b><span>' + esc(g.summary) + '</span></span>' +
-        '<span class="mka-row-side">' + esc(g.savedAt ? relTime(g.savedAt) : '') + '</span></div>';
-    }).join('') + '</div>' + moreButton('saves', saves.length) + '</div>';
   }
 
   // { at, players } | { at, hidden: true } (failed; retried after the TTL)
@@ -1063,7 +1029,7 @@
     api('GET', '/players').then(function (res) {
       playersCache = { at: Date.now(), players: res.players || [] };
     }, function (err) {
-      if (handleAuthError(err)) { closeModal(); return; }
+      if (handleAuthError(err)) return;
       // Older backend without /players: leave the section out. Other
       // failures (offline …) keep the last list, or hide the section, until
       // the next try after the TTL.
@@ -1072,7 +1038,7 @@
       else playersCache = { at: Date.now(), hidden: true };
     }).then(function () {
       playersLoading = false;
-      if (modalView === 'account' && playersCache) renderModal('account');
+      if (playersCache) renderProfile();
     });
   }
 
@@ -1092,6 +1058,70 @@
         '<span class="mka-row-side' + (p.online ? ' is-online' : '') + '">' +
         (p.online ? '● Online' : esc(p.lastSeenAt ? relTime(p.lastSeenAt) : '')) + '</span></div>';
     }).join('') + '</div>' + moreButton('players', players.length) + '</div>';
+  }
+
+  function profileOpen() {
+    var page = global.MOKU_PROFILE_PAGE;
+    return !!(page && page.isOpen && page.isOpen());
+  }
+
+  var nameDefaults = typeof WeakMap === 'function' ? new WeakMap() : null;
+
+  // Fills the "My Moku" page slots (see the header). Safe to call any time.
+  function renderProfile() {
+    if (mode !== 'full' || !document.body) return;
+    var user = enabled ? getUser() : null;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-moku-name]'), function (el) {
+      if (nameDefaults && !nameDefaults.has(el)) nameDefaults.set(el, el.textContent);
+      if (user) el.textContent = user.displayName;
+      else if (nameDefaults) el.textContent = nameDefaults.get(el);
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-moku-tag]'), function (el) {
+      el.textContent = user ? '#' + user.tag : '';
+      el.hidden = !user;
+    });
+    if (!enabled) {
+      Array.prototype.forEach.call(document.querySelectorAll('[data-moku-profile]'), function (el) { el.hidden = true; });
+      return;
+    }
+    injectStyle();
+    Array.prototype.forEach.call(document.querySelectorAll('[data-moku-profile="account"]'), function (el) {
+      el.hidden = false;
+      el.innerHTML = user
+        ? '<div class="mka-meta"><span class="mka-status"><span class="mka-dot" data-status="' + status + '"></span>' + esc(statusText()) + '</span></div>' +
+          '<div class="mka-profile-actions">' +
+          '<button class="mka-secondary is-wide" type="button" data-act="sync">☁️ Save now</button>' +
+          '<button class="mka-secondary" type="button" data-go="pin">🔑 Change PIN</button>' +
+          '<button class="mka-secondary" type="button" data-go="logout">👋 Log Out</button>' +
+          (user.admin ? '<a class="mka-secondary is-wide" href="admin.html">🛠 Admin</a>' : '') + '</div>' +
+          '<p class="mka-id">Player ID: ' + esc(user.loginId) + ' · keep it secret</p>'
+        : '<button class="mka-wide" type="button" data-act="login">' +
+          '<span class="mka-wide-icon" aria-hidden="true">☁️</span>' +
+          '<span class="mka-wide-text"><span class="mka-wide-title"><span>Log In</span></span>' +
+          '<span class="mka-wide-sub">Save your Moku on every device</span></span>' +
+          '<span class="mka-wide-arrow" aria-hidden="true">›</span></button>';
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-moku-profile="players"]'), function (el) {
+      var html = user ? playersSection() : '';
+      el.innerHTML = html;
+      el.hidden = !html;
+    });
+    if (user && profileOpen()) loadPlayers();
+  }
+
+  if (mode === 'full') {
+    document.addEventListener('click', function (e) {
+      var b = e.target.closest ? e.target.closest('[data-moku-profile] [data-act],[data-moku-profile] [data-go],[data-moku-profile] [data-more]') : null;
+      if (!b) return;
+      var act = b.getAttribute('data-act');
+      if (act === 'sync') syncNow({ interactive: true });
+      else if (act === 'login') openModal('login');
+      else if (b.hasAttribute('data-go')) openModal(b.getAttribute('data-go'));
+      else if (b.hasAttribute('data-more')) {
+        expanded[b.getAttribute('data-more')] = true;
+        renderProfile();
+      }
+    });
   }
 
   // `keys` (optional) = the saves changed on both sides; everything else is
@@ -1127,7 +1157,6 @@
     renderAll();
     if (mode === 'full') {
       syncNow({ interactive: true });
-      if (location.hash === '#profile' && getUser()) openModal('account');
     }
   }
 
@@ -1162,7 +1191,8 @@
     statusText: statusText,
     getSavedAt: function () { return readSavedAt(); },
     onStatusChange: function (fn) { listeners.push(fn); },
-    openLogin: function () { if (enabled) openModal(getUser() ? 'account' : 'login'); },
+    openLogin: function () { if (enabled) openModal('login'); },
+    renderProfile: renderProfile,
     syncNow: syncNow,
     logout: logout
   };

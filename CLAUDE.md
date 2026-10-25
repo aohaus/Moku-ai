@@ -93,7 +93,7 @@ cd backend && npm test   # アカウントAPIのテスト(AWS不要)
 
 - フレームワーク・バンドラーは導入しない。ライブラリは CDN 経由のみ。
 - `localStorage` のキーは `moku:<gameId>:<key>`。`gameId` はファイル名(拡張子なし)。このキーは自動でクラウドセーブの対象になる(SPEC.md §10)。
-- 新規タイトルを追加したら `index.html` / `hub.html` の `GAMES` 配列(stats / `progress()` / 一言サマリーの `badge()`。`badge()` はプロフィールの My Saves にも出る)にも追加する。`hub.html` は表示用の `CATALOG` / `SHELVES` と `icons/games/<gameId>.svg` / `screenshots/<gameId>.jpg` も必要(SPEC.md §7)。
+- 新規タイトルを追加したら `index.html` / `hub.html` の `GAMES` 配列(stats / `progress()` / 一言サマリーの `badge()`。`badge()` は My Moku 画面(`hub.html#me`)の My Games にも出る)にも追加する。`hub.html` は表示用の `CATALOG` / `SHELVES` と `icons/games/<gameId>.svg` / `screenshots/<gameId>.jpg` も必要(SPEC.md §7)。
 - ゲームページには `<script src="shared/moku-account.js" data-mode="background"></script>` を入れると、ページを閉じた時に進捗がクラウドへ保存される(SPEC.md §10)。
 - **すべてのページ**(新しいゲームも)は `<head>` の先頭(`<meta charset>` の直後)に `<script src="shared/moku-errors.js"></script>` を入れる。エラーが管理画面に届く(SPEC.md §12)。
 - **ゲームとハブはログインした人だけ**(2026-10-25〜)。新しいゲームも `moku-errors.js` の直後に `<script src="shared/moku-gate.js"></script>` を入れる。未ログインなら `index.html` のログインへ送られる(SPEC.md §10)。
