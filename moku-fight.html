@@ -506,7 +506,7 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
 
   // ---------- save data ----------
   function loadSave() {
-    var d = { version: 1, gameId: GAME_ID, wins: 0, losses: 0, draws: 0, streak: 0, bestStreak: 0, rival: 'kon', rivals: {}, xp: 0, moves: [], bossMet: false, bossPending: false, bossBeaten: false, unlocked: [], difficulty: 'normal', sound: true, updatedAt: null };
+    var d = { version: 1, gameId: GAME_ID, wins: 0, losses: 0, draws: 0, streak: 0, bestStreak: 0, rival: 'kon', rivals: {}, xp: 0, moves: [], bossMet: false, bossPending: false, bossBeaten: false, unlocked: [], practiced: {}, mointClaims: {}, difficulty: 'normal', sound: true, updatedAt: null };
     try {
       var raw = localStorage.getItem(SAVE_KEY);
       if (raw) {
