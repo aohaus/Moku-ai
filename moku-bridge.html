@@ -678,9 +678,14 @@ body.on-title #controls { display: none; }
     if (!b.saleUsed) b.saleUsed = { hint: false, carpet: false };
     return b;
   }
+  function missRateHigh(b) {
+    return b.guesses >= SALE_MIN_GUESSES && b.misses / b.guesses >= SALE_MISS_RATE;
+  }
+  // 一度始まったセールは、この橋を渡りきるまで続ける(次の挑戦で当てて
+  // 割合が下がっても、約束した半額を途中で取り消さない)
   function saleActive() {
     var b = bridgeStats();
-    return b.guesses >= SALE_MIN_GUESSES && b.misses / b.guesses >= SALE_MISS_RATE;
+    return !!b.saleOn || missRateHigh(b);
   }
   // このアイテムを今いくらで買えるか(セール中は半額。1つ買ったら元の値段)
   function onSale(id) { return saleActive() && !bridgeStats().saleUsed[id]; }
@@ -1018,6 +1023,7 @@ body.on-title #controls { display: none; }
       var b = bridgeStats();
       b.guesses++;
       if (!safe) b.misses++;
+      if (missRateHigh(b)) b.saleOn = true;
     }
     if (!progress.solved[step]) {
       // ヒントを使った段は、光が消えてから選んでもラッキーにしない
