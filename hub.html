@@ -2455,7 +2455,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     mbr: { name: 'Moku Bridge', gameId: 'moku-bridge', genre: 'Glass Bridge', cta: 'Cross', hi: '#5ED6E8', lo: '#16596A', newUntil: '2026-11-25',
            tag: 'Pick the right glass. Cross the sky!',
            desc: 'Left or right? Hop across the glass bridge in the sunset sky. Earn Moints and use Hints or a Magic Carpet to help Moku!',
-           moint: { how: 'Cross a bridge: +100 or more. Lucky steps: +10 each. First try: +50.' } }
+           moint: { cap: true, how: 'Cross a bridge: +100 or more. Lucky steps: +10 each. First try: +50.' } }
   };
   var SHELVES = [
     { title: 'Action & Sports', sub: 'Fling, kick, fight, race', cards: ['am', 'br', 'mk', 'mfg', 'mkt', 'mfr'] },
@@ -2693,7 +2693,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     mo.hidden = !c.moint;
     if (c.moint) {
       var today = c.moint.cap && window.MokuMoint
-        ? ' Today: ' + MokuMoint.earnedToday(c.gameId) + ' / ' + MokuMoint.DAILY_GAME_CAP + ' from wins.' : '';
+        ? ' Today: ' + MokuMoint.earnedToday(c.gameId) + ' / ' + MokuMoint.DAILY_GAME_CAP + '.' : '';
       document.getElementById('sheetMointText').textContent = c.moint.how + today;
     }
 

@@ -402,6 +402,8 @@ body.on-title #controls { display: none; }
 .reward-lines div.lucky-line { background: #EEF8E6; box-shadow: 0 0 0 2px #BFE3A8; }
 .reward-lines div.sale-line { background: #FFF6D6; box-shadow: 0 0 0 2px #FFD34D; font-size: 14px; justify-content: center; }
 .reward-lines div.sale-line span:last-child { color: var(--ink); }
+.reward-lines div.cap-line { background: #FFF6D6; box-shadow: 0 0 0 2px #FFD34D; font-size: 13.5px; justify-content: center; text-align: center; }
+.reward-lines div.cap-line span:last-child { color: var(--ink); }
 .reward-lines div.lucky-line span:last-child { color: #2F7D3A; }
 .reward-lines div.lucky-line small { font-size: 12px; color: #6A8A5A; }
 .reward-lines div.lucky-line.record { animation: recordPop 0.9s ease-in-out 2; }
@@ -443,7 +445,7 @@ body.on-title #controls { display: none; }
 
 <div id="title-frame"></div>
 <a id="hub-link" href="index.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.5.0 · Updated Oct 25, 2026</div>
+<div id="buildInfo">v0.5.1 · Updated Oct 25, 2026</div>
 
 <!-- Item icons, reused by the HUD and the shop -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -1188,7 +1190,7 @@ body.on-title #controls { display: none; }
     progress.bridge += 1;
     progress.pattern = null;
     ensureBridge();      // 次の橋を用意(saveAll も呼ばれる)
-    addMoints(total);
+    var paid = payClear(total);
 
     $('resultIcon').textContent = '🏁';
     $('resultTitle').textContent = 'You Made It!';
@@ -1198,12 +1200,24 @@ body.on-title #controls { display: none; }
     if (first) lines.push(['First try bonus!', first]);
     var html = lines.map(function (l) { return '<div><span>' + l[0] + '</span><span>+' + l[1] + '</span></div>'; }).join('');
     html += luckyLine();
-    html += '<div class="total"><span>Moints</span><span>+<b id="countUp">0</b></span></div>';
+    if (paid) html += '<div class="total"><span>Moints</span><span>+<b id="countUp">0</b></span></div>';
+    if (paid < total) html += '<div class="cap-line"><span>You got all of today\'s bridge Moints! Come back tomorrow for more.</span></div>';
     $('rewardLines').innerHTML = html;
     $('rewardLines').style.display = '';
     $('resultMain').textContent = 'Next Bridge ▶';
     openOverlay('resultOverlay');
-    countUp($('countUp'), total);
+    if (paid) countUp($('countUp'), paid);
+  }
+  // Clear rewards count toward the daily cap every Moint game shares
+  // (500 a day per game, SPEC.md §13). Returns what was really paid.
+  function payClear(total) {
+    if (!window.MokuMoint) { addMoints(total); return total; }
+    var got = MokuMoint.earn(GAME_ID, total);
+    refreshWallet();
+    progress.mointsEarned = (progress.mointsEarned || 0) + got;
+    saveAll();
+    renderMoints();
+    return got;
   }
   function showFall() {
     state = STATE.RESULT;
