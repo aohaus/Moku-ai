@@ -103,6 +103,8 @@ Resources:
           - GET
           - POST
           - PUT
+          - PATCH
+          - DELETE
           - OPTIONS
         AllowHeaders:
           - content-type
@@ -185,6 +187,30 @@ Resources:
             ApiId: !Ref MokuScoresApi
             Path: /players
             Method: GET
+        AdminListUsers:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /admin/users
+            Method: GET
+        AdminCreateUser:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /admin/users
+            Method: POST
+        AdminUpdateUser:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /admin/users/{loginId}
+            Method: PATCH
+        AdminDeleteUser:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /admin/users/{loginId}
+            Method: DELETE
         GetSave:
           Type: HttpApi
           Properties:

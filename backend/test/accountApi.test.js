@@ -9,7 +9,8 @@ const SECRET = "test-secret-test-secret-test-secret-00";
 
 function setup({ maxUsers = 100 } = {}) {
   let clock = Date.parse("2026-10-24T00:00:00Z");
-  const api = createAccountApi(createMemoryStore(), {
+  const store = createMemoryStore();
+  const api = createAccountApi(store, {
     authSecret: SECRET,
     inviteCode: "owl-invite",
     maxUsers,
@@ -26,7 +27,18 @@ function setup({ maxUsers = 100 } = {}) {
   };
   const register = (loginId, pin = "2580", extra = {}) =>
     call("POST", "/auth/register", { inviteCode: "owl-invite", loginId, pin, displayName: "Aoi", ...extra });
-  return { call, register, advance: (ms) => (clock += ms) };
+  // Like scripts/accounts.js create-admin.
+  const makeAdmin = async (loginId = "admin", pin = "8810") => {
+    await store.createUser(
+      { loginId, uid: "ad" + loginId.padEnd(14, "0"), displayName: "Admin", role: "admin",
+        pinHash: await require("../src/pin").hashPin(pin), tv: 1, failCount: 0, lockedUntil: 0,
+        lastSeenAt: 0, createdAt: new Date(clock).toISOString() },
+      0,
+      { uncounted: true }
+    );
+    return (await call("POST", "/auth/login", { loginId, pin })).body.token;
+  };
+  return { call, register, makeAdmin, advance: (ms) => (clock += ms) };
 }
 
 test("register → login → me", async () => {
@@ -159,4 +171,71 @@ test("players list: public names only, newest first, online within 5 min", async
   const again = (await call("GET", "/players", null, ren)).body.players;
   assert.equal(again[0].displayName, "Aoi");
   assert.equal(again[0].online, true);
+});
+
+test("admin: only the admin role gets in; kids can't take reserved IDs", async () => {
+  const { call, register, makeAdmin } = setup({ maxUsers: 1 });
+  const admin = await makeAdmin("admin", "8810");
+  assert.ok(admin);
+  assert.equal((await call("GET", "/auth/me", null, admin)).body.user.admin, true);
+
+  // The admin doesn't use up a player slot.
+  const kid = (await register("aoi")).body.token;
+  assert.equal((await call("GET", "/admin/users", null, kid)).status, 403);
+  assert.equal((await call("GET", "/admin/users")).status, 401);
+  assert.equal((await register("Admin", "2580", { inviteCode: "owl-invite" })).body.error, "id_taken");
+
+  const list = (await call("GET", "/admin/users", null, admin)).body;
+  assert.equal(list.count, 1);
+  assert.equal(list.maxUsers, 1);
+  assert.deepEqual(list.users.map((u) => [u.loginId, u.admin]), [["admin", true], ["aoi", false]]);
+  assert.ok(!JSON.stringify(list).includes("pinHash"));
+
+  // Hidden from the kids' Players list.
+  const players = (await call("GET", "/players", null, kid)).body.players;
+  assert.deepEqual(players.map((p) => p.displayName), ["Aoi"]);
+});
+
+test("admin: add, rename, change PIN, unlock and delete a player", async () => {
+  const { call, register, makeAdmin } = setup();
+  const admin = await makeAdmin();
+  const created = await call("POST", "/admin/users", { loginId: "ren", displayName: "Ren", pin: "4826" }, admin);
+  assert.equal(created.status, 201);
+  assert.equal(created.body.user.loginId, "ren");
+  assert.equal((await call("POST", "/admin/users", { loginId: "ren", pin: "4826" }, admin)).body.error, "id_taken");
+  assert.equal((await call("POST", "/admin/users", { loginId: "mio", pin: "1111" }, admin)).body.error, "weak_pin");
+
+  const aoi = (await register("aoi")).body.token;
+  await call("PUT", "/save", { data: { "moku:x": "1" }, baseRev: 0 }, aoi);
+
+  // Rename only: the player stays logged in and gets a fresh token with the new name.
+  const renamed = await call("PATCH", "/admin/users/aoi", { displayName: "Aoi-chan" }, admin);
+  assert.equal(renamed.body.user.displayName, "Aoi-chan");
+  const me = await call("GET", "/auth/me", null, aoi);
+  assert.equal(me.status, 200);
+  assert.equal(token.verify(me.body.token, SECRET).name, "Aoi-chan");
+
+  // New Player ID: account and cloud save move; old devices are logged out.
+  const moved = await call("PATCH", "/admin/users/aoi", { loginId: "AOI2" }, admin);
+  assert.equal(moved.body.user.loginId, "aoi2");
+  assert.equal(moved.body.user.save.rev, 1);
+  assert.equal((await call("GET", "/auth/me", null, aoi)).status, 401);
+  assert.equal((await call("PATCH", "/admin/users/aoi2", { loginId: "ren" }, admin)).body.error, "id_taken");
+  assert.equal((await call("PATCH", "/admin/users/aoi2", { loginId: "admin" }, admin)).body.error, "id_taken");
+  assert.equal((await call("PATCH", "/admin/users/nobody", { unlock: true }, admin)).status, 404);
+
+  // Locked out by wrong PINs → admin unlocks; then sets a new PIN.
+  for (let i = 0; i < 5; i++) await call("POST", "/auth/login", { loginId: "aoi2", pin: "9999" });
+  const locked = (await call("GET", "/admin/users", null, admin)).body.users.find((u) => u.loginId === "aoi2");
+  assert.ok(locked.lockedUntil);
+  await call("PATCH", "/admin/users/aoi2", { unlock: true }, admin);
+  assert.equal((await call("POST", "/auth/login", { loginId: "aoi2", pin: "2580" })).status, 200);
+  await call("PATCH", "/admin/users/aoi2", { pin: "3691" }, admin);
+  assert.equal((await call("POST", "/auth/login", { loginId: "aoi2", pin: "3691" })).status, 200);
+
+  // Delete (account + save); the admin can't delete themselves.
+  assert.equal((await call("DELETE", "/admin/users/admin", null, admin)).body.error, "cannot_delete_self");
+  assert.equal((await call("DELETE", "/admin/users/aoi2", null, admin)).status, 200);
+  assert.equal((await call("POST", "/auth/login", { loginId: "aoi2", pin: "3691" })).status, 401);
+  assert.equal((await call("DELETE", "/admin/users/aoi2", null, admin)).status, 404);
 });

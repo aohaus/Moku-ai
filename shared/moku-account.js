@@ -15,6 +15,8 @@
  *     with an account (GET /players). Opening a page with #profile shows it.
  *     Swaps the text of [data-moku-greeting]
  *     to "Hello, <name>!", and syncs progress with the cloud on load.
+ *   <script src="shared/moku-account.js" data-mode="none"></script>
+ *     admin.html. Nothing runs; only MokuAccount.apiBase() is used.
  *   <script src="shared/moku-account.js" data-mode="background"></script>
  *     Game pages. No UI — only uploads progress when the page is hidden or
  *     closed, so playing a game and closing the tab still reaches the cloud.
@@ -703,7 +705,8 @@
         '<div class="mka-actions mka-section">' +
         '<button class="mka-secondary" type="button" data-act="sync">☁️ Save now</button>' +
         '<button class="mka-secondary" type="button" data-go="pin">🔑 Change PIN</button>' +
-        '<button class="mka-secondary" type="button" data-go="logout">👋 Log Out</button></div>';
+        '<button class="mka-secondary" type="button" data-go="logout">👋 Log Out</button>' +
+        (user.admin ? '<a class="mka-secondary" href="admin.html">🛠 Admin</a>' : '') + '</div>';
     } else if (view === 'pin') {
       html += HERO + '<h2 class="mka-title" id="mkaTitle">Change PIN</h2>' +
         '<p class="mka-sub">Your other devices will need the new PIN.</p></div>' +
@@ -927,12 +930,18 @@
   }
 
   // Tells the server this player is still around (GET /players "online").
+  // Also picks up a rename by the admin: the server sends a fresh token then.
   function heartbeat() {
     if (!getUser() || document.visibilityState !== 'visible') return;
-    api('GET', '/auth/me').catch(handleAuthError);
+    api('GET', '/auth/me').then(function (res) {
+      if (res.token) {
+        setSession(res.token, res.user);
+        renderAll();
+      }
+    }, handleAuthError);
   }
 
-  if (enabled) {
+  if (enabled && mode !== 'none') {
     document.addEventListener('visibilitychange', function () {
       if (document.visibilityState === 'hidden') flushOnHide();
     });
@@ -944,6 +953,7 @@
 
   global.MokuAccount = {
     isEnabled: function () { return enabled; },
+    apiBase: function () { return base; },
     getUser: getUser,
     getToken: getToken,
     getStatus: function () { return status; },

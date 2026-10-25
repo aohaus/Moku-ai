@@ -189,3 +189,46 @@ IDが存在しない場合と PIN 違いは同じ応答(`401 bad_credentials`)�
 - `online`: `lastSeenAt` が5分以内。
 - Player ID(`loginId`)は含めない(ログイン情報の半分のため)。
 - `lastSeenAt` は、認証付きのリクエスト(`/auth/me` `/save` `/players` など)とログイン・新規登録のたびに更新される。書き込みは1人1分に1回まで。
+
+---
+
+# Admin(SPEC.md §12)
+
+`role: "admin"` のアカウントだけが呼べる。それ以外は `403 forbidden`、未ログインは `401`。
+管理者アカウントは `scripts/accounts.js create-admin` でのみ作る。`GET /auth/me` の `user` に `admin: true` が付く。
+
+## `GET /admin/users`
+
+**200**
+```json
+{
+  "users": [
+    {
+      "loginId": "aoi", "displayName": "Aoi", "tag": "u6ffd2", "admin": false,
+      "createdAt": "…", "lastSeenAt": "…", "online": true,
+      "failCount": 0, "lockedUntil": null,
+      "save": { "rev": 3, "updatedAt": "…", "device": "iPad" }
+    }
+  ],
+  "count": 12,
+  "maxUsers": 100
+}
+```
+`count` は管理者を除いた人数。PINのハッシュは返さない。
+
+## `POST /admin/users`
+
+`{ "loginId": "ren", "displayName": "Ren", "pin": "4826" }` → **201** `{ "user": { …上と同じ形… } }`
+招待コード不要。ID・PINのルールと予約ID・人数の上限は新規登録と同じ。
+
+## `PATCH /admin/users/{loginId}`
+
+変える項目だけ送る: `{ "loginId": "aoi2", "displayName": "Aoi-chan", "pin": "3691", "unlock": true }` → **200** `{ "user": … }`
+- `loginId`: アカウントとクラウドセーブを新しいIDへ移す(トランザクション)。トークン世代を上げるので本人の端末はログアウト。
+- `pin`: 本人の端末はログアウト。ロックも解除される。
+- `displayName`: 本人の端末は次の `GET /auth/me` で新しい `token` を受け取り、ログインしたまま名前が変わる(`/auth/me` はトークンの名前が古いと `token` を返す)。
+- エラー: `404 not_found` `409 id_taken` `400 invalid_login_id` `invalid_pin` `weak_pin` `invalid_name`。
+
+## `DELETE /admin/users/{loginId}`
+
+**200** `{ "deleted": "aoi" }`。アカウントとクラウドセーブを削除。自分自身は `400 cannot_delete_self`。

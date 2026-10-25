@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Moku Admin</title>
+<link rel="icon" type="image/x-icon" href="favicon.ico?v=2">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png?v=2">
+<meta name="theme-color" content="#0A0B12">
+<!--
+  Moku Series admin page (SPEC.md §12). For the parent only, so the UI is in
+  Japanese. The admin account is made with `node scripts/accounts.js
+  create-admin <id> <pin>` in backend/ — it can't be created from any page.
+  The session lives in sessionStorage (gone when the tab closes) and is
+  separate from the player login in shared/moku-account.js.
+-->
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #0A0B12;
+  --panel: rgba(255,255,255,0.05);
+  --line: rgba(255,255,255,0.1);
+  --text: #EDEEF6;
+  --muted: rgba(237,238,246,0.6);
+  --faint: rgba(237,238,246,0.42);
+  --green: #6EE7A8;
+  --gold: #FFC94A;
+  --red: #FF8A8A;
+}
+html, body { min-height: 100%; }
+body {
+  background: linear-gradient(180deg, #0A0B12, #121320 50%, #0A0B12);
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: -apple-system, "Segoe UI", Roboto, "Hiragino Sans", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: calc(18px + env(safe-area-inset-top, 0px)) 16px calc(40px + env(safe-area-inset-bottom, 0px));
+}
+button, input { font: inherit; color: inherit; }
+
+/* ---------- header ---------- */
+.top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.top img { width: 40px; height: 40px; border-radius: 50%; }
+.top h1 { font-size: 19px; font-weight: 800; letter-spacing: 0.02em; flex: 1; }
+.top h1 small { display: block; font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: 0; }
+
+/* ---------- common ---------- */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 18px;
+}
+.btn {
+  appearance: none;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  height: 42px; padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.06);
+  font-size: 14px; font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn:hover { background: rgba(255,255,255,0.11); }
+.btn.primary { border: 0; background: linear-gradient(180deg, #7EF0B4, #3FBF85); color: #0E1A14; }
+.btn.danger { border-color: rgba(255,138,138,0.5); color: var(--red); background: rgba(255,138,138,0.08); }
+.btn.small { height: 34px; padding: 0 12px; font-size: 13px; border-radius: 10px; }
+.btn:disabled { opacity: 0.5; cursor: wait; }
+.field { display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; font-weight: 800; color: var(--muted); }
+.field small { font-weight: 600; color: var(--faint); }
+.input {
+  height: 44px; padding: 0 13px;
+  border-radius: 11px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(0,0,0,0.25);
+  font-size: 16px; font-weight: 700;
+  outline: none;
+}
+.input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(110,231,168,0.18); }
+.error { min-height: 18px; font-size: 13px; font-weight: 700; color: var(--red); }
+.note { font-size: 12.5px; font-weight: 600; color: var(--muted); line-height: 1.55; }
+[hidden] { display: none !important; }
+
+/* ---------- login ---------- */
+#loginView { max-width: 360px; margin: 8vh auto 0; }
+#loginView form { display: flex; flex-direction: column; gap: 12px; }
+#loginView h2 { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+
+/* ---------- tabs ---------- */
+.tabs { display: flex; gap: 4px; padding: 4px; border-radius: 13px; background: rgba(255,255,255,0.05); margin-bottom: 14px; }
+.tab {
+  flex: 1; height: 38px; border: 0; border-radius: 10px; background: transparent;
+  color: var(--muted); font-size: 13.5px; font-weight: 800; cursor: pointer;
+}
+.tab[aria-selected="true"] { background: rgba(255,255,255,0.12); color: var(--text); }
+.tab:disabled { cursor: not-allowed; opacity: 0.5; }
+.tab small { font-size: 10.5px; font-weight: 700; }
+
+/* ---------- users ---------- */
+.summary { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.summary .stat { flex: 1; font-size: 13.5px; font-weight: 700; color: var(--muted); }
+.summary .stat b { color: var(--text); font-size: 17px; }
+.users { display: flex; flex-direction: column; gap: 10px; }
+.user { display: flex; gap: 12px; align-items: flex-start; }
+.avatar {
+  flex: none; width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #6EE7A8, #FFC94A); color: #10121E;
+  font-size: 17px; font-weight: 900; position: relative;
+}
+.avatar.is-admin { background: linear-gradient(135deg, #C9A0F5, #6E7BFF); }
+.avatar .dot { position: absolute; right: -1px; bottom: -1px; width: 11px; height: 11px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 2px #15172A; }
+.user-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.user-name { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 16px; font-weight: 800; }
+.pill { font-size: 10.5px; font-weight: 800; padding: 2px 8px; border-radius: 999px; letter-spacing: 0.04em; }
+.pill.admin { background: rgba(201,160,245,0.18); color: #D9BBFA; }
+.pill.locked { background: rgba(255,138,138,0.15); color: var(--red); }
+.pill.online { background: rgba(110,231,168,0.15); color: var(--green); }
+.user-meta { font-size: 12.5px; font-weight: 600; color: var(--muted); line-height: 1.6; }
+.user-meta code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12.5px; color: var(--text); }
+.user-actions { display: flex; gap: 6px; flex: none; }
+.empty { text-align: center; padding: 30px 10px; color: var(--muted); font-weight: 700; }
+
+/* ---------- dialog ---------- */
+.overlay {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+  background: rgba(5,6,12,0.65);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.dialog {
+  width: 100%; max-width: 400px; max-height: 100%; overflow: auto;
+  background: linear-gradient(180deg, #1A1D30, #10121E);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 20px;
+  padding: 22px 20px 18px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.dialog h2 { font-size: 18px; font-weight: 800; }
+.dialog .row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+.check { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; }
+.check input { width: 18px; height: 18px; }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); z-index: 60;
+  transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+  padding: 10px 16px; border-radius: 999px;
+  background: rgba(16,18,30,0.95); border: 1px solid rgba(110,231,168,0.4);
+  font-size: 13.5px; font-weight: 800;
+  transition: opacity .25s, transform .25s;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+@media (max-width: 520px) {
+  .user { flex-wrap: wrap; }
+  .user-actions { width: 100%; padding-left: 52px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <img src="brand/mokumoku-hero.png" alt="">
+    <h1>Moku 管理画面<small id="whoami">保護者用</small></h1>
+    <button class="btn small" id="logoutBtn" type="button" hidden>ログアウト</button>
+  </div>
+
+  <div id="noApi" class="card note" hidden>
+    アカウントのAPIが設定されていないため、この画面は使えません(<code>shared/moku-account.js</code> の <code>API_BASE_URL</code>)。
+  </div>
+
+  <section id="loginView" class="card" hidden>
+    <form id="loginForm" novalidate>
+      <h2>管理者ログイン</h2>
+      <label class="field">ID
+        <input class="input" name="loginId" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required>
+      </label>
+      <label class="field">PIN
+        <input class="input" name="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="current-password" required>
+      </label>
+      <p class="error" id="loginError" role="alert"></p>
+      <button class="btn primary" type="submit">ログイン</button>
+      <p class="note">このタブを閉じるとログアウトされます。管理者アカウントは CloudShell で <code>node scripts/accounts.js create-admin</code> を実行して作ります。</p>
+    </form>
+  </section>
+
+  <section id="mainView" hidden>
+    <div class="tabs" role="tablist">
+      <button class="tab" type="button" role="tab" aria-selected="true">👥 ユーザー</button>
+      <button class="tab" type="button" role="tab" aria-selected="false" disabled>📜 アクセスログ <small>準備中</small></button>
+      <button class="tab" type="button" role="tab" aria-selected="false" disabled>🚨 エラー <small>準備中</small></button>
+    </div>
+
+    <div class="summary">
+      <div class="stat" id="userStat">読み込み中…</div>
+      <button class="btn small" id="reloadBtn" type="button">↻ 更新</button>
+      <button class="btn small primary" id="addBtn" type="button">＋ プレイヤーを追加</button>
+    </div>
+    <div class="users" id="userList"></div>
+  </section>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script src="shared/moku-account.js" data-mode="none"></script>
+<script>
+(function () {
+  'use strict';
+
+  var TOKEN_KEY = 'moku:admin:token';
+  var base = window.MokuAccount ? MokuAccount.apiBase() : null;
+
+  var MESSAGES = {
+    bad_credentials: 'ID か PIN がちがいます。',
+    forbidden: 'このアカウントには管理者の権限がありません。',
+    invalid_login_id: 'ID は英小文字・数字・「-」「_」の 3〜16 文字です。',
+    invalid_pin: 'PIN は数字 4〜6 桁です。',
+    weak_pin: 'その PIN は推測されやすいので使えません(同じ数字の連続や 1234 など)。',
+    id_taken: 'その ID はすでに使われているか、予約されています。',
+    invalid_name: '表示名を入力してください。',
+    cannot_delete_self: '自分の管理者アカウントは削除できません。',
+    not_found: 'そのプレイヤーが見つかりません。一覧を更新してください。',
+    full: '登録できる人数の上限に達しています。',
+    offline: 'サーバーにつながりません。通信を確認してください。'
+  };
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function getToken() { try { return sessionStorage.getItem(TOKEN_KEY); } catch (e) { return null; } }
+  function setToken(t) { try { t ? sessionStorage.setItem(TOKEN_KEY, t) : sessionStorage.removeItem(TOKEN_KEY); } catch (e) {} }
+
+  function message(err) {
+    if (err.code === 'locked' && err.data && err.data.retryAfterSec) {
+      return 'PIN を何度もまちがえたためロック中です。約 ' + Math.ceil(err.data.retryAfterSec / 60) + ' 分後にもう一度試してください。';
+    }
+    return MESSAGES[err.code] || err.message || 'エラーが起きました。';
+  }
+
+  function api(method, path, body) {
+    var headers = {};
+    if (body) headers['content-type'] = 'application/json';
+    var token = getToken();
+    if (token) headers.authorization = 'Bearer ' + token;
+    return fetch(base + path, { method: method, headers: headers, body: body ? JSON.stringify(body) : undefined })
+      .then(function (res) {
+        return res.json().catch(function () { return {}; }).then(function (data) {
+          if (res.ok) return data;
+          var err = new Error(data.message || 'error');
+          err.code = data.error || 'http_' + res.status;
+          err.status = res.status;
+          err.data = data;
+          if (err.code === 'unauthorized') {
+            setToken(null);
+            showLogin('もう一度ログインしてください。');
+          }
+          throw err;
+        });
+      }, function () {
+        var err = new Error('offline');
+        err.code = 'offline';
+        throw err;
+      });
+  }
+
+  var toastTimer = null;
+  function toast(text) {
+    var el = $('toast');
+    el.textContent = text;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove('show'); }, 2600);
+  }
+
+  function fmt(iso) {
+    var d = new Date(iso);
+    if (!iso || isNaN(d)) return '—';
+    var pad = function (n) { return String(n).padStart(2, '0'); };
+    return d.getFullYear() + '/' + pad(d.getMonth() + 1) + '/' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+  function ago(iso) {
+    var t = Date.parse(iso || '');
+    if (!t) return 'まだ';
+    var min = Math.floor((Date.now() - t) / 60000);
+    if (min < 1) return 'たった今';
+    if (min < 60) return min + ' 分前';
+    if (min < 24 * 60) return Math.floor(min / 60) + ' 時間前';
+    return Math.floor(min / (24 * 60)) + ' 日前';
+  }
+
+  // ---------- views ----------
+
+  function showLogin(msg) {
+    $('mainView').hidden = true;
+    $('logoutBtn').hidden = true;
+    $('loginView').hidden = false;
+    $('whoami').textContent = '保護者用';
+    $('loginError').textContent = msg || '';
+  }
+
+  function showMain() {
+    $('loginView').hidden = true;
+    $('mainView').hidden = false;
+    $('logoutBtn').hidden = false;
+    loadUsers();
+  }
+
+  var users = [];
+  var me = null;
+
+  function loadUsers() {
+    $('userStat').textContent = '読み込み中…';
+    return Promise.all([api('GET', '/auth/me'), api('GET', '/admin/users')]).then(function (r) {
+      me = r[0].user;
+      $('whoami').textContent = me.loginId + ' でログイン中';
+      users = r[1].users;
+      var online = users.filter(function (u) { return u.online && !u.admin; }).length;
+      $('userStat').innerHTML = 'プレイヤー <b>' + r[1].count + '</b> / ' + r[1].maxUsers + ' 人 · オンライン ' + online + ' 人';
+      renderUsers();
+    }, function (err) {
+      if (err.code === 'forbidden') {
+        setToken(null);
+        showLogin(MESSAGES.forbidden);
+      } else if (err.code !== 'unauthorized') {
+        $('userStat').textContent = message(err);
+      }
+    });
+  }
+
+  function renderUsers() {
+    if (!users.length) {
+      $('userList').innerHTML = '<div class="card empty">まだプレイヤーがいません</div>';
+      return;
+    }
+    $('userList').innerHTML = users.map(function (u, i) {
+      var save = u.save
+        ? 'セーブ: ' + esc(fmt(u.save.updatedAt)) + (u.save.device ? '(' + esc(u.save.device) + ')' : '') + ' · rev ' + u.save.rev
+        : 'セーブ: まだなし';
+      return '<div class="card user">' +
+        '<div class="avatar' + (u.admin ? ' is-admin' : '') + '">' + esc(Array.from(u.displayName)[0] || '?') +
+        (u.online ? '<span class="dot"></span>' : '') + '</div>' +
+        '<div class="user-main">' +
+        '<div class="user-name">' + esc(u.displayName) +
+        (u.admin ? '<span class="pill admin">管理者</span>' : '') +
+        (u.online ? '<span class="pill online">オンライン</span>' : '') +
+        (u.lockedUntil ? '<span class="pill locked">🔒 ロック中</span>' : '') + '</div>' +
+        '<div class="user-meta">ID <code>' + esc(u.loginId) + '</code> · #' + esc(u.tag) + '<br>' +
+        '最終アクセス: ' + esc(ago(u.lastSeenAt)) + ' · 登録: ' + esc(fmt(u.createdAt)) + '<br>' +
+        save + (u.failCount ? ' · PIN 失敗 ' + u.failCount + ' 回' : '') + '</div>' +
+        '</div>' +
+        '<div class="user-actions">' +
+        '<button class="btn small" type="button" data-edit="' + i + '">編集</button>' +
+        (u.loginId === (me && me.loginId) ? '' : '<button class="btn small danger" type="button" data-delete="' + i + '">削除</button>') +
+        '</div></div>';
+    }).join('');
+  }
+
+  // ---------- dialogs ----------
+
+  var overlay = null;
+  function closeDialog() { if (overlay) overlay.remove(); overlay = null; }
+  function openDialog(html, onSubmit) {
+    closeDialog();
+    overlay = document.createElement('div');
+    overlay.className = 'overlay';
+    overlay.innerHTML = '<form class="dialog" novalidate>' + html +
+      '<p class="error" role="alert"></p></form>';
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) closeDialog(); });
+    document.body.appendChild(overlay);
+    var form = overlay.firstChild;
+    var cancel = form.querySelector('[data-cancel]');
+    if (cancel) cancel.addEventListener('click', closeDialog);
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var submit = form.querySelector('[type=submit]');
+      submit.disabled = true;
+      form.querySelector('.error').textContent = '';
+      onSubmit(form).then(function () {
+        closeDialog();
+        loadUsers();
+      }, function (err) {
+        form.querySelector('.error').textContent = message(err);
+        submit.disabled = false;
+      });
+    });
+    var first = form.querySelector('input');
+    if (first) first.focus();
+  }
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDialog(); });
+
+  function field(label, name, value, attrs, hint) {
+    return '<label class="field">' + label + (hint ? ' <small>' + hint + '</small>' : '') +
+      '<input class="input" name="' + name + '" value="' + esc(value || '') + '" ' + (attrs || '') + '></label>';
+  }
+  var PIN_ATTRS = 'type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password"';
+  var ID_ATTRS = 'autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="16"';
+  var BUTTONS = function (label, cls) {
+    return '<div class="row"><button class="btn" type="button" data-cancel>キャンセル</button>' +
+      '<button class="btn ' + (cls || 'primary') + '" type="submit">' + label + '</button></div>';
+  };
+  function value(form, name) { return form.querySelector('[name=' + name + ']').value.trim(); }
+
+  function openAdd() {
+    openDialog('<h2>プレイヤーを追加</h2>' +
+      field('ID', 'loginId', '', ID_ATTRS, '英小文字・数字・-・_ の 3〜16 文字') +
+      field('表示名', 'displayName', '', 'maxlength="12"', 'ランキングに出る名前・12 文字まで') +
+      field('PIN', 'pin', '', PIN_ATTRS, '数字 4〜6 桁') +
+      '<p class="note">招待コードなしで登録されます。ID と PIN を本人に伝えてください。</p>' +
+      BUTTONS('追加する'), function (form) {
+      return api('POST', '/admin/users', {
+        loginId: value(form, 'loginId'), displayName: value(form, 'displayName'), pin: value(form, 'pin')
+      }).then(function (res) { toast(res.user.displayName + ' を追加しました'); });
+    });
+  }
+
+  function openEdit(u) {
+    openDialog('<h2>' + esc(u.displayName) + ' を編集</h2>' +
+      field('ID', 'loginId', u.loginId, ID_ATTRS, '変えるとその人の端末はログアウトされます') +
+      field('表示名', 'displayName', u.displayName, 'maxlength="12"') +
+      field('新しい PIN', 'pin', '', PIN_ATTRS, '変えるときだけ入力。変えるとその人の端末はログアウトされます') +
+      (u.lockedUntil ? '<label class="check"><input type="checkbox" name="unlock" checked> ロックを解除する(' +
+        esc(fmt(u.lockedUntil)) + ' まで)</label>' : '') +
+      BUTTONS('保存する'), function (form) {
+      var body = {};
+      var id = value(form, 'loginId');
+      var name = value(form, 'displayName');
+      var pin = value(form, 'pin');
+      var unlock = form.querySelector('[name=unlock]');
+      if (id && id.toLowerCase() !== u.loginId) body.loginId = id;
+      if (name !== u.displayName) body.displayName = name;
+      if (pin) body.pin = pin;
+      if (unlock && unlock.checked) body.unlock = true;
+      if (!Object.keys(body).length) return Promise.resolve();
+      return api('PATCH', '/admin/users/' + encodeURIComponent(u.loginId), body).then(function () {
+        toast(u.displayName + ' を更新しました');
+      });
+    });
+  }
+
+  function openDelete(u) {
+    openDialog('<h2>' + esc(u.displayName) + ' を削除しますか?</h2>' +
+      '<p class="note">ID <code>' + esc(u.loginId) + '</code> のアカウントと、クラウドのセーブデータが消えます。' +
+      '<b>元に戻せません。</b>その人の端末に残っている進捗は消えません。</p>' +
+      BUTTONS('削除する', 'danger'), function () {
+      return api('DELETE', '/admin/users/' + encodeURIComponent(u.loginId)).then(function () {
+        toast(u.displayName + ' を削除しました');
+      });
+    });
+  }
+
+  // ---------- wiring ----------
+
+  $('loginForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var form = e.target;
+    var submit = form.querySelector('[type=submit]');
+    submit.disabled = true;
+    $('loginError').textContent = '';
+    api('POST', '/auth/login', { loginId: value(form, 'loginId'), pin: value(form, 'pin') }).then(function (res) {
+      if (!res.user.admin) throw Object.assign(new Error('forbidden'), { code: 'forbidden' });
+      setToken(res.token);
+      form.reset();
+      showMain();
+    }).catch(function (err) {
+      $('loginError').textContent = message(err);
+    }).then(function () { submit.disabled = false; });
+  });
+
+  $('logoutBtn').addEventListener('click', function () {
+    setToken(null);
+    users = [];
+    $('userList').innerHTML = '';
+    showLogin();
+  });
+  $('reloadBtn').addEventListener('click', loadUsers);
+  $('addBtn').addEventListener('click', openAdd);
+  $('userList').addEventListener('click', function (e) {
+    var edit = e.target.closest('[data-edit]');
+    var del = e.target.closest('[data-delete]');
+    if (edit) openEdit(users[+edit.getAttribute('data-edit')]);
+    if (del) openDelete(users[+del.getAttribute('data-delete')]);
+  });
+
+  if (base === null) {
+    $('noApi').hidden = false;
+  } else if (getToken()) {
+    showMain();
+  } else {
+    showLogin();
+  }
+})();
+</script>
+</body>
+</html>
