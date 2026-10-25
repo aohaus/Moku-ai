@@ -199,34 +199,60 @@ async function deleteUser(loginId) {
 }
 
 // Moves an account (profile + cloud save) to a new Player ID in one
-// transaction, applying `fields` to the profile on the way.
+// transaction, applying `fields` to the profile on the way. The old save is
+// only removed if it is still the revision we copied (or still absent), so
+// an upload that lands mid-rename is never lost: we re-read and try again.
+const RENAME_TRIES = 3;
 async function renameUser(oldId, newId, fields) {
-  const user = await getUser(oldId);
-  if (!user) throw codedError("not_found");
-  const save = await getSave(oldId);
-  const items = [
-    {
-      Put: {
-        TableName: TABLE,
-        Item: { ...userKey(newId), ...user, ...fields, loginId: newId },
-        ConditionExpression: "attribute_not_exists(pk)",
+  for (let attempt = 1; ; attempt++) {
+    const user = await getUser(oldId);
+    if (!user) throw codedError("not_found");
+    const save = await getSave(oldId);
+    const items = [
+      {
+        Put: {
+          TableName: TABLE,
+          Item: { ...userKey(newId), ...user, ...fields, loginId: newId },
+          ConditionExpression: "attribute_not_exists(pk)",
+        },
       },
-    },
-    { Delete: { TableName: TABLE, Key: userKey(oldId), ConditionExpression: "attribute_exists(pk)" } },
-  ];
-  if (save) {
-    items.push(
-      { Put: { TableName: TABLE, Item: { ...saveKey(newId), ...save } } },
-      { Delete: { TableName: TABLE, Key: saveKey(oldId) } }
-    );
-  }
-  try {
-    await doc.send(new TransactWriteCommand({ TransactItems: items }));
-  } catch (e) {
-    if (e.name === "TransactionCanceledException" && e.CancellationReasons?.[0]?.Code === "ConditionalCheckFailed") {
-      throw codedError("id_taken");
+      { Delete: { TableName: TABLE, Key: userKey(oldId), ConditionExpression: "attribute_exists(pk)" } },
+    ];
+    if (save) {
+      items.push(
+        {
+          Put: {
+            TableName: TABLE,
+            Item: { ...saveKey(newId), ...save },
+            ConditionExpression: "attribute_not_exists(pk)",
+          },
+        },
+        {
+          Delete: {
+            TableName: TABLE,
+            Key: saveKey(oldId),
+            ConditionExpression: "rev = :rev",
+            ExpressionAttributeValues: { ":rev": save.rev },
+          },
+        }
+      );
+    } else {
+      items.push({
+        ConditionCheck: { TableName: TABLE, Key: saveKey(oldId), ConditionExpression: "attribute_not_exists(pk)" },
+      });
     }
-    throw e;
+    try {
+      await doc.send(new TransactWriteCommand({ TransactItems: items }));
+      return;
+    } catch (e) {
+      if (e.name !== "TransactionCanceledException") throw e;
+      const failed = (e.CancellationReasons || []).map((r) => r?.Code === "ConditionalCheckFailed");
+      if (failed[0]) throw codedError("id_taken");
+      if (failed[1]) throw codedError("not_found");
+      // The save changed under us (an upload mid-rename): read it again.
+      if ((failed[2] || failed[3]) && attempt < RENAME_TRIES) continue;
+      throw e;
+    }
   }
 }
 
