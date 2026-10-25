@@ -333,15 +333,24 @@ async function recordError(sig, report, loginId, ttlSec) {
   );
 }
 
+// Every report (all pages: stacks make items big, and the admin page ranks
+// the whole set, so a 1 MB page cut-off could hide an important one).
 async function listErrors() {
-  const res = await doc.send(
-    new QueryCommand({
-      TableName: TABLE,
-      KeyConditionExpression: "pk = :pk",
-      ExpressionAttributeValues: { ":pk": "ERR" },
-    })
-  );
-  return (res.Items || []).map(({ pk, sk, ttl, users, ...e }) => ({ sig: sk, users: users ? [...users] : [], ...e }));
+  const items = [];
+  let ExclusiveStartKey;
+  do {
+    const res = await doc.send(
+      new QueryCommand({
+        TableName: TABLE,
+        KeyConditionExpression: "pk = :pk",
+        ExpressionAttributeValues: { ":pk": "ERR" },
+        ExclusiveStartKey,
+      })
+    );
+    items.push(...(res.Items || []));
+    ExclusiveStartKey = res.LastEvaluatedKey;
+  } while (ExclusiveStartKey);
+  return items.map(({ pk, sk, ttl, users, ...e }) => ({ sig: sk, users: users ? [...users] : [], ...e }));
 }
 
 async function updateError(sig, fields) {
