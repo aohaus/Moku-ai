@@ -2049,8 +2049,8 @@ footer {
       badge: function () {
         var p = readJSON('moku:moku-bridge:progress');
         if (!p || !this.isPlayed()) return null;
-        var w = readJSON('moku:moint:wallet');
-        return (p.cleared || 0) + ' Bridges Crossed · ' + ((w && w.balance) || 0).toLocaleString('en-US') + ' Moints';
+        var crossed = (p.cleared || 0) + (p.cleared === 1 ? ' Bridge' : ' Bridges');
+        return p.bestLucky > 0 ? crossed + ' · 🍀 ' + p.bestLucky + ' in a row' : crossed + ' Crossed';
       }
     },
     {
@@ -2226,6 +2226,20 @@ footer {
     'moku-rhythm': ['moku_rhythm_'],
     'moku-wolf': ['moku_wolf_'],
     'moku-rane': ['moku:mr:']
+  };
+  // Profile "My Bests" (shared/moku-account.js): records to show off.
+  // Each title can add its own entry here.
+  window.MOKU_PROFILE_BESTS = function () {
+    var bests = [];
+    var bridge = readJSON('moku:moku-bridge:progress');
+    if (bridge && bridge.bestLucky > 0) {
+      bests.push({
+        title: '🍀 Luckiest Steps', game: 'Moku Bridge',
+        value: bridge.bestLucky + ' in a row',
+        hi: CATALOG.mbr.hi, lo: CATALOG.mbr.lo, icon: 'icons/games/moku-bridge.svg'
+      });
+    }
+    return bests;
   };
   window.MOKU_SAVE_SUMMARY = function (savedAt) {
     var stamped = Object.keys(savedAt || {});

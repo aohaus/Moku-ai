@@ -228,6 +228,9 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
 - 他のタイトルで Moint を配る・使う場合も同じキーを読み書きする。`balance` は 0 未満にしない。
 - Moku Bridge 内の買い物(Hint 15 / Magic Carpet 40)と所持数は `moku:moku-bridge:progress` の `items`。初回だけお試し用に 40 Moint 配る(`welcomeGift`)。
 - Moku Bridge で落ちると 3 Moint 減る(残高が 3 未満ならあるだけ。0 未満にはしない)。
+- Magic Carpet は3枚先のガラスへ飛ぶ。とばした2段は踏まないので正解は分からないまま(次の挑戦でも未知)。
+- **Luckiest Steps**(2026-10-25〜): 1回の挑戦で、ヒントなしで続けて当てた段数の最高記録を `moku:moku-bridge:progress` の `bestLucky` に保存する。答えが分かっている段は数えず連続も切らない。ヒント・カーペット・ハズレで連続が切れる。
+- **プロフィールの My Bests**: `hub.html` の `window.MOKU_PROFILE_BESTS()` が `{ title, game, value, hi, lo, icon }` の一覧を返すと、`shared/moku-account.js` がプロフィールの My Saves の上に「My Bests」として出す。他のタイトルの自慢できる記録もここに足せる。
 
 ## 未決事項 / 次に決めること
 

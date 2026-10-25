@@ -155,7 +155,10 @@ body.on-title #controls { display: none; }
   box-shadow: inset 0 -2px 0 rgba(154,101,18,0.55);
   flex: none;
 }
-#titleMoints { margin-top: 18px; }
+.title-chips { margin-top: 18px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.lucky-chip { padding-left: 10px; }
+.lucky-chip[hidden] { display: none; }
+.lucky-chip b { color: #2F7D3A; }
 
 /* ---------- HUD ---------- */
 #hud {
@@ -372,6 +375,11 @@ body.on-title #controls { display: none; }
 .reward-lines div { display: flex; justify-content: space-between; padding: 6px 12px; border-radius: 10px; background: #FFFFFF; box-shadow: 0 0 0 2px #EADBC2; }
 .reward-lines div.total { background: #FFF3D1; box-shadow: 0 0 0 2px #F0CF7A; font-size: 17px; }
 .reward-lines span:last-child { color: var(--moint-dk); }
+.reward-lines div.lucky-line { background: #EEF8E6; box-shadow: 0 0 0 2px #BFE3A8; }
+.reward-lines div.lucky-line span:last-child { color: #2F7D3A; }
+.reward-lines div.lucky-line small { font-size: 12px; color: #6A8A5A; }
+.reward-lines div.lucky-line.record { animation: recordPop 0.9s ease-in-out 2; }
+@keyframes recordPop { 50% { transform: scale(1.04); box-shadow: 0 0 0 3px #8CC46A, 0 0 14px rgba(140,196,106,0.6); } }
 #resultIcon { font-size: 48px; line-height: 1; margin-bottom: 4px; }
 
 #toast {
@@ -408,7 +416,7 @@ body.on-title #controls { display: none; }
 
 <div id="title-frame"></div>
 <a id="hub-link" href="index.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.2.0 · Updated Oct 25, 2026</div>
+<div id="buildInfo">v0.3.0 · Updated Oct 25, 2026</div>
 
 <!-- Item icons, reused by the HUD and the shop -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -439,7 +447,10 @@ body.on-title #controls { display: none; }
     <button class="titleMenuItem" id="titleShopBtn" type="button">Moint Shop</button>
     <button class="titleMenuItem" id="helpBtn" type="button">How to Play</button>
   </div>
-  <div class="moint-chip" id="titleMoints"><span class="moint-coin">M</span><span data-moints>0</span></div>
+  <div class="title-chips">
+    <div class="moint-chip" id="titleMoints"><span class="moint-coin">M</span><span data-moints>0</span></div>
+    <div class="moint-chip lucky-chip" id="titleLucky" hidden>🍀 Luckiest <b data-best-lucky>0</b></div>
+  </div>
 </section>
 
 <div id="hud">
@@ -499,7 +510,8 @@ body.on-title #controls { display: none; }
       <li><span>🧠</span><span>Moku remembers every panel he tried. Try again and get farther!</span></li>
       <li><span>🏁</span><span>Reach the goal to win <b>Moints</b>. Lucky guesses give bonus Moints.</span></li>
       <li><span>💡</span><span><b>Hint</b>: the strong panel glows for a moment.</span></li>
-      <li><span>✨</span><span><b>Magic Carpet</b>: flies Moku safely over one step.</span></li>
+      <li><span>✨</span><span><b>Magic Carpet</b>: flies Moku 3 glasses ahead. The glasses you skip stay a secret!</span></li>
+      <li><span>🍀</span><span><b>Luckiest Steps</b>: lucky guesses in a row. Beat your record and show it off in your profile!</span></li>
     </ul>
     <div class="card-actions">
       <button class="btn" id="helpClose" type="button">Got it!</button>
@@ -540,6 +552,7 @@ body.on-title #controls { display: none; }
   var WELCOME_MOINTS = 40;
   var FALL_PENALTY = 3;   // 落ちたら Moint を少しだけ失う(0 未満にはしない)
   var PRICES = { hint: 15, carpet: 40 };
+  var CARPET_JUMP = 3;    // Magic Carpet は3枚先のガラスまで飛ぶ(とばした段は踏まないので分からないまま)
 
   function readJSON(key) {
     try { var raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
@@ -565,6 +578,7 @@ body.on-title #controls { display: none; }
       bestFirstTry: 0,
       totalTries: 0,
       mointsEarned: 0,
+      bestLucky: 0,       // Luckiest Steps: 1回の挑戦で、ヒントなしで続けて当てた段数の最高記録
       items: { hint: 0, carpet: 0 },
       welcomeGift: false,
       updatedAt: null
@@ -715,6 +729,10 @@ body.on-title #controls { display: none; }
   function renderMoints() {
     var nodes = document.querySelectorAll('[data-moints]');
     for (var i = 0; i < nodes.length; i++) nodes[i].textContent = wallet.balance.toLocaleString('en-US');
+    var best = progress.bestLucky || 0;
+    $('titleLucky').hidden = best < 1;
+    var bl = document.querySelectorAll('[data-best-lucky]');
+    for (var j = 0; j < bl.length; j++) bl[j].textContent = best;
     renderItems();
     renderShop();
   }
@@ -740,7 +758,7 @@ body.on-title #controls { display: none; }
   // ---------- shop ----------
   var SHOP_ITEMS = [
     { id: 'hint', name: 'Hint', icon: 'icoHint', desc: 'The strong panel glows softly for a moment.' },
-    { id: 'carpet', name: 'Magic Carpet', icon: 'icoCarpet', desc: 'Flies Moku safely over one step.' }
+    { id: 'carpet', name: 'Magic Carpet', icon: 'icoCarpet', desc: 'Flies Moku 3 glasses ahead. The glasses you skip stay a secret.' }
   ];
   function renderShop() {
     var list = $('shopList');
@@ -854,7 +872,7 @@ body.on-title #controls { display: none; }
     progress.totalTries = (progress.totalTries || 0) + 1;
     saveAll();
     step = 0;
-    run = { lucky: 0, hints: 0, carpets: 0, penalty: 0 };
+    run = { lucky: 0, streak: 0, bestStreak: 0, newRecord: false, hints: 0, carpets: 0, penalty: 0 };
     resetMoku();
     state = STATE.READY;
     body.classList.remove('on-title');
@@ -903,7 +921,9 @@ body.on-title #controls { display: none; }
       $(id + 'Count').textContent = have;
       $(id + 'Count').style.display = have > 0 ? '' : 'none';
       $(id + 'Sub').textContent = have > 0 ? 'Tap to use' : PRICES[id] + ' Moints';
-      var usable = ready && !known && (have > 0 || wallet.balance >= PRICES[id]);
+      var unknownAhead = false;
+      for (var r = step; ready && r < Math.min(n, step + CARPET_JUMP); r++) if (!progress.solved[r]) unknownAhead = true;
+      var usable = ready && (id === 'carpet' ? unknownAhead : !known) && (have > 0 || wallet.balance >= PRICES[id]);
       if (id === 'hint' && hintGlow.row === step && hintGlow.t > 0) usable = false;
       $(id + 'Btn').disabled = !usable;
     });
@@ -916,13 +936,34 @@ body.on-title #controls { display: none; }
     var n = stepsFor(progress.bridge);
     if (step >= n) return;
     var safe = progress.pattern[step] === side;
-    if (safe && !progress.solved[step] && hintGlow.row !== step) run.lucky++;
+    if (!progress.solved[step]) {
+      if (safe && hintGlow.row !== step) {
+        run.lucky++;
+        run.streak++;
+        if (run.streak > run.bestStreak) run.bestStreak = run.streak;
+        if (run.streak > (progress.bestLucky || 0)) {
+          // 記録更新はすぐ保存(このあと落ちても消えない)
+          progress.bestLucky = run.streak;
+          saveAll();
+          renderMoints();
+          if (run.streak >= 2) {
+            if (!run.newRecord) sfx.hint();
+            run.newRecord = true;
+            hudMsg('🍀 New record! ' + run.streak + ' lucky steps in a row!', 1800);
+          }
+        }
+      } else {
+        run.streak = 0;      // ヒントで当てた段・ハズレで連続は途切れる
+      }
+    }
     beginHop(step, side, safe ? 'safe' : 'break', false);
   }
   function useItem(id) {
     if (!canPick()) return;
     var n = stepsFor(progress.bridge);
-    if (step >= n || progress.solved[step]) return;
+    if (step >= n) return;
+    if (id === 'hint' && progress.solved[step]) return;
+    if (id === 'carpet' && $('carpetBtn').disabled) return;
     if (!(progress.items[id] > 0)) {
       // 持っていなければその場で買って使う
       if (!buy(id)) return;
@@ -938,9 +979,17 @@ body.on-title #controls { display: none; }
       for (var i = 0; i < 14; i++) spawnSparkle(progress.pattern[step] ? LANE_X : -LANE_X, rowZ(step), '#FFF3B0');
     } else {
       run.carpets++;
+      run.streak = 0;
       sfx.carpet();
-      hudMsg('Whoosh! Magic Carpet!', 1600);
-      beginHop(step, progress.pattern[step], 'safe', true);
+      // 3枚先へ。とばした段は踏まないので、正解は分からないまま残る
+      var target = step + CARPET_JUMP - 1;
+      if (target >= n) {
+        hudMsg('Whoosh! Straight to the goal!', 1600);
+        beginHop(n, 0, 'safe', true);
+      } else {
+        hudMsg('Whoosh! 3 glasses ahead!', 1600);
+        beginHop(target, progress.pattern[target], 'safe', true);
+      }
     }
     renderItems();
   }
@@ -952,7 +1001,7 @@ body.on-title #controls { display: none; }
       fromX: moku.x, fromZ: moku.z,
       toX: row >= stepsFor(progress.bridge) ? 0 : (side ? LANE_X : -LANE_X),
       toZ: row >= stepsFor(progress.bridge) ? goalZ() - 0.5 + GOAL_STAND : rowZ(row),
-      t: 0, dur: carpet ? 1.0 : 0.46
+      t: 0, dur: carpet ? 1.5 : 0.46
     };
     if (carpet) carpetFx = { life: 1 };
     sfx.hop();
@@ -970,6 +1019,7 @@ body.on-title #controls { display: none; }
       goalTimer = 0;
       moku.squash = 1;
       sfx.win();
+      if (h.carpet && carpetFx) carpetFx.flyAway = 0;
       for (var i = 0; i < 70; i++) spawnConfetti();
       step = n;
       updateHud();
@@ -1055,6 +1105,7 @@ body.on-title #controls { display: none; }
     if (run.lucky) lines.push(['Lucky steps × ' + run.lucky, lucky]);
     if (first) lines.push(['First try bonus!', first]);
     var html = lines.map(function (l) { return '<div><span>' + l[0] + '</span><span>+' + l[1] + '</span></div>'; }).join('');
+    html += luckyLine();
     html += '<div class="total"><span>Moints</span><span>+<b id="countUp">0</b></span></div>';
     $('rewardLines').innerHTML = html;
     $('rewardLines').style.display = '';
@@ -1069,15 +1120,19 @@ body.on-title #controls { display: none; }
     $('resultIcon').textContent = '☁️';
     $('resultTitle').textContent = 'Oops! Poof!';
     $('resultSub').textContent = 'Moku landed in the fluffy clouds. He now knows ' + known + ' of ' + n + ' steps. You can do it!';
-    if (run.penalty) {
-      $('rewardLines').innerHTML = '<div class="total"><span>Fall</span><span>−' + run.penalty + ' Moints</span></div>';
-      $('rewardLines').style.display = '';
-    } else {
-      $('rewardLines').innerHTML = '';
-      $('rewardLines').style.display = 'none';
-    }
+    var html = run.penalty ? '<div class="total"><span>Fall</span><span>−' + run.penalty + ' Moints</span></div>' : '';
+    html += luckyLine();
+    $('rewardLines').innerHTML = html;
+    $('rewardLines').style.display = html ? '' : 'none';
     $('resultMain').textContent = '↻ Try Again';
     openOverlay('resultOverlay');
+  }
+  // この挑戦の「続けて当てた数」と自己ベスト
+  function luckyLine() {
+    if (!run.bestStreak) return '';
+    return '<div class="lucky-line' + (run.newRecord ? ' record' : '') + '"><span>🍀 Lucky in a row' +
+      (run.newRecord ? ' · New record!' : '') + '</span><span>' + run.bestStreak +
+      ' <small>(Best ' + (progress.bestLucky || 0) + ')</small></span></div>';
   }
   function countUp(node, total) {
     var shown = 0;
@@ -1119,7 +1174,7 @@ body.on-title #controls { display: none; }
       var e = easeInOut(t);
       moku.x = hop.fromX + (hop.toX - hop.fromX) * e;
       moku.z = hop.fromZ + (hop.toZ - hop.fromZ) * e;
-      moku.y = Math.sin(Math.PI * t) * (hop.carpet ? 0.9 : 0.55);
+      moku.y = Math.sin(Math.PI * t) * (hop.carpet ? 1.4 : 0.55);
       moku.tilt = (hop.toX - hop.fromX) * 0.12 * Math.sin(Math.PI * t);
       if (t >= 1) landHop();
     }
