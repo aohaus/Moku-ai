@@ -65,6 +65,7 @@ Mokuball は実装済みだがハブ未公開(準備中)。
     - Mokuball: `#B98CFF` / `#4B2E7A`(紫)
     - Moku Fight: `#2EC4B6` / `#145A55`(ティール。Mokuの蝶ネクタイの色)
     - Moku Watch 6 Lazy: `#FFA552` / `#7A4214`(タンジェリン。夕焼けの色)
+    - Moku Bridge: `#5ED6E8` / `#16596A`(グラスアクア。ガラスの橋の色)
     - 追加タイトルは新規ペアを定義(既存と被らない色相を選ぶ)
 - **タイポグラフィ**: `-apple-system, "Segoe UI", Roboto, sans-serif`。見出しは `font-weight: 800`、字間 `0.01〜0.04em`。
 - **タイトル画面メニューの統一(2026-08-14〜)**: フォント**ファミリー**はゲームごとの世界観を尊重して統一しない(Angry MokumokuはCourier New、他はArial/システムフォントのままでよい)。ただし**サイズ・太さ・揃え方・行間**は統一する。
@@ -220,6 +221,12 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
   - 各行に端末(iPad など。User-Agent から判定)。**PINは記録しない。**
   - 保存: DynamoDB の同じテーブルに日ごとのパーティション(`pk = LOG#<UTCの日付>`)。`ttl` 属性で90日後に自動削除。1日あたり最大500件まで取得。
 - **予定**: エラーの収集と確認(最大3件、改修判断、Claude Code へ渡す情報の選択)。画面のタブは「準備中」として置いてある。
+
+## 13. Moint(シリーズ共通通貨、2026-10-25〜)
+
+- 最初に導入したのは Moku Bridge。財布は `localStorage` の `moku:moint:wallet` = `{ version: 1, balance, updatedAt }`(ゲームIDを付けないシリーズ共通キー。`moku:` 接頭辞なのでクラウドセーブ・引き継ぎコードの対象)。
+- 他のタイトルで Moint を配る・使う場合も同じキーを読み書きする。`balance` は 0 未満にしない。
+- Moku Bridge 内の買い物(Hint 15 / Magic Carpet 40)と所持数は `moku:moku-bridge:progress` の `items`。初回だけお試し用に 40 Moint 配る(`welcomeGift`)。
 
 ## 未決事項 / 次に決めること
 
