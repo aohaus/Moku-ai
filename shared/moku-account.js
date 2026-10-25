@@ -89,7 +89,21 @@
     try { return JSON.parse(lsGet(key) || 'null'); } catch (e) { return null; }
   }
 
-  function getToken() { return lsGet(TOKEN_KEY); }
+  // An expired token counts as logged out (same rule as shared/moku-gate.js,
+  // so the gate and index.html never send the player back and forth).
+  function tokenExpired(token) {
+    try {
+      var body = token.split('.')[0].replace(/-/g, '+').replace(/_/g, '/');
+      var exp = JSON.parse(decodeURIComponent(escape(atob(body)))).exp;
+      return typeof exp !== 'number' || exp * 1000 <= Date.now();
+    } catch (e) {
+      return true;
+    }
+  }
+  function getToken() {
+    var token = lsGet(TOKEN_KEY);
+    return token && !tokenExpired(token) ? token : null;
+  }
   function getUser() { return getToken() ? readJson(USER_KEY) : null; }
 
   function setSession(token, user) {
@@ -576,7 +590,7 @@
         '<span class="mka-wide-icon" aria-hidden="true">☁️</span>' +
         '<span class="mka-wide-text"><span class="mka-wide-title"><span>Log In</span>' +
         (isNew ? '<em class="mka-new">NEW</em>' : '') + '</span>' +
-        '<span class="mka-wide-sub">Keep your progress on every device</span></span>' +
+        '<span class="mka-wide-sub">Log in to play · saved on every device</span></span>' +
         '<span class="mka-wide-arrow" aria-hidden="true">›</span></button>';
     slot.firstChild.addEventListener('click', function () { openModal(user ? 'account' : 'login'); });
   }
@@ -683,7 +697,7 @@
       var isLogin = view === 'login';
       html += HERO + '<h2 class="mka-title" id="mkaTitle">' + (isLogin ? 'Welcome back!' : 'Join Moku Series') + '</h2>' +
         '<p class="mka-sub">' + (isLogin
-          ? 'Log in to keep your progress on every device.'
+          ? 'Log in to play. Your progress is saved on every device.'
           : 'Ask a grown-up for the invite code.') + '</p></div>' +
         '<div class="mka-tabs" role="tablist">' +
         '<button class="mka-tab" type="button" role="tab" data-go="login" aria-selected="' + isLogin + '">Log In</button>' +
