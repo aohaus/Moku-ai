@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<script src="shared/moku-errors.js?v=20261025"></script>
-<script src="shared/moku-gate.js?v=20261025"></script>
+<script src="shared/moku-errors.js?v=20261025b"></script>
+<script src="shared/moku-gate.js?v=20261025b"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Moku Series</title>
 <!-- Icons: made by scripts/make-icons.py. Bump ?v= when they change so browsers refetch. -->
@@ -1241,6 +1241,9 @@ html.me-open, html.me-open body { overflow: hidden; }
   -webkit-tap-highlight-color: transparent;
 }
 .me-stage .mm-doll { width: 100%; animation: bob 3.2s ease-in-out infinite; filter: drop-shadow(0 8px 12px rgba(0,0,0,0.35)); }
+/* with a background card (Moku Closet → Backgrounds), Moku stands inside it */
+.me-stage .mm-scene { box-shadow: 0 10px 24px rgba(0,0,0,0.35); }
+.me-stage .mm-scene .mm-doll { width: auto; filter: drop-shadow(0 4px 6px rgba(42,31,61,0.35)); }
 .me-stage-tip {
   position: absolute;
   right: -4px;
@@ -1437,7 +1440,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     <aside class="me-side">
       <div class="me-card me-hero">
         <button class="me-stage" type="button" data-moku-closet aria-label="Dress up Moku in the Moku Closet">
-          <span data-moku-doll></span>
+          <span data-moku-doll data-moku-scene></span>
           <span class="me-stage-tip">👒 Dress up</span>
         </button>
         <h2 class="me-name"><span data-moku-name>Guest</span> <span class="me-tag" data-moku-tag hidden></span></h2>
@@ -3016,8 +3019,8 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
   };
 })();
 </script>
-<script src="shared/moku-account.js?v=20261025"></script>
-<script src="shared/moku-transfer.js?v=20261025"></script>
-<script src="shared/moku-moint.js?v=20261025"></script>
+<script src="shared/moku-account.js?v=20261025b"></script>
+<script src="shared/moku-transfer.js?v=20261025b"></script>
+<script src="shared/moku-moint.js?v=20261025b"></script>
 </body>
 </html>
