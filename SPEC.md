@@ -257,6 +257,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
 - Moku Bridge 内の買い物(Hint 15 / Magic Carpet 40)と所持数は `moku:moku-bridge:progress` の `items`。初回だけお試し用に 40 Moint 配る(`welcomeGift`)。
 - Moku Bridge で橋を渡りきると最低 100 Moint(8段の橋 100 / 9段 110 / 10段 120)+ヒントなしで当てた段ごとに 10 + 1回目でクリアなら 50。
 - Moku Bridge で落ちると 3 Moint 減る(残高が 3 未満ならあるだけ。0 未満にはしない)。
+- **お助けセール**(2026-10-25〜): その橋で「まだ分からないガラスを自分で選んだ回数」のうちハズレが7割以上(3回以上選んでから)になったら、次の挑戦から Hint / Magic Carpet を強調(光る枠+「50% OFF」タグ)して半額(Hint 8 / Carpet 20、切り上げ)で買えるようにする。半額は橋ごとに各1つまで(買い溜め防止)。分かっているガラス・ヒントを使った段は数えない。成績は `moku:moku-bridge:progress` の `bridgeStats = { guesses, misses, saleUsed: { hint, carpet } }` で、次の橋でリセット。落ちた時の結果画面と次の挑戦の最初のメッセージでも知らせる。
 - Magic Carpet は3枚先のガラスへ飛ぶ。とばした2段は踏まないので正解は分からないまま(次の挑戦でも未知)。
 - **Luckiest Steps**(2026-10-25〜): 1回の挑戦で、ヒントなしで続けて当てた段数の最高記録を `moku:moku-bridge:progress` の `bestLucky` に保存する。答えが分かっている段は数えず連続も切らない。ヒント・カーペット・ハズレで連続が切れる。
 - **My Moku の My Bests**: `hub.html` の `profileBests()` が返す `{ title, game, value, hi, lo, icon }` の一覧を My Moku 画面の右列の先頭に出す。他のタイトルの自慢できる記録もここに足せる。
