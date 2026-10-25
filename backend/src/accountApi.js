@@ -8,6 +8,8 @@ const { hashPin, verifyPin, burnPinCheck, isWeakPin } = require("./pin");
 // accountStore.js (DynamoDB, production) or memoryStore.js (server.js dev mock).
 
 const LOGIN_ID_RE = /^[a-z0-9_-]{3,16}$/;
+// Kids can't sign up with these (the admin account is made by scripts/accounts.js).
+const RESERVED_IDS = ["admin", "administrator", "root", "moku", "mokumoku", "system"];
 const PIN_RE = /^\d{4,6}$/;
 const MAX_DISPLAY_NAME_LEN = 12;
 const MAX_SAVE_BYTES = 300 * 1024; // DynamoDB items cap at 400 KB
@@ -72,7 +74,38 @@ function publicUserView(user) {
 
 // What the player sees about themselves.
 function publicUser(user) {
-  return { loginId: user.loginId, ...publicUserView(user) };
+  return { loginId: user.loginId, ...publicUserView(user), ...(isAdmin(user) ? { admin: true } : {}) };
+}
+
+function isAdmin(user) {
+  return user?.role === "admin";
+}
+
+// What the admin page sees about each account (never the PIN hash).
+function adminView(user, save, t) {
+  return {
+    loginId: user.loginId,
+    ...publicUserView(user),
+    admin: isAdmin(user),
+    createdAt: user.createdAt || null,
+    lastSeenAt: user.lastSeenAt ? new Date(user.lastSeenAt).toISOString() : null,
+    online: !!user.lastSeenAt && t - user.lastSeenAt < ONLINE_WINDOW_MS,
+    failCount: user.failCount || 0,
+    lockedUntil: user.lockedUntil > t ? new Date(user.lockedUntil).toISOString() : null,
+    save: save ? { rev: save.rev, updatedAt: save.updatedAt, device: save.device || "" } : null,
+  };
+}
+
+// Shared by sign-up and the admin page. Returns an error response or null.
+function checkLoginId(loginId) {
+  if (!LOGIN_ID_RE.test(loginId)) return err(400, "invalid_login_id", "Player ID: 3–16 letters, numbers, - or _.");
+  if (RESERVED_IDS.includes(loginId)) return err(409, "id_taken", "That Player ID is already taken.");
+  return null;
+}
+function checkPin(pin) {
+  if (!PIN_RE.test(pin)) return err(400, "invalid_pin", "PIN: 4–6 numbers.");
+  if (isWeakPin(pin)) return err(400, "weak_pin", "That PIN is too easy to guess.");
+  return null;
 }
 
 function issueToken(user, secret, now) {
@@ -99,6 +132,8 @@ function createAccountApi(store, config) {
     const user = await store.getUser(payload.lid);
     if (!user || user.uid !== payload.uid || user.tv !== payload.tv) return null;
     await markSeen(user);
+    // The admin may rename someone; GET /auth/me hands out a fresh token then.
+    user.tokenIsStale = payload.name !== user.displayName;
     return user;
   }
 
@@ -118,7 +153,7 @@ function createAccountApi(store, config) {
   // public tags — never the Player ID, which is half of someone's login.
   async function listPlayers(me) {
     const t = now();
-    const players = (await store.listUsers()).map((u) => ({
+    const players = (await store.listUsers()).filter((u) => !isAdmin(u)).map((u) => ({
       ...publicUserView(u),
       lastSeenAt: u.lastSeenAt ? new Date(u.lastSeenAt).toISOString() : null,
       online: !!u.lastSeenAt && t - u.lastSeenAt < ONLINE_WINDOW_MS,
@@ -133,13 +168,15 @@ function createAccountApi(store, config) {
     if (!sameSecret(String(body.inviteCode || "").trim(), inviteCode)) {
       return err(403, "bad_invite", "That invite code doesn't work.");
     }
+    return createAccount(body, true);
+  }
+
+  // Sign-up (signIn: log the new player in) or the admin page adding someone.
+  async function createAccount(body, signIn) {
     const loginId = normalizeLoginId(body.loginId);
-    if (!LOGIN_ID_RE.test(loginId)) {
-      return err(400, "invalid_login_id", "Player ID: 3–16 letters, numbers, - or _.");
-    }
     const pin = String(body.pin ?? "");
-    if (!PIN_RE.test(pin)) return err(400, "invalid_pin", "PIN: 4–6 numbers.");
-    if (isWeakPin(pin)) return err(400, "weak_pin", "That PIN is too easy to guess.");
+    const invalid = checkLoginId(loginId) || checkPin(pin);
+    if (invalid) return invalid;
     const displayName = cleanDisplayName(body.displayName) || loginId.slice(0, MAX_DISPLAY_NAME_LEN);
 
     const user = {
@@ -150,7 +187,7 @@ function createAccountApi(store, config) {
       tv: 1,
       failCount: 0,
       lockedUntil: 0,
-      lastSeenAt: now(),
+      lastSeenAt: signIn ? now() : 0,
       createdAt: new Date(now()).toISOString(),
     };
     try {
@@ -160,7 +197,72 @@ function createAccountApi(store, config) {
       if (e.code === "full") return err(403, "full", "Moku Series is full right now.");
       throw e;
     }
+    if (!signIn) return json(201, { user: adminView(user, null, now()) });
     return json(201, { token: issueToken(user, authSecret, now()), user: publicUser(user) });
+  }
+
+  // ---------- admin (role "admin", see scripts/accounts.js create-admin) ----------
+
+  async function adminListUsers() {
+    const [users, saves] = await Promise.all([store.listUsers(), store.listSaves()]);
+    const saveOf = new Map(saves.map((sv) => [sv.loginId, sv]));
+    const t = now();
+    const list = users
+      .map((u) => adminView(u, saveOf.get(u.loginId), t))
+      .sort((a, b) => (a.createdAt || "").localeCompare(b.createdAt || ""));
+    return json(200, { users: list, count: users.filter((u) => !u.uncounted).length, maxUsers });
+  }
+
+  // Change any of: displayName, pin (logs their devices out), unlock,
+  // loginId (moves the account + save; also logs their devices out).
+  async function adminUpdateUser(loginId, body) {
+    const target = await store.getUser(loginId);
+    if (!target) return err(404, "not_found", "No such player.");
+    const fields = {};
+    if (body.displayName !== undefined) {
+      const name = cleanDisplayName(body.displayName);
+      if (!name) return err(400, "invalid_name", "Name can't be empty.");
+      fields.displayName = name;
+    }
+    if (body.pin) {
+      const invalid = checkPin(String(body.pin));
+      if (invalid) return invalid;
+      fields.pinHash = await hashPin(String(body.pin));
+      fields.tv = target.tv + 1;
+    }
+    if (body.pin || body.unlock) {
+      fields.failCount = 0;
+      fields.lockedUntil = 0;
+    }
+    const newId = body.loginId === undefined ? loginId : normalizeLoginId(body.loginId);
+    if (newId !== loginId) {
+      // Reserved IDs are fine for the admin account itself.
+      const invalid = isAdmin(target) && LOGIN_ID_RE.test(newId) ? null : checkLoginId(newId);
+      if (invalid) return invalid;
+      fields.tv = (fields.tv || target.tv) + 1;
+      try {
+        await store.renameUser(loginId, newId, fields);
+      } catch (e) {
+        if (e.code === "id_taken") return err(409, "id_taken", "That Player ID is already taken.");
+        throw e;
+      }
+    } else if (Object.keys(fields).length) {
+      await store.updateUser(loginId, fields);
+    }
+    const saves = await store.listSaves();
+    const updated = await store.getUser(newId);
+    return json(200, { user: adminView(updated, saves.find((sv) => sv.loginId === newId), now()) });
+  }
+
+  async function adminDeleteUser(me, loginId) {
+    if (loginId === me.loginId) return err(400, "cannot_delete_self", "You can't delete your own admin account.");
+    try {
+      await store.deleteUser(loginId);
+    } catch (e) {
+      if (e.code === "not_found") return err(404, "not_found", "No such player.");
+      throw e;
+    }
+    return json(200, { deleted: loginId });
   }
 
   async function login(body) {
@@ -262,11 +364,31 @@ function createAccountApi(store, config) {
       }
 
       const authed = ["GET /auth/me", "POST /auth/pin", "GET /save", "PUT /save", "GET /players"];
-      if (!authed.includes(route)) return err(404, "not_found", "not found");
+      const adminUser = /^\/admin\/users\/([^/]+)$/.exec(path);
+      const adminRoute =
+        route === "GET /admin/users" || route === "POST /admin/users" ||
+        (adminUser && (method === "PATCH" || method === "DELETE"));
+      if (!authed.includes(route) && !adminRoute) return err(404, "not_found", "not found");
 
       const user = await authenticate(event);
       if (!user) return err(401, "unauthorized", "Please log in again.");
-      if (route === "GET /auth/me") return json(200, { user: publicUser(user) });
+
+      if (adminRoute) {
+        if (!isAdmin(user)) return err(403, "forbidden", "Admins only.");
+        if (route === "GET /admin/users") return await adminListUsers();
+        if (method === "DELETE") return await adminDeleteUser(user, decodeURIComponent(adminUser[1]));
+        const adminBody = parseBody(event);
+        if (!adminBody) return err(400, "invalid_json", "invalid JSON body");
+        if (route === "POST /admin/users") return await createAccount(adminBody, false);
+        return await adminUpdateUser(decodeURIComponent(adminUser[1]), adminBody);
+      }
+
+      if (route === "GET /auth/me") {
+        return json(200, {
+          user: publicUser(user),
+          ...(user.tokenIsStale ? { token: issueToken(user, authSecret, now()) } : {}),
+        });
+      }
       if (route === "GET /save") return await getSave(user);
       if (route === "GET /players") return await listPlayers(user);
 

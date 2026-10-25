@@ -77,7 +77,23 @@ node scripts/accounts.js list                    # 一覧(ID / 表示名 / 作�
 node scripts/accounts.js reset-pin aoi 4826      # PINを忘れた時。他の端末はログアウトされる
 node scripts/accounts.js unlock aoi              # PIN間違いのロックを解除
 node scripts/accounts.js delete aoi              # アカウントとクラウドセーブを削除
+node scripts/accounts.js create-admin admin <PIN> # 管理者アカウントを作る(2回目以降はPINの変更)
 ```
+
+## 管理者アカウントと管理画面
+
+`admin.html`(https://aohaus.github.io/Moku-ai/admin.html)は、管理者アカウントでだけ使える保護者用の画面(SPEC.md §12)。
+管理者アカウントはアプリからは作れない。CloudShell で一度だけ実行する:
+
+```sh
+cd ~/Moku-ai/backend
+npm install                                 # 初回だけ
+node scripts/accounts.js create-admin admin <PIN>
+```
+
+- ID は大文字・小文字を区別しない(`Admin` でログインできる)。PIN はこのリポジトリやチャットに書かないこと。
+- 管理者は100人の上限に数えず、Players 一覧にも出ない。
+- 同じコマンドをもう一度実行すると PIN の変更になる(管理者の端末はログアウト)。
 
 ## テスト
 
