@@ -8,6 +8,8 @@
 <title>MOKU DROP - Physics Merge & Grow | Moku Series</title>
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<script src="shared/moku-account.js?v=20261026" data-mode="background"></script>
+<script src="shared/moku-moint.js?v=20261026" data-mode="none"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@500;700;800;900&display=swap" rel="stylesheet">
@@ -347,6 +349,16 @@ canvas#gameCanvas {
   transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   z-index: 20;
 }
+/* Moint receipt on the JAR FULL screen (SPEC.md §13) */
+.moint-box { width: 100%; max-width: 260px; display: flex; flex-direction: column; gap: 3px; padding: 9px 14px; margin: -8px 0 16px;
+  border-radius: 12px; background: rgba(255, 201, 74, 0.08); border: 1px solid rgba(255, 201, 74, 0.3); font-size: 12.5px; text-align: left; }
+.moint-box[hidden] { display: none; }
+.moint-box > div { display: flex; justify-content: space-between; gap: 14px; font-weight: 700; color: rgba(237, 238, 246, 0.82); }
+.moint-box b { color: #FFD86A; white-space: nowrap; }
+.moint-box .moint-total { margin-top: 3px; padding-top: 5px; border-top: 1px solid rgba(255, 216, 106, 0.25); font-size: 14px; color: #FFF; }
+.moint-box .moint-note { margin: 2px 0 0; font-size: 11px; font-weight: 700; color: #FFD86A; text-align: center; }
+.coin { display: inline-flex; align-items: center; justify-content: center; width: 1.25em; height: 1.25em; margin-right: 5px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #FFF3B0, #FFC94A 55%, #C98A1B); color: #6A4300; font-size: 0.72em; font-weight: 900; vertical-align: -0.2em; }
 .combo-badge.show {
   opacity: 1;
   transform: translateX(-50%) scale(1.1);
@@ -413,6 +425,7 @@ canvas#gameCanvas {
       <div class="modal-score-val" id="finalScoreVal">0</div>
       <div class="score-label" id="newBestLabel" style="color: var(--accent-gold); margin-top: 4px; display: none;">★ NEW HIGH SCORE! ★</div>
     </div>
+    <div class="moint-box" id="mointBox" hidden></div>
     <button class="btn-primary" id="playAgainBtn">▶ Play Again</button>
   </div>
 </div>
@@ -543,6 +556,7 @@ canvas#gameCanvas {
 
   var bodies = [];
   var particles = [];
+  var runMaxTier = 0;   // biggest Moku made this run (for the one-time Moint rewards)
   var comboCount = 0;
   var comboTimer = null;
 
@@ -682,6 +696,7 @@ canvas#gameCanvas {
             var midX = (b1.x + b2.x) / 2;
             var midY = (b1.y + b2.y) / 2;
             var nextTier = b1.tier + 1;
+            if (nextTier > runMaxTier) runMaxTier = nextTier;
 
             var pts = TIERS[nextTier].score;
             addScore(pts);
@@ -864,6 +879,7 @@ canvas#gameCanvas {
     if (finalVal) finalVal.textContent = currentScore;
     if (newBest) newBest.style.display = (currentScore >= bestScore && currentScore > 0) ? 'block' : 'none';
     if (modal) modal.classList.add('active');
+    renderMoints(payMoints());
 
     try {
       var total = parseInt(localStorage.getItem('moku_total_played') || '0', 10) + 1;
@@ -998,11 +1014,67 @@ canvas#gameCanvas {
     });
   }
 
+  // --- MOINT REWARDS (SPEC.md §13) ---
+  // Every finished run pays by score, plus a bonus for a new best; these count
+  // toward the daily cap (MokuMoint.DAILY_GAME_CAP). The first time you ever
+  // make each big Moku is a one-time reward outside the cap, remembered in
+  // moku:moku-drop:progress (mointClaims). Restarting mid-run pays nothing.
+  var GAME_ID = 'moku-drop';
+  var PROGRESS_KEY = 'moku:moku-drop:progress';
+  var MOINT = { perPoints: 100, runMax: 150, newBest: 30,
+    firstTier: { 6: 50, 7: 100, 8: 150, 9: 250, 10: 500 } };
+  var runBest = bestScore;   // best score before this run started
+  function loadProgress() {
+    try {
+      var p = JSON.parse(localStorage.getItem(PROGRESS_KEY) || 'null');
+      if (p && typeof p === 'object') { if (!p.mointClaims) p.mointClaims = {}; return p; }
+    } catch (e) {}
+    return { version: 1, gameId: GAME_ID, mointClaims: {} };
+  }
+  function saveProgress(p) {
+    p.updatedAt = new Date().toISOString();
+    try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(p)); } catch (e) {}
+  }
+  function payMoints() {
+    if (!window.MokuMoint || currentScore <= 0) return null;
+    var out = { lines: [], capHit: false };
+    function pay(label, amount, capped) {
+      if (amount <= 0) return;
+      var got = MokuMoint.earn(GAME_ID, amount, { capped: capped });
+      if (capped && got < amount) out.capHit = true;
+      if (got) out.lines.push([label, got]);
+    }
+    pay('Score ' + currentScore.toLocaleString('en-US'), Math.min(MOINT.runMax, Math.floor(currentScore / MOINT.perPoints)), true);
+    if (currentScore > runBest && runBest > 0) pay('New high score!', MOINT.newBest, true);
+    var prog = loadProgress(), changed = false;
+    for (var tier = 6; tier <= runMaxTier; tier++) {
+      if (!MOINT.firstTier[tier] || prog.mointClaims['tier' + tier]) continue;
+      prog.mointClaims['tier' + tier] = true; changed = true;
+      pay('First ' + TIERS[tier].name + (TIERS[tier].isKing ? '! 👑' : '!'), MOINT.firstTier[tier], false);
+    }
+    if (changed) saveProgress(prog);
+    return out;
+  }
+  function renderMoints(m) {
+    var el = document.getElementById('mointBox');
+    if (!el) return;
+    if (!m || (!m.lines.length && !m.capHit)) { el.hidden = true; el.innerHTML = ''; return; }
+    var total = m.lines.reduce(function (a, l) { return a + l[1]; }, 0);
+    el.innerHTML = m.lines.map(function (l) { return '<div><span>' + l[0] + '</span><b>+' + l[1] + '</b></div>'; }).join('') +
+      (total ? '<div class="moint-total"><span><i class="coin">M</i>Moints</span><b>+' + total + '</b></div>' : '') +
+      (m.capHit ? '<p class="moint-note">You got all of today\'s Moku Drop Moints! Come back tomorrow.</p>'
+                : '<p class="moint-note" style="color:rgba(237,238,246,0.55)">Today ' + MokuMoint.earnedToday(GAME_ID) + ' / ' + MokuMoint.DAILY_GAME_CAP + '</p>');
+    el.hidden = false;
+    if (total) playSound('merge', 1.6);
+  }
+
   // --- RESTART & SOUND ---
   function resetGame() {
     bodies = [];
     particles = [];
     currentScore = 0;
+    runMaxTier = 0;
+    runBest = bestScore;
     nudgesLeft = 3;
     isGameOver = false;
     dropCooldown = false;

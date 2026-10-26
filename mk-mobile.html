@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <script src="shared/moku-errors.js?v=20261026"></script>
 <script src="shared/moku-gate.js?v=20261026"></script>
+<script src="shared/moku-account.js?v=20261026" data-mode="background"></script>
+<script src="shared/moku-moint.js?v=20261026" data-mode="none"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>MK Mobile</title>
 <style>
@@ -186,6 +188,16 @@ canvas {
 #overlay.hidden { display: none; }
 #overlay h1 { color: #fff; font-size: 30px; margin-bottom: 8px; text-shadow: 0 2px 12px rgba(0,0,0,0.5); text-align: center; }
 #overlay p { color: #FFE9A8; font-size: 16px; margin-bottom: 24px; text-align: center; white-space: pre-line; }
+/* Moint receipt on the result screen (SPEC.md §13). Landscape, so keep it short. */
+#ov-moints { width: min(360px, 70vw); display: flex; flex-direction: column; gap: 2px; margin: -14px 0 16px; padding: 7px 14px;
+  border-radius: 12px; background: rgba(255,201,74,0.12); border: 1px solid rgba(255,201,74,0.4); font-size: 12.5px; }
+#ov-moints.hidden { display: none; }
+#ov-moints > div { display: flex; justify-content: space-between; gap: 14px; font-weight: 700; color: rgba(255,255,255,0.85); }
+#ov-moints b { color: #FFD86A; white-space: nowrap; }
+#ov-moints .moint-total { margin-top: 2px; padding-top: 4px; border-top: 1px solid rgba(255,216,106,0.3); font-size: 14px; color: #fff; }
+#ov-moints p { margin: 1px 0 0; font-size: 11px; font-weight: 700; color: #FFD86A; text-align: center; }
+#ov-moints .coin { display: inline-flex; align-items: center; justify-content: center; width: 1.25em; height: 1.25em; margin-right: 5px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #FFF3B0, #FFC94A 55%, #C98A1B); color: #6A4300; font-size: 0.72em; font-weight: 900; }
 #overlay button {
   background: #FFC94A; color: #201200;
   border: none; border-radius: 30px;
@@ -278,7 +290,7 @@ canvas {
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
 <button id="lang-toggle" type="button">EN</button>
-<div id="buildInfo">v1.1.0 · Updated Aug 14, 2026</div>
+<div id="buildInfo">v1.2.0 · Updated Oct 26, 2026</div>
 <div id="game-layout">
   <div id="wrapper">
     <div id="canvasBox">
@@ -297,6 +309,7 @@ canvas {
     <div id="overlay" class="hidden">
       <h1 id="ov-title"></h1>
       <p id="ov-sub"></p>
+      <div id="ov-moints" class="hidden"></div>
       <button id="ov-btn">もう一度！</button>
     </div>
   </div>
@@ -1864,6 +1877,7 @@ function endMatch() {
   const won = scoreHome > scoreAway;
   const drew = scoreHome === scoreAway;
   lastPointsEarned = 0; lastBoostX2 = false;
+  let moints = null;
   if (matchMode === 'ready') {
     if (won) {
       const today = todayStr();
@@ -1881,6 +1895,7 @@ function endMatch() {
         profile.points += lastPointsEarned;
       }
     }
+    moints = payMoints(won, drew);
     saveProfile();
   }
 
@@ -1894,6 +1909,54 @@ function endMatch() {
   let sub = `${scoreHome} - ${scoreAway}`;
   if (matchMode === 'ready' && (won || drew)) sub += `\n+${lastPointsEarned}pt${lastBoostX2 ? t('boostSuffix') : ''}`;
   document.getElementById('ov-sub').textContent = sub;
+  renderMoints(moints);
+}
+
+// ─── Moint rewards (SPEC.md §13) ───
+// On top of MK Mobile's own points (which stay as they are), a Ready! match
+// pays Moints: a win by match length × CPU level, a draw a little, and a
+// clean sheet a bonus — all toward the daily cap (MokuMoint.DAILY_GAME_CAP).
+// The first win at each CPU level is a one-time reward outside the cap,
+// remembered in profile.mointClaims.
+const MOINT = {
+  win: [25, 60, 90],        // by match length: 1 / 3 / 5 min
+  cpuMult: [1, 1.3, 1.6],   // Easy / Normal / Hard
+  draw: 10, cleanSheet: 10,
+  firstWin: [100, 200, 300],
+};
+const CPU_EN = ['Easy', 'Normal', 'Hard'];
+function payMoints(won, drew) {
+  if (!window.MokuMoint) return null;
+  if (!profile.mointClaims) profile.mointClaims = {};
+  const out = { lines: [], capHit: false };
+  const pay = (label, amount, capped) => {
+    const got = MokuMoint.earn('mk-mobile', amount, { capped });
+    if (capped && got < amount) out.capHit = true;
+    if (got) out.lines.push([label, got]);
+  };
+  const lvl = Math.max(0, Math.min(2, cpuLevel));
+  if (won) {
+    const mins = MATCH_DURATIONS[matchDurationIdx] / 60;
+    pay(`Win · ${mins} min · CPU ${CPU_EN[lvl]}`, Math.round(MOINT.win[matchDurationIdx] * MOINT.cpuMult[lvl]), true);
+    if (scoreAway === 0) pay('Clean sheet!', MOINT.cleanSheet, true);
+    if (!profile.mointClaims['win' + lvl]) {
+      profile.mointClaims['win' + lvl] = true;
+      pay(`First win vs CPU ${CPU_EN[lvl]}!`, MOINT.firstWin[lvl], false);
+    }
+  } else if (drew) {
+    pay('Draw', MOINT.draw, true);
+  }
+  return out;
+}
+function renderMoints(m) {
+  const el = document.getElementById('ov-moints');
+  if (!m || (!m.lines.length && !m.capHit)) { el.classList.add('hidden'); el.innerHTML = ''; return; }
+  const total = m.lines.reduce((a, l) => a + l[1], 0);
+  el.innerHTML = m.lines.map(l => `<div><span>${l[0]}</span><b>+${l[1]}</b></div>`).join('') +
+    (total ? `<div class="moint-total"><span><i class="coin">M</i>Moints</span><b>+${total}</b></div>` : '') +
+    (m.capHit ? `<p>You got all of today's MK Mobile Moints! Come back tomorrow.</p>`
+              : `<p style="color:rgba(255,255,255,0.55)">Today ${MokuMoint.earnedToday('mk-mobile')} / ${MokuMoint.DAILY_GAME_CAP}</p>`);
+  el.classList.remove('hidden');
 }
 
 function pauseGame() {

@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <script src="shared/moku-errors.js?v=20261026"></script>
 <script src="shared/moku-gate.js?v=20261026"></script>
+<script src="shared/moku-account.js?v=20261026" data-mode="background"></script>
+<script src="shared/moku-moint.js?v=20261026" data-mode="none"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>モヨモヨ - Moyomoyo</title>
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
@@ -192,6 +194,16 @@ canvas {
   box-shadow: 0 4px 16px rgba(255,111,168,0.4);
 }
 #overlay button:hover { background: #FF8FBC; transform: scale(1.05); }
+/* Moint receipt on the result screen (SPEC.md §13) */
+#ov-moints { width: min(300px, 80%); display: flex; flex-direction: column; gap: 3px; margin: -12px 0 18px; padding: 9px 14px;
+  border-radius: 12px; background: rgba(255,201,74,0.12); border: 1px solid rgba(255,201,74,0.4); font-size: 13px; }
+#ov-moints.hidden { display: none; }
+#ov-moints > div { display: flex; justify-content: space-between; gap: 14px; font-weight: 700; color: rgba(255,255,255,0.85); }
+#ov-moints b { color: #FFD86A; white-space: nowrap; }
+#ov-moints .moint-total { margin-top: 3px; padding-top: 5px; border-top: 1px solid rgba(255,216,106,0.3); font-size: 15px; color: #fff; }
+#ov-moints p { margin: 2px 0 0; font-size: 11.5px; font-weight: 700; color: #FFD86A; text-align: center; }
+#ov-moints .coin { display: inline-flex; align-items: center; justify-content: center; width: 1.25em; height: 1.25em; margin-right: 5px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #FFF3B0, #FFC94A 55%, #C98A1B); color: #6A4300; font-size: 0.72em; font-weight: 900; }
 #ov-name-row {
   display: flex; gap: 8px; margin-bottom: 18px;
 }
@@ -318,7 +330,7 @@ canvas {
 <body>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v1.1.0 · Updated Aug 14, 2026</div>
+<div id="buildInfo">v1.2.0 · Updated Oct 26, 2026</div>
 <div id="game-layout">
   <div id="wrapper">
     <canvas id="c"></canvas>
@@ -342,6 +354,7 @@ canvas {
     <div id="overlay" class="hidden">
       <h1 id="ov-title"></h1>
       <p id="ov-sub"></p>
+      <div id="ov-moints" class="hidden"></div>
       <div id="ov-name-row" class="hidden">
         <input id="ov-name-input" maxlength="8" placeholder="なまえ（8文字まで）">
         <button id="ov-register-btn">登録</button>
@@ -1501,6 +1514,7 @@ function endRun(title, sfxKind) {
   state = 'GAMEOVER';
   piece = null;
   playSfx(sfxKind);
+  const moints = payMarathonMoints(sfxKind === 'magic', score > bestScore && bestScore > 0);
   if (score > bestScore) {
     bestScore = score;
     localStorage.setItem('moyomoyo-best', String(bestScore));
@@ -1522,6 +1536,7 @@ function endRun(title, sfxKind) {
   } else {
     nameRow.classList.add('hidden');
   }
+  renderMoints(moints);
   document.getElementById('left-col').style.visibility = 'hidden';
   document.getElementById('right-col').style.visibility = 'hidden';
 }
@@ -2382,6 +2397,15 @@ function drawVsLevelClear() {
 
   drawEnemyRat(VS_CANVAS_W / 2, VS_CANVAS_H * 0.46, 44, beaten.type);
 
+  if (questMoints.last) {
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#FFD86A';
+    ctx.font = 'bold 19px Arial';
+    ctx.fillText(`+${questMoints.last} Moints`, VS_CANVAS_W / 2, VS_CANVAS_H * 0.655);
+    ctx.restore();
+  }
+
   ctx.save();
   ctx.textAlign = 'center';
   ctx.fillStyle = 'rgba(255,255,255,0.75)';
@@ -2413,6 +2437,7 @@ function updateVs() {
     vsWinnerIsPlayer = false;
     endRunVs();
   } else if (!vsC.alive) {
+    payBossMoints(cpuLevel);
     if (cpuLevel < CPU_ENEMIES.length) {
       state = 'VS_LEVEL_CLEAR';
       playSfx('levelup');
@@ -2463,6 +2488,7 @@ function startVsGame() {
   vsP.nextPair = vbRollPair();
   vsC.nextPair = vbRollPair();
   vsWinnerIsPlayer = false;
+  questMoints = { lines: [], capHit: false, last: 0 };
   document.getElementById('pause-btn').textContent = '⏸';
   // Keep #hud itself visible (it's the pause button's own container) but
   // hide the marathon-only score/best/time readout inside it — VS mode
@@ -2476,6 +2502,81 @@ function startVsGame() {
   document.getElementById('hub-link').style.display = 'none';
   document.getElementById('buildInfo').style.display = 'none';
   document.body.classList.add('vs-active');
+}
+
+// ─── Moint rewards (SPEC.md §13) ───
+// Marathon pays by score (+ a full clear / new best bonus) and Moyo Quest pays
+// for each rat beaten; these count toward the daily cap (MokuMoint.DAILY_GAME_CAP).
+// Reaching Lv.5 / a full clear for the first time and the first win over each
+// rat are one-time rewards outside the cap, remembered in moku:moyomoyo:progress.
+const GAME_ID = 'moyomoyo';
+const PROGRESS_KEY = 'moku:moyomoyo:progress';
+const MOINT = {
+  perPoints: 30, runMax: 150, clear: 100, newBest: 30,
+  firstLv5: 100, firstClear: 300,
+  boss: [20, 30, 40, 50, 80],              // each rat beaten in a Quest run
+  firstBoss: [100, 150, 200, 250, 500],    // first win ever over each rat
+};
+const BOSS_EN = ['Baby Rat', 'Ninja Rat', 'Chef Rat', 'Suit Rat', 'Boss Rat'];
+let questMoints = { lines: [], capHit: false, last: 0 };
+function loadProgress() {
+  try {
+    const p = JSON.parse(localStorage.getItem(PROGRESS_KEY) || 'null');
+    if (p && typeof p === 'object') { if (!p.mointClaims) p.mointClaims = {}; return p; }
+  } catch (e) {}
+  return { version: 1, gameId: GAME_ID, mointClaims: {} };
+}
+function saveProgress(p) {
+  p.updatedAt = new Date().toISOString();
+  try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(p)); } catch (e) {}
+}
+function mointPay(out, label, amount, capped) {
+  if (!window.MokuMoint || amount <= 0) return 0;
+  const got = MokuMoint.earn(GAME_ID, amount, { capped });
+  if (capped && got < amount) out.capHit = true;
+  if (got) out.lines.push([label, got]);
+  return got;
+}
+function payMarathonMoints(cleared, newBest) {
+  if (!window.MokuMoint || score <= 0) return null;
+  const out = { lines: [], capHit: false };
+  mointPay(out, `Score ${score.toLocaleString('en-US')}`, Math.min(MOINT.runMax, Math.floor(score / MOINT.perPoints)), true);
+  if (cleared) mointPay(out, 'All clear!', MOINT.clear, true);
+  if (newBest) mointPay(out, 'New high score!', MOINT.newBest, true);
+  const prog = loadProgress();
+  let changed = false;
+  if (level >= 5 && !prog.mointClaims.lv5) {
+    prog.mointClaims.lv5 = true; changed = true;
+    mointPay(out, 'First time to Lv.5!', MOINT.firstLv5, false);
+  }
+  if (cleared && !prog.mointClaims.clear) {
+    prog.mointClaims.clear = true; changed = true;
+    mointPay(out, 'First all clear! 🎉', MOINT.firstClear, false);
+  }
+  if (changed) saveProgress(prog);
+  return out;
+}
+function payBossMoints(lv) {
+  questMoints.last = 0;
+  if (!window.MokuMoint) return;
+  const i = lv - 1;
+  questMoints.last += mointPay(questMoints, `Beat ${BOSS_EN[i]}`, MOINT.boss[i], true);
+  const prog = loadProgress();
+  if (!prog.mointClaims['boss' + lv]) {
+    prog.mointClaims['boss' + lv] = true;
+    saveProgress(prog);
+    questMoints.last += mointPay(questMoints, `First win vs ${BOSS_EN[i]}!${lv === 5 ? ' 🏆' : ''}`, MOINT.firstBoss[i], false);
+  }
+}
+function renderMoints(m) {
+  const el = document.getElementById('ov-moints');
+  if (!m || (!m.lines.length && !m.capHit)) { el.classList.add('hidden'); el.innerHTML = ''; return; }
+  const total = m.lines.reduce((a, l) => a + l[1], 0);
+  el.innerHTML = m.lines.map(l => `<div><span>${l[0]}</span><b>+${l[1]}</b></div>`).join('') +
+    (total ? `<div class="moint-total"><span><i class="coin">M</i>Moints</span><b>+${total}</b></div>` : '') +
+    (m.capHit ? `<p>You got all of today's Moyomoyo Moints! Come back tomorrow.</p>`
+              : `<p style="color:rgba(255,255,255,0.55)">Today ${MokuMoint.earnedToday(GAME_ID)} / ${MokuMoint.DAILY_GAME_CAP}</p>`);
+  el.classList.remove('hidden');
 }
 
 function endRunVs() {
@@ -2492,6 +2593,7 @@ function endRunVs() {
     ? `あなたのスコア: ${vsP.score}pt`
     : `あなたのスコア: ${vsP.score}pt　到達: Lv.${cpuLevel} ${currentCpuEnemy().name}`;
   document.getElementById('ov-name-row').classList.add('hidden');
+  renderMoints(questMoints);
   document.getElementById('ov-board-btn').textContent = '🏠 タイトルへ';
   document.getElementById('left-col').style.visibility = 'hidden';
   document.getElementById('right-col').style.visibility = 'hidden';
