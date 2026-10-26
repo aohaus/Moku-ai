@@ -1374,9 +1374,9 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
   -webkit-overflow-scrolling: touch;
   color: #EDEEF6;
   background:
-    radial-gradient(circle at 82% 12%, rgba(255,236,180,0.22) 0, rgba(255,236,180,0) 9%),
-    radial-gradient(ellipse 80% 50% at 50% 100%, rgba(255,179,107,0.12), transparent 70%),
-    linear-gradient(180deg, #0A0B12 0%, #14162A 55%, #0A0B12 100%);
+    radial-gradient(ellipse 60% 30% at 50% 12%, rgba(255,214,140,0.10), transparent 70%),
+    radial-gradient(ellipse 80% 50% at 50% 100%, rgba(110,150,70,0.10), transparent 70%),
+    linear-gradient(180deg, #0B0F0B 0%, #141A12 55%, #0B0E0A 100%);   /* deep in the woods */
   animation: meIn 0.22s ease-out;
 }
 #hollowPage[hidden] { display: none; }
@@ -1388,38 +1388,69 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
   height: clamp(420px, 54vw, 470px);
   border-radius: 26px;
 }
-.hollow-scene { position: absolute; inset: 0; border-radius: 26px; overflow: hidden; box-shadow: 0 14px 34px rgba(0,0,0,0.45), inset 0 0 0 3px rgba(0,0,0,0.15); }
-/* warm wooden wall, rounded like the inside of a tree */
-.hollow-wall {
-  position: absolute; left: 0; right: 0; top: 0; height: 52%;
-  border-radius: 40% 40% 0 0 / 22% 22% 0 0;
-  background:
-    repeating-linear-gradient(90deg, rgba(0,0,0,0.08) 0 2px, transparent 2px 36px),
-    radial-gradient(ellipse 70% 90% at 50% 100%, rgba(255,190,110,0.28), transparent 70%),
-    linear-gradient(180deg, #5E3C22, #8A5A34 70%, #946238);
+/* a hand-made forest hollow: uneven, rounded like the inside of an old tree */
+.hollow-scene {
+  position: absolute; inset: 0; overflow: hidden;
+  border-radius: 46% 42% 22px 26px / 18% 20% 22px 26px;
+  background: #24170D;
+  box-shadow: 0 16px 36px rgba(0,0,0,0.5), 0 0 0 4px #3A2614, 0 0 0 7px rgba(110,140,70,0.25);
 }
-.hollow-scene::before { content: ""; position: absolute; inset: 0; background: #3E2716; z-index: -1; }
-.hollow-floor {
-  position: absolute; left: 0; right: 0; bottom: 0; height: 48%;
+.hollow-wall, .hollow-floor { position: absolute; left: 0; right: 0; }
+.hollow-wall { top: 0; height: 54%; }
+.hollow-floor { bottom: 0; height: 48%; }
+.hollow-wall svg, .hollow-floor svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* soft amber light: sunshine through the leaves above, a warm pool on the floor */
+.hollow-light {
+  position: absolute; inset: 0; pointer-events: none; mix-blend-mode: screen;
   background:
-    repeating-linear-gradient(180deg, rgba(0,0,0,0.10) 0 2px, transparent 2px 28px),
-    linear-gradient(180deg, #B07A46, #C99A62 60%, #B9864F);
-  box-shadow: inset 0 10px 14px -6px rgba(0,0,0,0.35);
+    linear-gradient(112deg, transparent 30%, rgba(255,214,140,0.16) 36%, transparent 44%),
+    linear-gradient(104deg, transparent 46%, rgba(255,214,140,0.12) 51%, transparent 58%),
+    linear-gradient(118deg, transparent 58%, rgba(255,224,160,0.10) 62%, transparent 68%),
+    radial-gradient(ellipse 55% 30% at 50% 82%, rgba(255,190,110,0.28), transparent 70%);
+  animation: hollowSway 9s ease-in-out infinite alternate;
 }
-.hollow-rug {
-  position: absolute; left: 12%; right: 12%; bottom: 7%; height: 26%;
+@keyframes hollowSway { from { opacity: 0.75; transform: translateX(-2%); } to { opacity: 1; transform: translateX(2%); } }
+/* cozy darker corners */
+.hollow-scene::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse 75% 70% at 50% 58%, transparent 55%, rgba(18,10,4,0.55) 100%);
+}
+/* the gap in the leaves at the top, where the light comes in */
+.hollow-gap {
+  position: absolute; left: 50%; top: -14px; width: 46%; height: 50px; margin-left: -23%;
+  border-radius: 0 0 50% 50% / 0 0 100% 100%;
+  background:
+    radial-gradient(circle at 12% 30%, #4E7A36 0 16%, transparent 17%),
+    radial-gradient(circle at 30% 55%, #5E8B3A 0 14%, transparent 15%),
+    radial-gradient(circle at 52% 40%, #6E9B44 0 15%, transparent 16%),
+    radial-gradient(circle at 72% 58%, #5E8B3A 0 13%, transparent 14%),
+    radial-gradient(circle at 90% 32%, #4E7A36 0 15%, transparent 16%),
+    radial-gradient(ellipse at 50% 0%, #FFE9B0 0%, #F5C46A 45%, #C98A3A 100%);
+  box-shadow: 0 6px 24px 8px rgba(255,200,110,0.35);
+}
+/* a woven twig-and-straw nest mat on the floor */
+.hollow-nest {
+  position: absolute; left: 14%; right: 14%; bottom: 6%; height: 25%;
   border-radius: 50%;
-  background: radial-gradient(ellipse at center, #E8604C 0 46%, #F5B83D 47% 56%, #E8604C 57% 70%, #C94A38 71%);
-  opacity: 0.55;
+  background:
+    repeating-radial-gradient(ellipse at center, rgba(120,80,40,0.0) 0 5px, rgba(120,80,40,0.35) 5px 7px),
+    radial-gradient(ellipse at center, #C9A064 0%, #A87C45 60%, #7A5430 100%);
+  box-shadow: inset 0 -6px 12px rgba(0,0,0,0.3), 0 4px 10px rgba(0,0,0,0.3);
+  opacity: 0.8;
 }
-.hollow-lantern { position: absolute; top: 0; width: 2px; height: 34px; background: rgba(0,0,0,0.4); }
-.hollow-lantern::after {
-  content: ""; position: absolute; left: -9px; top: 32px; width: 20px; height: 24px; border-radius: 8px 8px 10px 10px;
-  background: radial-gradient(circle at 50% 45%, #FFF3C4, #FFC94A 55%, #E0861A);
-  box-shadow: 0 0 18px 8px rgba(255,201,74,0.45);
+/* glowing amber mushrooms in the corners */
+.hollow-shroom { position: absolute; bottom: 4%; width: 34px; height: 30px; }
+.hollow-shroom.is-left { left: 3%; }
+.hollow-shroom.is-right { right: 3%; transform: scaleX(-1); }
+.hollow-shroom::before {   /* caps */
+  content: ""; position: absolute; left: 0; top: 0; width: 22px; height: 12px; border-radius: 12px 12px 4px 4px;
+  background: radial-gradient(circle at 40% 30%, #FFE7A3, #F5B83D 60%, #D9861E);
+  box-shadow: 0 0 14px 5px rgba(255,190,90,0.55), 16px 8px 0 -3px #F5B83D;
 }
-.hollow-lantern.is-left { left: 9%; }
-.hollow-lantern.is-right { right: 9%; }
+.hollow-shroom::after {    /* stems */
+  content: ""; position: absolute; left: 8px; top: 10px; width: 6px; height: 18px; border-radius: 3px;
+  background: #F3E2C2; box-shadow: 15px 6px 0 -1px #F3E2C2;
+}
 .hollow-firefly {
   position: absolute; left: var(--x); top: var(--y); width: 5px; height: 5px; border-radius: 50%;
   background: #FFF3A6; box-shadow: 0 0 8px 3px rgba(255,236,140,0.7);
@@ -1431,21 +1462,21 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
   60% { transform: translate(-8px, 6px); opacity: 0.6; }
 }
 /* everyone's background, framed on the wall */
-.hollow-frames { position: absolute; left: 0; right: 0; top: 0; height: 52%; pointer-events: none; }
+.hollow-frames { position: absolute; left: 0; right: 0; top: 0; height: 54%; pointer-events: none; }
 .hollow-frame {
   position: absolute; top: 18%;
   width: clamp(42px, 12%, 92px); aspect-ratio: 1 / 1; margin-left: calc(clamp(42px, 12%, 92px) / -2);
-  border-radius: 6px; overflow: hidden;
-  border: 4px solid #C9945A;
-  box-shadow: 0 0 0 2px #6B4528, 0 6px 10px rgba(0,0,0,0.35);
-  background: #F6E7CF;
+  border-radius: 5px 8px 6px 9px; overflow: hidden;
+  border: 4px solid #8A6038;   /* a little frame made of twigs */
+  box-shadow: 0 0 0 2px #4E3420, inset 0 0 0 1px rgba(255,230,180,0.25), 0 6px 12px rgba(0,0,0,0.45);
+  background: #EAD9BC;
   transform: rotate(var(--tilt, 0deg));
   transition: box-shadow .15s;
 }
 .hollow-frame.is-back { top: 8%; }   /* back-row frames hang a little higher, so neighbors don't overlap */
 .hollow-frame svg { width: 100%; height: 100%; display: block; }
 .hollow-frame.is-empty::after { content: "🦉"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 60%; opacity: 0.25; }
-.hollow-frame.is-open { box-shadow: 0 0 0 2px #6B4528, 0 0 0 5px #FFC94A, 0 6px 10px rgba(0,0,0,0.35); }
+.hollow-frame.is-open { box-shadow: 0 0 0 2px #4E3420, 0 0 0 5px #FFC94A, 0 0 16px rgba(255,201,74,0.6); }
 /* the Mokus share one floor */
 .hollow-mokus { position: absolute; inset: 0; }
 .hollow-moku { position: absolute; display: flex; justify-content: center; }
@@ -1471,16 +1502,19 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
   border: 3px solid #FFC94A; box-shadow: 0 0 12px rgba(255,201,74,0.7);
 }
 @media (prefers-reduced-motion: reduce) {
-  .hollow-firefly, .hollow-flip .mm-doll { animation: none; }
+  .hollow-firefly, .hollow-flip .mm-doll, .hollow-light { animation: none; }
 }
 .hollow-plate {
   max-width: 150px;
   padding: 6px 12px 7px;
-  border-radius: 10px;
+  border-radius: 6px 11px 7px 10px;   /* a scrap of wood, not quite square */
   text-align: center;
-  background: linear-gradient(180deg, #F6DDB3, #E8C48E);
+  background:
+    repeating-linear-gradient(176deg, rgba(120,80,40,0) 0 5px, rgba(120,80,40,0.12) 5px 6px),
+    linear-gradient(180deg, #EBCB98, #D7AD72);
   color: #4A2F1A;
-  box-shadow: 0 3px 0 #9A6A3C, 0 6px 12px rgba(0,0,0,0.3);
+  box-shadow: 0 3px 0 #7A5430, 0 6px 12px rgba(0,0,0,0.4);
+  transform: rotate(var(--plate-tilt, 0deg));
   min-width: 0;
 }
 .hollow-plate b { display: block; font-size: 14px; font-weight: 900; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1760,16 +1794,21 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     <button class="me-close" id="hollowClose" type="button">✕ Close</button>
   </header>
   <div class="hollow-wrap">
-    <!-- One big cozy room inside the tree: everyone's background hangs on
-         the wall as a framed picture, the Mokus share one wooden floor and
-         now and then waddle a little to the left or right. -->
+    <!-- One cozy forest hollow the Mokus built themselves: walls patched
+         together from scrap wood, bark and log end-cuts (drawn by
+         buildHollowScene), a leafy earth floor, warm light through a gap in
+         the leaves. Everyone's background hangs on the wall as a framed
+         picture; the Mokus share one floor and now and then waddle a little
+         to the left or right. -->
     <div class="hollow-room" id="hollowRoom">
       <div class="hollow-scene" aria-hidden="true">
-        <div class="hollow-wall"></div>
-        <div class="hollow-floor"></div>
-        <div class="hollow-rug"></div>
-        <span class="hollow-lantern is-left"></span>
-        <span class="hollow-lantern is-right"></span>
+        <div class="hollow-wall" id="hollowWall"></div>
+        <div class="hollow-floor" id="hollowFloor"></div>
+        <div class="hollow-nest"></div>
+        <div class="hollow-light"></div>
+        <div class="hollow-gap"></div>
+        <span class="hollow-shroom is-left"></span>
+        <span class="hollow-shroom is-right"></span>
         <span class="hollow-firefly" style="--x:18%;--y:30%;--d:7s"></span>
         <span class="hollow-firefly" style="--x:42%;--y:22%;--d:9s"></span>
         <span class="hollow-firefly" style="--x:63%;--y:34%;--d:8s"></span>
@@ -3378,6 +3417,113 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     var svg = window.MokuMoint ? MokuMoint.outfitSVG(outfit || {}) : '';
     return '<span class="mm-doll' + (cls ? ' ' + cls : '') + '"><img src="brand/mokumoku-hero.png" alt="">' + svg + '</span>';
   }
+  // ---- the hollow itself: drawn once, the same every visit (fixed seed) ----
+  // Walls: mismatched scrap planks, bark pieces and log end-cuts that birds
+  // pieced together, with nails, twigs and moss. Floor: packed earth with
+  // fallen leaves, pebbles and bits of twig.
+  function seeded(seed) {
+    return function () {
+      seed = (seed + 0x6D2B79F5) | 0;
+      var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function buildHollowScene() {
+    var wallEl = document.getElementById('hollowWall');
+    var floorEl = document.getElementById('hollowFloor');
+    if (!wallEl || wallEl.firstChild) return;
+    var rnd = seeded(20261026);
+    function r(a, b) { return a + rnd() * (b - a); }
+    function pick(list) { return list[Math.floor(rnd() * list.length)]; }
+    function f(n) { return n.toFixed(1); }
+    var WOOD = ['#6B4A2E', '#7A5434', '#5C3D24', '#8A6038', '#6E5034', '#94683E', '#7F5A3A', '#A0703F'];
+    var W = 800, H = 270;
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid slice">' +
+      '<defs><linearGradient id="hwShade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#140A04" stop-opacity="0.6"/>' +
+      '<stop offset="0.55" stop-color="#140A04" stop-opacity="0"/></linearGradient></defs>' +
+      '<rect width="' + W + '" height="' + H + '" fill="#26180C"/>';
+    for (var y = -6; y < H; ) {
+      var h = r(26, 48);
+      for (var x = -14; x < W + 10; ) {
+        var kind = rnd();
+        if (kind < 0.13) {
+          // a log end-cut (round slice with growth rings)
+          var rr = h / 2 - 1, cx = x + rr + 2, cy = y + h / 2;
+          svg += '<circle cx="' + f(cx) + '" cy="' + f(cy) + '" r="' + f(rr) + '" fill="#C49A62" stroke="#4E3420" stroke-width="3"/>';
+          for (var ring = 1; ring <= 3; ring++) svg += '<circle cx="' + f(cx + r(-1, 1)) + '" cy="' + f(cy + r(-1, 1)) + '" r="' + f(rr * ring / 4) + '" fill="none" stroke="#9A6A3C" stroke-width="1" opacity="0.8"/>';
+          svg += '<circle cx="' + f(cx) + '" cy="' + f(cy) + '" r="1.6" fill="#7A5430"/>';
+          x += rr * 2 + 4;
+          continue;
+        }
+        var w = r(36, 120), j = function () { return r(0, 3); };
+        var bark = kind < 0.28;
+        var fill = bark ? pick(['#4A3220', '#553A24', '#3F2A1A']) : pick(WOOD);
+        var pts = [[x + 1.5 + j(), y + 1.5 + j()], [x + w - 1.5 - j(), y + 1.5 + j()], [x + w - 1.5 - j(), y + h - 1.5 - j()], [x + 1.5 + j(), y + h - 1.5 - j()]];
+        var tilt = rnd() < 0.22 ? r(-4, 4) : 0;
+        svg += '<g transform="rotate(' + f(tilt) + ' ' + f(x + w / 2) + ' ' + f(y + h / 2) + ')">' +
+          '<polygon points="' + pts.map(function (p) { return f(p[0]) + ',' + f(p[1]); }).join(' ') + '" fill="' + fill + '"/>';
+        if (bark) {
+          for (var k = 0; k < w / 9; k++) {
+            var bx = x + 5 + k * 9 + r(-2, 2);
+            svg += '<path d="M' + f(bx) + ' ' + f(y + 4) + ' Q' + f(bx + r(-3, 3)) + ' ' + f(y + h / 2) + ' ' + f(bx + r(-2, 2)) + ' ' + f(y + h - 4) + '" stroke="#2E1E12" stroke-width="1.4" fill="none" opacity="0.7"/>';
+          }
+        } else {
+          for (var g = 1; g <= 2; g++) {
+            var gy = y + h * g / 3 + r(-3, 3);
+            svg += '<path d="M' + f(x + 4) + ' ' + f(gy) + ' Q' + f(x + w / 2) + ' ' + f(gy + r(-3, 3)) + ' ' + f(x + w - 4) + ' ' + f(gy + r(-2, 2)) + '" stroke="' + (rnd() < 0.5 ? 'rgba(0,0,0,0.18)' : 'rgba(255,225,170,0.12)') + '" stroke-width="1" fill="none"/>';
+          }
+          svg += '<path d="M' + f(pts[0][0] + 2) + ' ' + f(pts[0][1] + 1.5) + ' L' + f(pts[1][0] - 2) + ' ' + f(pts[1][1] + 1.5) + '" stroke="rgba(255,230,180,0.14)" stroke-width="1.2"/>';
+          if (rnd() < 0.35) {
+            [x + 7, x + w - 7].forEach(function (nx) {
+              svg += '<circle cx="' + f(nx) + '" cy="' + f(y + h / 2) + '" r="1.7" fill="#2A1A0E"/><circle cx="' + f(nx - 0.5) + '" cy="' + f(y + h / 2 - 0.5) + '" r="0.6" fill="rgba(255,255,255,0.35)"/>';
+            });
+          }
+        }
+        svg += '</g>';
+        x += w;
+      }
+      y += h - r(0, 3);
+    }
+    // a few twigs woven across, like a bird would
+    for (var t = 0; t < 5; t++) {
+      var tx = r(-40, W - 200), ty = r(10, H - 60), tl = r(160, 320), dy = r(-50, 50);
+      var d = 'M' + f(tx) + ' ' + f(ty) + ' Q' + f(tx + tl / 2) + ' ' + f(ty + dy / 2 + r(-20, 20)) + ' ' + f(tx + tl) + ' ' + f(ty + dy);
+      svg += '<path d="' + d + '" stroke="#5A3C22" stroke-width="6" fill="none" stroke-linecap="round"/>' +
+        '<path d="' + d + '" stroke="#9A6E44" stroke-width="3.4" fill="none" stroke-linecap="round"/>' +
+        '<path d="' + d + '" stroke="rgba(255,225,170,0.3)" stroke-width="1" fill="none" stroke-linecap="round" transform="translate(0 -1)"/>';
+    }
+    svg += '<rect width="' + W + '" height="' + H + '" fill="url(#hwShade)"/>';
+    // moss along the bottom of the wall
+    for (var m = 0; m < 70; m++) {
+      svg += '<circle cx="' + f(r(0, W)) + '" cy="' + f(r(H - 16, H + 4)) + '" r="' + f(r(5, 13)) + '" fill="' + pick(['#4E7A36', '#5E8B3A', '#6E9B44', '#3F6A2C']) + '" opacity="' + f(r(0.75, 1)) + '"/>';
+    }
+    wallEl.innerHTML = svg + '</svg>';
+
+    var FW = 800, FH = 240;
+    var fl = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + FW + ' ' + FH + '" preserveAspectRatio="xMidYMid slice">' +
+      '<defs><linearGradient id="hfSoil" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3A2818"/><stop offset="1" stop-color="#5A3E26"/></linearGradient></defs>' +
+      '<rect width="' + FW + '" height="' + FH + '" fill="url(#hfSoil)"/>';
+    for (var sp = 0; sp < 160; sp++) fl += '<circle cx="' + f(r(0, FW)) + '" cy="' + f(r(0, FH)) + '" r="' + f(r(0.8, 2.2)) + '" fill="' + pick(['#2E1E12', '#6E5034', '#7A5A3A']) + '" opacity="0.6"/>';
+    for (var pb = 0; pb < 18; pb++) fl += '<ellipse cx="' + f(r(0, FW)) + '" cy="' + f(r(20, FH)) + '" rx="' + f(r(4, 9)) + '" ry="' + f(r(3, 6)) + '" fill="' + pick(['#8A7A66', '#6E6252', '#9A8A72']) + '"/>';
+    for (var tw = 0; tw < 14; tw++) {
+      var x1 = r(0, FW), y1 = r(10, FH), len = r(20, 50), ang = r(0, Math.PI);
+      fl += '<path d="M' + f(x1) + ' ' + f(y1) + ' L' + f(x1 + Math.cos(ang) * len) + ' ' + f(y1 + Math.sin(ang) * len * 0.4) + '" stroke="#7A5434" stroke-width="2.4" stroke-linecap="round"/>';
+    }
+    for (var lf = 0; lf < 90; lf++) {
+      var lx = r(0, FW), ly = r(6, FH), sc = r(1.1, 2.4), rot = r(0, 360);
+      var col = pick(['#C9783A', '#D9A441', '#B5562E', '#8A5A2E', '#6E8B3D', '#E0B050']);
+      fl += '<g transform="translate(' + f(lx) + ' ' + f(ly) + ') rotate(' + f(rot) + ') scale(' + f(sc) + ')">' +
+        '<path d="M0 -6 Q5 0 0 6 Q-5 0 0 -6Z" fill="' + col + '" opacity="0.9"/><path d="M0 -5 L0 5" stroke="rgba(60,30,10,0.45)" stroke-width="0.6"/></g>';
+    }
+    for (var mo = 0; mo < 40; mo++) {
+      var edge = rnd() < 0.5 ? r(0, 90) : r(FW - 90, FW);
+      fl += '<circle cx="' + f(edge) + '" cy="' + f(r(20, FH)) + '" r="' + f(r(6, 16)) + '" fill="' + pick(['#4E7A36', '#5E8B3A', '#3F6A2C']) + '" opacity="0.8"/>';
+    }
+    fl += '<rect width="' + FW + '" height="22" fill="#140A04" opacity="0.45"/>';
+    floorEl.innerHTML = fl + '</svg>';
+  }
+
   // Where each Moku stands. Wide rooms: one row along the floor. Narrow
   // (phones): three in front, two a little further back and smaller.
   function hollowLayout(n, width) {
@@ -3398,6 +3544,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
   function renderHollow() {
     if (!hollowMokus) return;
     stopWalking();
+    buildHollowScene();
     var data = hollowPeople();
     var people = data.people;
     hollowShown = pickShown(people);
@@ -3425,6 +3572,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
       moku.style.width = '0';
       moku.style.zIndex = spot.z;
       moku.style.setProperty('--size', Math.round(spot.size) + 'px');
+      moku.style.setProperty('--plate-tilt', ((i % 2 ? 1 : -1) * (0.8 + (i % 3) * 0.6)).toFixed(1) + 'deg');
       // how far this Moku may wander left and right (may brush past a neighbor a little)
       moku.setAttribute('data-range', Math.max(0, Math.min(70, spot.zone / 2 - spot.size * 0.3) * 0.85).toFixed(0));
       var walker = el('div', 'hollow-walker');
