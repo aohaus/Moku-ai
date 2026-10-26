@@ -1502,7 +1502,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
   border: 3px solid #FFC94A; box-shadow: 0 0 12px rgba(255,201,74,0.7);
 }
 @media (prefers-reduced-motion: reduce) {
-  .hollow-firefly, .hollow-flip .mm-doll, .hollow-light { animation: none; }
+  .hollow-firefly, .hollow-flip .mm-doll, .hollow-light, .hollow-moku.is-walking .hollow-flip .mm-doll { animation: none; }
 }
 .hollow-plate {
   max-width: 150px;
@@ -3574,7 +3574,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
       moku.style.setProperty('--size', Math.round(spot.size) + 'px');
       moku.style.setProperty('--plate-tilt', ((i % 2 ? 1 : -1) * (0.8 + (i % 3) * 0.6)).toFixed(1) + 'deg');
       // how far this Moku may wander left and right (may brush past a neighbor a little)
-      moku.setAttribute('data-range', Math.max(0, Math.min(70, spot.zone / 2 - spot.size * 0.3) * 0.85).toFixed(0));
+      moku.setAttribute('data-range', Math.max(0, Math.min(90, spot.zone / 2 - spot.size * 0.2)).toFixed(0));
       var walker = el('div', 'hollow-walker');
       var btn = el('button', 'hollow-moku-btn');
       btn.type = 'button';
@@ -3618,16 +3618,15 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
 
   // ---- now and then, a Moku waddles slowly a little to the left or right ----
   var walkTimers = [];
-  var reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   function stopWalking() {
     walkTimers.forEach(clearTimeout);
     walkTimers = [];
   }
   function startWalking() {
     stopWalking();
-    if (reduceMotion) return;
+    // "Reduce Motion" still gets the slow stroll (a gentle slide, no waddle or bob)
     Array.prototype.forEach.call(hollowMokus.querySelectorAll('.hollow-moku'), function (m, i) {
-      queueWalk(m, 1500 + Math.random() * 4000 + i * 900);
+      queueWalk(m, 800 + Math.random() * 2500 + i * 700);
     });
   }
   function queueWalk(m, delay) {
@@ -3641,8 +3640,8 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     if (range < 8) return;
     var from = +m.getAttribute('data-x') || 0;
     var to = Math.round((Math.random() * 2 - 1) * range);
-    if (Math.abs(to - from) < range * 0.35) to = Math.round(from > 0 ? -range * 0.6 : range * 0.6);
-    var dur = Math.max(1.8, Math.abs(to - from) / 20);   // about 20 px a second: a slow waddle
+    if (Math.abs(to - from) < range * 0.5) to = Math.round(from > 0 ? -range * (0.5 + Math.random() * 0.5) : range * (0.5 + Math.random() * 0.5));
+    var dur = Math.max(2, Math.abs(to - from) / 22);   // about 22 px a second: a slow waddle
     var walker = m.querySelector('.hollow-walker');
     m.classList.toggle('face-left', to < from);
     m.classList.add('is-walking');
@@ -3651,7 +3650,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     m.setAttribute('data-x', to);
     walkTimers.push(setTimeout(function () {
       m.classList.remove('is-walking', 'face-left');
-      queueWalk(m, 5000 + Math.random() * 9000);   // rest a while before the next stroll
+      queueWalk(m, 4000 + Math.random() * 8000);   // rest a while before the next stroll
     }, dur * 1000));
   }
 
