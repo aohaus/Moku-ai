@@ -1595,6 +1595,52 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
 .me-hollow-link b { display: block; font-size: 15px; font-weight: 800; }
 .me-hollow-link small { display: block; font-size: 12.5px; font-weight: 600; color: rgba(237,238,246,0.6); }
 .me-hollow-arrow { margin-left: auto; font-size: 22px; color: rgba(237,238,246,0.5); }
+/* ---------- Achievements (#awards): Top 3 per game ---------- */
+#awardsPage {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  color: #EDEEF6;
+  background:
+    radial-gradient(ellipse 70% 40% at 50% 0%, rgba(255,201,74,0.14), transparent 70%),
+    linear-gradient(180deg, #0A0B12 0%, #121320 50%, #0A0B12 100%);
+  animation: meIn 0.22s ease-out;
+}
+#awardsPage[hidden] { display: none; }
+.awards-wrap { max-width: 1000px; margin: 0 auto; padding: 4px 16px calc(32px + env(safe-area-inset-bottom, 0px)); }
+.awards-tabs { display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); }
+.awards-tab { appearance: none; border: 0; background: none; color: rgba(237,238,246,0.7); font: inherit; font-size: 13px; font-weight: 800;
+  padding: 7px 14px; border-radius: 999px; cursor: pointer; }
+.awards-tab.is-on { background: linear-gradient(180deg, #FFD86A, #F2A93B); color: #2A1A00; }
+.awards-note { margin: 10px 2px 12px; font-size: 12.5px; font-weight: 600; color: rgba(237,238,246,0.55); }
+.awards-note:empty { display: none; }
+.awards-grid { display: grid; gap: 12px; margin-top: 12px; }
+@media (min-width: 700px) { .awards-grid { grid-template-columns: 1fr 1fr; } }
+.award-card { --hi: #888; --lo: #444; padding: 14px; border-radius: 18px; background: rgba(255,255,255,0.045);
+  border: 1px solid rgba(255,255,255,0.09); box-shadow: inset 0 3px 0 -1px var(--hi); }
+.award-head { display: flex; align-items: center; gap: 11px; margin-bottom: 10px; }
+.award-head .game-icon { width: 44px; height: 44px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.18); }
+.award-head b { display: block; font-size: 15px; font-weight: 800; }
+.award-head small { display: block; font-size: 12px; font-weight: 800; letter-spacing: 0.03em; color: var(--hi); }
+.award-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.award-row { display: flex; align-items: center; gap: 9px; padding: 6px 10px 6px 6px; border-radius: 12px; background: rgba(255,255,255,0.035); min-height: 44px; }
+.award-row.is-you { background: rgba(255,216,106,0.12); box-shadow: inset 0 0 0 1px rgba(255,216,106,0.45); }
+.award-row.is-empty { min-height: 34px; color: rgba(237,238,246,0.35); font-size: 12.5px; font-weight: 700; padding-left: 12px; }
+.award-medal { width: 26px; flex: none; text-align: center; font-size: 20px; line-height: 1; }
+.award-medal.is-rank { font-size: 12px; font-weight: 800; color: rgba(237,238,246,0.6); }
+.award-doll { position: relative; width: 32px; height: 32px; flex: none; border-radius: 50%; overflow: hidden; background: rgba(255,255,255,0.08); }
+.award-doll .mm-doll { position: absolute; width: 150%; left: -25%; top: -14%; }
+.award-who { min-width: 0; flex: 1; }
+.award-who b { display: block; font-size: 14px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.award-who small { font-size: 11px; font-weight: 700; color: rgba(237,238,246,0.45); }
+.award-you { display: inline-block; margin-left: 5px; padding: 1px 6px; border-radius: 999px; font-size: 9.5px; font-weight: 900; letter-spacing: 0.06em;
+  background: #2E9E6A; color: #fff; vertical-align: 2px; }
+.award-val { flex: none; font-size: 14px; font-weight: 800; color: #FFD86A; white-space: nowrap; }
+.award-gap { text-align: center; font-size: 12px; line-height: 0.6; color: rgba(237,238,246,0.3); }
+.award-foot { margin: 8px 2px 0; font-size: 12px; font-weight: 700; color: rgba(237,238,246,0.5); }
 @media (max-width: 480px) {
   .hollow-plate { padding: 4px 7px 5px; max-width: 110px; }
   .hollow-plate b { font-size: 12.5px; }
@@ -1692,7 +1738,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
 
 <nav id="bottomNav">
   <button class="nav-item active" type="button"><span class="nav-icon">🏠</span>Home</button>
-  <button class="nav-item" type="button" disabled title="Coming soon"><span class="nav-icon">🏆</span>Achievements</button>
+  <button class="nav-item" type="button" data-open-page="awards"><span class="nav-icon">🏆</span>Achievements</button>
   <button class="nav-item" type="button" data-open-page="hollow"><span class="nav-icon">🌳</span>Hollow</button>
   <button class="nav-item" type="button" data-open-me><span class="nav-icon nav-doll" data-moku-doll aria-hidden="true"></span>My Moku</button>
 </nav>
@@ -1834,6 +1880,27 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
         <button class="hollow-done" id="hollowPickDone" type="button">Done</button>
       </div>
     </div>
+  </div>
+</section>
+
+<!-- Achievements (hash #awards): one hard record per game, Top 3 of all players.
+     Others' records come with their public card (GET /players); yours are read
+     live from this device. -->
+<section id="awardsPage" aria-labelledby="awardsTitle" hidden>
+  <header class="me-top">
+    <div>
+      <h1 id="awardsTitle">🏆 Achievements</h1>
+      <p class="hollow-sub" id="awardsSub">The Top 3 in every game.</p>
+    </div>
+    <button class="me-close" id="awardsClose" type="button">✕ Close</button>
+  </header>
+  <div class="awards-wrap">
+    <div class="awards-tabs" role="tablist" aria-label="Show">
+      <button type="button" class="awards-tab is-on" data-awards-filter="all" role="tab" aria-selected="true">All Games</button>
+      <button type="button" class="awards-tab" data-awards-filter="mine" role="tab" aria-selected="false">Games I Play</button>
+    </div>
+    <p class="awards-note" id="awardsNote"></p>
+    <div class="awards-grid" id="awardsGrid"></div>
   </div>
 </section>
 
@@ -2626,6 +2693,50 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     }
   ];
 
+  // ---------- one hard record per game for Achievements (#awards) ----------
+  // Bigger is better. read() returns this device's value (0 / null = none);
+  // fmt() shows it. Keyed by the GAMES card; sent as card.records[gameId].
+  function intOf(v) { v = Number(v); return isFinite(v) && v > 0 ? Math.round(v) : 0; }
+  function num(n) { return n.toLocaleString('en-US'); }
+  var RECORDS = {
+    am:  { title: 'High Score', read: function () { return readInt('amoku-best-score'); }, fmt: function (n) { return num(n) + ' pts'; } },
+    mm:  { title: 'Marathon High Score', read: function () { return readInt('moyomoyo-best'); }, fmt: function (n) { return num(n) + ' pts'; } },
+    mk:  { title: 'Strongest Player', read: function () {
+             var p = readJSON('moku:mk-mobile:profile'), best = 0;
+             if (p && p.players) Object.keys(p.players).forEach(function (id) {
+               var pl = p.players[id];
+               if (pl && pl.owned) best = Math.max(best, intOf(pl.sp) + intOf(pl.sh) + intOf(pl.def));
+             });
+             return best;
+           }, fmt: function (n) { return 'Power ' + n; } },
+    br:  { title: 'Battle Level', read: function () { var s = readJSON('moku:save'); return s && s.level; }, fmt: function (n) { return 'Lv.' + n; } },
+    so:  { title: 'Stages Cleared', read: function () { var p = readJSON('moku:shiri-of-moku:progress'); return p && p.updatedAt ? (p.unlockedStage || 1) - 1 : 0; }, fmt: function (n) { return n + ' / 20'; } },
+    mc:  { title: 'City Level', read: function () { var p = readJSON('moku:mokucity:progress'); return p && p.updatedAt && p.level; }, fmt: function (n) { return 'Lv.' + n; } },
+    mr:  { title: 'Prizes Won', read: function () { var p = readJSON('moku:moku-rane:progress'); return p && p.prizesWon; }, fmt: function (n) { return n + (n === 1 ? ' prize' : ' prizes'); } },
+    md:  { title: 'High Score', read: function () { return readInt('moku_drop_best'); }, fmt: function (n) { return num(n) + ' pts'; } },
+    mb:  { title: 'High Score', read: function () { return readInt('moku_bento_best'); }, fmt: function (n) { return num(n) + ' pts'; } },
+    mf:  { title: 'Fish Caught', read: function () { return readInt('moku_fishing_count'); }, fmt: function (n) { return num(n) + ' fish'; } },
+    mkt: { title: 'Grand Prix Trophies', read: function () { var t = readJSON('moku_kart_trophies'); return Array.isArray(t) ? t.length : 0; }, fmt: function (n) { return n + ' / 6 🏆'; } },
+    fm:  { title: 'Acorns Found', read: function () { var p = readJSON('moku:flying-moku:progress'); return p && p.acorns; }, fmt: function (n) { return num(n) + ' 🌰'; } },
+    mrc: { title: 'High Score', read: function () { return readInt('moku_rhythm_best'); }, fmt: function (n) { return num(n) + ' pts'; } },
+    mw:  { title: 'Rounds Played', read: function () { return readInt('moku_wolf_played'); }, fmt: function (n) { return num(n) + (n === 1 ? ' round' : ' rounds'); } },
+    mfg: { title: 'Wins', read: function () { var p = readJSON('moku:moku-fight:progress'); return p && p.wins; }, fmt: function (n) { return num(n) + (n === 1 ? ' win' : ' wins'); } },
+    mfr: { title: 'High Score', read: function () { var p = readJSON('moku:moku-future-run:progress'); return p && p.highScore; }, fmt: function (n) { return num(n) + ' pts'; } },
+    mw6: { title: 'Laziest Watch', read: function () { var p = readJSON('moku:moku-watch-6-lazy:progress'); return p && p.lazy; }, fmt: function (n) { return num(n) + '% lazy'; } },
+    mbr: { title: 'Luckiest Steps', read: function () { var p = readJSON('moku:moku-bridge:progress'); return p && p.bestLucky; }, fmt: function (n) { return n + ' in a row 🍀'; } }
+  };
+  function myRecords() {
+    var out = {};
+    GAMES.forEach(function (g) {
+      var r = g.card && RECORDS[g.card];
+      if (!r) return;
+      var v = 0;
+      try { v = intOf(r.read()); } catch (e) {}
+      if (v) out[g.gameId] = v;
+    });
+    return out;
+  }
+
   var XP_PER_GAME = 400;
   var XP_PER_LEVEL = 200;
 
@@ -3250,7 +3361,8 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
   var hollowPage = document.getElementById('hollowPage');
   var PAGES = {
     me: { el: mePage, close: 'meClose', show: function () { renderProgress(); } },
-    hollow: { el: hollowPage, close: 'hollowClose', show: function () { renderHollow(); loadFriends(true); } }
+    hollow: { el: hollowPage, close: 'hollowClose', show: function () { renderHollow(); loadFriends(true); } },
+    awards: { el: document.getElementById('awardsPage'), close: 'awardsClose', show: function () { renderAwards(); loadFriends(true); } }
   };
   var pageLastFocus = null;
   function hollowIsOpen() { return Boolean(hollowPage) && !hollowPage.hidden; }
@@ -3307,6 +3419,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
   window.addEventListener('hashchange', syncPagesToHash);
   document.getElementById('meClose').addEventListener('click', closePage);
   document.getElementById('hollowClose').addEventListener('click', closePage);
+  document.getElementById('awardsClose').addEventListener('click', closePage);
   document.addEventListener('click', function (e) {
     var t = e.target.closest ? e.target.closest('[data-open-me],[data-open-page]') : null;
     if (t) openPage(t.getAttribute('data-open-page') || 'me');
@@ -3367,13 +3480,122 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     try { if (window.MokuMoint) outfit = MokuMoint.closet().equipped || {}; } catch (e) {}
     var clean = {};
     Object.keys(outfit).forEach(function (k) { if (outfit[k]) clean[k] = outfit[k]; });
-    return { level: hubLevel, outfit: clean, highlights: publicHighlights() };
+    return { level: hubLevel, outfit: clean, highlights: publicHighlights(), records: myRecords() };
   };
 
   function loadFriends(force) {
     if (window.MokuAccount && window.MokuAccount.loadPlayers) window.MokuAccount.loadPlayers(force);
   }
-  window.addEventListener('moku:players', function () { if (hollowIsOpen()) renderHollow(); });
+  window.addEventListener('moku:players', function () {
+    if (hollowIsOpen()) renderHollow();
+    if (openPageName() === 'awards') renderAwards();
+  });
+
+  // ---------- Achievements (#awards) ----------
+  // One hard record per game (RECORDS above). Top 3 of everyone: other players'
+  // records come with their public card; yours are read live from this device.
+  var awardsFilter = 'all';
+  function awardsPeople() {
+    var data = hollowPeople();
+    var mine = myRecords();
+    return {
+      data: data,
+      people: data.people.map(function (p) {
+        return { name: p.name, tag: p.tag, you: p.you, outfit: p.card && p.card.outfit,
+                 records: p.you ? mine : (p.card && p.card.records) || {} };
+      })
+    };
+  }
+  function renderAwards() {
+    var grid = document.getElementById('awardsGrid');
+    if (!grid) return;
+    var info = awardsPeople();
+    var people = info.people;
+    grid.textContent = '';
+    var shown = 0;
+    // games with records first (catalog order otherwise)
+    var order = GAMES.filter(function (g) { return g.card && RECORDS[g.card] && CATALOG[g.card]; });
+    var hasAny = function (g) { return people.some(function (p) { return p.records[g.gameId] > 0; }); };
+    order = order.filter(hasAny).concat(order.filter(function (g) { return !hasAny(g); }));
+    order.forEach(function (g) {
+      var r = g.card && RECORDS[g.card];
+      var c = g.card && CATALOG[g.card];
+      if (!r || !c) return;
+      var ranked = people.filter(function (p) { return p.records[g.gameId] > 0; })
+        .sort(function (a, b) { return b.records[g.gameId] - a.records[g.gameId] || (a.name || '').localeCompare(b.name || ''); });
+      var me = null, myRank = 0;
+      ranked.forEach(function (p, i) {
+        // ties share a rank
+        p.rank = i && ranked[i - 1].records[g.gameId] === p.records[g.gameId] ? ranked[i - 1].rank : i + 1;
+        if (p.you) { me = p; myRank = p.rank; }
+      });
+      if (awardsFilter === 'mine' && !me) return;
+      shown++;
+      var card = el('article', 'award-card');
+      setGameColors(card, c);
+      var head = el('div', 'award-head');
+      head.appendChild(makeIcon(c));
+      var t = el('div');
+      t.appendChild(el('b', null, c.name));
+      t.appendChild(el('small', null, '🏅 ' + r.title));
+      head.appendChild(t);
+      card.appendChild(head);
+      var rows = el('ol', 'award-rows');
+      function row(p, medal) {
+        var li = el('li', 'award-row' + (p.you ? ' is-you' : ''));
+        var m = el('span', 'award-medal' + (medal ? '' : ' is-rank'), medal || (p.rank + '.'));
+        li.appendChild(m);
+        var d = el('span', 'award-doll');
+        d.innerHTML = dollMarkup(p.you && window.MokuMoint ? MokuMoint.closet().equipped : p.outfit);
+        li.appendChild(d);
+        var who = el('span', 'award-who');
+        var b = el('b', null, p.name || 'Player');
+        if (p.you) b.appendChild(el('span', 'award-you', 'YOU'));
+        who.appendChild(b);
+        if (p.tag) who.appendChild(el('small', null, '#' + p.tag));
+        li.appendChild(who);
+        li.appendChild(el('span', 'award-val', r.fmt(p.records[g.gameId])));
+        return li;
+      }
+      var MEDALS = ['🥇', '🥈', '🥉'];
+      var top = ranked.slice(0, 3);
+      top.forEach(function (p) { rows.appendChild(row(p, MEDALS[p.rank - 1] || null)); });
+      if (!top.length) rows.appendChild(el('li', 'award-row is-empty', 'No records yet. Be the first!'));
+      else for (var i = top.length; i < 3; i++) rows.appendChild(el('li', 'award-row is-empty', MEDALS[i] + '  Open spot'));
+      if (me && top.indexOf(me) < 0) {
+        rows.appendChild(el('li', 'award-gap', '⋮'));
+        rows.appendChild(row(me, null));
+      }
+      card.appendChild(rows);
+      var foot = '';
+      if (!me) foot = 'Play ' + c.name + ' to get on the board!';
+      else if (myRank > 1 && ranked.length) {
+        var above = ranked.filter(function (p) { return p.rank < myRank; }).pop();   // the one just above you
+        if (above) foot = 'Beat ' + r.fmt(above.records[g.gameId]) + ' to move up!';
+      } else if (myRank === 1) foot = 'You are No. 1! 👑';
+      if (foot) card.appendChild(el('p', 'award-foot', foot));
+      grid.appendChild(card);
+    });
+    if (!shown) grid.appendChild(el('div', 'me-empty', 'No records yet. Go play a game! 🎮'));
+    var note = '';
+    if (!info.data.user) note = 'Log in to see everyone\'s records.';
+    else if (!info.data.loaded) note = 'Getting everyone\'s records…';
+    else note = 'Records update when each player opens the hub.';
+    document.getElementById('awardsNote').textContent = note;
+    var others = people.filter(function (p) { return !p.you; }).length;
+    document.getElementById('awardsSub').textContent = others ? 'The Top 3 in every game · ' + (others + 1) + ' players' : 'The Top 3 in every game.';
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('[data-awards-filter]'), function (b) {
+    b.addEventListener('click', function () {
+      awardsFilter = b.getAttribute('data-awards-filter');
+      Array.prototype.forEach.call(document.querySelectorAll('[data-awards-filter]'), function (x) {
+        var on = x === b;
+        x.classList.toggle('is-on', on);
+        x.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      renderAwards();
+    });
+  });
 
   function readPicks() {
     try { var v = JSON.parse(localStorage.getItem(PICKS_KEY) || 'null'); return Array.isArray(v) ? v : null; } catch (e) { return null; }

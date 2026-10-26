@@ -215,6 +215,11 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
   - **データ**: ほかの人は `GET /players`(`MokuAccount.loadPlayers()` / `getPlayers()`、取れたら window に `moku:players` イベント)。各プレイヤーの公開カード `card = { level, outfit, highlights, updatedAt }` は、その人のハブがクラウドへ保存するたびに `window.MOKU_PUBLIC_CARD()` で作って `PUT /save` に添える(`backend/API_SPEC.md`)。サーバーは短い文字列とIDだけ残す。セーブの中身はほかの人に見せない。カードはその人が次にハブで保存した時から出る(それまでは素の Moku と「No highlights yet」)。自分の Moku はこの端末から直接描く。
   - Player ID は出さない。オンラインの判定は従来どおり(5分以内のアクセス。開いているページが2分おきに `GET /auth/me`)。ログインしていない時は自分だけ+「Log in to see your friends' Mokus here.」。
   - ✕ Close・戻る・Esc で前の画面へ(ハブ、または My Moku から来たら My Moku)。
+- **Achievements**(`hub.html#awards`、2026-10-26〜。下部ナビの左から2番目「🏆 Achievements」。それまでは Coming soon で押せなかった): ゲームごとに「難関の記録」を1つ決め、全プレイヤーの Top 3 を出す画面。
+  - **記録**(大きいほど上。`hub.html` の `RECORDS`、`GAMES` と同じ card キー): Angry Mokumoku / Moku Drop / Moku Bento / Moku Rhythm Cafe / Moku Future Run = High Score、Moyomoyo = Marathon High Score、MK Mobile = Strongest Player(持っている選手の Sp+Sh+Def の最大)、Battle Royal = Battle Level、Shiri of Moku = Stages Cleared、Moku City = City Level、Moku-rane = Prizes Won、Moku Fishing Pond = Fish Caught、Moku Kart = Grand Prix Trophies、Flying Moku = Acorns Found、Moku Wolf = Rounds Played、Moku Fight = Wins、Moku Watch 6 Lazy = Laziest Watch、Moku Bridge = Luckiest Steps。新しいタイトルは `RECORDS` に1つ足す。
+  - **表示**: ゲームごとのカード(アイコン・名前・記録の名前)に 🥇🥈🥉 の3人(着せ替えた Moku の顔・表示名・`#u` タグ・記録)。同じ記録は同じ順位。自分が4位以下なら「⋮」の下に自分の行と「Beat ○○ to move up!」。1位なら「You are No. 1! 👑」。記録がまだないゲームは1行(「No records yet. Be the first!」)で、記録のあるゲームを上に並べる。「All Games / Games I Play」で、自分が記録を持っているゲームだけに絞れる。幅 700px 以上は2列。
+  - **データ**: Hollow と同じ公開カードに `records = { gameId: 数 }` を足した(`window.MOKU_PUBLIC_CARD()`。サーバーは正の数だけ整数で残す。`backend/API_SPEC.md`)。ほかの人の記録はその人が次にハブで保存した時から出る。自分の記録はこの端末から直接読む。管理者アカウントは Players と同じく出ない。
+  - ✕ Close・戻る・Esc でハブへ。
 
 ## 11. 引き継ぎコード(2026-10-24〜)
 
