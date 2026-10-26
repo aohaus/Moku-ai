@@ -206,7 +206,15 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
   - **分担**: 画面の骨組みと My Bests / Badge / My Games は `hub.html`。`shared/moku-account.js` が `[data-moku-name]` `[data-moku-tag]` `[data-moku-profile="account"]` `[data-moku-profile="players"]` を、`shared/moku-moint.js` が `[data-moku-doll]` `[data-moku-moint-bar]` を埋める。`hub.html` は `window.MOKU_PROFILE_PAGE = { open, isOpen }` を置き、アカウントのボタンはこれを開く(ない画面ではログイン中は `hub.html#me` へ、ゲストはログイン画面)。Change PIN / Log Out の確認は従来どおりモーダル。
   - **My Games**: ゲームごとに1行(アイコン・名前・一言サマリー・最後に保存された時刻)。新しい順。押すとそのゲームの詳細シート。サマリーは `hub.html` の `GAMES[].badge()`、一覧は `saveSummary(savedAt)`。時刻は下の保存時刻、なければハブから始めた時刻(`moku:played:<card>`)。ゲームとキーの対応は `moku:<gameId>:…` と `moku:completed:<card>`、古い形式のキーは `hub.html` の `LEGACY_SAVE_PREFIXES`。**新規タイトルは `GAMES` に `badge()` を書けば一覧に出る。**
   - **保存時刻**: 同期のたびに、前回の同期から値が変わったキーに現在時刻を記録する(`moku:meta:saved-at` = キー→時刻のJSON)。このキーもクラウドセーブ・引き継ぎコードに含まれるので、どの端末でも同じ時刻が見える。端末とクラウドが同じかどうかの比較では、この記録は無視してゲームのデータだけを比べる。初回ログインの端末では、既存のセーブはすべてその時刻になる。
-  - **Players**: アカウントを持つ全員(最大100人)の表示名・`#u` タグ・最終アクセス時刻。5分以内にアクセスがあれば「● Online」。ログイン中の人だけが見られる(`GET /players`)。Player ID は出さない。開いているページが2分おきに `GET /auth/me` を呼んで「まだいる」ことを伝える(サーバーは1分に1回まで記録)。
+  - **Players → The Hollow**(2026-10-26〜): My Moku 画面の一番下にあった Players の一覧は、下の Hollow 画面に移した(My Moku には「🌳 The Hollow」へのボタン)。
+- **The Hollow**(`hub.html#hollow`、2026-10-26〜。下部ナビの左から3番目「🌳 Hollow」。旧「Ranking」の場所): みんなの Moku が1本の大きな木に集まる画面。
+  - **表示**(2026-10-26 に「木の穴に1羽ずつ」から「1つの部屋にみんな」へ変更): 木の中の大きな部屋に最大5羽が一緒にいる。部屋は「鳥たちが森で拾い集めて組んだ隠れ家」: 壁は色も大きさもふぞろいな端材の板・樹皮・丸太の切り口・小枝を継ぎはぎ(釘あり)、床は土と落ち葉と小石、端に苔。少し暗いけれど温かい明かり(上の葉の隙間から差す木漏れ日の光の筋・ホタル・琥珀色に光るキノコ・まわりのビネット)。真ん中にわらで編んだ敷物。額縁は小枝の枠、名札は傾いた端材の板。壁と床の絵は `buildHollowScene()` が固定の乱数(同じ見た目が毎回出る)で SVG を組み立てる。幅 620px 以上は床に1列、スマホは手前3羽・奥2羽(少し小さく)。それぞれの Moku はその人が Closet で選んだ服・表情で、**Background はその人の真上の壁に掛けた額縁の絵**(なければ空の額)。Moku の下の木の名札に表示名・`#u` タグ・「● Online」/ 最終アクセス(「5 h ago」など)。自分には YOU。見出しに人数とオンライン人数。
+  - **動き**: ふだんは少し浮遊。ときどき(5〜14秒おきにランダム)左右へゆっくり(約20px/秒)よちよち歩いて、また止まる。歩く幅は自分の場所の中(となりと少しすれ違うくらい)。吹き出しを開いている Moku は歩かない。ページが隠れている時・「視差効果を減らす」設定の時は歩かない。
+  - **6人以上**: 「Choose Mokus (n)」で選ぶ画面(全員の一覧・チェックで最大5人・「Most Recent」で最近の順に戻す)。選んだ人は `moku:hollow:picks`(`#u` タグの配列、クラウドセーブではこの端末の値を使う)。選んでいなければ自分+最近アクセスした順。
+  - **Moku を押す(マウスなら乗せる)と** 吹き出しで、その人の Lv と主な記録(最大4件。My Bests → バッジの数 → 最近遊んだゲームの一言サマリー)と更新時刻。記録がまだない人は「No highlights yet…」。
+  - **データ**: ほかの人は `GET /players`(`MokuAccount.loadPlayers()` / `getPlayers()`、取れたら window に `moku:players` イベント)。各プレイヤーの公開カード `card = { level, outfit, highlights, updatedAt }` は、その人のハブがクラウドへ保存するたびに `window.MOKU_PUBLIC_CARD()` で作って `PUT /save` に添える(`backend/API_SPEC.md`)。サーバーは短い文字列とIDだけ残す。セーブの中身はほかの人に見せない。カードはその人が次にハブで保存した時から出る(それまでは素の Moku と「No highlights yet」)。自分の Moku はこの端末から直接描く。
+  - Player ID は出さない。オンラインの判定は従来どおり(5分以内のアクセス。開いているページが2分おきに `GET /auth/me`)。ログインしていない時は自分だけ+「Log in to see your friends' Mokus here.」。
+  - ✕ Close・戻る・Esc で前の画面へ(ハブ、または My Moku から来たら My Moku)。
 
 ## 11. 引き継ぎコード(2026-10-24〜)
 
@@ -249,7 +257,10 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
 
 - 共通ヘルパー: [`shared/moku-moint.js`](shared/moku-moint.js)(`MokuMoint.balance()` / `add(n)` / `claimDaily()` / `closet()` / `buy(id)` / `equip(id)` / `outfitSVG(equipped)` / `layerImage(slot)`)。ハブは通常モード(Moint 残高・着せ替えた Moku のスロット+デイリーボーナス+Moku Closet のUI)、ゲームは `data-mode="none"`(APIだけ)で読み込む。
 - **デイリーボーナス**(2026-10-25〜): 1日1回 100 Moint。ハブ(`hub.html`)を開くとポップアップで受け取れる(端末のローカル日付で判定)。記録は `moku:moint:daily` = `{ version: 1, last: 'YYYY-MM-DD', days, updatedAt }`。ログイン中はクラウド同期が終わってから出し、受け取ったらすぐアップロードする(同じ日に別の端末でもう一度もらえない・同期の衝突を起こさない)。ゲストは端末ごと。
-- **Moku Closet**(2026-10-25〜): ハブ上部の帯の Closet ボタン / My Moku 画面の Moku から開く着せ替えショップ。タブは Hats(24)/ Face(16、メガネ・ほっぺのシール・アイパッチなど)/ Necklaces(15)/ Backgrounds(7)。服は3枠それぞれ1つずつ着られる(2026-10-25 に 11 種類から 55 種類に増やした)。持っていない物はタップで試着(プレビュー)、Buy で購入してすぐ着る。服の値段は 100〜600 Moint。保存は `moku:moint:closet` = `{ version: 1, owned: [id], equipped: { head, face, neck, bg }, updatedAt }`。
+- **Moku Closet**(2026-10-25〜): ハブ上部の帯の Closet ボタン / My Moku 画面の Moku から開く着せ替えショップ。タブは Hats(24)/ Moods(28)/ Face(16、メガネ・ほっぺのシール・アイパッチなど)/ Necklaces(15)/ Backgrounds(7)。スマホでは横にスクロールする。服・表情は4枠それぞれ1つずつ(2026-10-25 に服を 11 種類から 55 種類に増やした)。一覧が長いので、大きいプレビューが画面の外に出たら右上に小さいプレビューを出す。持っていない物はタップで試着(プレビュー)、Buy で購入してすぐ着る。服の値段は 100〜600 Moint。保存は `moku:moint:closet` = `{ version: 1, owned: [id], equipped: { head, mood, face, neck, bg }, updatedAt }`。
+  - **Moods**(表情、2026-10-26〜): 28種類、150〜320 Moint。ふつう(Happy / Wink / Heart Eyes / Star Eyes / Sleepy / Surprised / Shy / Puppy Eyes / Laughing / Cool)150〜200、おもしろ系(Googly Eyes / Dizzy / Moint Eyes / Crying a River / Derp / Tongue Out / Snoring / Side-Eye / Sweat Drop / Pixel Eyes)200〜300、子どもたちのアイデア(Cake / Ice Cream / Chocolate / Candy / Rice Cracker / Cookie Eyes、Show-Off(カッコつけ)/ Meh(やる気なし))250〜320。いつもの怒り眉の顔は「Usual」(表情なし)で、いつでも戻せる。
+    - 描き方: 元の目と眉を、顔の毛の色(`#F4E6D7`)のふちをぼかした楕円で隠してから新しい目を描く(`moodPatch()`)。重ねる順は 表情 → ネックレス → Face(メガネ)→ 帽子 なので、メガネと同時に付けられる。Closet の一覧では Moku の顔のアップで見せる。
+    - 出る場所: 着せ替えた Moku が出る所すべて(ハブの帯・下部ナビ・My Moku・Closet・`index.html`・Moku Bridge のタイトル画面)。Moku Bridge のプレイ中は後ろ姿なので出ない。
   - **Backgrounds**(2026-10-25〜): My Moku 画面の左の Moku の後ろに敷く背景カード(Closet のプレビューにも出る)。各 300 Moint。Japan / Kuala Lumpur / Singapore / Vietnam / Indonesia / Thailand / Cambodia。シンプルな色数のポップアート調(平らな空+サンバースト+網点+太い輪郭線のランドマーク)。Moku が真ん中に立つので、ランドマークは上と左右に置く。絵は `moku-moint.js` の `BACKGROUNDS`(自分の 100×100 グリッド)。`[data-moku-doll data-moku-scene]` のスロットが背景つきで描く(ハブの帯・下部ナビ・ゲームのタイトル画面は背景なし)。
   - 服の絵は `brand/mokumoku-hero.png` にぴったり重なる 100×100 グリッドの SVG(頭のてっぺん ≈ y 8、目 ≈ (35, 41.5) / (65, 41.5)、葉の蝶ネクタイ ≈ y 44〜58)。どの大きさの Moku にも同じ絵を重ねられる。新しい服は `moku-moint.js` の `ITEMS` に足す。
   - Moku Bridge はタイトル画面のヒーロー画像に全部の服を、プレイ中の後ろ姿の Moku には帽子だけを描く。他のタイトルでも `MokuMoint.outfitSVG()` / `layerImage()` で同じ服を着せられる。

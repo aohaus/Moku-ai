@@ -165,7 +165,8 @@ test("players list: public names only, newest first, online within 5 min", async
   assert.equal(second.online, false); // last seen 10 min ago
   assert.equal(second.you, false);
   for (const p of res.body.players) {
-    assert.deepEqual(Object.keys(p).sort(), ["displayName", "lastSeenAt", "online", "tag", "you"]);
+    assert.deepEqual(Object.keys(p).sort(), ["card", "displayName", "lastSeenAt", "online", "tag", "you"]);
+    assert.equal(p.card, null);
   }
 
   // Any authenticated call counts as being seen.
@@ -173,6 +174,36 @@ test("players list: public names only, newest first, online within 5 min", async
   const again = (await call("GET", "/players", null, ren)).body.players;
   assert.equal(again[0].displayName, "Aoi");
   assert.equal(again[0].online, true);
+});
+
+test("players list: Hollow cards from PUT /save, cleaned", async () => {
+  const { call, register } = setup();
+  const aoi = (await register("aoi", "2580", { displayName: "Aoi" })).body.token;
+  const ren = (await register("ren", "4826", { displayName: "Ren" })).body.token;
+  const card = {
+    level: 4,
+    outfit: { head: "wizard-hat", mood: "mood-cookie-eyes", face: "<script>", neck: 7, bg: "bg-japan", extra: "x" },
+    highlights: [
+      { icon: "🍀", title: "Luckiest Steps", value: "8 in a row", game: "moku-bridge" },
+      { title: "", value: "no title" },
+      { title: "A very long title that keeps going and going", value: "v", game: "NOT OK" },
+      { title: "3", value: "x" }, { title: "4", value: "x" }, { title: "5", value: "x" },
+    ],
+  };
+  assert.equal((await call("PUT", "/save", { data: { "moku:x": "1" }, baseRev: 0, card }, aoi)).status, 200);
+  const got = (await call("GET", "/players", null, ren)).body.players.find((p) => p.displayName === "Aoi").card;
+  assert.equal(got.level, 4);
+  assert.deepEqual(got.outfit, { head: "wizard-hat", mood: "mood-cookie-eyes", bg: "bg-japan" });
+  assert.equal(got.highlights.length, 3); // 4 kept, the one without a title dropped
+  assert.deepEqual(got.highlights[0], { icon: "🍀", title: "Luckiest Steps", value: "8 in a row", game: "moku-bridge" });
+  assert.equal(got.highlights[1].title.length, 32);
+  assert.equal(got.highlights[1].game, "");
+  assert.ok(got.updatedAt);
+
+  // A save without a card (game pages) keeps the last card.
+  assert.equal((await call("PUT", "/save", { data: { "moku:x": "2" }, baseRev: 1 }, aoi)).status, 200);
+  const kept = (await call("GET", "/players", null, ren)).body.players.find((p) => p.displayName === "Aoi").card;
+  assert.equal(kept.outfit.head, "wizard-hat");
 });
 
 test("admin: only the admin role gets in; kids can't take reserved IDs", async () => {

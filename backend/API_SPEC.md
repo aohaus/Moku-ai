@@ -170,6 +170,12 @@ IDが存在しない場合と PIN 違いは同じ応答(`401 bad_credentials`)�
 - `data` の値はすべて文字列(localStorage の値そのまま)。
 - `baseRev` はクライアントが最後に見た `rev`(初回は 0)。サーバー側の `rev` と一致した時だけ保存し `rev = baseRev + 1` にする。
   一致しなければ **409** `{ "error": "conflict", "rev": <現在のrev> }`(別端末が先に保存した)。
+- `card`(任意、2026-10-26〜): Hollow(ハブの `#hollow`)でほかのプレイヤーに見せる公開カード。ハブだけが送り、ゲームのページは送らない(送らなければ前のカードのまま)。
+  ```json
+  { "level": 4, "outfit": { "head": "wizard-hat", "mood": "mood-cookie-eyes", "face": "round-glasses", "neck": "pearls", "bg": "bg-japan" },
+    "highlights": [ { "icon": "🏆", "title": "Badges", "value": "4 / 5", "game": "" }, { "title": "🍀 Luckiest Steps", "value": "8 in a row", "game": "moku-bridge" } ] }
+  ```
+  サーバーは短い値だけ残す: `outfit` は5つの枠の `[a-z0-9-]{1,40}` のIDだけ、`highlights` は最大4件(`icon` 8文字・`title` 32文字・`value` 40文字・`game` はID、`title` がないものは捨てる)、`level` は1〜9999の整数。`updatedAt` はサーバーが付ける。セーブの中身そのものはほかの人に見せない。
 
 **200** `{ "rev": 4, "updatedAt": "…" }`
 
@@ -181,12 +187,14 @@ IDが存在しない場合と PIN 違いは同じ応答(`401 bad_credentials`)�
 ```json
 {
   "players": [
-    { "displayName": "Aoi", "tag": "u6ffd2", "lastSeenAt": "2026-10-24T15:20:00.000Z", "online": true, "you": false }
+    { "displayName": "Aoi", "tag": "u6ffd2", "lastSeenAt": "2026-10-24T15:20:00.000Z", "online": true, "you": false,
+      "card": { "level": 4, "outfit": { "head": "wizard-hat" }, "highlights": [ … ], "updatedAt": "…" } }
   ],
   "onlineWindowSec": 300
 }
 ```
 - `online`: `lastSeenAt` が5分以内。
+- `card`: `PUT /save` で最後に送られた公開カード(まだなければ `null`)。
 - Player ID(`loginId`)は含めない(ログイン情報の半分のため)。
 - `lastSeenAt` は、認証付きのリクエスト(`/auth/me` `/save` `/players` など)とログイン・新規登録のたびに更新される。書き込みは1人1分に1回まで。
 
