@@ -15,6 +15,11 @@ const MAX_DISPLAY_NAME_LEN = 12;
 const MAX_SAVE_BYTES = 300 * 1024; // DynamoDB items cap at 400 KB
 const MAX_SAVE_KEY_LEN = 200;
 const MAX_DEVICE_LEN = 40;
+// Hollow (hub.html#hollow): each player's public card — what their Moku
+// wears and a few highlights. Built by the hub, sent with PUT /save.
+const CARD_SLOTS = ["head", "mood", "face", "neck", "bg"];
+const MAX_CARD_HIGHLIGHTS = 4;
+const CARD_ID_RE = /^[a-z0-9-]{1,40}$/;
 // lastSeenAt is written at most this often per player, and anyone seen
 // within ONLINE_WINDOW_MS counts as "online" in GET /players.
 const SEEN_WRITE_EVERY_MS = 60 * 1000;
@@ -80,6 +85,33 @@ function publicUserView(user) {
     // hex device-id suffix guests get, so the two can't be confused.
     tag: `u${user.uid.slice(0, 5)}`,
   };
+}
+
+function cleanCardText(s, max) {
+  return typeof s === "string" ? s.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, max) : "";
+}
+
+// Keeps only short, plain values: item ids for the outfit, short strings
+// for highlights. Nothing from the save itself is ever shown to others.
+function cleanCard(card, t) {
+  if (!card || typeof card !== "object" || Array.isArray(card)) return null;
+  const outfit = {};
+  const src = card.outfit && typeof card.outfit === "object" ? card.outfit : {};
+  for (const slot of CARD_SLOTS) {
+    if (typeof src[slot] === "string" && CARD_ID_RE.test(src[slot])) outfit[slot] = src[slot];
+  }
+  const highlights = (Array.isArray(card.highlights) ? card.highlights : [])
+    .slice(0, MAX_CARD_HIGHLIGHTS)
+    .map((h) => (h && typeof h === "object" ? {
+      icon: cleanCardText(h.icon, 8),
+      title: cleanCardText(h.title, 32),
+      value: cleanCardText(h.value, 40),
+      game: typeof h.game === "string" && CARD_ID_RE.test(h.game) ? h.game : "",
+    } : null))
+    .filter((h) => h && h.title);
+  const out = { outfit, highlights, updatedAt: new Date(t).toISOString() };
+  if (Number.isInteger(card.level) && card.level > 0 && card.level < 10000) out.level = card.level;
+  return out;
 }
 
 // What the player sees about themselves.
@@ -249,6 +281,7 @@ function createAccountApi(store, config) {
       lastSeenAt: u.lastSeenAt ? new Date(u.lastSeenAt).toISOString() : null,
       online: !!u.lastSeenAt && t - u.lastSeenAt < ONLINE_WINDOW_MS,
       you: u.uid === me.uid,
+      card: u.card || null,
     }));
     players.sort((a, b) => (b.lastSeenAt || "").localeCompare(a.lastSeenAt || ""));
     return json(200, { players, onlineWindowSec: ONLINE_WINDOW_MS / 1000 });
@@ -510,6 +543,11 @@ function createAccountApi(store, config) {
       if (e.code !== "conflict") throw e;
       const current = await store.getSave(user.loginId);
       return err(409, "conflict", "Cloud save changed on another device.", { rev: current?.rev ?? 0 });
+    }
+    // Hollow card: only the hub sends one; game pages leave the last one as is.
+    if (body.card !== undefined) {
+      const card = cleanCard(body.card, now());
+      if (card) await store.updateUser(user.loginId, { card });
     }
     // "Play" = which save keys this upload changed (the admin page maps them to games).
     const keys = changedKeys(before ? JSON.parse(before.data) : {}, data);

@@ -206,7 +206,14 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
   - **分担**: 画面の骨組みと My Bests / Badge / My Games は `hub.html`。`shared/moku-account.js` が `[data-moku-name]` `[data-moku-tag]` `[data-moku-profile="account"]` `[data-moku-profile="players"]` を、`shared/moku-moint.js` が `[data-moku-doll]` `[data-moku-moint-bar]` を埋める。`hub.html` は `window.MOKU_PROFILE_PAGE = { open, isOpen }` を置き、アカウントのボタンはこれを開く(ない画面ではログイン中は `hub.html#me` へ、ゲストはログイン画面)。Change PIN / Log Out の確認は従来どおりモーダル。
   - **My Games**: ゲームごとに1行(アイコン・名前・一言サマリー・最後に保存された時刻)。新しい順。押すとそのゲームの詳細シート。サマリーは `hub.html` の `GAMES[].badge()`、一覧は `saveSummary(savedAt)`。時刻は下の保存時刻、なければハブから始めた時刻(`moku:played:<card>`)。ゲームとキーの対応は `moku:<gameId>:…` と `moku:completed:<card>`、古い形式のキーは `hub.html` の `LEGACY_SAVE_PREFIXES`。**新規タイトルは `GAMES` に `badge()` を書けば一覧に出る。**
   - **保存時刻**: 同期のたびに、前回の同期から値が変わったキーに現在時刻を記録する(`moku:meta:saved-at` = キー→時刻のJSON)。このキーもクラウドセーブ・引き継ぎコードに含まれるので、どの端末でも同じ時刻が見える。端末とクラウドが同じかどうかの比較では、この記録は無視してゲームのデータだけを比べる。初回ログインの端末では、既存のセーブはすべてその時刻になる。
-  - **Players**: アカウントを持つ全員(最大100人)の表示名・`#u` タグ・最終アクセス時刻。5分以内にアクセスがあれば「● Online」。ログイン中の人だけが見られる(`GET /players`)。Player ID は出さない。開いているページが2分おきに `GET /auth/me` を呼んで「まだいる」ことを伝える(サーバーは1分に1回まで記録)。
+  - **Players → The Hollow**(2026-10-26〜): My Moku 画面の一番下にあった Players の一覧は、下の Hollow 画面に移した(My Moku には「🌳 The Hollow」へのボタン)。
+- **The Hollow**(`hub.html#hollow`、2026-10-26〜。下部ナビの左から3番目「🌳 Hollow」。旧「Ranking」の場所): みんなの Moku が1本の大きな木に集まる画面。
+  - **表示**: 木の幹の丸い穴(ノットホール)に最大5羽(上に3・下に2)。それぞれの Moku はその人が Closet で選んだ服・表情・背景(穴の中に背景カード)で、少し浮遊する。穴の下の木の名札に表示名・`#u` タグ・「● Online」/ 最終アクセス(「5 h ago」など)。自分には YOU。見出しに人数とオンライン人数。
+  - **6人以上**: 「Choose Mokus (n)」で選ぶ画面(全員の一覧・チェックで最大5人・「Most Recent」で最近の順に戻す)。選んだ人は `moku:hollow:picks`(`#u` タグの配列、クラウドセーブではこの端末の値を使う)。選んでいなければ自分+最近アクセスした順。
+  - **Moku を押す(マウスなら乗せる)と** 吹き出しで、その人の Lv と主な記録(最大4件。My Bests → バッジの数 → 最近遊んだゲームの一言サマリー)と更新時刻。記録がまだない人は「No highlights yet…」。
+  - **データ**: ほかの人は `GET /players`(`MokuAccount.loadPlayers()` / `getPlayers()`、取れたら window に `moku:players` イベント)。各プレイヤーの公開カード `card = { level, outfit, highlights, updatedAt }` は、その人のハブがクラウドへ保存するたびに `window.MOKU_PUBLIC_CARD()` で作って `PUT /save` に添える(`backend/API_SPEC.md`)。サーバーは短い文字列とIDだけ残す。セーブの中身はほかの人に見せない。カードはその人が次にハブで保存した時から出る(それまでは素の Moku と「No highlights yet」)。自分の Moku はこの端末から直接描く。
+  - Player ID は出さない。オンラインの判定は従来どおり(5分以内のアクセス。開いているページが2分おきに `GET /auth/me`)。ログインしていない時は自分だけ+「Log in to see your friends' Mokus here.」。
+  - ✕ Close・戻る・Esc で前の画面へ(ハブ、または My Moku から来たら My Moku)。
 
 ## 11. 引き継ぎコード(2026-10-24〜)
 

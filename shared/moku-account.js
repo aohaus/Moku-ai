@@ -17,7 +17,12 @@
  *       [data-moku-name] / [data-moku-tag]   who is playing (guests keep the page's text)
  *       [data-moku-profile="account"]        cloud-save status + Save now / Change PIN /
  *                                            Log Out (/ Admin), or Log In for guests
- *       [data-moku-profile="players"]        everyone with an account (GET /players)
+ *     Everyone with an account (GET /players, for the hub's Hollow page):
+ *     MokuAccount.loadPlayers() fetches (cached for a minute), then
+ *     MokuAccount.getPlayers() returns { players } and a "moku:players"
+ *     event fires on window. Each player has a public `card` (their Moku's
+ *     outfit and a few highlights) that the hub sends with every upload via
+ *     window.MOKU_PUBLIC_CARD().
  *     Swaps the text of [data-moku-greeting]
  *     to "Hello, <name>!", and syncs progress with the cloud on load.
  *   <script src="shared/moku-account.js" data-mode="none"></script>
@@ -71,7 +76,7 @@
   // Bookkeeping (visit streak, "last played" times, completed flags, the
   // Daily Bonus record): if both sides changed one, keep this device's —
   // nobody loses progress over these.
-  var SOFT_PREFIXES = ['moku:stats:', 'moku:played:', 'moku:completed:', 'moku:meta:', 'moku:moint:daily', 'moku:moint:earned'];
+  var SOFT_PREFIXES = ['moku:stats:', 'moku:played:', 'moku:completed:', 'moku:meta:', 'moku:moint:daily', 'moku:moint:earned', 'moku:hollow:'];
   var HEARTBEAT_MS = 2 * 60 * 1000; // keeps "online" in the players list fresh
   var PLAYERS_TTL_MS = 60 * 1000;
   var KEEPALIVE_MAX_BYTES = 60000; // browsers cap keepalive bodies at 64 KB
@@ -368,8 +373,15 @@
     listeners.forEach(function (fn) { try { fn(status); } catch (e) {} });
   }
 
+  // The Hollow card (outfit + highlights) other players see. Only the hub
+  // builds one; game pages send none and the server keeps the last card.
+  function publicCard() {
+    if (typeof global.MOKU_PUBLIC_CARD !== 'function') return undefined;
+    try { return global.MOKU_PUBLIC_CARD() || undefined; } catch (e) { return undefined; }
+  }
+
   function upload(user, data, baseRev) {
-    return api('PUT', '/save', { data: data, baseRev: baseRev, device: deviceLabel() }).then(function (res) {
+    return api('PUT', '/save', { data: data, baseRev: baseRev, device: deviceLabel(), card: publicCard() }).then(function (res) {
       setSyncState(user, res.rev, data);
       return res;
     });
@@ -525,9 +537,9 @@
     var local = collectLocal();
     if (hashData(local) === st.hash) return;
     stampChanges(local, st);
-    var body = JSON.stringify({ data: local, baseRev: st.rev, device: deviceLabel() });
-    if (body.length > KEEPALIVE_MAX_BYTES) return;
-    api('PUT', '/save', { data: local, baseRev: st.rev, device: deviceLabel() }, { keepalive: true })
+    var payload = { data: local, baseRev: st.rev, device: deviceLabel(), card: publicCard() };
+    if (JSON.stringify(payload).length > KEEPALIVE_MAX_BYTES) return;
+    api('PUT', '/save', payload, { keepalive: true })
       .then(function (res) { setSyncState(user, res.rev, local); })
       .catch(function () {});
   }
@@ -605,7 +617,6 @@
     '.mka-you{margin-left:6px;font-size:10px;font-weight:800;letter-spacing:0.06em;color:#10121E;background:#6EE7A8;',
     'padding:2px 6px;border-radius:999px;vertical-align:2px}',
     '.mka-empty{padding:12px;font-size:13px;font-weight:600;color:rgba(237,238,246,0.55);text-align:center}',
-    '.mka-more{display:block;margin:6px auto 0}',
     'a.mka-secondary{display:flex;align-items:center;justify-content:center;text-decoration:none}',
     '.mka-wide{position:relative;display:flex;align-items:center;gap:14px;width:100%;max-width:380px;margin:0 auto;',
     'padding:14px 18px;border-radius:20px;overflow:hidden;text-align:left;cursor:pointer;font:inherit;color:#EDEEF6;',
@@ -1007,15 +1018,7 @@
     }
   }
 
-  // ---------- "My Moku" page: account box + players ----------
-
-  var expanded = {};
-  var LIST_PREVIEW = 5;
-
-  function moreButton(name, total) {
-    if (expanded[name] || total <= LIST_PREVIEW) return '';
-    return '<button class="mka-link mka-more" type="button" data-more="' + name + '">Show all (' + total + ')</button>';
-  }
+  // ---------- "My Moku" page: account box; players (Hollow) ----------
 
   // { at, players } | { at, hidden: true } (failed; retried after the TTL)
   // | { unsupported: true } (backend has no /players) | null (not loaded yet)
@@ -1038,31 +1041,8 @@
       else playersCache = { at: Date.now(), hidden: true };
     }).then(function () {
       playersLoading = false;
-      if (playersCache) renderProfile();
+      try { global.dispatchEvent(new CustomEvent('moku:players')); } catch (e) {}
     });
-  }
-
-  function playersSection() {
-    if (playersCache && (playersCache.unsupported || playersCache.hidden)) return '';
-    var head = '<div class="mka-section"><h3 class="mka-section-h">Players';
-    if (!playersCache) return head + '</h3><div class="mka-list"><div class="mka-empty">Loading…</div></div></div>';
-    var players = playersCache.players;
-    var online = players.filter(function (p) { return p.online; }).length;
-    var shown = expanded.players ? players : players.slice(0, LIST_PREVIEW);
-    return head + ' <small>' + online + ' online</small></h3><div class="mka-list">' + shown.map(function (p) {
-      return '<div class="mka-row">' +
-        '<span class="mka-avatar-wrap"><span class="mka-avatar">' + esc(Array.from(p.displayName)[0] || '?') + '</span>' +
-        (p.online ? '<span class="mka-dot" data-status="ok"></span>' : '') + '</span>' +
-        '<span class="mka-row-main"><b>' + esc(p.displayName) + (p.you ? '<em class="mka-you">YOU</em>' : '') + '</b>' +
-        '<span>#' + esc(p.tag) + '</span></span>' +
-        '<span class="mka-row-side' + (p.online ? ' is-online' : '') + '">' +
-        (p.online ? '● Online' : esc(p.lastSeenAt ? relTime(p.lastSeenAt) : '')) + '</span></div>';
-    }).join('') + '</div>' + moreButton('players', players.length) + '</div>';
-  }
-
-  function profileOpen() {
-    var page = global.MOKU_PROFILE_PAGE;
-    return !!(page && page.isOpen && page.isOpen());
   }
 
   var nameDefaults = typeof WeakMap === 'function' ? new WeakMap() : null;
@@ -1101,26 +1081,16 @@
           '<span class="mka-wide-sub">Save your Moku on every device</span></span>' +
           '<span class="mka-wide-arrow" aria-hidden="true">›</span></button>';
     });
-    Array.prototype.forEach.call(document.querySelectorAll('[data-moku-profile="players"]'), function (el) {
-      var html = user ? playersSection() : '';
-      el.innerHTML = html;
-      el.hidden = !html;
-    });
-    if (user && profileOpen()) loadPlayers();
   }
 
   if (mode === 'full') {
     document.addEventListener('click', function (e) {
-      var b = e.target.closest ? e.target.closest('[data-moku-profile] [data-act],[data-moku-profile] [data-go],[data-moku-profile] [data-more]') : null;
+      var b = e.target.closest ? e.target.closest('[data-moku-profile] [data-act],[data-moku-profile] [data-go]') : null;
       if (!b) return;
       var act = b.getAttribute('data-act');
       if (act === 'sync') syncNow({ interactive: true });
       else if (act === 'login') openModal('login');
       else if (b.hasAttribute('data-go')) openModal(b.getAttribute('data-go'));
-      else if (b.hasAttribute('data-more')) {
-        expanded[b.getAttribute('data-more')] = true;
-        renderProfile();
-      }
     });
   }
 
@@ -1193,6 +1163,13 @@
     onStatusChange: function (fn) { listeners.push(fn); },
     openLogin: function () { if (enabled) openModal('login'); },
     renderProfile: renderProfile,
+    // force = skip the one-minute cache (opening the Hollow page)
+    loadPlayers: function (force) {
+      if (!enabled || !getUser()) return;
+      if (force && playersCache && playersCache.at) playersCache.at = 0;
+      loadPlayers();
+    },
+    getPlayers: function () { return playersCache && playersCache.players ? { players: playersCache.players } : null; },
     syncNow: syncNow,
     logout: logout
   };
