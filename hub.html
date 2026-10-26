@@ -1364,7 +1364,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
 .me-best { flex: none; font-size: 15px; font-weight: 800; color: #FFE27A; white-space: nowrap; }
 .me-empty { grid-column: 1 / -1; padding: 14px; font-size: 13px; font-weight: 600; color: rgba(237,238,246,0.55); text-align: center; }
 
-/* ---------- The Hollow (#hollow): everyone's Moku in one big tree ---------- */
+/* ---------- The Hollow (#hollow): everyone's Moku in one cozy room ---------- */
 #hollowPage {
   position: fixed;
   inset: 0;
@@ -1382,68 +1382,99 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
 #hollowPage[hidden] { display: none; }
 .hollow-sub { margin: 2px 0 0; font-size: 12.5px; font-weight: 600; color: rgba(237,238,246,0.6); }
 .hollow-wrap { max-width: 860px; margin: 0 auto; padding: 4px 16px calc(32px + env(safe-area-inset-bottom, 0px)); }
-.hollow-tree { position: relative; margin-top: 18px; }
-.hollow-canopy {
-  height: 74px;
-  margin: 0 -6px -26px;
-  border-radius: 50% 50% 40% 40% / 100% 100% 30% 30%;
-  background:
-    radial-gradient(circle at 20% 60%, #4E9A5A 0 22%, transparent 23%),
-    radial-gradient(circle at 45% 40%, #5BAE66 0 26%, transparent 27%),
-    radial-gradient(circle at 72% 55%, #4E9A5A 0 24%, transparent 25%),
-    radial-gradient(circle at 90% 70%, #437F4C 0 18%, transparent 19%),
-    linear-gradient(180deg, #3F7D49, #356B3E);
-  box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+.hollow-room {
   position: relative;
-  z-index: 1;
-}
-.hollow-trunk {
-  position: relative;
-  padding: 40px 14px 26px;
+  margin-top: 16px;
+  height: clamp(420px, 54vw, 470px);
   border-radius: 26px;
+}
+.hollow-scene { position: absolute; inset: 0; border-radius: 26px; overflow: hidden; box-shadow: 0 14px 34px rgba(0,0,0,0.45), inset 0 0 0 3px rgba(0,0,0,0.15); }
+/* warm wooden wall, rounded like the inside of a tree */
+.hollow-wall {
+  position: absolute; left: 0; right: 0; top: 0; height: 52%;
+  border-radius: 40% 40% 0 0 / 22% 22% 0 0;
   background:
-    repeating-linear-gradient(90deg, rgba(0,0,0,0.10) 0 3px, transparent 3px 22px, rgba(255,255,255,0.04) 22px 24px, transparent 24px 47px),
-    linear-gradient(90deg, #6B4528, #8A5A34 30%, #94633A 50%, #8A5A34 70%, #6B4528);
-  box-shadow: inset 0 0 0 3px rgba(0,0,0,0.12), 0 14px 30px rgba(0,0,0,0.45);
+    repeating-linear-gradient(90deg, rgba(0,0,0,0.08) 0 2px, transparent 2px 36px),
+    radial-gradient(ellipse 70% 90% at 50% 100%, rgba(255,190,110,0.28), transparent 70%),
+    linear-gradient(180deg, #5E3C22, #8A5A34 70%, #946238);
 }
-.hollow-roots {
-  height: 22px;
-  margin: -6px 18px 0;
-  border-radius: 0 0 50% 50% / 0 0 100% 100%;
-  background: linear-gradient(180deg, #5A3A22, #3E2716);
+.hollow-scene::before { content: ""; position: absolute; inset: 0; background: #3E2716; z-index: -1; }
+.hollow-floor {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 48%;
+  background:
+    repeating-linear-gradient(180deg, rgba(0,0,0,0.10) 0 2px, transparent 2px 28px),
+    linear-gradient(180deg, #B07A46, #C99A62 60%, #B9864F);
+  box-shadow: inset 0 10px 14px -6px rgba(0,0,0,0.35);
 }
-.hollow-holes {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 18px 10px;
-}
-/* 3 knotholes on top, 2 below (staggered like a real tree) */
-.hollow-slot { grid-column: span 2; display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; }
-.hollow-slot:nth-child(4) { grid-column: 2 / span 2; }
-.hollow-slot:nth-child(5) { grid-column: 4 / span 2; }
-.hollow-slot.is-only:nth-child(4) { grid-column: 3 / span 2; }
-.hollow-hole {
-  position: relative;
-  width: min(100%, 150px);
-  aspect-ratio: 1 / 1;
+.hollow-rug {
+  position: absolute; left: 12%; right: 12%; bottom: 7%; height: 26%;
   border-radius: 50%;
-  padding: 0;
-  border: none;
-  cursor: pointer;
-  overflow: hidden;
-  background: radial-gradient(circle at 50% 40%, #6E4A2E 0%, #3A2416 70%, #24160C 100%);
-  box-shadow: 0 0 0 6px #5A3A22, 0 0 0 9px rgba(0,0,0,0.25), inset 0 8px 18px rgba(0,0,0,0.55);
-  -webkit-tap-highlight-color: transparent;
-  transition: transform .15s;
+  background: radial-gradient(ellipse at center, #E8604C 0 46%, #F5B83D 47% 56%, #E8604C 57% 70%, #C94A38 71%);
+  opacity: 0.55;
 }
-.hollow-hole:hover, .hollow-hole:focus-visible { transform: translateY(-3px); outline: none; }
-.hollow-hole.is-open { box-shadow: 0 0 0 6px #FFC94A, 0 0 0 9px rgba(255,201,74,0.35), inset 0 8px 18px rgba(0,0,0,0.45); }
-.hollow-hole .hollow-bg, .hollow-hole .hollow-bg svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.hollow-hole .hollow-bg::after { content: ""; position: absolute; inset: 0; box-shadow: inset 0 8px 18px rgba(0,0,0,0.45); border-radius: 50%; }
-.hollow-hole .mm-doll { position: absolute; left: 12%; right: 12%; bottom: 2%; width: auto; animation: bob 3.2s ease-in-out infinite; }
-.hollow-slot:nth-child(2n) .hollow-hole .mm-doll { animation-delay: -1.4s; }
+.hollow-lantern { position: absolute; top: 0; width: 2px; height: 34px; background: rgba(0,0,0,0.4); }
+.hollow-lantern::after {
+  content: ""; position: absolute; left: -9px; top: 32px; width: 20px; height: 24px; border-radius: 8px 8px 10px 10px;
+  background: radial-gradient(circle at 50% 45%, #FFF3C4, #FFC94A 55%, #E0861A);
+  box-shadow: 0 0 18px 8px rgba(255,201,74,0.45);
+}
+.hollow-lantern.is-left { left: 9%; }
+.hollow-lantern.is-right { right: 9%; }
+.hollow-firefly {
+  position: absolute; left: var(--x); top: var(--y); width: 5px; height: 5px; border-radius: 50%;
+  background: #FFF3A6; box-shadow: 0 0 8px 3px rgba(255,236,140,0.7);
+  animation: hollowFly var(--d) ease-in-out infinite;
+}
+@keyframes hollowFly {
+  0%, 100% { transform: translate(0, 0); opacity: 0.3; }
+  30% { transform: translate(14px, -10px); opacity: 1; }
+  60% { transform: translate(-8px, 6px); opacity: 0.6; }
+}
+/* everyone's background, framed on the wall */
+.hollow-frames { position: absolute; left: 0; right: 0; top: 0; height: 52%; pointer-events: none; }
+.hollow-frame {
+  position: absolute; top: 18%;
+  width: clamp(42px, 12%, 92px); aspect-ratio: 1 / 1; margin-left: calc(clamp(42px, 12%, 92px) / -2);
+  border-radius: 6px; overflow: hidden;
+  border: 4px solid #C9945A;
+  box-shadow: 0 0 0 2px #6B4528, 0 6px 10px rgba(0,0,0,0.35);
+  background: #F6E7CF;
+  transform: rotate(var(--tilt, 0deg));
+  transition: box-shadow .15s;
+}
+.hollow-frame.is-back { top: 8%; }   /* back-row frames hang a little higher, so neighbors don't overlap */
+.hollow-frame svg { width: 100%; height: 100%; display: block; }
+.hollow-frame.is-empty::after { content: "🦉"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 60%; opacity: 0.25; }
+.hollow-frame.is-open { box-shadow: 0 0 0 2px #6B4528, 0 0 0 5px #FFC94A, 0 6px 10px rgba(0,0,0,0.35); }
+/* the Mokus share one floor */
+.hollow-mokus { position: absolute; inset: 0; }
+.hollow-moku { position: absolute; display: flex; justify-content: center; }
+.hollow-walker { display: flex; flex-direction: column; align-items: center; gap: 4px; will-change: transform; }
+.hollow-moku-btn {
+  position: relative; width: var(--size, 120px); aspect-ratio: 1 / 1; padding: 0; border: none; background: none; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.hollow-moku-btn::before {   /* soft shadow on the floor */
+  content: ""; position: absolute; left: 22%; right: 22%; bottom: 1%; height: 10%; border-radius: 50%;
+  background: rgba(40,20,5,0.35);
+}
+.hollow-moku-btn:focus-visible { outline: 3px solid #FFC94A; outline-offset: 2px; border-radius: 16px; }
+.hollow-flip { position: absolute; inset: 0; transition: transform .35s ease; }
+.hollow-moku.face-left .hollow-flip { transform: scaleX(-1); }
+.hollow-flip .mm-doll { position: absolute; inset: 0; width: 100%; animation: bob 3.2s ease-in-out infinite; }
+.hollow-moku:nth-child(2n) .hollow-flip .mm-doll { animation-delay: -1.4s; }
+/* a little waddle while walking */
+.hollow-moku.is-walking .hollow-flip .mm-doll { animation: hollowWaddle .7s ease-in-out infinite; }
+@keyframes hollowWaddle { 0%, 100% { transform: rotate(-5deg) translateY(0); } 50% { transform: rotate(5deg) translateY(-3px); } }
+.hollow-moku.is-open .hollow-moku-btn::after {
+  content: ""; position: absolute; left: 14%; right: 14%; bottom: -2%; height: 14%; border-radius: 50%;
+  border: 3px solid #FFC94A; box-shadow: 0 0 12px rgba(255,201,74,0.7);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hollow-firefly, .hollow-flip .mm-doll { animation: none; }
+}
 .hollow-plate {
-  max-width: 100%;
+  max-width: 150px;
   padding: 6px 12px 7px;
   border-radius: 10px;
   text-align: center;
@@ -1476,14 +1507,15 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
   content: "";
   position: absolute;
   left: var(--arrow, 50%);
-  top: -8px;
+  bottom: -8px;
   width: 16px;
   height: 16px;
   margin-left: -8px;
   background: #FFF6E8;
   transform: rotate(45deg);
-  box-shadow: -3px -3px 0 0 #F1D9B5;
+  box-shadow: 3px 3px 0 0 #F1D9B5;
 }
+.hollow-pop.is-below::before { top: -8px; bottom: auto; box-shadow: -3px -3px 0 0 #F1D9B5; }
 .hollow-pop h3 { margin: 0 0 6px; font-size: 15px; font-weight: 900; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .hollow-pop h3 small { font-size: 11.5px; font-weight: 800; color: #2F8F5B; background: #E6F4D9; padding: 2px 8px; border-radius: 999px; }
 .hollow-hl { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid #F0E0C8; }
@@ -1530,9 +1562,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
 .me-hollow-link small { display: block; font-size: 12.5px; font-weight: 600; color: rgba(237,238,246,0.6); }
 .me-hollow-arrow { margin-left: auto; font-size: 22px; color: rgba(237,238,246,0.5); }
 @media (max-width: 480px) {
-  .hollow-holes { gap: 14px 6px; }
-  .hollow-trunk { padding: 34px 8px 20px; }
-  .hollow-plate { padding: 5px 7px 6px; }
+  .hollow-plate { padding: 4px 7px 5px; max-width: 110px; }
   .hollow-plate b { font-size: 12.5px; }
   .hollow-plate small { font-size: 10px; }
 }
@@ -1730,13 +1760,25 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     <button class="me-close" id="hollowClose" type="button">✕ Close</button>
   </header>
   <div class="hollow-wrap">
-    <div class="hollow-tree" id="hollowTree">
-      <div class="hollow-canopy" aria-hidden="true"></div>
-      <div class="hollow-trunk">
-        <div class="hollow-holes" id="hollowHoles"></div>
-        <div class="hollow-pop" id="hollowPop" role="dialog" aria-live="polite" hidden></div>
+    <!-- One big cozy room inside the tree: everyone's background hangs on
+         the wall as a framed picture, the Mokus share one wooden floor and
+         now and then waddle a little to the left or right. -->
+    <div class="hollow-room" id="hollowRoom">
+      <div class="hollow-scene" aria-hidden="true">
+        <div class="hollow-wall"></div>
+        <div class="hollow-floor"></div>
+        <div class="hollow-rug"></div>
+        <span class="hollow-lantern is-left"></span>
+        <span class="hollow-lantern is-right"></span>
+        <span class="hollow-firefly" style="--x:18%;--y:30%;--d:7s"></span>
+        <span class="hollow-firefly" style="--x:42%;--y:22%;--d:9s"></span>
+        <span class="hollow-firefly" style="--x:63%;--y:34%;--d:8s"></span>
+        <span class="hollow-firefly" style="--x:84%;--y:24%;--d:10s"></span>
+        <span class="hollow-firefly" style="--x:30%;--y:46%;--d:11s"></span>
       </div>
-      <div class="hollow-roots" aria-hidden="true"></div>
+      <div class="hollow-frames" id="hollowFrames" aria-hidden="true"></div>
+      <div class="hollow-mokus" id="hollowMokus"></div>
+      <div class="hollow-pop" id="hollowPop" role="dialog" aria-live="polite" hidden></div>
     </div>
     <div class="hollow-bar">
       <p class="hollow-note" id="hollowNote"></p>
@@ -3193,6 +3235,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     if (!cur) return;
     closeSheet();
     hollowPopClose();
+    stopWalking();
     PAGES[cur].el.hidden = true;
     document.documentElement.classList.remove('me-open');
     if (pageLastFocus && pageLastFocus.focus) pageLastFocus.focus();
@@ -3243,7 +3286,9 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
   // cloud save. Your own Moku is drawn live from this device.
   var HOLLOW_MAX = 5;
   var PICKS_KEY = 'moku:hollow:picks';   // tags of the players you chose (6+ players)
-  var hollowHoles = document.getElementById('hollowHoles');
+  var hollowRoom = document.getElementById('hollowRoom');
+  var hollowMokus = document.getElementById('hollowMokus');
+  var hollowFrames = document.getElementById('hollowFrames');
   var hollowPop = document.getElementById('hollowPop');
   var hollowPicker = document.getElementById('hollowPicker');
   var hollowShown = [];
@@ -3333,37 +3378,74 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     var svg = window.MokuMoint ? MokuMoint.outfitSVG(outfit || {}) : '';
     return '<span class="mm-doll' + (cls ? ' ' + cls : '') + '"><img src="brand/mokumoku-hero.png" alt="">' + svg + '</span>';
   }
-  function holeBackground(outfit) {
-    var id = outfit && outfit.bg;
-    if (!id || !window.MokuMoint) return '';
-    var svg = MokuMoint.itemSVG(id);
-    return svg ? '<span class="hollow-bg">' + svg + '</span>' : '';
+  // Where each Moku stands. Wide rooms: one row along the floor. Narrow
+  // (phones): three in front, two a little further back and smaller.
+  function hollowLayout(n, width) {
+    var oneRow = width >= 620 || n <= 3;
+    var spots = [];
+    if (oneRow) {
+      var size = Math.min(150, width / (n <= 3 ? 4 : 5.6));
+      for (var i = 0; i < n; i++) spots.push({ x: (i + 0.5) / n, bottom: 9, size: size, zone: width / n, z: 2 });
+    } else {
+      var front = Math.min(3, n), back = n - front;
+      var fs = Math.min(130, width / 3.6), bs = fs * 0.8;
+      for (var f = 0; f < front; f++) spots.push({ x: (f + 0.5) / front, bottom: 6, size: fs, zone: width / front, z: 2 });
+      for (var k = 0; k < back; k++) spots.push({ x: (k + 0.5) / back * 0.8 + 0.1, bottom: 40, size: bs, zone: width * 0.8 / back, z: 1 });
+    }
+    return spots;
   }
 
   function renderHollow() {
-    if (!hollowHoles) return;
+    if (!hollowMokus) return;
+    stopWalking();
     var data = hollowPeople();
     var people = data.people;
     hollowShown = pickShown(people);
-    hollowHoles.textContent = '';
+    var width = hollowRoom.clientWidth || 360;
+    var spots = hollowLayout(hollowShown.length, width);
+    hollowMokus.textContent = '';
+    hollowFrames.textContent = '';
     hollowShown.forEach(function (p, i) {
-      var slot = el('div', 'hollow-slot');
-      if (hollowShown.length === 4 && i === 3) slot.classList.add('is-only');
-      var hole = el('button', 'hollow-hole');
-      hole.type = 'button';
-      hole.setAttribute('data-key', p.key);
-      hole.setAttribute('aria-label', p.name + (p.you ? ' (you)' : '') + ', ' + statusText(p) + '. Show highlights');
       var outfit = p.card && p.card.outfit;
-      hole.innerHTML = holeBackground(outfit) + dollMarkup(outfit);
+      var spot = spots[i];
+      // their background, framed on the wall above where they stand
+      var frame = el('span', 'hollow-frame');
+      frame.setAttribute('data-key', p.key);
+      frame.style.left = (spot.x * 100).toFixed(2) + '%';
+      if (spot.z === 1) frame.classList.add('is-back');
+      frame.style.setProperty('--tilt', ((i % 2 ? 1 : -1) * (1 + (i % 3))) + 'deg');
+      var bgSvg = outfit && outfit.bg && window.MokuMoint ? MokuMoint.itemSVG(outfit.bg) : '';
+      if (bgSvg) frame.innerHTML = bgSvg; else frame.classList.add('is-empty');
+      hollowFrames.appendChild(frame);
+
+      var moku = el('div', 'hollow-moku');
+      moku.setAttribute('data-key', p.key);
+      moku.style.left = (spot.x * 100).toFixed(2) + '%';
+      moku.style.bottom = spot.bottom + '%';
+      moku.style.width = '0';
+      moku.style.zIndex = spot.z;
+      moku.style.setProperty('--size', Math.round(spot.size) + 'px');
+      // how far this Moku may wander left and right (may brush past a neighbor a little)
+      moku.setAttribute('data-range', Math.max(0, Math.min(70, spot.zone / 2 - spot.size * 0.3) * 0.85).toFixed(0));
+      var walker = el('div', 'hollow-walker');
+      var btn = el('button', 'hollow-moku-btn');
+      btn.type = 'button';
+      btn.setAttribute('aria-label', p.name + (p.you ? ' (you)' : '') + ', ' + statusText(p) + '. Show highlights');
+      var flip = el('span', 'hollow-flip');
+      flip.innerHTML = dollMarkup(outfit);
+      btn.appendChild(flip);
       var plate = el('div', 'hollow-plate');
       var name = el('b', null, p.name);
       if (p.you) name.appendChild(el('span', 'hollow-you', 'YOU'));
       plate.appendChild(name);
-      var st = el('small', p.online ? 'is-online' : null, (p.tag ? '#' + p.tag + ' · ' : '') + statusText(p));
-      plate.appendChild(st);
-      slot.appendChild(hole);
-      slot.appendChild(plate);
-      hollowHoles.appendChild(slot);
+      plate.appendChild(el('small', p.online ? 'is-online' : null, (p.tag ? '#' + p.tag + ' · ' : '') + statusText(p)));
+      walker.appendChild(btn);
+      walker.appendChild(plate);
+      walker.addEventListener('transitionend', function (e) {
+        if (e.target === walker && hollowPopFor === p.key) hollowPopOpen(p);
+      });
+      moku.appendChild(walker);
+      hollowMokus.appendChild(moku);
     });
     var others = people.filter(function (p) { return !p.you; });
     var online = others.filter(function (p) { return p.online; }).length;
@@ -3383,14 +3465,56 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
       var still = hollowShown.filter(function (p) { return p.key === hollowPopFor; })[0];
       if (still) hollowPopOpen(still); else hollowPopClose();
     }
+    startWalking();
+  }
+
+  // ---- now and then, a Moku waddles slowly a little to the left or right ----
+  var walkTimers = [];
+  var reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function stopWalking() {
+    walkTimers.forEach(clearTimeout);
+    walkTimers = [];
+  }
+  function startWalking() {
+    stopWalking();
+    if (reduceMotion) return;
+    Array.prototype.forEach.call(hollowMokus.querySelectorAll('.hollow-moku'), function (m, i) {
+      queueWalk(m, 1500 + Math.random() * 4000 + i * 900);
+    });
+  }
+  function queueWalk(m, delay) {
+    walkTimers.push(setTimeout(function () { walkOnce(m); }, delay));
+  }
+  function walkOnce(m) {
+    if (!hollowIsOpen() || !m.isConnected) return;
+    // stay put while someone is looking at this Moku's highlights
+    if (document.hidden || m.getAttribute('data-key') === hollowPopFor) { queueWalk(m, 3000); return; }
+    var range = +m.getAttribute('data-range') || 0;
+    if (range < 8) return;
+    var from = +m.getAttribute('data-x') || 0;
+    var to = Math.round((Math.random() * 2 - 1) * range);
+    if (Math.abs(to - from) < range * 0.35) to = Math.round(from > 0 ? -range * 0.6 : range * 0.6);
+    var dur = Math.max(1.8, Math.abs(to - from) / 20);   // about 20 px a second: a slow waddle
+    var walker = m.querySelector('.hollow-walker');
+    m.classList.toggle('face-left', to < from);
+    m.classList.add('is-walking');
+    walker.style.transition = 'transform ' + dur.toFixed(2) + 's ease-in-out';
+    walker.style.transform = 'translateX(' + to + 'px)';
+    m.setAttribute('data-x', to);
+    walkTimers.push(setTimeout(function () {
+      m.classList.remove('is-walking', 'face-left');
+      queueWalk(m, 5000 + Math.random() * 9000);   // rest a while before the next stroll
+    }, dur * 1000));
   }
 
   // ---- highlights pop-up (tap, or hover with a mouse) ----
   function hollowPopOpen(p) {
-    var hole = hollowHoles.querySelector('[data-key="' + p.key.replace(/"/g, '') + '"]');
-    if (!hole) return;
+    var moku = hollowMokus.querySelector('.hollow-moku[data-key="' + p.key.replace(/"/g, '') + '"]');
+    if (!moku) return;
     hollowPopFor = p.key;
-    Array.prototype.forEach.call(hollowHoles.querySelectorAll('.hollow-hole'), function (h) { h.classList.toggle('is-open', h === hole); });
+    Array.prototype.forEach.call(hollowRoom.querySelectorAll('.hollow-moku, .hollow-frame'), function (n) {
+      n.classList.toggle('is-open', n.getAttribute('data-key') === p.key);
+    });
     var card = p.card || {};
     var hls = card.highlights || [];
     hollowPop.textContent = '';
@@ -3422,45 +3546,57 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     });
     if (!p.you && card.updatedAt) hollowPop.appendChild(el('p', 'hollow-foot', 'Updated ' + relTime(card.updatedAt).toLowerCase()));
     hollowPop.hidden = false;
-    // place it under the knothole, inside the trunk
-    var trunk = hollowPop.parentNode.getBoundingClientRect();
-    var r = hole.getBoundingClientRect();
-    var w = hollowPop.offsetWidth;
-    var left = Math.max(10, Math.min(trunk.width - w - 10, r.left - trunk.left + r.width / 2 - w / 2));
+    // above the Moku's head (pointing down); below the name plate if there's no room
+    var room = hollowRoom.getBoundingClientRect();
+    var btn = moku.querySelector('.hollow-moku-btn').getBoundingClientRect();
+    var plate = moku.querySelector('.hollow-plate').getBoundingClientRect();
+    var w = hollowPop.offsetWidth, h = hollowPop.offsetHeight;
+    var cx = btn.left - room.left + btn.width / 2;
+    var left = Math.max(10, Math.min(room.width - w - 10, cx - w / 2));
+    var top = btn.top - room.top - h - 6;
+    var below = top < 6;
+    if (below) top = plate.bottom - room.top + 10;
+    hollowPop.classList.toggle('is-below', below);
     hollowPop.style.left = left + 'px';
-    hollowPop.style.top = (r.bottom - trunk.top + 10) + 'px';
-    hollowPop.style.setProperty('--arrow', (r.left - trunk.left + r.width / 2 - left) + 'px');
+    hollowPop.style.top = top + 'px';
+    hollowPop.style.setProperty('--arrow', (cx - left) + 'px');
   }
   function hollowPopClose() {
     if (!hollowPop) return;
     hollowPop.hidden = true;
     hollowPopFor = null;
-    Array.prototype.forEach.call(hollowHoles.querySelectorAll('.hollow-hole.is-open'), function (h) { h.classList.remove('is-open'); });
+    Array.prototype.forEach.call(hollowRoom.querySelectorAll('.is-open'), function (n) { n.classList.remove('is-open'); });
   }
   function personByKey(key) { return hollowShown.filter(function (p) { return p.key === key; })[0]; }
   var canHover = window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches;
-  hollowHoles.addEventListener('click', function (e) {
-    var hole = e.target.closest ? e.target.closest('.hollow-hole') : null;
-    if (!hole) return;
-    var key = hole.getAttribute('data-key');
+  hollowMokus.addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('.hollow-moku-btn') : null;
+    if (!btn) return;
+    var key = btn.closest('.hollow-moku').getAttribute('data-key');
     if (hollowPopFor === key && !canHover) { hollowPopClose(); return; }
     var p = personByKey(key);
     if (p) hollowPopOpen(p);
   });
   if (canHover) {
-    hollowHoles.addEventListener('mouseover', function (e) {
-      var hole = e.target.closest ? e.target.closest('.hollow-hole') : null;
-      if (!hole || hole.getAttribute('data-key') === hollowPopFor) return;
-      var p = personByKey(hole.getAttribute('data-key'));
+    hollowMokus.addEventListener('mouseover', function (e) {
+      var btn = e.target.closest ? e.target.closest('.hollow-moku-btn') : null;
+      if (!btn) return;
+      var key = btn.closest('.hollow-moku').getAttribute('data-key');
+      if (key === hollowPopFor) return;
+      var p = personByKey(key);
       if (p) hollowPopOpen(p);
     });
   }
   hollowPage.addEventListener('click', function (e) {
     if (hollowPop.hidden) return;
-    if (e.target.closest && (e.target.closest('.hollow-hole') || e.target.closest('#hollowPop'))) return;
+    if (e.target.closest && (e.target.closest('.hollow-moku-btn') || e.target.closest('#hollowPop'))) return;
     hollowPopClose();
   });
-  window.addEventListener('resize', function () { if (hollowPopFor) { var p = personByKey(hollowPopFor); if (p) hollowPopOpen(p); } });
+  var hollowResizeT = 0;
+  window.addEventListener('resize', function () {
+    clearTimeout(hollowResizeT);
+    hollowResizeT = setTimeout(function () { if (hollowIsOpen()) renderHollow(); }, 200);
+  });
 
   // ---- picker: who lives in the Hollow (6+ players) ----
   var pickDraft = [];
