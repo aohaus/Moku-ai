@@ -137,7 +137,7 @@
     position:relative; border-radius:24px; overflow:hidden;
     border:4px solid #3b4478;
     box-shadow:0 10px 30px rgba(0,0,0,.4), inset 0 0 0 8px #232c52;
-    flex:1; min-width:0;
+    flex:none; max-width:100%;
   }
   canvas{display:block; width:100%; height:auto; background:#3f5b3d;}
 
@@ -151,47 +151,75 @@
   #banner p{margin:0; opacity:.85; font-size:19px;}
   #banner button{margin-top:8px;}
 
-  /* battle row: joystick (left) — battlefield (center) — moves (right) */
-  #controls{display:flex; align-items:center; gap:26px; padding:14px 4px;}
+  /* Battle screen fits the window with no scrolling (2026-10-26).
+     The joystick and move buttons stay as the kids designed them (shape, colors,
+     ANGRY MOKU in the middle). Only their size and position adapt to the screen:
+     - "side":  joystick (bottom left) — field — moves (bottom right). Wide screens / phone landscape.
+     - "stack": field on top, joystick bottom left, moves bottom right. iPad, tall screens.
+     fitArena() picks whichever makes the field bigger and sizes the canvas (keeps 9:5). */
+  body.in-battle #app{height:100vh; height:100dvh; min-height:0; padding-bottom:var(--nav-h,70px);}
+  body.in-battle{overflow:hidden;}
+  #battleScreen{min-height:0;}
+  #battleScreen{--joy:clamp(104px,28vmin,210px); --mv:clamp(54px,14.5vmin,112px);}
+  #controls{
+    flex:1; min-height:0; display:grid; gap:12px;
+    padding:4px max(4px, env(safe-area-inset-right,0px)) 10px max(4px, env(safe-area-inset-left,0px));
+    grid-template-columns:auto minmax(0,1fr) auto;
+    grid-template-areas:"joy arena moves";
+    align-items:end;
+  }
+  #controls.stack{
+    grid-template-rows:minmax(0,1fr) auto;
+    grid-template-areas:"arena arena arena" "joy . moves";
+  }
+  #arenaSlot{grid-area:arena; min-width:0; min-height:0; align-self:stretch; display:flex; align-items:center; justify-content:center;}
   #joyBase{
-    width:220px; height:220px; border-radius:50%;
+    grid-area:joy;
+    width:var(--joy); height:var(--joy); border-radius:50%;
     background:radial-gradient(circle at 35% 30%, #2c355e, #171d38);
     border:3px solid #3b4478; position:relative; flex:none;
-    touch-action:none;
+    touch-action:none; margin-bottom:22px;
   }
   #joyKnob{
-    width:92px; height:92px; border-radius:50%;
+    width:42%; height:42%; border-radius:50%;
     background:linear-gradient(160deg,var(--tan),var(--tan-dark));
     position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
     box-shadow:0 4px 8px rgba(0,0,0,.4);
     pointer-events:none;
   }
-  #joyHint{position:absolute; bottom:-26px; width:100%; text-align:center; font-size:14px; opacity:.6;}
+  #joyHint{position:absolute; bottom:-22px; width:100%; text-align:center; font-size:12px; opacity:.6; white-space:nowrap;}
 
-  #moves{display:grid; grid-template-columns:repeat(3,124px); grid-auto-rows:132px; gap:16px; flex:none;}
+  #moves{
+    grid-area:moves;
+    display:grid; grid-template-columns:repeat(3,var(--mv)); grid-auto-rows:calc(var(--mv) * 1.06);
+    gap:calc(var(--mv) * 0.12); flex:none; margin-bottom:6px;
+  }
   .movebtn{
-    position:relative; border:none; border-radius:22px; cursor:pointer;
+    position:relative; border:none; border-radius:calc(var(--mv) * 0.2); cursor:pointer;
     font-weight:800; font-size:10px; color:var(--cream);
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
-    overflow:hidden; -webkit-user-select:none; user-select:none;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    overflow:hidden; -webkit-user-select:none; user-select:none; touch-action:manipulation;
     box-shadow:0 6px 0 rgba(0,0,0,.35);
     padding:4px;
   }
   .movebtn:active{transform:translateY(3px); box-shadow:0 3px 0 rgba(0,0,0,.35);}
-  .movebtn .ic{font-size:34px;}
-  .movebtn .lbl{font-size:13px; line-height:1.15; text-align:center;}
+  .movebtn .ic{font-size:calc(var(--mv) * 0.3); line-height:1.1;}
+  .movebtn .lbl{font-size:clamp(9px, calc(var(--mv) * 0.11), 13px); line-height:1.1; text-align:center;}
   .movebtn .status-tag{position:absolute; top:4px; right:5px; font-size:15px;}
 
-  /* mobile fallback: scale battle controls back down so phones aren't overwhelmed */
-  @media (max-width:760px){
-    #controls{flex-wrap:wrap; justify-content:center; gap:14px;}
-    #arenaWrap{order:-1; flex:1 1 100%;}
-    #joyBase{margin:0 auto; width:130px; height:130px;}
-    #joyKnob{width:54px; height:54px;}
+  /* short screens (phone landscape): slimmer HUD / HP bars / nav so the field gets the height */
+  @media (max-height:520px){
+    #hud{padding-top:calc(env(safe-area-inset-top,0px) + 8px); padding-bottom:4px;}
+    #hud h1{font-size:16px;}
+    #coinPill, #levelPill{padding:4px 9px; font-size:12px;}
+    #battleTop{padding-bottom:4px; gap:8px; padding-left:calc(env(safe-area-inset-left,0px) + 50px);} /* clear the ← button */
+    .hpblock{min-width:90px;}
+    .hpblock .name{font-size:10px; margin-bottom:3px;}
+    .hpbar{height:9px;}
     #joyHint{font-size:10px; bottom:-18px;}
-    #moves{grid-template-columns:repeat(3,72px); grid-auto-rows:76px; gap:10px;}
-    .movebtn .ic{font-size:20px;}
-    .movebtn .lbl{font-size:8px;}
+    #joyBase{margin-bottom:18px;}
+  }
+  @media (max-width:760px){
     .hpblock .name{font-size:10px;}
     .hpbar{height:9px;}
   }
@@ -327,6 +355,12 @@
   }
   .navbtn .ic{font-size:18px;}
   .navbtn.active{opacity:1; background:rgba(232,184,74,.12); color:var(--gold);}
+  /* short screens (phone landscape): one-line nav buttons */
+  @media (max-height:520px){
+    #bottomnav{padding:3px 6px calc(3px + env(safe-area-inset-bottom));}
+    .navbtn{padding:4px 0; flex-direction:row; justify-content:center; gap:5px; font-size:11px;}
+    .navbtn .ic{font-size:16px;}
+  }
 
   /* ---------- TITLE SCREEN (Moku series design system) ---------- */
   body.on-title{ background:
@@ -449,7 +483,7 @@
 <body class="on-title">
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v1.2.0 · Updated Aug 14, 2026</div>
+<div id="buildInfo">v1.3.0 · Updated Oct 26, 2026</div>
 <a class="moku-back" href="hub.html" aria-label="Back to Moku Series">←</a>
 <div id="rotate-hint">
   <span>📱</span>
@@ -517,12 +551,14 @@
     <div id="controls">
       <div id="joyBase"><div id="joyKnob"></div><div id="joyHint">drag to move</div></div>
 
-      <div id="arenaWrap">
-        <canvas id="arena" width="900" height="500"></canvas>
-        <div id="banner">
-          <h2 id="bannerTitle">VICTORY!</h2>
-          <p id="bannerText">You cleared the battle royal.</p>
-          <button class="primary" id="bannerBtn">Continue</button>
+      <div id="arenaSlot">
+        <div id="arenaWrap">
+          <canvas id="arena" width="900" height="500"></canvas>
+          <div id="banner">
+            <h2 id="bannerTitle">VICTORY!</h2>
+            <p id="bannerText">You cleared the battle royal.</p>
+            <button class="primary" id="bannerBtn">Continue</button>
+          </div>
         </div>
       </div>
 
@@ -1528,6 +1564,33 @@
   }
   window.addEventListener("resize", resizeHomeCanvas);
 
+  /* Battle layout: choose "side" or "stack" (see CSS) and size the field to fit the window. */
+  const controlsEl = document.getElementById("controls");
+  const arenaWrapEl = document.getElementById("arenaWrap");
+  function fitArena(){
+    document.documentElement.style.setProperty("--nav-h", document.getElementById("bottomnav").offsetHeight+"px");
+    if(!document.body.classList.contains("in-battle")) return;
+    const cs = getComputedStyle(controlsEl);
+    const cw = controlsEl.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const ch = controlsEl.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    if(cw<10 || ch<10) return;
+    const gap = parseFloat(cs.columnGap) || 12;
+    const joyW = joyBase.offsetWidth, joyH = joyBase.offsetHeight + parseFloat(getComputedStyle(joyBase).marginBottom);
+    const movesEl = document.getElementById("moves");
+    const movesW = movesEl.offsetWidth, movesH = movesEl.offsetHeight + parseFloat(getComputedStyle(movesEl).marginBottom);
+    const border = arenaWrapEl.offsetWidth - canvas.clientWidth || 8;
+    const fit = (w,h)=>Math.max(0, Math.min(w-border, (h-border)*W/H));
+    const sideW = fit(cw - joyW - movesW - gap*2, ch);
+    const stackW = fit(cw, ch - Math.max(joyH, movesH) - gap);
+    const stack = stackW > sideW;
+    controlsEl.classList.toggle("stack", stack);
+    const w = Math.floor(stack ? stackW : sideW);
+    canvas.style.width = w+"px";
+    canvas.style.height = Math.floor(w*H/W)+"px";
+  }
+  window.addEventListener("resize", fitArena);
+  window.addEventListener("orientationchange", ()=>setTimeout(fitArena, 250));
+
   const HOME_PALETTES = {
     dawn:   {sky:["#2b2f6b","#c8577a","#ffb37a"], sun:"#ffd08a", silhouette:"#1b1f3d"},
     day:    {sky:["#3fa9f5","#8fd7ff","#d8f3ff"], sun:"#fff6c8", silhouette:"#233a52"},
@@ -1787,6 +1850,8 @@
     document.getElementById(screenId).classList.add("active");
     if(screenId==="customizeScreen") renderPreview();
     if(screenId==="homeScreen") resizeHomeCanvas();
+    document.body.classList.toggle("in-battle", screenId==="battleScreen");
+    fitArena();
     if(screenId==="ranksScreen") renderRanks();
     persistSave();
   }
