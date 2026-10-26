@@ -20,6 +20,8 @@ const MAX_DEVICE_LEN = 40;
 const CARD_SLOTS = ["head", "mood", "face", "neck", "bg"];
 const MAX_CARD_HIGHLIGHTS = 4;
 const CARD_ID_RE = /^[a-z0-9-]{1,40}$/;
+const MAX_CARD_RECORDS = 40;           // one record per game (hub Achievements page)
+const MAX_CARD_RECORD = 1e9;
 // lastSeenAt is written at most this often per player, and anyone seen
 // within ONLINE_WINDOW_MS counts as "online" in GET /players.
 const SEEN_WRITE_EVERY_MS = 60 * 1000;
@@ -109,7 +111,14 @@ function cleanCard(card, t) {
       game: typeof h.game === "string" && CARD_ID_RE.test(h.game) ? h.game : "",
     } : null))
     .filter((h) => h && h.title);
-  const out = { outfit, highlights, updatedAt: new Date(t).toISOString() };
+  // records: { gameId: number } for the Achievements Top 3 (whole numbers, 0..1e9)
+  const records = {};
+  const rsrc = card.records && typeof card.records === "object" && !Array.isArray(card.records) ? card.records : {};
+  for (const id of Object.keys(rsrc).slice(0, MAX_CARD_RECORDS)) {
+    const v = rsrc[id];
+    if (CARD_ID_RE.test(id) && typeof v === "number" && Number.isFinite(v) && v > 0) records[id] = Math.min(MAX_CARD_RECORD, Math.round(v));
+  }
+  const out = { outfit, highlights, records, updatedAt: new Date(t).toISOString() };
   if (Number.isInteger(card.level) && card.level > 0 && card.level < 10000) out.level = card.level;
   return out;
 }

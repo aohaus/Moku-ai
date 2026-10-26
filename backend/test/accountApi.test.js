@@ -189,6 +189,7 @@ test("players list: Hollow cards from PUT /save, cleaned", async () => {
       { title: "A very long title that keeps going and going", value: "v", game: "NOT OK" },
       { title: "3", value: "x" }, { title: "4", value: "x" }, { title: "5", value: "x" },
     ],
+    records: { "moku-drop": 8200, "moku-watch-6-lazy": 87.6, "NOT OK": 5, "moyomoyo": "900", "moku-fight": -2, "mk-mobile": 0, "angry-mokumoku": 5e12 },
   };
   assert.equal((await call("PUT", "/save", { data: { "moku:x": "1" }, baseRev: 0, card }, aoi)).status, 200);
   const got = (await call("GET", "/players", null, ren)).body.players.find((p) => p.displayName === "Aoi").card;
@@ -198,6 +199,7 @@ test("players list: Hollow cards from PUT /save, cleaned", async () => {
   assert.deepEqual(got.highlights[0], { icon: "🍀", title: "Luckiest Steps", value: "8 in a row", game: "moku-bridge" });
   assert.equal(got.highlights[1].title.length, 32);
   assert.equal(got.highlights[1].game, "");
+  assert.deepEqual(got.records, { "moku-drop": 8200, "moku-watch-6-lazy": 88, "angry-mokumoku": 1e9 });
   assert.ok(got.updatedAt);
 
   // A save without a card (game pages) keeps the last card.
