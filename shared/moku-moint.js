@@ -25,7 +25,7 @@
  *   repeatable rewards (a win, a clear) count toward DAILY_GAME_CAP per game;
  *   one-time achievements pass { capped: false }. The game itself remembers
  *   which achievements it already paid (in its own moku:<gameId>: save).
- *   moku:moint:closet  { version, owned: [id], equipped: { head, face, neck, bg }, updatedAt }
+ *   moku:moint:closet  { version, owned: [id], equipped: { head, mood, face, neck, bg }, updatedAt }
  *
  * Items are drawn as SVG on a 100×100 grid laid exactly over
  * brand/mokumoku-hero.png (head top ≈ y 8, eyes ≈ (35, 41.5) / (65, 41.5),
@@ -41,9 +41,9 @@
   var EARNED_KEY = 'moku:moint:earned';
   var DAILY_GAME_CAP = 500;     // 1ゲームで1日にもらえる「毎回もらえる分」の上限(実績は別)
   var HERO_SRC = 'brand/mokumoku-hero.png';
-  var SLOTS = ['head', 'face', 'neck'];          // what Moku wears
+  var SLOTS = ['head', 'mood', 'face', 'neck'];  // what Moku wears (mood = his expression)
   var TABS = SLOTS.concat('bg');                 // Closet tabs (bg = background card behind Moku)
-  var SLOT_LABELS = { head: 'Hats', face: 'Face', neck: 'Necklaces', bg: 'Backgrounds' };
+  var SLOT_LABELS = { head: 'Hats', mood: 'Moods', face: 'Face', neck: 'Necklaces', bg: 'Backgrounds' };
 
   var script = document.currentScript;
   var mode = (script && script.getAttribute('data-mode')) || 'full';
@@ -613,6 +613,216 @@
         return s;
       } }
   ];
+  // ---------- moods (expressions, 2026-10-26) ----------
+  // Same 100×100 grid as the clothes. Each mood first hides Moku's own eyes
+  // and eyebrows under a soft patch of his face color, then draws new eyes.
+  // Drawn under the Face items, so glasses still sit on top.
+  var FACE_FUR = '#F4E6D7', EYE_INK = '#2A1712';
+  var EYE_L = [35, 41], EYE_R = [65, 41];
+  function moodPatch() {
+    return '<defs><radialGradient id="mmPatch" cx="50%" cy="50%" r="50%"><stop offset="0.74" stop-color="' + FACE_FUR + '"/>' +
+      '<stop offset="1" stop-color="' + FACE_FUR + '" stop-opacity="0"/></radialGradient></defs>' +
+      '<ellipse cx="34.6" cy="39.2" rx="11.4" ry="13.6" fill="url(#mmPatch)"/><ellipse cx="65.4" cy="39.2" rx="11.4" ry="13.6" fill="url(#mmPatch)"/>';
+  }
+  function both(fn) { return fn(EYE_L[0], EYE_L[1], -1) + fn(EYE_R[0], EYE_R[1], 1); }
+  function eyeBall(x, y, rx, ry) {
+    return '<ellipse cx="' + x + '" cy="' + y + '" rx="' + rx + '" ry="' + ry + '" fill="' + EYE_INK + '"/>' +
+      '<circle cx="' + (x - rx * 0.32).toFixed(2) + '" cy="' + (y - ry * 0.38).toFixed(2) + '" r="' + (rx * 0.32).toFixed(2) + '" fill="#FFFFFF"/>' +
+      '<circle cx="' + (x + rx * 0.3).toFixed(2) + '" cy="' + (y + ry * 0.3).toFixed(2) + '" r="' + (rx * 0.14).toFixed(2) + '" fill="#FFFFFF"/>';
+  }
+  function line(d, w, color) {
+    return '<path d="' + d + '" stroke="' + (color || EYE_INK) + '" stroke-width="' + (w || 2.3) + '" fill="none" stroke-linecap="round" stroke-linejoin="round"/>';
+  }
+  function txt(x, y, size, color, s) {
+    return '<text x="' + x + '" y="' + y + '" font-size="' + size + '" font-weight="900" fill="' + color + '" font-family="-apple-system,Segoe UI,Roboto,sans-serif" text-anchor="middle">' + s + '</text>';
+  }
+  function spiralPath(cx, cy, turns, r) {
+    var d = '', n = Math.round(turns * 14);
+    for (var i = 0; i <= n; i++) {
+      var a = i / 14 * Math.PI * 2, rr = 0.3 + i / n * r;
+      d += (i ? 'L' : 'M') + (cx + Math.cos(a) * rr).toFixed(2) + ' ' + (cy + Math.sin(a) * rr).toFixed(2);
+    }
+    return d;
+  }
+  var MOODS = [
+    { id: 'mood-happy', name: 'Happy', price: 150, art: function () {
+        return both(function (x, y) { return line('M' + (x - 6) + ' ' + (y + 2) + ' Q' + x + ' ' + (y - 6.4) + ' ' + (x + 6) + ' ' + (y + 2), 2.6); });
+      } },
+    { id: 'mood-wink', name: 'Wink', price: 150, art: function () {
+        return eyeBall(35, 41, 5.4, 7) + line('M58.6 42.6 Q65 35.6 71.4 42.6', 2.6) + line('M28 31.4 Q34 29 40.6 31', 2, '#5E2D1E');
+      } },
+    { id: 'mood-heart-eyes', name: 'Heart Eyes', price: 200, art: function () {
+        return both(function (x, y) {
+          return '<path d="' + heartPath(x, y, 6.6) + '" fill="#FF4F7A" stroke="#C2185B" stroke-width="0.6"/>' +
+            '<circle cx="' + (x - 2.6) + '" cy="' + (y - 2.6) + '" r="1.3" fill="#FFFFFF"/>';
+        });
+      } },
+    { id: 'mood-star-eyes', name: 'Star Eyes', price: 200, art: function () {
+        return both(function (x, y) {
+          return '<path d="' + starPath(x, y, 7.4) + '" fill="#FFD25A" stroke="#E0A21B" stroke-width="0.8" stroke-linejoin="round"/>' +
+            '<circle cx="' + (x - 1.6) + '" cy="' + (y - 1.8) + '" r="1.2" fill="#FFFFFF"/>';
+        }) + '<path d="' + starPath(82, 28, 2.4) + '" fill="#FFE27A"/><path d="' + starPath(18, 30, 1.8) + '" fill="#FFE27A"/>';
+      } },
+    { id: 'mood-sleepy', name: 'Sleepy', price: 150, art: function () {
+        return both(function (x, y) { return line('M' + (x - 6) + ' ' + y + ' Q' + x + ' ' + (y + 4.4) + ' ' + (x + 6) + ' ' + y, 2.4); }) +
+          txt(80, 22, 9, '#5A7BD8', 'Z') + txt(87, 14, 6.4, '#5A7BD8', 'z');
+      } },
+    { id: 'mood-surprised', name: 'Surprised', price: 150, art: function () {
+        return both(function (x, y) {
+          return '<circle cx="' + x + '" cy="' + y + '" r="7" fill="#FFFFFF" stroke="' + EYE_INK + '" stroke-width="1.6"/>' +
+            '<circle cx="' + x + '" cy="' + y + '" r="2.6" fill="' + EYE_INK + '"/>';
+        }) + line('M28.6 29.4 Q35 25.4 41.4 29.4', 2, '#5E2D1E') + line('M58.6 29.4 Q65 25.4 71.4 29.4', 2, '#5E2D1E');
+      } },
+    { id: 'mood-shy', name: 'Shy', price: 180, art: function () {
+        return both(function (x, y) { return eyeBall(x + 2.4, y + 1, 3.8, 5); }) +
+          '<ellipse cx="27" cy="49" rx="6" ry="3.4" fill="#FF8FA3" fill-opacity="0.75"/><ellipse cx="73" cy="49" rx="6" ry="3.4" fill="#FF8FA3" fill-opacity="0.75"/>' +
+          line('M23.6 47.4 L25.4 50.4 M27 47 L28.8 50 M71 47 L72.8 50 M74.6 47.4 L76.4 50.4', 0.9, '#E0566F');
+      } },
+    { id: 'mood-puppy-eyes', name: 'Puppy Eyes', price: 200, art: function () {
+        return both(function (x, y) {
+          return '<ellipse cx="' + x + '" cy="' + (y + 1) + '" rx="7.2" ry="8.2" fill="' + EYE_INK + '"/>' +
+            '<circle cx="' + (x - 2.4) + '" cy="' + (y - 2.2) + '" r="2.6" fill="#FFFFFF"/><circle cx="' + (x + 2.6) + '" cy="' + (y + 3.6) + '" r="1.3" fill="#FFFFFF"/>' +
+            '<circle cx="' + (x + 2.8) + '" cy="' + (y - 3.2) + '" r="0.9" fill="#FFFFFF"/>';
+        }) + line('M28 31 Q34 31 40.6 27.6', 2, '#5E2D1E') + line('M72 31 Q66 31 59.4 27.6', 2, '#5E2D1E');
+      } },
+    { id: 'mood-laughing', name: 'Laughing', price: 180, art: function () {
+        return line('M30 36.4 L39.6 41 L30 45.6', 2.6) + line('M70 36.4 L60.4 41 L70 45.6', 2.6) +
+          '<path d="M82 40 q2 -1 2.4 1.6" stroke="#7FD3FF" stroke-width="1.6" fill="none" stroke-linecap="round"/>';
+      } },
+    { id: 'mood-cool', name: 'Cool', price: 200, art: function () {
+        return both(function (x, y) {
+          return '<path d="M' + (x - 6) + ' ' + y + ' L' + (x + 6) + ' ' + y + ' Q' + (x + 6) + ' ' + (y + 7) + ' ' + x + ' ' + (y + 7) + ' Q' + (x - 6) + ' ' + (y + 7) + ' ' + (x - 6) + ' ' + y + ' Z" fill="' + EYE_INK + '"/>' +
+            line('M' + (x - 7) + ' ' + y + ' L' + (x + 7) + ' ' + y, 2.2) +
+            '<circle cx="' + (x - 2) + '" cy="' + (y + 2.4) + '" r="1.1" fill="#FFFFFF"/>';
+        });
+      } },
+    // ★ funny ones
+    { id: 'mood-googly', name: 'Googly Eyes', price: 250, art: function () {
+        return '<circle cx="35" cy="41" r="8" fill="#FFFFFF" stroke="' + EYE_INK + '" stroke-width="1.3"/><circle cx="37.8" cy="44.8" r="3.6" fill="' + EYE_INK + '"/>' +
+          '<circle cx="65" cy="40" r="9.4" fill="#FFFFFF" stroke="' + EYE_INK + '" stroke-width="1.3"/><circle cx="61" cy="36" r="4.2" fill="' + EYE_INK + '"/>';
+      } },
+    { id: 'mood-dizzy', name: 'Dizzy', price: 220, art: function () {
+        return both(function (x, y) { return line(spiralPath(x, y, 2.6, 6.4), 1.5); }) +
+          '<path d="' + starPath(22, 24, 2.2) + '" fill="#FFD25A"/><path d="' + starPath(78, 22, 2.6) + '" fill="#FFD25A"/><path d="' + starPath(50, 18, 1.8) + '" fill="#FFD25A"/>';
+      } },
+    { id: 'mood-moint-eyes', name: 'Moint Eyes', price: 300, art: function () {
+        return both(function (x, y) {
+          return '<circle cx="' + x + '" cy="' + y + '" r="7.4" fill="#F5B83D" stroke="#9A6512" stroke-width="1"/>' +
+            '<circle cx="' + x + '" cy="' + y + '" r="5.6" fill="none" stroke="#FFE7A3" stroke-width="0.7"/>' + txt(x, y + 3.4, 9.4, '#7A4A0C', 'M');
+        });
+      } },
+    { id: 'mood-crying', name: 'Crying a River', price: 250, art: function () {
+        return both(function (x, y, k) {
+          return line('M' + (x - 6) + ' ' + (y - 1) + ' Q' + x + ' ' + (y - 6) + ' ' + (x + 6) + ' ' + (y - 1), 2.4) +
+            '<path d="M' + (x - 3) + ' ' + (y + 1) + ' Q' + (x - 6 * k) + ' ' + (y + 10) + ' ' + (x - 3) + ' ' + (y + 19) + ' Q' + (x - 6 * k) + ' ' + (y + 27) + ' ' + (x - 2) + ' ' + (y + 36) +
+            ' L' + (x + 4) + ' ' + (y + 36) + ' Q' + (x + 1 - 6 * k) + ' ' + (y + 27) + ' ' + (x + 3) + ' ' + (y + 19) + ' Q' + (x + 1 - 6 * k) + ' ' + (y + 10) + ' ' + (x + 3) + ' ' + (y + 1) + ' Z" fill="#7FD3FF" fill-opacity="0.85"/>';
+        }) + line('M28 30.6 Q34 33 40.6 34.6', 2, '#5E2D1E') + line('M72 30.6 Q66 33 59.4 34.6', 2, '#5E2D1E');
+      } },
+    { id: 'mood-derp', name: 'Derp', price: 250, art: function () {
+        return '<circle cx="35" cy="41" r="7" fill="#FFFFFF" stroke="' + EYE_INK + '" stroke-width="1.3"/><circle cx="39" cy="42" r="3" fill="' + EYE_INK + '"/>' +
+          '<circle cx="65" cy="42" r="5.6" fill="#FFFFFF" stroke="' + EYE_INK + '" stroke-width="1.3"/><circle cx="61.6" cy="41" r="2.4" fill="' + EYE_INK + '"/>' +
+          line('M28 31 Q34 27.6 40 31', 1.8, '#5E2D1E') + line('M60 34 Q65 33 70 35', 1.8, '#5E2D1E');
+      } },
+    { id: 'mood-tongue', name: 'Tongue Out', price: 220, art: function () {
+        return eyeBall(35, 41, 5.4, 7) + line('M59 37 L70 41 L59 45', 2.6) +
+          '<path d="M46.6 53 Q46 62 50.6 63.4 Q55.6 63 54.4 53 Z" fill="#FF7A93" stroke="#D9446C" stroke-width="0.7"/>' +
+          line('M50.4 55 L50.6 60', 0.8, '#D9446C');
+      } },
+    { id: 'mood-snoring', name: 'Snoring', price: 250, art: function () {
+        return both(function (x, y) { return line('M' + (x - 6) + ' ' + y + ' Q' + x + ' ' + (y + 4.4) + ' ' + (x + 6) + ' ' + y, 2.4); }) +
+          '<circle cx="60.6" cy="51" r="6" fill="rgba(170,225,255,0.55)" stroke="#7FC4F0" stroke-width="0.8"/>' +
+          '<path d="M57.6 48 Q58.6 46.4 60.6 46.2" stroke="#FFFFFF" stroke-width="1.1" fill="none" stroke-linecap="round"/>' + txt(80, 24, 8, '#5A7BD8', 'z');
+      } },
+    { id: 'mood-side-eye', name: 'Side-Eye', price: 220, art: function () {
+        return both(function (x, y) {
+          return '<path d="M' + (x - 6.4) + ' ' + (y - 1) + ' L' + (x + 6.4) + ' ' + (y - 1) + ' Q' + (x + 6) + ' ' + (y + 6) + ' ' + x + ' ' + (y + 6) + ' Q' + (x - 6) + ' ' + (y + 6) + ' ' + (x - 6.4) + ' ' + (y - 1) + ' Z" fill="#FFFFFF" stroke="' + EYE_INK + '" stroke-width="1.2"/>' +
+            '<circle cx="' + (x - 3.6) + '" cy="' + (y + 2) + '" r="2.6" fill="' + EYE_INK + '"/>' + line('M' + (x - 7.4) + ' ' + (y - 1) + ' L' + (x + 7.4) + ' ' + (y - 1), 2.2);
+        });
+      } },
+    { id: 'mood-sweat', name: 'Sweat Drop', price: 200, art: function () {
+        return both(function (x, y) { return eyeBall(x, y + 1, 4.6, 6); }) +
+          line('M28 33 Q34 33 40.4 30', 2, '#5E2D1E') + line('M72 33 Q66 33 59.6 30', 2, '#5E2D1E') +
+          '<path d="M76 20 Q71 29 74 32 Q78 34 80 30 Q81 26 76 20 Z" fill="#9BDCFF" stroke="#5FB4E6" stroke-width="0.8"/>' +
+          '<path d="M74.6 27 Q74.6 29.4 76 30.4" stroke="#FFFFFF" stroke-width="0.9" fill="none" stroke-linecap="round"/>';
+      } },
+    { id: 'mood-pixel', name: 'Pixel Eyes', price: 300, art: function () {
+        var px = function (x, y) {
+          var s = '', map = ['0110', '1111', '1111', '0110'];
+          map.forEach(function (row, r) {
+            row.split('').forEach(function (c, ci) {
+              if (c === '1') s += '<rect x="' + (x - 6 + ci * 3) + '" y="' + (y - 6 + r * 3) + '" width="3" height="3" fill="' + EYE_INK + '"/>';
+            });
+          });
+          return s + '<rect x="' + (x - 3) + '" y="' + (y - 3) + '" width="3" height="3" fill="#FFFFFF"/>';
+        };
+        return px(35, 41) + px(65, 41);
+      } },
+    // the kids' ideas: food eyes, Show-Off and Meh
+    { id: 'mood-cake-eyes', name: 'Cake Eyes', price: 300, art: function () {
+        return both(function (x, y) {
+          return '<path d="M' + (x - 7) + ' ' + (y + 5) + ' L' + (x + 7) + ' ' + (y + 5) + ' L' + (x + 7) + ' ' + (y - 1) + ' L' + (x - 7) + ' ' + (y - 4) + ' Z" fill="#FFE2A0" stroke="#C99A4A" stroke-width="0.6" stroke-linejoin="round"/>' +
+            '<path d="M' + (x - 7) + ' ' + (y + 1) + ' L' + (x + 7) + ' ' + (y + 2.4) + '" stroke="#FFFFFF" stroke-width="1.6"/>' +
+            '<path d="M' + (x - 7.4) + ' ' + (y - 4.4) + ' L' + (x + 7.4) + ' ' + (y - 1.2) + '" stroke="#FFFFFF" stroke-width="2"/>' +
+            '<path d="M' + (x + 1) + ' ' + (y - 2.6) + ' Q' + (x - 2) + ' ' + (y - 8) + ' ' + (x + 2) + ' ' + (y - 9) + ' Q' + (x + 6) + ' ' + (y - 8) + ' ' + (x + 3) + ' ' + (y - 2.2) + ' Z" fill="#E8473C"/>' +
+            '<path d="M' + (x + 1) + ' ' + (y - 9.4) + ' l1.2 -1.6 1.2 1.6" stroke="#6BA84F" stroke-width="0.9" fill="none"/>';
+        });
+      } },
+    { id: 'mood-ice-cream-eyes', name: 'Ice Cream Eyes', price: 300, art: function () {
+        return both(function (x, y) {
+          return '<path d="M' + (x - 4.6) + ' ' + (y + 1) + ' L' + x + ' ' + (y + 9) + ' L' + (x + 4.6) + ' ' + (y + 1) + ' Z" fill="#E8B06A" stroke="#B97E3A" stroke-width="0.6" stroke-linejoin="round"/>' +
+            '<path d="M' + (x - 3) + ' ' + (y + 3) + ' L' + (x + 1.6) + ' ' + (y + 6) + ' M' + (x + 3) + ' ' + (y + 3) + ' L' + (x - 1.6) + ' ' + (y + 6) + '" stroke="#B97E3A" stroke-width="0.5"/>' +
+            '<circle cx="' + x + '" cy="' + (y - 2.4) + '" r="5.4" fill="#FFB3CA" stroke="#E57FA0" stroke-width="0.6"/>' +
+            '<circle cx="' + (x - 1.8) + '" cy="' + (y - 4.2) + '" r="1.1" fill="#FFFFFF"/><circle cx="' + (x + 1.6) + '" cy="' + (y - 7.4) + '" r="1.1" fill="#E8473C"/>';
+        });
+      } },
+    { id: 'mood-chocolate-eyes', name: 'Chocolate Eyes', price: 280, art: function () {
+        return both(function (x, y) {
+          return '<rect x="' + (x - 6.6) + '" y="' + (y - 5.6) + '" width="13.2" height="11.2" rx="1.2" fill="#7A4A2E" stroke="#5A3220" stroke-width="0.7"/>' +
+            '<path d="M' + x + ' ' + (y - 5.6) + ' L' + x + ' ' + (y + 5.6) + ' M' + (x - 6.6) + ' ' + y + ' L' + (x + 6.6) + ' ' + y + '" stroke="#5A3220" stroke-width="0.8"/>' +
+            '<path d="M' + (x + 1.6) + ' ' + (y + 5.6) + ' L' + (x + 6.6) + ' ' + (y + 0.6) + ' L' + (x + 6.6) + ' ' + (y + 5.6) + ' Z" fill="#C9D2DE"/>' +
+            '<path d="M' + (x - 5) + ' ' + (y - 4) + ' L' + (x - 2) + ' ' + (y - 4) + '" stroke="rgba(255,255,255,0.4)" stroke-width="0.8" stroke-linecap="round"/>';
+        });
+      } },
+    { id: 'mood-candy-eyes', name: 'Candy Eyes', price: 260, art: function () {
+        return both(function (x, y) {
+          return '<circle cx="' + x + '" cy="' + y + '" r="6.8" fill="#FFFFFF" stroke="#E8473C" stroke-width="0.8"/>' +
+            line(spiralPath(x, y, 2.2, 6), 1.8, '#FF6F91');
+        });
+      } },
+    { id: 'mood-senbei-eyes', name: 'Rice Cracker Eyes', price: 280, art: function () {
+        return both(function (x, y) {
+          return '<circle cx="' + x + '" cy="' + y + '" r="7" fill="#D9A55A" stroke="#A8732E" stroke-width="0.8"/>' +
+            '<circle cx="' + (x - 2.6) + '" cy="' + (y - 3) + '" r="0.8" fill="#B07A36"/><circle cx="' + (x + 3) + '" cy="' + (y - 2.4) + '" r="0.7" fill="#B07A36"/>' +
+            '<circle cx="' + (x - 3.4) + '" cy="' + (y + 2.6) + '" r="0.7" fill="#B07A36"/>' +
+            '<rect x="' + (x - 1.8) + '" y="' + (y - 7.2) + '" width="3.6" height="14.4" fill="#22302A"/>';
+        });
+      } },
+    { id: 'mood-cookie-eyes', name: 'Cookie Eyes', price: 260, art: function () {
+        return both(function (x, y) {
+          return '<circle cx="' + x + '" cy="' + y + '" r="7" fill="#E9B97A" stroke="#B9874A" stroke-width="0.8"/>' +
+            '<circle cx="' + (x - 2.8) + '" cy="' + (y - 2.4) + '" r="1.2" fill="#5A3220"/><circle cx="' + (x + 2.6) + '" cy="' + (y - 1) + '" r="1.3" fill="#5A3220"/>' +
+            '<circle cx="' + (x - 1) + '" cy="' + (y + 3) + '" r="1.1" fill="#5A3220"/><circle cx="' + (x + 3.4) + '" cy="' + (y + 3.6) + '" r="0.8" fill="#5A3220"/>';
+        });
+      } },
+    { id: 'mood-show-off', name: 'Show-Off', price: 320, art: function () {
+        // one eyebrow way up, a smug squint, and a twinkle
+        return line('M29 41.6 Q35 39.4 41 41.6', 2.6) + line('M29.4 36.6 Q35 37.2 40.6 35', 2, '#5E2D1E') +
+          eyeBall(65, 41, 5.4, 6.8) + line('M58.4 28.6 Q65 22.6 71.6 27', 2.2, '#5E2D1E') +
+          '<path d="M80 34 L81.4 37.6 L85 39 L81.4 40.4 L80 44 L78.6 40.4 L75 39 L78.6 37.6 Z" fill="#FFE27A" stroke="#F0B93A" stroke-width="0.5"/>';
+      } },
+    { id: 'mood-meh', name: 'Meh', price: 250, art: function () {
+        // droopy flat lids, tiny bored pupils, and a little sigh
+        return both(function (x, y) {
+          return '<path d="M' + (x - 6.6) + ' ' + (y + 1) + ' L' + (x + 6.6) + ' ' + (y + 1) + ' Q' + (x + 6) + ' ' + (y + 6) + ' ' + x + ' ' + (y + 6) + ' Q' + (x - 6) + ' ' + (y + 6) + ' ' + (x - 6.6) + ' ' + (y + 1) + ' Z" fill="#FFFFFF" stroke="' + EYE_INK + '" stroke-width="1.1"/>' +
+            '<circle cx="' + x + '" cy="' + (y + 4) + '" r="1.8" fill="' + EYE_INK + '"/>' + line('M' + (x - 7.4) + ' ' + (y + 1) + ' L' + (x + 7.4) + ' ' + (y + 1), 2.4);
+        }) + '<path d="M60 56 Q64 53 67 56 Q71 54 72 58 Q70 61 66 60 Q62 61 60 56 Z" fill="#FFFFFF" fill-opacity="0.85" stroke="#C9D2DE" stroke-width="0.6"/>';
+      } }
+  ];
+  MOODS.forEach(function (m) {
+    m.slot = 'mood';
+    m.svg = function () { return moodPatch() + m.art(); };
+  });
+
   // ---------- backgrounds (shown behind Moku on My Moku / in the Closet) ----------
   // Pop art: a flat sky, sunburst rays, halftone dots and a landmark in two or
   // three flat colors with a bold outline. Own 100×100 grid (the whole card).
@@ -754,7 +964,7 @@
   ];
 
   var ITEM_BY_ID = {};
-  ITEMS.concat(BACKGROUNDS).forEach(function (it) { ITEM_BY_ID[it.id] = it; });
+  ITEMS.concat(MOODS, BACKGROUNDS).forEach(function (it) { ITEM_BY_ID[it.id] = it; });
 
   function itemSVG(id, viewBox) {
     var it = ITEM_BY_ID[id];
@@ -767,6 +977,11 @@
     var it = ITEM_BY_ID[id];
     if (!it) return '';
     if (it.slot === 'bg') return '<span class="mm-bg-icon">' + itemSVG(id) + '</span>';
+    // a mood only makes sense on Moku's face: show it on a close-up of him
+    if (it.slot === 'mood') {
+      return '<span class="mm-mood-icon"><span class="mm-doll"><img src="' + HERO_SRC + '" alt="">' +
+        '<svg class="mm-outfit" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" overflow="visible">' + it.svg() + '</svg></span></span>';
+    }
     var b = it.box, pad = 2;
     var size = Math.max(b[2], b[3]) + pad * 2;
     var x = b[0] + b[2] / 2 - size / 2, y = b[1] + b[3] / 2 - size / 2;
@@ -775,7 +990,8 @@
   // All worn items in one layer, neck → face → head (so a hat sits on top)
   function outfitSVG(equipped) {
     var inner = '';
-    ['neck', 'face', 'head'].forEach(function (s) {
+    // expression first, so glasses (face) and hats sit on top of it
+    ['mood', 'neck', 'face', 'head'].forEach(function (s) {
       var it = equipped && ITEM_BY_ID[equipped[s]];
       if (it) inner += it.svg();
     });
@@ -803,6 +1019,7 @@
     earn: earn,
     earnedToday: earnedToday,
     ITEMS: ITEMS,
+    MOODS: MOODS,
     BACKGROUNDS: BACKGROUNDS,
     SLOTS: SLOTS,
     balance: balance,
@@ -898,8 +1115,17 @@
     '.mm-bal{display:inline-flex;align-items:center;gap:6px;margin:10px auto 0;padding:6px 14px;border-radius:999px;background:#FFFFFF;',
     'font-size:16px;font-weight:900;color:#7A4A0C;box-shadow:inset 0 0 0 2px #F1D9B5}',
     '.mm-panel.mm-closet{max-width:500px}',
-    '.mm-tabs{display:flex;gap:6px;justify-content:center;margin:14px 14px 0}',
-    '.mm-tab{flex:1 1 auto;appearance:none;border:none;font:inherit;font-size:13px;font-weight:800;padding:9px 8px;border-radius:12px;cursor:pointer;white-space:nowrap;',
+    '.mm-mini-wrap{position:sticky;top:0;height:0;z-index:4}',
+    '.mm-mini{position:absolute;top:10px;right:10px;width:92px;height:92px;border-radius:20px;background:radial-gradient(circle at 50% 70%,#FFF1D6,#F2C98A);',
+    'box-shadow:0 6px 16px rgba(74,47,26,0.35),inset 0 0 0 3px #FFFFFF;opacity:0;transform:scale(.8);transition:opacity .18s,transform .18s;pointer-events:none;overflow:hidden}',
+    '.mm-mini.is-on{opacity:1;transform:none}',
+    '.mm-mini > .mm-doll{position:absolute;inset:6px;width:auto}',
+    '.mm-mini > .mm-scene{position:absolute;inset:0;border-radius:20px}',
+    '.mm-mini .mm-doll.is-new{animation:mmHop .5s cubic-bezier(.2,1.6,.4,1)}',
+    // five tabs: scroll sideways when they don't fit (phones)
+    '.mm-tabs{display:flex;gap:6px;margin:14px 14px 0;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}',
+    '.mm-tabs::-webkit-scrollbar{display:none}',
+    '.mm-tab{flex:1 0 auto;appearance:none;border:none;font:inherit;font-size:13px;font-weight:800;padding:9px 8px;border-radius:12px;cursor:pointer;white-space:nowrap;',
     'background:#F3E3CB;color:#8A5A2E}',
     '.mm-tab.is-on{background:#7A4F2E;color:#FFF6E8;box-shadow:0 3px 0 #4A2F1A}',
     '.mm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;padding:14px}',
@@ -909,6 +1135,9 @@
     '.mm-item:active{transform:translateY(2px)}',
     '.mm-item.is-sel{box-shadow:0 3px 0 #C9781A,inset 0 0 0 3px #F5B83D;background:#FFFBF2}',
     '.mm-item svg{width:56px;height:56px}',
+    '.mm-mood-icon{position:relative;display:block;width:56px;height:56px;border-radius:50%;overflow:hidden;background:#F4E6D7;box-shadow:inset 0 0 0 2px #EAD6BA}',
+    '.mm-mood-icon .mm-doll{position:absolute;width:150%;left:-25%;top:-28%}',
+    '.mm-item .mm-mood-icon svg{width:100%;height:100%}',
     '.mm-item-name{font-size:11.5px;font-weight:800;line-height:1.15;text-align:center;min-height:2.3em;display:flex;align-items:center}',
     '.mm-price{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:900;color:#9A6512}',
     '.mm-tag{font-size:11px;font-weight:900;padding:2px 8px;border-radius:999px;background:#E6F4D9;color:#4E7A2E}',
@@ -1081,6 +1310,8 @@
     closetState.tab = slot || closetState.tab || 'head';
     closetState.sel = null;
     var ov = showOverlay('mm-closet',
+      // small preview that stays in view once the big stage scrolls away (long lists)
+      '<div class="mm-mini-wrap"><div class="mm-mini" data-mm-mini aria-hidden="true"></div></div>' +
       '<div class="mm-head"><h2>Moku Closet</h2><p>Dress up your own Moku!</p>' +
       '<div class="mm-stage" data-mm-stage></div>' +
       '<div class="mm-bal">' + COIN + '<span data-mm-bal></span></div></div>' +
@@ -1089,7 +1320,7 @@
       }).join('') + '</div>' +
       '<div class="mm-grid" data-mm-grid></div>' +
       '<div class="mm-action"><button class="mm-big" type="button" data-mm-act></button>' +
-      '<p class="mm-note">Earn Moints from the Daily Bonus and Moku Bridge.</p></div>',
+      '<p class="mm-note">Earn Moints from the Daily Bonus, Moku Bridge and Moku Fight.</p></div>',
       'Moku Closet');
     ov.addEventListener('click', function (e) {
       var t = e.target.closest ? e.target.closest('[data-mm-tab],[data-mm-item],[data-mm-act]') : null;
@@ -1111,6 +1342,12 @@
         closetAction();
       }
     });
+    var panel = ov.querySelector('.mm-panel');
+    panel.addEventListener('scroll', function () {
+      var stage = panel.querySelector('[data-mm-stage]');
+      var mini = panel.querySelector('[data-mm-mini]');
+      mini.classList.toggle('is-on', panel.scrollTop > stage.offsetTop + stage.offsetHeight - 30);
+    }, { passive: true });
     renderCloset(false);
   }
   // What Moku shows on the stage: what he wears, plus the item being tried on
@@ -1128,6 +1365,7 @@
     var stage = ov.querySelector('[data-mm-stage]');
     stage.classList.toggle('has-bg', Boolean(ITEM_BY_ID[outfit.bg]));
     stage.innerHTML = sceneHTML(outfit, hop ? 'is-new' : '');
+    ov.querySelector('[data-mm-mini]').innerHTML = sceneHTML(outfit, hop ? 'is-new' : '');
     ov.querySelector('[data-mm-bal]').textContent = fmt(balance());
     Array.prototype.forEach.call(ov.querySelectorAll('[data-mm-tab]'), function (b) {
       var on = b.getAttribute('data-mm-tab') === closetState.tab;
@@ -1135,10 +1373,15 @@
       b.setAttribute('aria-selected', on ? 'true' : 'false');
     });
     var worn = c.equipped[closetState.tab];
-    var html = '<button class="mm-item mm-none' + (!worn && (!closetState.sel || closetState.sel === 'none') ? ' is-sel' : '') + '" type="button" data-mm-item="none">' +
-      '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="#C9A27C" stroke-width="2"/><path d="M6.5 17.5 L17.5 6.5" stroke="#C9A27C" stroke-width="2"/></svg>' +
-      '<span class="mm-item-name">Nothing</span>' + (!worn ? '<span class="mm-tag is-wear">Wearing</span>' : '<span class="mm-tag">Take off</span>') + '</button>';
-    ITEMS.concat(BACKGROUNDS).filter(function (it) { return it.slot === closetState.tab; }).forEach(function (it) {
+    // Moods: "Usual" = Moku's own face; other tabs: "Nothing"
+    var isMood = closetState.tab === 'mood';
+    var html = '<button class="mm-item' + (isMood ? '' : ' mm-none') + (!worn && (!closetState.sel || closetState.sel === 'none') ? ' is-sel' : '') + '" type="button" data-mm-item="none">' +
+      (isMood
+        ? '<span class="mm-mood-icon"><span class="mm-doll"><img src="' + HERO_SRC + '" alt=""></span></span>'
+        : '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="#C9A27C" stroke-width="2"/><path d="M6.5 17.5 L17.5 6.5" stroke="#C9A27C" stroke-width="2"/></svg>') +
+      '<span class="mm-item-name">' + (isMood ? 'Usual' : 'Nothing') + '</span>' +
+      (!worn ? '<span class="mm-tag is-wear">' + (isMood ? 'On' : 'Wearing') + '</span>' : '<span class="mm-tag">' + (isMood ? 'Use' : 'Take off') + '</span>') + '</button>';
+    ITEMS.concat(MOODS, BACKGROUNDS).filter(function (it) { return it.slot === closetState.tab; }).forEach(function (it) {
       var have = c.owned.indexOf(it.id) >= 0;
       var wearing = worn === it.id;
       var sel = closetState.sel ? closetState.sel === it.id : wearing;
