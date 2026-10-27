@@ -330,7 +330,7 @@ body:not(.on-title) #buildInfo { display: none; }
 </svg>
 <div id="title-frame"></div>
 <a id="hub-link" href="index.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.1.0 · Updated Oct 27, 2026</div>
+<div id="buildInfo">v0.1.1 · Updated Oct 27, 2026</div>
 
 <section id="titleScreen" class="screen on">
   <div id="titleArt">
@@ -1186,7 +1186,24 @@ body:not(.on-title) #buildInfo { display: none; }
       full = parseInt(parts[5], 10) || 1;
       stack = [];
     }
-    function posKey() {
+    // 3回同じ局面の判定用。アンパッサンの印は、実際に取れる時だけ局面に含める
+    function posKey() { return boardKey(epCapturable() ? sqName(ep) : '-'); }
+    function fen() { return boardKey(ep >= 0 ? sqName(ep) : '-') + ' ' + half + ' ' + full; }
+    function epCapturable() {
+      if (ep < 0) return false;
+      var us = turn ? BLACK : 0, from = turn ? [ep - 15, ep - 17] : [ep + 15, ep + 17];
+      for (var i = 0; i < 2; i++) {
+        var f = from[i];
+        if ((f & 0x88) || board[f] !== (PAWN | us)) continue;
+        var m = { f: f, t: ep, p: PAWN | us, c: PAWN | (us ^ BLACK), pr: 0, fl: FL_EP, s: 0 };
+        make(m);
+        var ok = !attacked(kings[turn ^ 1], turn);
+        unmake();
+        if (ok) return true;
+      }
+      return false;
+    }
+    function boardKey(epStr) {
       var out = '';
       for (var r = 0; r < 8; r++) {
         var empty = 0;
@@ -1201,9 +1218,8 @@ body:not(.on-title) #buildInfo { display: none; }
         if (r < 7) out += '/';
       }
       var cs = (castle & 1 ? 'K' : '') + (castle & 2 ? 'Q' : '') + (castle & 4 ? 'k' : '') + (castle & 8 ? 'q' : '');
-      return out + ' ' + (turn ? 'b' : 'w') + ' ' + (cs || '-') + ' ' + (ep >= 0 ? sqName(ep) : '-');
+      return out + ' ' + (turn ? 'b' : 'w') + ' ' + (cs || '-') + ' ' + epStr;
     }
-    function fen() { return posKey() + ' ' + half + ' ' + full; }
 
     function attacked(sq, by) {
       var c = by ? BLACK : 0, t, i, q;
@@ -2104,9 +2120,11 @@ body:not(.on-title) #buildInfo { display: none; }
     var started = Date.now(), level = G.rival.lv;
     setTimeout(function () { if (G.busy && !G.over) say(G.rival.say.think, true); }, 500);
     askEngine(level, function (mv) {
+      var req = reqId;
       var wait = Math.max(0, 650 - (Date.now() - started));
       setTimeout(function () {
-        if (G.over || E.turn() !== 1) return;
+        // 待っている間に Menu / Undo / 新しい対局で取り消されていたら指さない
+        if (req !== reqId || G.over || E.turn() !== 1) return;
         var m = mv ? findMove(mv.f, mv.t, mv.pr) : null;
         if (!m) m = E.legalMoves()[0];
         G.busy = false;
