@@ -32,7 +32,11 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     color: var(--text-light);
     user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
     touch-action: none;
+    /* No pull-to-refresh / scroll bounce: a swipe-down on a phone used to reload the page (→ title screen) */
+    overscroll-behavior: none;
   }
   #webgl-canvas {
     position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1;
@@ -67,6 +71,9 @@
     position: fixed; bottom: 20px; left: 24px; z-index: 60;
     font-size: 10.5px; color: rgba(255,255,255,0.35); pointer-events: none;
   }
+  /* SPEC §4: only on the title screen. During a run the hub link sat under the player's
+     thumb and a swipe that started on it left the game. */
+  body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
   .screen-overlay {
     position: fixed; inset: 0; z-index: 40;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -78,6 +85,8 @@
   .screen-overlay.hidden {
     opacity: 0; visibility: hidden; pointer-events: none;
   }
+  /* A tap that was already on its way when Moku crashed must not hit TITLE MENU */
+  .screen-overlay.input-lock * { pointer-events: none !important; }
   .title-logo-container {
     text-align: center; margin-bottom: 24px; animation: floatLogo 3s ease-in-out infinite;
   }
@@ -117,6 +126,16 @@
     transform: translateY(-4px); box-shadow: 0 8px 24px rgba(168,85,247,0.4);
   }
   .stage-icon { font-size: 26px; margin-bottom: 4px; }
+  /* Short phones (iPhone SE etc.): keep the whole title menu on screen */
+  @media (max-height: 700px) {
+    .title-logo-container { margin-bottom: 10px; }
+    .title-main { font-size: clamp(28px, 7vw, 40px); }
+    .title-sub { font-size: 12px; margin-top: 4px; }
+    .stage-select-box { gap: 8px; margin-bottom: 14px; }
+    .stage-card { padding: 7px 8px; flex-basis: 120px; }
+    .stage-icon { font-size: 19px; margin-bottom: 1px; }
+    .menu-actions-row { margin-top: 10px; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  }
   .stage-name { font-size: 12px; font-weight: 800; color: #FFF; }
   .stage-target { font-size: 10px; color: #A78BFA; margin-top: 2px; }
   .btn-start {
@@ -164,6 +183,51 @@
   .hud-pill.berries-pill { border-color: rgba(236,72,153,0.5); color: #F472B6; }
   .hud-pill.distance-pill { border-color: rgba(6,182,212,0.5); color: #22D3EE; }
   .hud-pill.score-pill { border-color: rgba(245,158,11,0.5); color: #FBBF24; font-size: 15px; }
+  .hud-pill.speed-pill { border-color: rgba(253,186,116,0.55); color: #FDBA74; }
+  .hud-pill.speed-pill.bump { animation: pillBump 0.45s ease-out; }
+  @keyframes pillBump {
+    0% { transform: scale(1); } 40% { transform: scale(1.22); } 100% { transform: scale(1); }
+  }
+  .combo-pill {
+    margin-top: 6px; display: none; align-items: center; gap: 8px;
+    background: rgba(40, 24, 6, 0.8); border: 1.5px solid #FCD34D;
+    padding: 4px 12px; border-radius: 999px; backdrop-filter: blur(8px);
+    font-size: 12px; font-weight: 900; color: #FEF3C7; letter-spacing: 0.3px;
+  }
+  .combo-pill.show { display: inline-flex; }
+  .combo-timer {
+    width: 54px; height: 5px; background: rgba(255,255,255,0.18);
+    border-radius: 999px; overflow: hidden;
+  }
+  .combo-timer > div { width: 100%; height: 100%; background: #FCD34D; }
+
+  /* NARROW MISS! popup (warm gold, picture-book style) */
+  #narrowPopup {
+    position: fixed; left: 50%; top: 36%; z-index: 30;
+    transform: translate(-50%, -50%); text-align: center;
+    pointer-events: none; opacity: 0; white-space: nowrap;
+  }
+  #narrowPopup.show { animation: narrowPop 1s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  @keyframes narrowPop {
+    0% { opacity: 0; transform: translate(-50%, -30%) scale(0.5) rotate(-6deg); }
+    18% { opacity: 1; transform: translate(-50%, -50%) scale(1.15) rotate(2deg); }
+    32% { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+    75% { opacity: 1; transform: translate(-50%, -62%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -80%) scale(0.95); }
+  }
+  .np-title {
+    font-size: clamp(26px, 8vw, 38px); font-weight: 900; font-style: italic; letter-spacing: 0.5px;
+    color: #FFF7DB;
+    text-shadow: 0 3px 0 #B45309, 0 5px 0 #7C2D12, 0 0 22px rgba(253, 224, 71, 0.75);
+  }
+  .np-sub {
+    display: inline-block; margin-top: 6px; padding: 3px 12px; border-radius: 999px;
+    background: rgba(60, 30, 5, 0.75); border: 1.5px solid #FCD34D;
+    font-size: 12.5px; font-weight: 900; color: #FEF3C7;
+  }
+  .run-record-line {
+    font-size: 12px; font-weight: 800; color: #FDE68A; margin-top: 10px;
+  }
   .hud-powerup-bar {
     margin-top: 6px; display: none; align-items: center; gap: 8px;
     background: rgba(10, 11, 22, 0.85); border: 1.5px solid var(--accent-amber);
@@ -226,6 +290,9 @@
     padding: 24px; max-width: 440px; width: 90%;
     text-align: center;
     box-shadow: 0 16px 40px rgba(0,0,0,0.6), 0 0 30px rgba(168,85,247,0.3);
+    /* Small phones: long dialogs (How to Play) scroll inside instead of hiding their buttons */
+    max-height: 100%; overflow-y: auto; overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch; touch-action: pan-y;
   }
   .modal-dialog h2 {
     font-size: 26px; font-weight: 900; margin-bottom: 8px;
@@ -383,7 +450,7 @@
 
   /* Banner Toast */
   #bannerToast {
-    position: fixed; top: 75px; left: 50%; transform: translateX(-50%) translateY(-20px);
+    position: fixed; top: calc(env(safe-area-inset-top, 0px) + 150px); left: 50%; transform: translateX(-50%) translateY(-20px);
     opacity: 0; pointer-events: none; z-index: 100;
     padding: 10px 24px; border-radius: 999px;
     background: rgba(18, 14, 32, 0.95); border: 2px solid var(--accent-amber);
@@ -411,7 +478,7 @@
 <!-- Title Frame Elements per SPEC.md -->
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">Moku Future Run v1.2.0 · Updated Oct 28, 2026</div>
+<div id="buildInfo">Moku Future Run v1.3.0 · Updated Oct 28, 2026</div>
 
 <!-- Title Screen Overlay -->
 <div class="screen-overlay" id="titleScreen">
@@ -466,6 +533,12 @@
       <div style="display:flex; gap:6px; margin-top:4px;">
         <div class="hud-pill berries-pill">🫐 <span id="hudBerries">0</span></div>
         <div class="hud-pill distance-pill">🏃 <span id="hudDistance">0</span>m</div>
+        <div class="hud-pill speed-pill" id="hudSpeedPill">⚡ <span id="hudSpeed">Lv 1</span></div>
+      </div>
+      <div class="combo-pill" id="hudCombo">
+        <span>✨ COMBO <span id="hudComboN">x1</span></span>
+        <span id="hudComboMult">SCORE x1.25</span>
+        <div class="combo-timer"><div id="hudComboFill"></div></div>
       </div>
       <div class="hud-powerup-bar" id="hudPowerupBar">
         <span id="powerupIcon">🚀</span>
@@ -542,6 +615,7 @@
         <div class="modal-stat-val" id="goBestScore" style="color:#F59E0B;">0</div>
       </div>
     </div>
+    <div class="run-record-line" id="goRunRecord"></div>
 
     <div class="modal-btn-row">
       <button class="btn-start" id="btnRetryRun" style="padding:12px 32px; font-size:15px; background:linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); box-shadow:0 6px 20px rgba(239,68,68,0.5);">TRY AGAIN ↺</button>
@@ -572,6 +646,7 @@
         <div class="modal-stat-val" id="scBerries" style="color:#34D399;">0</div>
       </div>
     </div>
+    <div class="run-record-line" id="scRunRecord"></div>
 
     <div class="modal-btn-row">
       <button class="btn-celebrate-next" id="btnNextStage">NEXT STAGE ▶</button>
@@ -610,6 +685,22 @@
       </div>
     </div>
 
+    <div class="info-guide-row">
+      <div class="info-guide-icon">✨</div>
+      <div class="info-guide-text">
+        <h4>NARROW MISS!</h4>
+        <p>Jump or slide at the very last moment for bonus points. Keep the combo going to multiply your score (up to x3)!</p>
+      </div>
+    </div>
+
+    <div class="info-guide-row">
+      <div class="info-guide-icon">⚡</div>
+      <div class="info-guide-text">
+        <h4>SPEED UP & NEW PLACES</h4>
+        <p>Moku runs a little faster every 50m. Every 500m the world changes: sunset grove, starlit forest...</p>
+      </div>
+    </div>
+
     <div style="margin-top:14px; text-align:left; font-size:11.5px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:10px 12px; line-height:1.45;">
       <strong style="color:#EF4444;">❌ DANGEROUS OBSTACLES (AVOID!):</strong><br>
       • <b>HURDLES</b> with <b>YELLOW & BLACK STRIPES</b> and red lamps.<br>
@@ -643,6 +734,12 @@
       <button class="btn-secondary" id="btnCloseWardrobe" style="padding:10px 30px;">CLOSE</button>
     </div>
   </div>
+</div>
+
+<!-- NARROW MISS! popup -->
+<div id="narrowPopup">
+  <div class="np-title" id="narrowTitle">NARROW MISS!</div>
+  <div class="np-sub" id="narrowSub">COMBO x1</div>
 </div>
 
 <!-- Banner Toast -->
@@ -688,7 +785,7 @@ class SoundController {
     }
     return !this.muted;
   }
-  play(type) {
+  play(type, level = 1) {
     if (this.muted || !this.ctx) return;
     try {
       const t = this.ctx.currentTime;
@@ -777,6 +874,33 @@ class SoundController {
           o.start(st);
           o.stop(st + dur);
         });
+      } else if (type === 'narrow') {
+        // Quick sparkly "whoosh-ting!" that climbs higher with every combo
+        const base = 660 * Math.pow(1.07, Math.min(level, 10) - 1);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(base, t);
+        osc.frequency.exponentialRampToValueAtTime(base * 1.5, t + 0.08);
+        gain.gain.setValueAtTime(0.2, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+        osc.start(t);
+        osc.stop(t + 0.16);
+        const o2 = this.ctx.createOscillator();
+        const g2 = this.ctx.createGain();
+        o2.connect(g2); g2.connect(this.ctx.destination);
+        o2.type = 'triangle';
+        o2.frequency.setValueAtTime(base * 2, t + 0.08);
+        g2.gain.setValueAtTime(0.14, t + 0.08);
+        g2.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+        o2.start(t + 0.08);
+        o2.stop(t + 0.3);
+      } else if (type === 'speedup') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(392, t);
+        osc.frequency.exponentialRampToValueAtTime(784, t + 0.25);
+        gain.gain.setValueAtTime(0.15, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+        osc.start(t);
+        osc.stop(t + 0.3);
       } else if (type === 'clear') {
         // Triumphal celebration victory fanfare (C-E-G-C-E with sparkly high chimes)
         const trumpetNotes = [
@@ -888,8 +1012,7 @@ const STAGES = {
     roadColor: 0x1E1435,
     stripeColor: 0xF472B6,
     theme: 'art_village',
-    baseSpeed: 18,
-    speedInc: 0.002
+    baseSpeed: 18
   },
   2: {
     id: 2,
@@ -901,8 +1024,7 @@ const STAGES = {
     roadColor: 0x0A0F1D,
     stripeColor: 0x22D3EE,
     theme: 'cyber_metropolis',
-    baseSpeed: 21,
-    speedInc: 0.0025
+    baseSpeed: 21
   },
   3: {
     id: 3,
@@ -914,8 +1036,7 @@ const STAGES = {
     roadColor: 0x140524,
     stripeColor: 0xFBBF24,
     theme: 'cosmic_nebula',
-    baseSpeed: 24,
-    speedInc: 0.003
+    baseSpeed: 24
   },
   // 白黒(グレースケール)だけのコース。色があるのは Moku だけ。障害物も空の雲も白黒。
   4: {
@@ -932,8 +1053,7 @@ const STAGES = {
     moonColor: 0xFFFFFF,
     theme: 'pencil_sketch',
     mono: true,
-    baseSpeed: 22,
-    speedInc: 0.0028
+    baseSpeed: 22
   },
   endless: {
     id: 'endless',
@@ -945,8 +1065,7 @@ const STAGES = {
     roadColor: 0x160B29,
     stripeColor: 0xA855F7,
     theme: 'endless',
-    baseSpeed: 20,
-    speedInc: 0.0035
+    baseSpeed: 20
   }
 };
 
@@ -984,14 +1103,47 @@ const state = {
   berryStreak: 0,
   footstepTimer: 0,
   runCycle: 0,
-  jumpBuffer: 0 // 着地の直前に押したジャンプを、着地した瞬間に出す(秒)
+  jumpBuffer: 0, // 着地の直前に押したジャンプを、着地した瞬間に出す(秒)
+  runTime: 0,          // seconds since the run started (pauses don't count)
+  jumpStartAt: -99,    // runTime of the last jump / slide (for NARROW MISS timing)
+  slideStartAt: -99,
+  momentum: 0,         // +1 every 50m (speed level = momentum + 1)
+  nextMilestone: 50,
+  combo: 0,            // NARROW MISS chain
+  comboTimer: 0,
+  narrowCount: 0,
+  bestComboRun: 0,
+  effSpeed: 18,        // speed incl. boost, for the camera
+  biomes: null,
+  biomeIdx: 0,
+  biomeSettled: -1
 };
+
+// --- Momentum, NARROW MISS & biome tuning ---
+const MILESTONE_M = 50;        // speed level up every 50m
+const SPEED_PER_LEVEL = 0.35;  // +0.35 speed per level
+const MAX_MOMENTUM = 20;       // stages: up to +7 speed (Endless goes further)
+const SHIELD_MOMENTUM_LOSS = 5;
+// The action happened at most this long before the hurdle reached Moku = NARROW MISS.
+// (Earliest possible: a jump needs ~0.05s to lift the feet over the board.)
+const NARROW_JUMP_S = 0.2;
+const NARROW_SLIDE_S = 0.17;
+const COMBO_TIME_S = 4;        // a combo ends if no NARROW MISS for 4 seconds
+const COMBO_STEP = 0.25;       // score x1.25, x1.5 ... up to x3
+const COMBO_MAX_STEPS = 8;
+const BIOME_LEN = 500;         // the world changes every 500m
+const BIOME_FADE = 120;        // ...blending over 120m
+
+function comboMultiplier() {
+  return 1 + COMBO_STEP * Math.min(state.combo, COMBO_MAX_STEPS);
+}
 
 // --- Three.js Setup ---
 let scene, camera, renderer;
 let mokuGroup, mokuBody, leftWing, rightWing, leftFoot, rightFoot, headGroup, visorMesh, shieldMesh, tailGroup;
 let roadMesh, roadMaterial, skyMesh, starParticles;
-let laneStripeMats = [], roadBorderMat, moonMat, dirLight, rimLight, cloudGroup;
+let laneStripeMats = [], roadBorderMat, moonMat, dirLight, rimLight, ambientLight, cloudGroup;
+let cloudTopMat, cloudShadeMat, speedLines, speedLineMat;
 let environmentGroup, obstaclesGroup, itemsGroup, particleGroup;
 const activeObstacles = [];
 const activeItems = [];
@@ -1013,7 +1165,7 @@ function initThree() {
   camera.lookAt(0, 1.4, -6.0);
 
   // Lights
-  const ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.7);
+  ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.7);
   scene.add(ambientLight);
 
   dirLight = new THREE.DirectionalLight(0xFFE4E6, 0.9);
@@ -1040,6 +1192,7 @@ function initThree() {
   particleGroup = new THREE.Group(); scene.add(particleGroup);
 
   buildSkyAndRoad();
+  buildSpeedLines();
   buildMokuCharacter();
 
   window.addEventListener('resize', onWindowResize, false);
@@ -1135,8 +1288,8 @@ function buildClouds() {
   cloudGroup = new THREE.Group();
   cloudGroup.visible = false;
   // 霧で空の色に溶けないよう fog: false。上は白、下側はグレーで鉛筆の陰影のように見せる
-  const topMat = new THREE.MeshLambertMaterial({ color: 0xFFFFFF, emissive: 0x9A9A9A, fog: false });
-  const shadeMat = new THREE.MeshLambertMaterial({ color: 0xBDBDBD, emissive: 0x5A5A5A, fog: false });
+  const topMat = cloudTopMat = new THREE.MeshLambertMaterial({ color: 0xFFFFFF, emissive: 0x9A9A9A, fog: false });
+  const shadeMat = cloudShadeMat = new THREE.MeshLambertMaterial({ color: 0xBDBDBD, emissive: 0x5A5A5A, fog: false });
   const puffGeo = new THREE.SphereGeometry(1, 14, 10);
   for (let i = 0; i < 14; i++) {
     const cloud = new THREE.Group();
@@ -1185,22 +1338,117 @@ function monoize(root) {
   });
 }
 
-// ステージごとの空・道・ライト。白黒コース以外は元の色に戻す
+// --- Speed lines: thin white streaks at the sides that show up as Moku gets faster ---
+function buildSpeedLines() {
+  speedLines = new THREE.Group();
+  speedLineMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, transparent: true, opacity: 0, depthWrite: false, fog: false });
+  const geo = new THREE.BoxGeometry(0.035, 0.035, 3.2);
+  for (let i = 0; i < 28; i++) {
+    const line = new THREE.Mesh(geo, speedLineMat);
+    const side = i % 2 === 0 ? -1 : 1;
+    line.position.set(side * (4.6 + Math.random() * 5), 0.4 + Math.random() * 5, -70 + Math.random() * 78);
+    speedLines.add(line);
+  }
+  speedLines.visible = false;
+  scene.add(speedLines);
+}
+
+// --- Biomes: the world changes every BIOME_LEN meters (2026-10-28〜) ---
+// 色つきのステージは「いつもの景色 → 夕焼けの森 → 星空の森」、白黒の Stage 4 は
+// 「朝 → 夕方 → 夜」をグレーのまま明るさだけで表す。ネオン調にはしない(CLAUDE.md §4)。
+// deco = 道ばたに置く飾りの種類(0 虹の木 / 1 家 / 2 クレヨン / 3 丸い木 / 4 もみの木)
+function stageBiomes(st) {
+  if (st.mono) {
+    return [
+      { name: st.name, icon: '✏️', sky: 0xDADADA, fog: st.fogColor, road: st.roadColor, stripe: 0xFAFAFA,
+        border: 0x6E6E6E, borderEmissive: 0x1C1C1C, moon: 0xFFFFFF, dir: 0xFFFFFF, dirI: 0.9,
+        rim: 0xFFFFFF, rimI: 0.35, ambI: 0.7, stars: 0, cloud: 0x9A9A9A, cloudShade: 0x5A5A5A,
+        cloudTop: 0xFFFFFF, cloudBase: 0xBDBDBD, deco: [0, 1, 2] },
+      { name: 'Charcoal Dusk', icon: '🌇', sky: 0xA6A6A6, fog: 0x9C9C9C, road: 0x868686, stripe: 0xF0F0F0,
+        border: 0x4E4E4E, borderEmissive: 0x141414, moon: 0xF4F4F4, dir: 0xE8E8E8, dirI: 0.8,
+        rim: 0xFFFFFF, rimI: 0.3, ambI: 0.62, stars: 0.25, cloud: 0x707070, cloudShade: 0x3E3E3E,
+        cloudTop: 0xCFCFCF, cloudBase: 0x8E8E8E, deco: [3, 1, 3, 0] },
+      { name: 'Ink Night', icon: '🌙', sky: 0x3A3A3A, fog: 0x363636, road: 0x6E6E6E, stripe: 0xF5F5F5,
+        border: 0x2E2E2E, borderEmissive: 0x0E0E0E, moon: 0xFFFFFF, dir: 0xD6D6D6, dirI: 0.7,
+        rim: 0xFFFFFF, rimI: 0.3, ambI: 0.58, stars: 0.9, cloud: 0x404040, cloudShade: 0x262626,
+        cloudTop: 0x8A8A8A, cloudBase: 0x555555, deco: [4, 4, 3] }
+    ];
+  }
+  return [
+    { name: st.name, icon: '🎨', sky: st.skyTop, fog: st.fogColor, road: st.roadColor, stripe: 0xF472B6,
+      border: 0xA855F7, borderEmissive: 0x9333EA, moon: 0xFDE047, dir: 0xFFE4E6, dirI: 0.9,
+      rim: 0xA855F7, rimI: 0.6, ambI: 0.7, stars: 0.85, deco: [0, 1, 2] },
+    { name: 'Sunset Grove', icon: '🌅', sky: 0xF2A06C, fog: 0xE48A5E, road: 0x6B4433, stripe: 0xFFE2A8,
+      border: 0xD98A3A, borderEmissive: 0x4A2208, moon: 0xFFF1C1, dir: 0xFFD6A8, dirI: 1.0,
+      rim: 0xFF9A6A, rimI: 0.5, ambI: 0.75, stars: 0, deco: [3, 3, 1, 0] },
+    { name: 'Starlit Forest', icon: '🌲', sky: 0x12323A, fog: 0x183F45, road: 0x3E4C46, stripe: 0xC9F5D6,
+      border: 0x4E8F63, borderEmissive: 0x103820, moon: 0xFFF6D6, dir: 0xD6E8FF, dirI: 0.8,
+      rim: 0x8EE3B8, rimI: 0.55, ambI: 0.62, stars: 0.95, deco: [4, 4, 3] }
+  ];
+}
+
+const _mixA = new THREE.Color();
+const _mixB = new THREE.Color();
+function mixColor(target, a, b, t) {
+  _mixA.setHex(a); _mixB.setHex(b);
+  target.copy(_mixA.lerp(_mixB, t));
+}
+function mixNum(a, b, t) { return a + (b - a) * t; }
+
+function applyBiomeBlend(from, to, t) {
+  mixColor(skyMesh.material.color, from.sky, to.sky, t);
+  mixColor(scene.fog.color, from.fog, to.fog, t);
+  mixColor(roadMaterial.color, from.road, to.road, t);
+  laneStripeMats.forEach(m => mixColor(m.color, from.stripe, to.stripe, t));
+  mixColor(roadBorderMat.color, from.border, to.border, t);
+  mixColor(roadBorderMat.emissive, from.borderEmissive, to.borderEmissive, t);
+  mixColor(moonMat.color, from.moon, to.moon, t);
+  mixColor(dirLight.color, from.dir, to.dir, t);
+  dirLight.intensity = mixNum(from.dirI, to.dirI, t);
+  mixColor(rimLight.color, from.rim, to.rim, t);
+  rimLight.intensity = mixNum(from.rimI, to.rimI, t);
+  ambientLight.intensity = mixNum(from.ambI, to.ambI, t);
+  const stars = mixNum(from.stars, to.stars, t);
+  starParticles.material.opacity = stars;
+  starParticles.visible = stars > 0.02;
+  if (from.cloud !== undefined) {
+    mixColor(cloudTopMat.emissive, from.cloud, to.cloud, t);
+    mixColor(cloudShadeMat.emissive, from.cloudShade, to.cloudShade, t);
+    mixColor(cloudTopMat.color, from.cloudTop, to.cloudTop, t);
+    mixColor(cloudShadeMat.color, from.cloudBase, to.cloudBase, t);
+  }
+}
+
+function currentBiome() {
+  const n = state.biomes.length;
+  return state.biomes[Math.floor(state.distance / BIOME_LEN) % n];
+}
+
+// Called every frame while running: blends into the next biome and announces it.
+function updateBiome() {
+  const n = state.biomes.length;
+  const idx = Math.floor(state.distance / BIOME_LEN);
+  if (idx !== state.biomeIdx) {
+    state.biomeIdx = idx;
+    const to = state.biomes[idx % n];
+    const st = STAGES[state.stageKey] || STAGES[1];
+    if (state.distance < st.targetDist) showBanner(to.icon + ' ' + to.name.toUpperCase() + '!', '#F59E0B');
+  }
+  if (state.biomeSettled === idx) return; // fully blended already
+  const to = state.biomes[idx % n];
+  const from = idx === 0 ? to : state.biomes[(idx - 1) % n];
+  const t = idx === 0 ? 1 : Math.min(1, (state.distance - idx * BIOME_LEN) / BIOME_FADE);
+  applyBiomeBlend(from, to, t);
+  if (t >= 1) state.biomeSettled = idx;
+}
+
+// ステージごとの空・道・ライト(最初の景色)。白黒コースでは雲を出す
 function applyStageLook(st) {
-  skyMesh.material.color.setHex(st.skyTop);
-  scene.fog.color.setHex(st.fogColor);
-  roadMaterial.color.setHex(st.roadColor);
-  const mono = !!st.mono;
-  laneStripeMats.forEach(m => m.color.setHex(mono ? st.stripeColor : 0xF472B6));
-  roadBorderMat.color.setHex(mono ? st.borderColor : 0xA855F7);
-  roadBorderMat.emissive.setHex(mono ? st.borderEmissive : 0x9333EA);
-  moonMat.color.setHex(mono ? st.moonColor : 0xFDE047);
-  starParticles.visible = !mono;
-  cloudGroup.visible = mono;
-  // 色つきのライトだと灰色が紫やピンクに染まるので、白黒コースでは白い光にする
-  dirLight.color.setHex(mono ? 0xFFFFFF : 0xFFE4E6);
-  rimLight.color.setHex(mono ? 0xFFFFFF : 0xA855F7);
-  rimLight.intensity = mono ? 0.35 : 0.6;
+  state.biomes = stageBiomes(st);
+  state.biomeIdx = 0;
+  state.biomeSettled = 0;
+  applyBiomeBlend(state.biomes[0], state.biomes[0], 1);
+  cloudGroup.visible = !!st.mono;
 }
 
 // --- Moku 3D Character (Facing Forward: Back & Tail visible to player) ---
@@ -1356,116 +1604,165 @@ function buildMokuCharacter() {
   mokuGroup.position.set(0, 0.88, 0);
 }
 
+function buildDeco(type) {
+  if (type === 0) {
+    // Rainbow Palette Tree with Purple Sculpted Trunk & Cyan Planter
+    const treeGroup = new THREE.Group();
+
+    // Cyan planter box
+    const potGeo = new THREE.CylinderGeometry(1.2, 0.9, 1.2, 8);
+    const potMat = new THREE.MeshStandardMaterial({ color: 0x06B6D4, roughness: 0.3 });
+    const pot = new THREE.Mesh(potGeo, potMat);
+    pot.position.y = 0.6;
+    treeGroup.add(pot);
+
+    // Purple trunk
+    const trunkGeo = new THREE.CylinderGeometry(0.4, 0.55, 3.2, 8);
+    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x7E22CE, roughness: 0.6 });
+    const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+    trunk.position.y = 2.4;
+    treeGroup.add(trunk);
+
+    // Multicolored rainbow canopy layers
+    const rainbowColors = [0xEC4899, 0xF59E0B, 0x10B981, 0x3B82F6, 0x8B5CF6];
+    rainbowColors.forEach((col, i) => {
+      const leafGeo = new THREE.DodecahedronGeometry(1.4 - i * 0.18);
+      const leafMat = new THREE.MeshStandardMaterial({ color: col, roughness: 0.5 });
+      const leaf = new THREE.Mesh(leafGeo, leafMat);
+      leaf.position.set(
+        (Math.random() - 0.5) * 0.8,
+        3.6 + i * 0.8,
+        (Math.random() - 0.5) * 0.8
+      );
+      treeGroup.add(leaf);
+    });
+    return treeGroup;
+  }
+  if (type === 1) {
+    // Starlit Peaked House (Cobalt, Ruby, or Gold roof)
+    const houseGroup = new THREE.Group();
+    const roofColors = [0x1D4ED8, 0xE11D48, 0xF59E0B, 0x9333EA];
+    const roofColor = roofColors[Math.floor(Math.random() * roofColors.length)];
+
+    // Base walls (Deep indigo with starlit pattern look)
+    const wallGeo = new THREE.BoxGeometry(3.2, 3.8, 3.2);
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0x1E1B4B, roughness: 0.7 });
+    const wall = new THREE.Mesh(wallGeo, wallMat);
+    wall.position.y = 1.9;
+    houseGroup.add(wall);
+
+    // Peaked Pyramid Roof
+    const roofGeo = new THREE.ConeGeometry(2.7, 2.4, 4);
+    const roofMat = new THREE.MeshStandardMaterial({ color: roofColor, roughness: 0.4 });
+    const roof = new THREE.Mesh(roofGeo, roofMat);
+    roof.rotation.y = Math.PI / 4;
+    roof.position.y = 4.9;
+    houseGroup.add(roof);
+
+    // Star topper or cyber antenna
+    const starGeo = new THREE.OctahedronGeometry(0.35);
+    const starMat = new THREE.MeshBasicMaterial({ color: 0xFDE047 });
+    const star = new THREE.Mesh(starGeo, starMat);
+    star.position.y = 6.2;
+    houseGroup.add(star);
+
+    // Glowing Windows (Yellow or Mint)
+    const winGeo = new THREE.PlaneGeometry(0.6, 0.8);
+    const winMat = new THREE.MeshBasicMaterial({ color: 0xFEF08A });
+    const win = new THREE.Mesh(winGeo, winMat);
+    win.position.set(0, 2.2, 1.62);
+    houseGroup.add(win);
+    return houseGroup;
+  }
+  if (type === 2) {
+    // Giant Floating Crayon Spire / Brushstroke Monument
+    const crayonGroup = new THREE.Group();
+    const crayonColor = [0xEC4899, 0x06B6D4, 0xF59E0B, 0x8B5CF6][Math.floor(Math.random() * 4)];
+
+    const bodyGeo = new THREE.CylinderGeometry(0.6, 0.6, 5.0, 12);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: crayonColor, roughness: 0.4 });
+    const cBody = new THREE.Mesh(bodyGeo, bodyMat);
+    cBody.position.y = 2.5;
+    crayonGroup.add(cBody);
+
+    const tipGeo = new THREE.ConeGeometry(0.6, 1.4, 12);
+    const tip = new THREE.Mesh(tipGeo, bodyMat);
+    tip.position.y = 5.7;
+    crayonGroup.add(tip);
+    return crayonGroup;
+  }
+  if (type === 3) {
+    // Round leafy tree (Sunset Grove / Starlit Forest)
+    const tree = new THREE.Group();
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.5, 2.6, 8), new THREE.MeshStandardMaterial({ color: 0x8B5A2B, roughness: 0.8 }));
+    trunk.position.y = 1.3;
+    tree.add(trunk);
+    [0x6BBF59, 0x4E9F3D, 0x8CD47E].forEach((col, i) => {
+      const leaf = new THREE.Mesh(new THREE.IcosahedronGeometry(1.5 - i * 0.25, 0), new THREE.MeshStandardMaterial({ color: col, roughness: 0.7, flatShading: true }));
+      leaf.position.set((i - 1) * 0.7, 3.2 + i * 0.7, (Math.random() - 0.5) * 0.6);
+      tree.add(leaf);
+    });
+    // a few little red fruits
+    for (let k = 0; k < 3; k++) {
+      const fruit = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 8), new THREE.MeshStandardMaterial({ color: 0xE5484D, roughness: 0.4 }));
+      fruit.position.set((Math.random() - 0.5) * 2, 2.8 + Math.random() * 1.6, 1.0);
+      tree.add(fruit);
+    }
+    return tree;
+  }
+  // type 4: Fir tree with a glowing mushroom at its foot (Starlit Forest)
+  const fir = new THREE.Group();
+  const firTrunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 1.4, 8), new THREE.MeshStandardMaterial({ color: 0x7A4A24, roughness: 0.8 }));
+  firTrunk.position.y = 0.7;
+  fir.add(firTrunk);
+  [0x2F7D4F, 0x3A9460, 0x4BAA6E].forEach((col, i) => {
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(1.8 - i * 0.45, 2.2, 8), new THREE.MeshStandardMaterial({ color: col, roughness: 0.7, flatShading: true }));
+    cone.position.y = 2.2 + i * 1.3;
+    fir.add(cone);
+  });
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 0.4, 8), new THREE.MeshStandardMaterial({ color: 0xFFF3DC }));
+  stem.position.set(1.3, 0.2, 0.8);
+  fir.add(stem);
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.34, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xFFB37A, emissive: 0xB85A1E, emissiveIntensity: 0.5 }));
+  cap.position.set(1.3, 0.38, 0.8);
+  fir.add(cap);
+  return fir;
+}
+
+// Picks a decoration for the current biome and puts it at (x, z)
+function placeDeco(x, z) {
+  const kinds = currentBiome().deco;
+  const deco = buildDeco(kinds[Math.floor(Math.random() * kinds.length)]);
+  deco.position.set(x, 0, z);
+  deco.userData.biome = currentBiome().name;
+  environmentGroup.add(deco);
+  monoize(deco);
+  return deco;
+}
+
+// Frees GPU memory of something we remove for good (geometry / material / texture)
+function disposeObject(obj) {
+  obj.traverse(o => {
+    if (o.geometry) o.geometry.dispose();
+    if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => {
+      if (m.map) m.map.dispose();
+      m.dispose();
+    });
+  });
+}
+
 // --- Procedural Artwork Environment Spawning ---
 // Inspired by the child's masterpiece:
 // - Rainbow Palette Tree (purple trunk, cyan planter, multi-colored branches)
 // - Peaked Starlit Houses (cobalt, golden, ruby, magenta roofs, glowing windows)
 // - Giant Crayon Spires & Floating Brushstroke Ribbons
 function spawnDecorations() {
-  const currentStage = STAGES[state.stageKey] || STAGES[1];
-
   // Spawn decorations on left and right sides of the road
   for (let z = -120; z < 20; z += 18) {
     [-1, 1].forEach(side => {
-      const x = side * (5.5 + Math.random() * 5);
-      const decoType = Math.floor(Math.random() * 3);
-
-      if (decoType === 0) {
-        // Rainbow Palette Tree with Purple Sculpted Trunk & Cyan Planter
-        const treeGroup = new THREE.Group();
-
-        // Cyan planter box
-        const potGeo = new THREE.CylinderGeometry(1.2, 0.9, 1.2, 8);
-        const potMat = new THREE.MeshStandardMaterial({ color: 0x06B6D4, roughness: 0.3 });
-        const pot = new THREE.Mesh(potGeo, potMat);
-        pot.position.y = 0.6;
-        treeGroup.add(pot);
-
-        // Purple trunk
-        const trunkGeo = new THREE.CylinderGeometry(0.4, 0.55, 3.2, 8);
-        const trunkMat = new THREE.MeshStandardMaterial({ color: 0x7E22CE, roughness: 0.6 });
-        const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-        trunk.position.y = 2.4;
-        treeGroup.add(trunk);
-
-        // Multicolored rainbow canopy layers
-        const rainbowColors = [0xEC4899, 0xF59E0B, 0x10B981, 0x3B82F6, 0x8B5CF6];
-        rainbowColors.forEach((col, i) => {
-          const leafGeo = new THREE.DodecahedronGeometry(1.4 - i * 0.18);
-          const leafMat = new THREE.MeshStandardMaterial({ color: col, roughness: 0.5 });
-          const leaf = new THREE.Mesh(leafGeo, leafMat);
-          leaf.position.set(
-            (Math.random() - 0.5) * 0.8,
-            3.6 + i * 0.8,
-            (Math.random() - 0.5) * 0.8
-          );
-          treeGroup.add(leaf);
-        });
-
-        treeGroup.position.set(x, 0, z);
-        environmentGroup.add(treeGroup);
-        activeDeco.push(treeGroup);
-      } else if (decoType === 1) {
-        // Starlit Peaked House (Cobalt, Ruby, or Gold roof)
-        const houseGroup = new THREE.Group();
-        const roofColors = [0x1D4ED8, 0xE11D48, 0xF59E0B, 0x9333EA];
-        const roofColor = roofColors[Math.floor(Math.random() * roofColors.length)];
-
-        // Base walls (Deep indigo with starlit pattern look)
-        const wallGeo = new THREE.BoxGeometry(3.2, 3.8, 3.2);
-        const wallMat = new THREE.MeshStandardMaterial({ color: 0x1E1B4B, roughness: 0.7 });
-        const wall = new THREE.Mesh(wallGeo, wallMat);
-        wall.position.y = 1.9;
-        houseGroup.add(wall);
-
-        // Peaked Pyramid Roof
-        const roofGeo = new THREE.ConeGeometry(2.7, 2.4, 4);
-        const roofMat = new THREE.MeshStandardMaterial({ color: roofColor, roughness: 0.4 });
-        const roof = new THREE.Mesh(roofGeo, roofMat);
-        roof.rotation.y = Math.PI / 4;
-        roof.position.y = 4.9;
-        houseGroup.add(roof);
-
-        // Star topper or cyber antenna
-        const starGeo = new THREE.OctahedronGeometry(0.35);
-        const starMat = new THREE.MeshBasicMaterial({ color: 0xFDE047 });
-        const star = new THREE.Mesh(starGeo, starMat);
-        star.position.y = 6.2;
-        houseGroup.add(star);
-
-        // Glowing Windows (Yellow or Mint)
-        const winGeo = new THREE.PlaneGeometry(0.6, 0.8);
-        const winMat = new THREE.MeshBasicMaterial({ color: 0xFEF08A });
-        const win = new THREE.Mesh(winGeo, winMat);
-        win.position.set(0, 2.2, 1.62);
-        houseGroup.add(win);
-
-        houseGroup.position.set(x, 0, z);
-        environmentGroup.add(houseGroup);
-        activeDeco.push(houseGroup);
-      } else {
-        // Giant Floating Crayon Spire / Brushstroke Monument
-        const crayonGroup = new THREE.Group();
-        const crayonColor = [0xEC4899, 0x06B6D4, 0xF59E0B, 0x8B5CF6][Math.floor(Math.random() * 4)];
-
-        const bodyGeo = new THREE.CylinderGeometry(0.6, 0.6, 5.0, 12);
-        const bodyMat = new THREE.MeshStandardMaterial({ color: crayonColor, roughness: 0.4 });
-        const cBody = new THREE.Mesh(bodyGeo, bodyMat);
-        cBody.position.y = 2.5;
-        crayonGroup.add(cBody);
-
-        const tipGeo = new THREE.ConeGeometry(0.6, 1.4, 12);
-        const tip = new THREE.Mesh(tipGeo, bodyMat);
-        tip.position.y = 5.7;
-        crayonGroup.add(tip);
-
-        crayonGroup.position.set(x, 0, z);
-        environmentGroup.add(crayonGroup);
-        activeDeco.push(crayonGroup);
-      }
+      activeDeco.push(placeDeco(side * (5.5 + Math.random() * 5), z));
     });
   }
-  monoize(environmentGroup);
 }
 
 // --- Obstacles & Items Spawning ---
@@ -1627,6 +1924,7 @@ function jump(superBounce = false) {
   }
   state.jumpBuffer = 0;
   state.isJumping = true;
+  state.jumpStartAt = state.runTime;
   // Mochi gives one super-high bounce when picked up. Later jumps stay normal so
   // Moku always lands before the next hurdle (hurdle spacing is based on a normal jump).
   state.playerVelY = superBounce ? 16.5 : 12.0;
@@ -1635,8 +1933,16 @@ function jump(superBounce = false) {
 }
 
 function slide() {
-  if (!state.running || state.paused || state.isSliding) return;
+  if (!state.running || state.paused) return;
+  if (state.isSliding) {
+    // Sliding again keeps Moku low a bit longer (otherwise the 2nd tap did nothing
+    // and the slide could end right before the next high hurdle)
+    state.slideStartAt = state.runTime;
+    state.slideTimer = 0.55;
+    return;
+  }
   state.isSliding = true;
+  state.slideStartAt = state.runTime;
   state.slideTimer = 0.55; // 0.55 seconds slide
   sounds.play('slide');
   createSlideDust(state.playerY);
@@ -1665,33 +1971,91 @@ function createSlideDust(yBase = 0) {
 }
 
 // --- Swipe Gesture Detection ---
+// 2026-10-28: スマホで上下にスワイプするとタイトルに戻ってしまうことがあった。
+//  - iOS Safari はスワイプをページのスクロールとして扱い、下スワイプで「引っぱって更新」→ 再読み込み → タイトル
+//  - プレイ中も右上の「Moku Series」リンクが出ていて、そこから始まったスワイプでハブへ移動
+//  - ぶつかった瞬間に出るゲームオーバー画面の TITLE MENU に、指を離した時のタップが当たる
+// touchmove を必ず preventDefault し、スワイプは指が十分動いた時点で(離すのを待たずに)1回だけ処理する。
 let touchStartX = 0, touchStartY = 0, touchStartTime = 0;
+let swipeDone = true;
+const SWIPE_MIN_PX = 30;
+
+function isControl(target) {
+  return !!(target && target.closest && target.closest('button, a, .stage-card'));
+}
+function handleSwipe(dx, dy) {
+  if (Math.abs(dx) > Math.abs(dy)) changeLane(dx > 0 ? 1 : -1);
+  else if (dy < 0) jump();
+  else slide();
+}
+
 window.addEventListener('touchstart', e => {
-  if (e.touches.length > 0) {
-    touchStartX = e.touches[0].clientX;
-    touchStartY = e.touches[0].clientY;
-    touchStartTime = Date.now();
+  // A second finger (or a touch on a button) is never a swipe
+  if (e.touches.length !== 1 || isControl(e.target)) {
+    swipeDone = true;
+    return;
   }
-}, { passive: true });
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+  touchStartTime = Date.now();
+  swipeDone = false;
+  // While running: no double-tap zoom, no long-press menu, no "click" on whatever appears later
+  if (state.running) e.preventDefault();
+}, { passive: false });
+
+window.addEventListener('touchmove', e => {
+  // Menus (not while running): let a long dialog scroll inside itself
+  if (!state.running && e.target.closest && e.target.closest('.modal-dialog')) return;
+  // Never scroll / pull-to-refresh / bounce the page
+  e.preventDefault();
+  if (swipeDone || !state.running || state.paused) return;
+  const dx = e.touches[0].clientX - touchStartX;
+  const dy = e.touches[0].clientY - touchStartY;
+  if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_MIN_PX) return;
+  swipeDone = true; // one action per swipe, as soon as the finger has moved far enough
+  handleSwipe(dx, dy);
+}, { passive: false });
 
 window.addEventListener('touchend', e => {
+  if (swipeDone) return;
+  swipeDone = true;
   if (!state.running || state.paused) return;
-  const touchEndX = e.changedTouches[0].clientX;
-  const touchEndY = e.changedTouches[0].clientY;
-  const dx = touchEndX - touchStartX;
-  const dy = touchEndY - touchStartY;
-  const dt = Date.now() - touchStartTime;
+  // Very quick flicks can end before a touchmove crossed the threshold
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  const dy = e.changedTouches[0].clientY - touchStartY;
+  if (Date.now() - touchStartTime < 400 && Math.max(Math.abs(dx), Math.abs(dy)) >= SWIPE_MIN_PX) handleSwipe(dx, dy);
+}, { passive: false });
 
-  if (dt < 400) {
-    if (Math.abs(dx) > 35 && Math.abs(dx) > Math.abs(dy)) {
-      if (dx > 0) changeLane(1);
-      else changeLane(-1);
-    } else if (Math.abs(dy) > 35) {
-      if (dy < 0) jump();
-      else slide();
-    }
+window.addEventListener('touchcancel', () => { swipeDone = true; });
+// iOS pinch-zoom gesture
+document.addEventListener('gesturestart', e => e.preventDefault());
+
+// iPhone のふちからのスワイプ(ブラウザの「戻る」)でハブへ戻ってしまわないように、
+// プレイ中の「戻る」は一時停止に変える。タイトル画面での「戻る」はそのまま前のページへ。
+let historyGuard = false;
+function armHistoryGuard() {
+  if (historyGuard) return;
+  try {
+    history.pushState({ mokuRun: true }, '');
+    historyGuard = true;
+  } catch (e) {}
+}
+window.addEventListener('popstate', () => {
+  if (!historyGuard) return;
+  historyGuard = false;
+  if (state.running) {
+    armHistoryGuard();
+    if (!state.paused) togglePause();
+  } else {
+    history.back();
   }
-}, { passive: true });
+});
+
+// Game over / stage clear: ignore taps for a moment so a tap meant for the game can't press a button
+function lockOverlayInput(el) {
+  el.classList.add('input-lock');
+  setTimeout(() => el.classList.remove('input-lock'), 700);
+}
 
 // Keyboard Controls
 window.addEventListener('keydown', e => {
@@ -1728,6 +2092,82 @@ function triggerMochi() {
   if (!state.isJumping) jump(true); // Launch high into the air!
 }
 
+// --- NARROW MISS! (jumped / slid at the very last moment) ---
+function registerNarrowMiss() {
+  state.combo += 1;
+  state.comboTimer = COMBO_TIME_S;
+  state.narrowCount += 1;
+  state.bestComboRun = Math.max(state.bestComboRun, state.combo);
+  const bonus = 50 * state.combo;
+  state.score += bonus;
+  sounds.play('narrow', state.combo);
+
+  const titles = ['NARROW MISS!', 'NARROW MISS!', 'SO CLOSE!', 'WOW, CLOSE!', 'AMAZING!', 'UNSTOPPABLE!'];
+  document.getElementById('narrowTitle').textContent = titles[Math.min(state.combo, titles.length - 1)];
+  document.getElementById('narrowSub').textContent =
+    (state.combo > 1 ? 'COMBO x' + state.combo + ' · ' : '') + 'SCORE x' + comboMultiplier().toFixed(2) + ' · +' + bonus;
+  const pop = document.getElementById('narrowPopup');
+  pop.classList.remove('show');
+  void pop.offsetWidth; // restart the animation
+  pop.classList.add('show');
+
+  // Golden sparkles around Moku
+  for (let i = 0; i < 10; i++) {
+    const sp = new THREE.Mesh(new THREE.OctahedronGeometry(0.09), new THREE.MeshBasicMaterial({ color: 0xFDE047, transparent: true, opacity: 0.9 }));
+    const ang = (i / 10) * Math.PI * 2;
+    sp.position.set(state.currentX + Math.cos(ang) * 0.5, mokuGroup.position.y + Math.sin(ang) * 0.5, 0);
+    sp.userData = { vx: Math.cos(ang) * 3, vy: Math.sin(ang) * 3, vz: 1.5, life: 0.35 };
+    particleGroup.add(sp);
+  }
+  updateComboHUD();
+}
+
+function breakCombo() {
+  state.combo = 0;
+  state.comboTimer = 0;
+  updateComboHUD();
+}
+
+function updateComboHUD() {
+  const pill = document.getElementById('hudCombo');
+  if (state.combo <= 0) {
+    pill.classList.remove('show');
+    return;
+  }
+  pill.classList.add('show');
+  document.getElementById('hudComboN').textContent = 'x' + state.combo;
+  document.getElementById('hudComboMult').textContent = 'SCORE x' + comboMultiplier().toFixed(2);
+}
+
+// --- Momentum: Moku speeds up a little every 50m ---
+function updateMomentum(dt) {
+  const st = STAGES[state.stageKey] || STAGES[1];
+  const maxMomentum = st.id === 'endless' ? 32 : MAX_MOMENTUM;
+  while (state.distance >= state.nextMilestone) {
+    state.nextMilestone += MILESTONE_M;
+    if (state.momentum >= maxMomentum) continue;
+    state.momentum += 1;
+    updateSpeedHUD(true);
+    if (state.momentum % 5 === 0) {
+      sounds.play('speedup');
+      showBanner('⚡ SPEED UP! Lv ' + (state.momentum + 1), '#FDBA74');
+    }
+  }
+  // Ease toward the target speed so the change never feels like a jolt
+  const target = st.baseSpeed + state.momentum * SPEED_PER_LEVEL;
+  state.speed += (target - state.speed) * Math.min(1, dt * 1.5);
+}
+
+function updateSpeedHUD(bump) {
+  document.getElementById('hudSpeed').textContent = 'Lv ' + (state.momentum + 1);
+  if (bump) {
+    const pill = document.getElementById('hudSpeedPill');
+    pill.classList.remove('bump');
+    void pill.offsetWidth;
+    pill.classList.add('bump');
+  }
+}
+
 function showBanner(msg, col = '#F59E0B') {
   const toast = document.getElementById('bannerToast');
   const toastMsg = document.getElementById('toastMsg');
@@ -1758,12 +2198,25 @@ function updateGame(dt) {
   const currentStage = STAGES[state.stageKey] || STAGES[1];
   const effectiveSpeed = state.speed * (state.boostTimer > 0 ? 1.6 : 1.0);
 
-  // Advance distance & score
-  state.distance += effectiveSpeed * dt;
-  state.score += Math.round(effectiveSpeed * dt * 5 * state.berryMultiplier);
+  state.effSpeed = effectiveSpeed;
+  state.runTime += dt;
 
-  // Speed scaling
-  state.speed += currentStage.speedInc * dt * 10;
+  // Advance distance & score (NARROW MISS combo multiplies the score)
+  state.distance += effectiveSpeed * dt;
+  state.score += Math.round(effectiveSpeed * dt * 5 * state.berryMultiplier * comboMultiplier());
+
+  // Speed scaling: momentum level every 50m
+  updateMomentum(dt);
+
+  // Combo runs out if no NARROW MISS for a while
+  if (state.combo > 0) {
+    state.comboTimer -= dt;
+    document.getElementById('hudComboFill').style.width = Math.max(0, state.comboTimer / COMBO_TIME_S * 100) + '%';
+    if (state.comboTimer <= 0) breakCombo();
+  }
+
+  // The world slowly changes as Moku runs further
+  updateBiome();
 
   // Boost timer countdown
   if (state.boostTimer > 0) {
@@ -1864,6 +2317,7 @@ function updateGame(dt) {
           state.score += 200;
           showBanner('💥 BARRIER SMASHED! +200 PTS', '#F472B6');
           obstaclesGroup.remove(obs);
+          disposeObject(obs);
           activeObstacles.splice(i, 1);
           continue;
         }
@@ -1876,10 +2330,19 @@ function updateGame(dt) {
         // Slide under high obstacles
         if (obs.userData.subType === 'high' && state.isSliding) {
           isSafe = true;
-          if (!obs.userData.slideScored) {
-            obs.userData.slideScored = true;
+        }
+
+        // NARROW MISS: how long before the hurdle reached Moku did the jump / slide start?
+        if (isSafe && !obs.userData.judged) {
+          obs.userData.judged = true;
+          const isLow = obs.userData.subType === 'low';
+          const lead = state.runTime - (isLow ? state.jumpStartAt : state.slideStartAt) +
+            Math.max(0, -obs.position.z) / effectiveSpeed;
+          const narrow = lead <= (isLow ? NARROW_JUMP_S : NARROW_SLIDE_S);
+          if (narrow) registerNarrowMiss();
+          if (!isLow) {
             state.score += 100;
-            showBanner('💨 SLICK SLIDE DODGE! +100 PTS', '#38BDF8');
+            if (!narrow) showBanner('💨 SLICK SLIDE DODGE! +100 PTS', '#38BDF8');
           }
         }
 
@@ -1889,8 +2352,12 @@ function updateGame(dt) {
             state.hasMochiShield = false;
             shieldMesh.visible = false;
             sounds.play('mochi');
-            showBanner('🍡 MOCHI SHIELD BROKE! STAY FOCUSED!', '#34D399');
+            showBanner('🍡 MOCHI SHIELD BROKE! SPEED DOWN...', '#34D399');
             obs.userData.passed = true;
+            // A bump costs some momentum and the NARROW MISS combo
+            state.momentum = Math.max(0, state.momentum - SHIELD_MOMENTUM_LOSS);
+            updateSpeedHUD(true);
+            breakCombo();
           } else {
             // Game Over Hit!
             const hitReason = obs.userData.subType === 'high' ? 'Hit an overhead hazard! Slide to duck next time!' : 'Bumped into an obstacle!';
@@ -1903,6 +2370,7 @@ function updateGame(dt) {
 
     if (obs.position.z > 10) {
       obstaclesGroup.remove(obs);
+      disposeObject(obs);
       activeObstacles.splice(i, 1);
     }
   }
@@ -1919,7 +2387,7 @@ function updateGame(dt) {
     if (distToMoku < collectRadius) {
       if (item.userData.subType === 'berry') {
         state.berriesCollected++;
-        state.score += 25 * state.berryMultiplier;
+        state.score += Math.round(25 * state.berryMultiplier * comboMultiplier());
         sounds.play('berry');
         progress.totalBerries++;
         saveProgress(progress);
@@ -1930,23 +2398,33 @@ function updateGame(dt) {
       }
 
       itemsGroup.remove(item);
+      disposeObject(item);
       activeItems.splice(i, 1);
       continue;
     }
 
     if (item.position.z > 10) {
       itemsGroup.remove(item);
+      disposeObject(item);
       activeItems.splice(i, 1);
     }
   }
 
-  // Move background scenery
-  activeDeco.forEach((deco, idx) => {
+  // Move background scenery. Decorations that loop back to the far end are rebuilt
+  // for the current biome, so the roadside slowly turns into a grove / forest.
+  for (let d = 0; d < activeDeco.length; d++) {
+    const deco = activeDeco[d];
     deco.position.z += moveZ;
     if (deco.position.z > 20) {
       deco.position.z -= 140;
+      if (deco.userData.biome !== currentBiome().name) {
+        const side = deco.position.x < 0 ? -1 : 1;
+        environmentGroup.remove(deco);
+        disposeObject(deco);
+        activeDeco[d] = placeDeco(side * (5.5 + Math.random() * 5), deco.position.z);
+      }
     }
-  });
+  }
 
   // Spawn new segments ahead
   // (spawnZ moves with the world every frame; it used to skip the frames that spawned, so gaps shrank)
@@ -1985,18 +2463,52 @@ function renderScene(dt) {
     p.material.opacity = p.userData.life / 0.35;
     if (p.userData.life <= 0) {
       particleGroup.remove(p);
+      disposeObject(p);
     }
   }
 
   // Slight camera banking when lane switching
   const targetCamX = state.currentX * 0.35;
   camera.position.x += (targetCamX - camera.position.x) * 6 * dt;
+
+  // Speed feel: wider view, camera a touch lower/closer, faint wobble and side speed lines.
+  // Only the view changes (lanes and hurdles stay where they are), so controls feel the same.
+  const st = STAGES[state.stageKey] || STAGES[1];
+  const rush = state.running ? Math.min(1, Math.max(0, (state.effSpeed - st.baseSpeed) / 12)) : 0;
+  const targetFov = 65 + rush * 9;
+  if (Math.abs(camera.fov - targetFov) > 0.01) {
+    camera.fov += (targetFov - camera.fov) * Math.min(1, dt * 3);
+    camera.updateProjectionMatrix();
+  }
+  const wobble = state.running && !state.paused ? Math.sin(performance.now() / 70) * 0.025 * rush : 0;
+  camera.position.y += (3.6 - rush * 0.2 + wobble - camera.position.y) * Math.min(1, dt * 6);
+  camera.position.z += (6.2 - rush * 0.35 - camera.position.z) * Math.min(1, dt * 3);
+
+  speedLines.visible = rush > 0.05;
+  if (speedLines.visible) {
+    speedLineMat.opacity = 0.5 * rush;
+    const lineMove = state.paused ? 0 : state.effSpeed * dt * 1.8;
+    speedLines.children.forEach(l => {
+      l.position.z += lineMove;
+      if (l.position.z > 8) l.position.z -= 78;
+    });
+  }
 }
 
 function updateHUD() {
   document.getElementById('hudScore').textContent = state.score.toLocaleString();
   document.getElementById('hudBerries').textContent = state.berriesCollected;
   document.getElementById('hudDistance').textContent = Math.round(state.distance);
+}
+
+// Shown under the result: NARROW MISS count, best combo and record distance
+function runRecordText() {
+  return '✨ Narrow Misses: ' + state.narrowCount + ' · Best Combo x' + state.bestComboRun +
+    ' (Record x' + (progress.bestCombo || 0) + ') · Farthest ' + Math.round(progress.bestDistance || 0) + 'm';
+}
+function saveRunRecords() {
+  progress.bestCombo = Math.max(progress.bestCombo || 0, state.bestComboRun);
+  progress.bestDistance = Math.max(progress.bestDistance || 0, Math.round(state.distance));
 }
 
 // --- Game Life-cycle & Stage Transitions ---
@@ -2021,20 +2533,36 @@ function startGame(stageKey) {
   state.isSliding = false;
   state.hasMochiShield = false;
   state.boostTimer = 0;
+  state.runTime = 0;
+  state.jumpStartAt = -99;
+  state.slideStartAt = -99;
+  state.momentum = 0;
+  state.nextMilestone = MILESTONE_M;
+  state.combo = 0;
+  state.comboTimer = 0;
+  state.narrowCount = 0;
+  state.bestComboRun = 0;
   shieldMesh.visible = false;
+  document.getElementById('btnPauseGame').textContent = '⏸';
+  document.getElementById('hudPowerupBar').style.display = 'none';
+  document.getElementById('narrowPopup').classList.remove('show');
 
   const st = STAGES[stageKey] || STAGES[1];
   state.speed = st.baseSpeed;
+  state.effSpeed = st.baseSpeed;
+  updateSpeedHUD(false);
+  updateComboHUD();
+  armHistoryGuard();
 
   // Apply stage visual theme
   applyStageLook(st);
 
   // Clear existing obstacles and items
-  activeObstacles.forEach(o => obstaclesGroup.remove(o));
+  activeObstacles.forEach(o => { obstaclesGroup.remove(o); disposeObject(o); });
   activeObstacles.length = 0;
-  activeItems.forEach(item => itemsGroup.remove(item));
+  activeItems.forEach(item => { itemsGroup.remove(item); disposeObject(item); });
   activeItems.length = 0;
-  activeDeco.forEach(d => environmentGroup.remove(d));
+  activeDeco.forEach(d => { environmentGroup.remove(d); disposeObject(d); });
   activeDeco.length = 0;
 
   spawnZ = -30;
@@ -2194,9 +2722,12 @@ function triggerGameOver(reason) {
     progress.highScore = state.score;
   }
   progress.totalBerries += state.berriesCollected;
+  saveRunRecords();
   saveProgress(progress);
 
   document.getElementById('hud').classList.add('hidden');
+  document.getElementById('goRunRecord').textContent = runRecordText();
+  lockOverlayInput(document.getElementById('gameOverScreen'));
   document.getElementById('gameOverReason').textContent = reason;
   // 白黒コースでは色で見分けられないので、明るさで説明する
   document.getElementById('goodItemTip').innerHTML = isMonoStage()
@@ -2224,9 +2755,12 @@ function triggerStageClear() {
     progress.highScore = state.score;
   }
   progress.totalBerries += state.berriesCollected;
+  saveRunRecords();
   saveProgress(progress);
 
   document.getElementById('hud').classList.add('hidden');
+  document.getElementById('scRunRecord').textContent = runRecordText();
+  lockOverlayInput(document.getElementById('stageClearScreen'));
   document.getElementById('clearStageName').textContent = curStage.name + ' Cleared!';
   document.getElementById('scScore').textContent = state.score.toLocaleString();
   document.getElementById('scBerries').textContent = state.berriesCollected;
