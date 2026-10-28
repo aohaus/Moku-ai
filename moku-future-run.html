@@ -411,7 +411,7 @@
 <!-- Title Frame Elements per SPEC.md -->
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">Moku Future Run v1.0.1 · Updated Oct 24, 2026</div>
+<div id="buildInfo">Moku Future Run v1.1.0 · Updated Oct 28, 2026</div>
 
 <!-- Title Screen Overlay -->
 <div class="screen-overlay" id="titleScreen">
@@ -436,6 +436,11 @@
       <div class="stage-icon">🌌</div>
       <div class="stage-name">Stage 3</div>
       <div class="stage-target">Nebula Heights (4,000m)</div>
+    </div>
+    <div class="stage-card" data-stage="4">
+      <div class="stage-icon">✏️</div>
+      <div class="stage-name">Stage 4</div>
+      <div class="stage-target">Pencil Sketch Town (3,000m)</div>
     </div>
     <div class="stage-card" data-stage="endless">
       <div class="stage-icon">♾️</div>
@@ -516,7 +521,7 @@
     <div class="fail-tip-box">
       ⚠️ <strong>HOW TO IDENTIFY HAZARDS vs GOOD ITEMS:</strong><br>
       • <strong>BLACK & HAZARD STRIPES = DANGER:</strong> Never touch! Jump over low barricades, slide under high overhead bars, or change lanes.<br>
-      • <strong>GLOWING COLORFUL = GOOD:</strong> Pink Berries 🫐, Mochi Shields 🍡, Boost Rockets 🚀, and Cyan Ramps ▲ are 100% safe to collect!
+      <span id="goodItemTip">• <strong>GLOWING COLORFUL = GOOD:</strong> Pink Berries 🫐, Mochi Shields 🍡, Boost Rockets 🚀, and Cyan Ramps ▲ are 100% safe to collect!</span>
     </div>
 
     <div class="modal-stats-grid">
@@ -921,6 +926,24 @@ const STAGES = {
     baseSpeed: 24,
     speedInc: 0.003
   },
+  // 白黒(グレースケール)だけのコース。色があるのは Moku だけ。障害物も空の雲も白黒。
+  4: {
+    id: 4,
+    name: 'Pencil Sketch Town',
+    targetDist: 3000,
+    skyTop: 0xDADADA,
+    skyBottom: 0xF2F2F2,
+    fogColor: 0xD4D4D4,
+    roadColor: 0x9A9A9A,
+    stripeColor: 0xFAFAFA,
+    borderColor: 0x6E6E6E,
+    borderEmissive: 0x1C1C1C,
+    moonColor: 0xFFFFFF,
+    theme: 'pencil_sketch',
+    mono: true,
+    baseSpeed: 22,
+    speedInc: 0.0028
+  },
   endless: {
     id: 'endless',
     name: 'Endless Future Rush',
@@ -977,6 +1000,7 @@ const state = {
 let scene, camera, renderer;
 let mokuGroup, mokuBody, leftWing, rightWing, leftFoot, rightFoot, headGroup, visorMesh, shieldMesh, tailGroup;
 let roadMesh, roadMaterial, skyMesh, starParticles;
+let laneStripeMats = [], roadBorderMat, moonMat, dirLight, rimLight, cloudGroup;
 let environmentGroup, obstaclesGroup, itemsGroup, particleGroup, trainsGroup;
 const activeObstacles = [];
 const activeItems = [];
@@ -1002,7 +1026,7 @@ function initThree() {
   const ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.7);
   scene.add(ambientLight);
 
-  const dirLight = new THREE.DirectionalLight(0xFFE4E6, 0.9);
+  dirLight = new THREE.DirectionalLight(0xFFE4E6, 0.9);
   dirLight.position.set(10, 25, 15);
   dirLight.castShadow = true;
   dirLight.shadow.mapSize.width = 1024;
@@ -1015,7 +1039,7 @@ function initThree() {
   dirLight.shadow.camera.bottom = -10;
   scene.add(dirLight);
 
-  const rimLight = new THREE.DirectionalLight(0xA855F7, 0.6);
+  rimLight = new THREE.DirectionalLight(0xA855F7, 0.6);
   rimLight.position.set(-10, 15, -20);
   scene.add(rimLight);
 
@@ -1057,6 +1081,7 @@ function buildSkyAndRoad() {
   [-1.2, 1.2].forEach(x => {
     const stripeGeo = new THREE.PlaneGeometry(0.12, 160);
     const stripeMat = new THREE.MeshBasicMaterial({ color: 0xF472B6 });
+    laneStripeMats.push(stripeMat);
     const stripe = new THREE.Mesh(stripeGeo, stripeMat);
     stripe.rotation.x = -Math.PI / 2;
     stripe.position.set(x, 0.01, -50);
@@ -1064,14 +1089,14 @@ function buildSkyAndRoad() {
   });
 
   // Glowing Road Borders
+  roadBorderMat = new THREE.MeshStandardMaterial({
+    color: 0xA855F7,
+    emissive: 0x9333EA,
+    emissiveIntensity: 0.5
+  });
   [-4.1, 4.1].forEach(x => {
     const borderGeo = new THREE.BoxGeometry(0.35, 0.25, 160);
-    const borderMat = new THREE.MeshStandardMaterial({
-      color: 0xA855F7,
-      emissive: 0x9333EA,
-      emissiveIntensity: 0.5
-    });
-    const border = new THREE.Mesh(borderGeo, borderMat);
+    const border = new THREE.Mesh(borderGeo, roadBorderMat);
     border.position.set(x, 0.12, -50);
     scene.add(border);
   });
@@ -1107,11 +1132,86 @@ function buildSkyAndRoad() {
   // Crescent Moon
   const moonGroup = new THREE.Group();
   const moonGeo = new THREE.SphereGeometry(6, 16, 16);
-  const moonMat = new THREE.MeshBasicMaterial({ color: 0xFDE047 });
+  moonMat = new THREE.MeshBasicMaterial({ color: 0xFDE047 });
   const moonMesh = new THREE.Mesh(moonGeo, moonMat);
   moonGroup.add(moonMesh);
   moonGroup.position.set(35, 45, -120);
   scene.add(moonGroup);
+
+  buildClouds();
+}
+
+// --- Puffy Sky Clouds (Pencil Sketch Town only: white & gray) ---
+function buildClouds() {
+  cloudGroup = new THREE.Group();
+  cloudGroup.visible = false;
+  // 霧で空の色に溶けないよう fog: false。上は白、下側はグレーで鉛筆の陰影のように見せる
+  const topMat = new THREE.MeshLambertMaterial({ color: 0xFFFFFF, emissive: 0x9A9A9A, fog: false });
+  const shadeMat = new THREE.MeshLambertMaterial({ color: 0xBDBDBD, emissive: 0x5A5A5A, fog: false });
+  const puffGeo = new THREE.SphereGeometry(1, 14, 10);
+  for (let i = 0; i < 14; i++) {
+    const cloud = new THREE.Group();
+    const puffs = 4 + Math.floor(Math.random() * 3);
+    for (let k = 0; k < puffs; k++) {
+      const r = 2.2 + Math.random() * 1.6;
+      const puff = new THREE.Mesh(puffGeo, topMat);
+      puff.scale.set(r, r * 0.8, r * 0.8);
+      puff.position.set((k - (puffs - 1) / 2) * 2.6, Math.sin((k / (puffs - 1)) * Math.PI) * 1.4, (Math.random() - 0.5) * 1.5);
+      cloud.add(puff);
+    }
+    // 平たい底(グレー)
+    const base = new THREE.Mesh(puffGeo, shadeMat);
+    base.scale.set(puffs * 1.5, 1.1, 2.0);
+    base.position.y = -1.0;
+    cloud.add(base);
+
+    const s = 0.8 + Math.random() * 0.6;
+    cloud.scale.set(s, s, s);
+    cloud.position.set(-90 + Math.random() * 180, 12 + Math.random() * 14, -70 - Math.random() * 90);
+    cloud.userData.drift = 0.6 + Math.random() * 0.8;
+    cloudGroup.add(cloud);
+  }
+  scene.add(cloudGroup);
+}
+
+// --- Grayscale (Pencil Sketch Town): everything except Moku turns black & white ---
+function isMonoStage() {
+  const st = STAGES[state.stageKey];
+  return !!(st && st.mono);
+}
+function grayColor(c) {
+  const l = c.r * 0.299 + c.g * 0.587 + c.b * 0.114;
+  c.setRGB(l, l, l);
+}
+function monoize(root) {
+  if (!isMonoStage()) return;
+  root.traverse(o => {
+    if (!o.material) return;
+    (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => {
+      if (m.userData.mono) return;
+      m.userData.mono = true;
+      if (m.color) grayColor(m.color);
+      if (m.emissive) grayColor(m.emissive);
+    });
+  });
+}
+
+// ステージごとの空・道・ライト。白黒コース以外は元の色に戻す
+function applyStageLook(st) {
+  skyMesh.material.color.setHex(st.skyTop);
+  scene.fog.color.setHex(st.fogColor);
+  roadMaterial.color.setHex(st.roadColor);
+  const mono = !!st.mono;
+  laneStripeMats.forEach(m => m.color.setHex(mono ? st.stripeColor : 0xF472B6));
+  roadBorderMat.color.setHex(mono ? st.borderColor : 0xA855F7);
+  roadBorderMat.emissive.setHex(mono ? st.borderEmissive : 0x9333EA);
+  moonMat.color.setHex(mono ? st.moonColor : 0xFDE047);
+  starParticles.visible = !mono;
+  cloudGroup.visible = mono;
+  // 色つきのライトだと灰色が紫やピンクに染まるので、白黒コースでは白い光にする
+  dirLight.color.setHex(mono ? 0xFFFFFF : 0xFFE4E6);
+  rimLight.color.setHex(mono ? 0xFFFFFF : 0xA855F7);
+  rimLight.intensity = mono ? 0.35 : 0.6;
 }
 
 // --- Moku 3D Character (Facing Forward: Back & Tail visible to player) ---
@@ -1376,6 +1476,7 @@ function spawnDecorations() {
       }
     });
   }
+  monoize(environmentGroup);
 }
 
 // --- Train / Subway Vehicle Generation & Spawning ---
@@ -1676,6 +1777,13 @@ function spawnTrain(lane, atZ, hasRamp = true) {
 let spawnZ = -30;
 let segmentCounter = 0;
 function spawnNextTrackSegment() {
+  spawnTrackPieces();
+  // 白黒コースでは、いま出した列車・障害物・アイテムをグレーにする(Moku は対象外)
+  monoize(trainsGroup);
+  monoize(obstaclesGroup);
+  monoize(itemsGroup);
+}
+function spawnTrackPieces() {
   segmentCounter++;
 
   // Periodically spawn Trains / Subway Cars (every 3rd or 4th segment)
@@ -2565,6 +2673,16 @@ function updateGame(dt) {
 }
 
 function renderScene(dt) {
+  monoize(particleGroup);
+
+  // Slowly drifting clouds (Pencil Sketch Town)
+  if (cloudGroup.visible) {
+    cloudGroup.children.forEach(c => {
+      c.position.x += c.userData.drift * dt;
+      if (c.position.x > 100) c.position.x = -100;
+    });
+  }
+
   // Update particles
   for (let i = particleGroup.children.length - 1; i >= 0; i--) {
     const p = particleGroup.children[i];
@@ -2617,9 +2735,7 @@ function startGame(stageKey) {
   state.speed = st.baseSpeed;
 
   // Apply stage visual theme
-  skyMesh.material.color.setHex(st.skyTop);
-  scene.fog.color.setHex(st.fogColor);
-  roadMaterial.color.setHex(st.roadColor);
+  applyStageLook(st);
 
   // Clear existing trains, obstacles and items
   activeTrains.forEach(t => trainsGroup.remove(t.group));
@@ -2792,6 +2908,10 @@ function triggerGameOver(reason) {
 
   document.getElementById('hud').classList.add('hidden');
   document.getElementById('gameOverReason').textContent = reason;
+  // 白黒コースでは色で見分けられないので、明るさで説明する
+  document.getElementById('goodItemTip').innerHTML = isMonoStage()
+    ? '• <strong>BRIGHT WHITE = GOOD:</strong> Shiny Berries 🫐 with rings, Mochi Shields 🍡, Boost Rockets 🚀, and Ramps ▲ are 100% safe to collect!'
+    : '• <strong>GLOWING COLORFUL = GOOD:</strong> Pink Berries 🫐, Mochi Shields 🍡, Boost Rockets 🚀, and Cyan Ramps ▲ are 100% safe to collect!';
   document.getElementById('goFinalScore').textContent = state.score.toLocaleString();
   document.getElementById('goDistance').textContent = Math.round(state.distance) + 'm';
   document.getElementById('goBerries').textContent = state.berriesCollected;
@@ -2808,7 +2928,7 @@ function triggerStageClear() {
 
   const curStage = STAGES[state.stageKey];
   if (typeof curStage.id === 'number' && curStage.id >= progress.unlockedStages) {
-    progress.unlockedStages = Math.min(3, curStage.id + 1);
+    progress.unlockedStages = Math.min(5, curStage.id + 1);
   }
   if (state.score > progress.highScore) {
     progress.highScore = state.score;
@@ -2959,6 +3079,7 @@ document.getElementById('btnNextStage').addEventListener('click', () => {
   let next = 'endless';
   if (state.stageKey === '1') next = '2';
   else if (state.stageKey === '2') next = '3';
+  else if (state.stageKey === '3') next = '4';
   startGame(next);
 });
 document.getElementById('btnScHome').addEventListener('click', returnToTitle);

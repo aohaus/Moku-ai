@@ -2596,8 +2596,8 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
       }
     },
     {
-      // Stage clears raise unlockedStages (max 3); clearing stage 3 itself
-      // isn't saved yet, so progress tops out at 2/3 until it is.
+      // Stage clears raise unlockedStages (stage n cleared -> n+1, max 5 once
+      // all 4 stages are cleared).
       name: 'Moku Future Run',
       card: 'mfr',
       gameId: 'moku-future-run',
@@ -2612,12 +2612,12 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
       progress: function () {
         if (this.isCompleted()) return 1;
         var p = readJSON('moku:moku-future-run:progress');
-        return p ? Math.min(1, ((p.unlockedStages || 1) - 1) / 3) : 0;
+        return p ? Math.min(1, ((p.unlockedStages || 1) - 1) / 4) : 0;
       },
       badge: function () {
         var p = readJSON('moku:moku-future-run:progress');
         if (!p || !this.isPlayed()) return null;
-        return 'Stage ' + Math.min(p.unlockedStages || 1, 3) + ' · Best ' + (p.highScore || 0).toLocaleString() +
+        return 'Stage ' + Math.min(p.unlockedStages || 1, 4) + ' · Best ' + (p.highScore || 0).toLocaleString() +
           ' · ' + (p.totalBerries || 0).toLocaleString() + ' berries';
       }
     },
