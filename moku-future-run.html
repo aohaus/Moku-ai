@@ -411,7 +411,7 @@
 <!-- Title Frame Elements per SPEC.md -->
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">Moku Future Run v1.1.1 · Updated Oct 28, 2026</div>
+<div id="buildInfo">Moku Future Run v1.2.0 · Updated Oct 28, 2026</div>
 
 <!-- Title Screen Overlay -->
 <div class="screen-overlay" id="titleScreen">
@@ -520,8 +520,8 @@
 
     <div class="fail-tip-box">
       ⚠️ <strong>HOW TO IDENTIFY HAZARDS vs GOOD ITEMS:</strong><br>
-      • <strong>BLACK & HAZARD STRIPES = DANGER:</strong> Never touch! Jump over low barricades, slide under high overhead bars, or change lanes.<br>
-      <span id="goodItemTip">• <strong>GLOWING COLORFUL = GOOD:</strong> Pink Berries 🫐, Mochi Shields 🍡, Boost Rockets 🚀, and Cyan Ramps ▲ are 100% safe to collect!</span>
+      • <strong>BLACK & HAZARD STRIPES = DANGER:</strong> Never touch! Jump over LOW hurdles, slide under HIGH hurdles, or change lanes.<br>
+      <span id="goodItemTip">• <strong>GLOWING COLORFUL = GOOD:</strong> Pink Berries 🫐, Mochi Shields 🍡, and Boost Rockets 🚀 are 100% safe to collect!</span>
     </div>
 
     <div class="modal-stats-grid">
@@ -590,7 +590,7 @@
       <div class="info-guide-icon">👆</div>
       <div class="info-guide-text">
         <h4>SWIPE UP / [▲] / Space</h4>
-        <p>Hop & leap over low barriers, paint buckets, and hurdles with a cute squash bounce.</p>
+        <p>Hop over LOW hurdles (▲ on top) with a cute squash bounce.</p>
       </div>
     </div>
 
@@ -598,7 +598,7 @@
       <div class="info-guide-icon">👇</div>
       <div class="info-guide-text">
         <h4>SWIPE DOWN / [▼] / Down Arrow</h4>
-        <p>Duck & slide under high laser gates, neon beams, and low overhead arches.</p>
+        <p>Slide under HIGH hurdles (▼ underneath).</p>
       </div>
     </div>
 
@@ -606,27 +606,18 @@
       <div class="info-guide-icon">👈👉</div>
       <div class="info-guide-text">
         <h4>SWIPE LEFT & RIGHT / Arrow Keys</h4>
-        <p>Switch between the 3 lanes quickly to dodge tall roadblocks and grab items.</p>
-      </div>
-    </div>
-
-    <div class="info-guide-row">
-      <div class="info-guide-icon">🚄</div>
-      <div class="info-guide-text">
-        <h4>TRAIN ROOF RUNNING</h4>
-        <p>Use ramps or mochi springboards to run on top of trains for bonus points & berries!</p>
+        <p>Switch between the 3 lanes to dodge hurdles and grab berries & items.</p>
       </div>
     </div>
 
     <div style="margin-top:14px; text-align:left; font-size:11.5px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:10px 12px; line-height:1.45;">
       <strong style="color:#EF4444;">❌ DANGEROUS OBSTACLES (AVOID!):</strong><br>
-      • Heavy <b>BLACK</b> metal barricades with <b>YELLOW & BLACK HAZARD STRIPES</b> and red sirens.<br>
-      • Jump over low hurdles, slide under high overhead beams, or switch lanes to survive.<br><br>
+      • <b>HURDLES</b> with <b>YELLOW & BLACK STRIPES</b> and red lamps.<br>
+      • LOW hurdle = JUMP over it. HIGH hurdle = SLIDE under it.<br><br>
       <strong style="color:#34D399;">✅ HELPFUL ITEMS (TOUCH & COLLECT!):</strong><br>
       • 🫐 <b>Glowing Berries:</b> Safe points, score multipliers, and wardrobe currency!<br>
       • 🚀 <b>Boost Rocket:</b> Invincible smash speed + mega points!<br>
-      • 🍡 <b>Mochi:</b> Absorbs 1 hit + launches springboard super-jumps!<br>
-      • ▲ <b>Glowing Ramps:</b> Safe boarding paths onto train roofs!
+      • 🍡 <b>Mochi:</b> Absorbs 1 hit + one super-high bounce!
     </div>
 
     <div class="modal-btn-row">
@@ -993,7 +984,7 @@ const state = {
   berryStreak: 0,
   footstepTimer: 0,
   runCycle: 0,
-  onTrain: false
+  jumpBuffer: 0 // 着地の直前に押したジャンプを、着地した瞬間に出す(秒)
 };
 
 // --- Three.js Setup ---
@@ -1001,11 +992,10 @@ let scene, camera, renderer;
 let mokuGroup, mokuBody, leftWing, rightWing, leftFoot, rightFoot, headGroup, visorMesh, shieldMesh, tailGroup;
 let roadMesh, roadMaterial, skyMesh, starParticles;
 let laneStripeMats = [], roadBorderMat, moonMat, dirLight, rimLight, cloudGroup;
-let environmentGroup, obstaclesGroup, itemsGroup, particleGroup, trainsGroup;
+let environmentGroup, obstaclesGroup, itemsGroup, particleGroup;
 const activeObstacles = [];
 const activeItems = [];
 const activeDeco = [];
-const activeTrains = [];
 
 function initThree() {
   const canvas = document.getElementById('webgl-canvas');
@@ -1045,7 +1035,6 @@ function initThree() {
 
   // Groups
   environmentGroup = new THREE.Group(); scene.add(environmentGroup);
-  trainsGroup = new THREE.Group(); scene.add(trainsGroup);
   obstaclesGroup = new THREE.Group(); scene.add(obstaclesGroup);
   itemsGroup = new THREE.Group(); scene.add(itemsGroup);
   particleGroup = new THREE.Group(); scene.add(particleGroup);
@@ -1479,706 +1468,79 @@ function spawnDecorations() {
   monoize(environmentGroup);
 }
 
-// --- Train / Subway Vehicle Generation & Spawning ---
-function spawnTrain(lane, atZ, hasRamp = true) {
-  const trainGroup = new THREE.Group();
-  const laneX = LANES[lane];
-  const trainLength = 20.0;
-  const trainWidth = 2.1;
-  const trainHeight = 1.75;
-  const st = STAGES[state.stageKey] || STAGES[1];
-
-  let bodyColor = 0x1E40AF;
-  let trimColor = 0xF59E0B;
-  let windowColor = 0xFEF08A;
-  let roofDeckColor = 0x312E81;
-  let stripeColor = 0xEC4899;
-
-  if (st.theme === 'cyber_metropolis') {
-    bodyColor = 0x0F172A;
-    trimColor = 0x06B6D4;
-    windowColor = 0x38BDF8;
-    roofDeckColor = 0x1E293B;
-    stripeColor = 0x00F0FF;
-  } else if (st.theme === 'cosmic_nebula') {
-    bodyColor = 0x4C1D95;
-    trimColor = 0xA855F7;
-    windowColor = 0xFDE047;
-    roofDeckColor = 0x2E1065;
-    stripeColor = 0xFBBF24;
-  }
-
-  // 1. Train Carriage Body
-  const bodyGeo = new THREE.BoxGeometry(trainWidth, trainHeight, trainLength);
-  const bodyMat = new THREE.MeshStandardMaterial({
-    color: bodyColor,
-    roughness: 0.35,
-    metalness: 0.3
-  });
-  const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
-  bodyMesh.position.y = trainHeight / 2;
-  bodyMesh.castShadow = true;
-  bodyMesh.receiveShadow = true;
-  trainGroup.add(bodyMesh);
-
-  // 2. Train Roof Running Deck (walkway with non-slip track)
-  const roofDeckGeo = new THREE.PlaneGeometry(trainWidth - 0.2, trainLength - 0.4);
-  const roofDeckMat = new THREE.MeshStandardMaterial({
-    color: roofDeckColor,
-    roughness: 0.8
-  });
-  const roofDeck = new THREE.Mesh(roofDeckGeo, roofDeckMat);
-  roofDeck.rotation.x = -Math.PI / 2;
-  roofDeck.position.y = trainHeight + 0.01;
-  roofDeck.receiveShadow = true;
-  trainGroup.add(roofDeck);
-
-  // Glowing Edge Rails along the roof
-  [-0.95, 0.95].forEach(rx => {
-    const railGeo = new THREE.BoxGeometry(0.08, 0.14, trainLength - 0.6);
-    const railMat = new THREE.MeshBasicMaterial({ color: stripeColor });
-    const rail = new THREE.Mesh(railGeo, railMat);
-    rail.position.set(rx, trainHeight + 0.08, 0);
-    trainGroup.add(rail);
-  });
-
-  // Glowing Side Passenger Windows
-  [-trainWidth / 2 - 0.02, trainWidth / 2 + 0.02].forEach(wx => {
-    for (let wz = -trainLength / 2 + 2.5; wz <= trainLength / 2 - 2.5; wz += 3.2) {
-      const winGeo = new THREE.PlaneGeometry(1.8, 0.65);
-      const winMat = new THREE.MeshBasicMaterial({ color: windowColor });
-      const win = new THREE.Mesh(winGeo, winMat);
-      win.position.set(wx, trainHeight * 0.58, wz);
-      if (wx < 0) win.rotation.y = -Math.PI / 2;
-      else win.rotation.y = Math.PI / 2;
-      trainGroup.add(win);
-    }
-  });
-
-  // Front Aerodynamic Windshield & Headlights (+Z facing oncoming runner)
-  const frontWindshieldGeo = new THREE.PlaneGeometry(trainWidth - 0.4, 0.7);
-  const frontWindshieldMat = new THREE.MeshBasicMaterial({ color: 0x06B6D4 });
-  const fWind = new THREE.Mesh(frontWindshieldGeo, frontWindshieldMat);
-  fWind.position.set(0, trainHeight * 0.68, trainLength / 2 + 0.02);
-  trainGroup.add(fWind);
-
-  [-0.65, 0.65].forEach(hx => {
-    const hlGeo = new THREE.SphereGeometry(0.16, 8, 8);
-    const hlMat = new THREE.MeshBasicMaterial({ color: 0xFEF08A });
-    const hl = new THREE.Mesh(hlGeo, hlMat);
-    hl.position.set(hx, 0.45, trainLength / 2 + 0.04);
-    trainGroup.add(hl);
-  });
-
-  // Hover Maglev Glow underneath
-  const hoverGeo = new THREE.BoxGeometry(trainWidth - 0.4, 0.15, trainLength - 1.5);
-  const hoverMat = new THREE.MeshBasicMaterial({ color: stripeColor, transparent: true, opacity: 0.6 });
-  const hoverPad = new THREE.Mesh(hoverGeo, hoverMat);
-  hoverPad.position.y = 0.08;
-  trainGroup.add(hoverPad);
-
-  // 3. Boarding Ramp OR Springboard
-  const rampLength = 4.8;
-  if (hasRamp) {
-    const rampAngle = Math.atan2(trainHeight - 0.08, rampLength);
-    const rampHypot = Math.hypot(rampLength, trainHeight - 0.08);
-    const rampGeo = new THREE.BoxGeometry(trainWidth - 0.1, 0.15, rampHypot);
-    const rampMat = new THREE.MeshStandardMaterial({
-      color: roofDeckColor,
-      roughness: 0.6
-    });
-    const ramp = new THREE.Mesh(rampGeo, rampMat);
-    ramp.rotation.x = rampAngle;
-    ramp.position.set(0, trainHeight / 2, trainLength / 2 + rampLength / 2);
-    trainGroup.add(ramp);
-
-    // Glowing Chevrons on Ramp (^ ^ ^)
-    for (let c = 1; c <= 3; c++) {
-      const chGeo = new THREE.PlaneGeometry(1.2, 0.2);
-      const chMat = new THREE.MeshBasicMaterial({ color: 0x22D3EE });
-      const ch = new THREE.Mesh(chGeo, chMat);
-      ch.rotation.x = -Math.PI / 2 + rampAngle;
-      ch.position.set(0, (trainHeight / 4) * c + 0.1, trainLength / 2 + rampLength - c * 1.2);
-      trainGroup.add(ch);
-    }
-  } else {
-    // Heavy Black & Yellow Hazard Cowcatcher / Bumper on train front to clearly signal DANGER!
-    const cowcatcher = new THREE.Group();
-    const ccGeo = new THREE.BoxGeometry(trainWidth - 0.1, 0.75, 0.35);
-    const ccMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.6 });
-    const cc = new THREE.Mesh(ccGeo, ccMat);
-    cc.position.set(0, 0.42, trainLength / 2 + 0.18);
-    cowcatcher.add(cc);
-
-    // Hazard yellow/black stripes
-    for (let s = -3; s <= 3; s++) {
-      const stGeo = new THREE.PlaneGeometry(0.18, 0.65);
-      const stMat = new THREE.MeshBasicMaterial({ color: s % 2 === 0 ? 0xFDE047 : 0x050505 });
-      const str = new THREE.Mesh(stGeo, stMat);
-      str.position.set(s * 0.25, 0.42, trainLength / 2 + 0.36);
-      cowcatcher.add(str);
-    }
-    // Red Flashing Siren Beacon on bumper
-    const sirenGeo = new THREE.CylinderGeometry(0.12, 0.14, 0.25, 8);
-    const sirenMat = new THREE.MeshBasicMaterial({ color: 0xEF4444 });
-    const siren = new THREE.Mesh(sirenGeo, sirenMat);
-    siren.position.set(0, 0.95, trainLength / 2 + 0.18);
-    cowcatcher.add(siren);
-    trainGroup.add(cowcatcher);
-
-    // Mochi Springboard Pad placed in front of train
-    const padGroup = new THREE.Group();
-    const padGeo = new THREE.CylinderGeometry(0.85, 0.95, 0.2, 16);
-    const padMat = new THREE.MeshStandardMaterial({
-      color: 0x10B981,
-      emissive: 0x059669,
-      emissiveIntensity: 0.6
-    });
-    const pad = new THREE.Mesh(padGeo, padMat);
-    pad.position.y = 0.1;
-    padGroup.add(pad);
-
-    const swirlGeo = new THREE.TorusGeometry(0.45, 0.08, 8, 16);
-    const swirlMat = new THREE.MeshBasicMaterial({ color: 0x6EE7B7 });
-    const swirl = new THREE.Mesh(swirlGeo, swirlMat);
-    swirl.rotation.x = Math.PI / 2;
-    swirl.position.y = 0.22;
-    padGroup.add(swirl);
-
-    padGroup.position.set(0, 0, trainLength / 2 + 4.0);
-    padGroup.userData = { isSpringboard: true };
-    trainGroup.add(padGroup);
-  }
-
-  // 4. Berries and Power-up on Top of the Train Roof!
-  for (let k = -4; k <= 4; k++) {
-    // Leave room around center if arch exists
-    if (k === 0) continue;
-
-    const berryGroup = new THREE.Group();
-    const berryGeo = new THREE.DodecahedronGeometry(0.24);
-    const berryMat = new THREE.MeshStandardMaterial({
-      color: 0xEC4899,
-      emissive: 0xFF1493,
-      emissiveIntensity: 0.85,
-      roughness: 0.2
-    });
-    const berry = new THREE.Mesh(berryGeo, berryMat);
-    berryGroup.add(berry);
-
-    const leafGeo = new THREE.ConeGeometry(0.08, 0.16, 4);
-    const leafMat = new THREE.MeshBasicMaterial({ color: 0x10B981 });
-    const leaf = new THREE.Mesh(leafGeo, leafMat);
-    leaf.position.y = 0.22;
-    berryGroup.add(leaf);
-
-    // Golden Sparkle Ring around berry (Clear Friendly Collectible!)
-    const ringGeo = new THREE.TorusGeometry(0.3, 0.025, 6, 16);
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0xFDE047 });
-    const ring = new THREE.Mesh(ringGeo, ringMat);
-    ring.rotation.x = Math.PI / 2;
-    berryGroup.add(ring);
-
-    berryGroup.position.set(0, trainHeight + 0.6, k * 2.0);
-    berryGroup.userData = { type: 'item', subType: 'berry', lane };
-    trainGroup.add(berryGroup);
-  }
-
-  // Overhead Clearance Slide Arch on Train Roof (Thrilling duck/slide opportunity!)
-  const hasRoofArch = Math.random() < 0.65;
-  if (hasRoofArch) {
-    const archGroup = new THREE.Group();
-    [-0.95, 0.95].forEach(ax => {
-      const aPost = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.08, 0.08, 1.8, 8),
-        new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.7 })
-      );
-      aPost.position.set(ax, trainHeight + 0.9, 0);
-      archGroup.add(aPost);
-    });
-
-    // Low hanging black hazard bar across train roof at neck height (Y = trainHeight + 0.7)
-    const aBar = new THREE.Mesh(
-      new THREE.BoxGeometry(trainWidth - 0.1, 0.22, 0.2),
-      new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.6 })
-    );
-    aBar.position.set(0, trainHeight + 0.72, 0);
-    archGroup.add(aBar);
-
-    // Hazard stripes
-    for (let s = -2; s <= 2; s++) {
-      const st = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.12, 0.2),
-        new THREE.MeshBasicMaterial({ color: s % 2 === 0 ? 0xFDE047 : 0x050505 })
-      );
-      st.position.set(s * 0.28, trainHeight + 0.72, 0.11);
-      archGroup.add(st);
-    }
-
-    // Flashing red clearance beacon and downward yellow chevron sign
-    const rBeac = new THREE.Mesh(
-      new THREE.SphereGeometry(0.1, 8, 8),
-      new THREE.MeshBasicMaterial({ color: 0xEF4444 })
-    );
-    rBeac.position.set(0, trainHeight + 0.94, 0);
-    archGroup.add(rBeac);
-
-    const sArr = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.8, 0.18),
-      new THREE.MeshBasicMaterial({ color: 0xFDE047 })
-    );
-    sArr.position.set(0, trainHeight + 0.58, 0.11);
-    archGroup.add(sArr);
-
-    archGroup.userData = { isTrainRoofArch: true, passed: false };
-    trainGroup.add(archGroup);
-  }
-
-  // Chance for Boost Rocket or Mochi on train roof
-  if (Math.random() > 0.45) {
-    const isBoost = Math.random() > 0.5;
-    const roofItem = new THREE.Group();
-    if (isBoost) {
-      const rGeo = new THREE.ConeGeometry(0.35, 1.0, 8);
-      const rMat = new THREE.MeshStandardMaterial({ color: 0xEC4899, emissive: 0xDB2777, emissiveIntensity: 0.8 });
-      const r = new THREE.Mesh(rGeo, rMat);
-      r.rotation.x = Math.PI / 4;
-      roofItem.add(r);
-      roofItem.userData = { type: 'item', subType: 'boost', lane };
-    } else {
-      const mGeo = new THREE.SphereGeometry(0.42, 16, 16);
-      mGeo.scale(1.1, 0.8, 1.1);
-      const mMat = new THREE.MeshStandardMaterial({ color: 0x34D399, emissive: 0x10B981, emissiveIntensity: 0.6 });
-      const m = new THREE.Mesh(mGeo, mMat);
-      roofItem.add(m);
-      roofItem.userData = { type: 'item', subType: 'mochi', lane };
-    }
-    roofItem.position.set(0, trainHeight + 0.8, 4.0);
-    trainGroup.add(roofItem);
-  }
-
-  trainGroup.position.set(laneX, 0, atZ);
-  trainsGroup.add(trainGroup);
-
-  activeTrains.push({
-    group: trainGroup,
-    lane,
-    x: laneX,
-    length: trainLength,
-    halfLength: trainLength / 2,
-    roofY: trainHeight,
-    hasRamp,
-    rampLength,
-    passed: false
-  });
-}
-
 // --- Obstacles & Items Spawning ---
 let spawnZ = -30;
-let segmentCounter = 0;
 
-// --- Lane spacing: keep hurdles / gates and trains from overlapping ---
-// 以前は列車と障害物を別々に置いていたので、ジャンプ台の直前にハードル(跳ぶとジャンプ台を飛び越して
-// 列車にぶつかる)、列車の屋根の降り口にゲート、同じ列で列車どうしが重なる、ベリーが列車に埋まる、が起きていた。
-const TRAIN_HALF = 10;      // trainLength / 2
-const RAMP_LEN = 4.8;
-const PAD_DIST = 4.0;       // springboard distance in front of the bumper
-const RAMP_APPROACH = 6;    // 坂の登り口の手前に空ける距離(ハードルを跳んでも坂か屋根に着地できる)
-const TRAIN_EXIT_GAP = 8;   // 列車の後ろ(屋根から降りて着地する所)に空ける距離
+// ハードル: 黒と黄色のしましまの板を2本の柱で支える。
+// 低いハードルは地面すれすれ(ジャンプ)、高いハードルは首の高さに浮いている(くぐる)。
+function buildHurdle(high) {
+  const hurdle = new THREE.Group();
+  const barY = high ? 1.62 : 0.32;
+  const barH = 0.5;
+  const postH = barY + barH / 2 + 0.1;
+  const postMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.6 });
 
-// ジャンプ台の列車の手前は、ハードルを跳んで着地してからジャンプ台を踏める距離を空ける(速いほど長く)
-function padApproach() {
-  return Math.max(26, state.speed * 0.8 + 6);
-}
-function trainSpan(t) {
-  const z = t.group.position.z;
-  return [z - t.halfLength, z + t.halfLength + (t.hasRamp ? t.rampLength : PAD_DIST + 1.0)];
-}
-// その位置が列車・坂・ジャンプ台、または列車の降り口のすぐ後ろ(behindGap)に重なるか
-function trainBlocks(lane, z, behindGap = 0) {
-  return activeTrains.some(t => {
-    if (t.lane !== lane) return false;
-    const [rear, front] = trainSpan(t);
-    return z > rear - behindGap && z < front + 1.5;
+  [-0.95, 0.95].forEach(px => {
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, postH, 10), postMat);
+    post.position.set(px, postH / 2, 0);
+    hurdle.add(post);
+    // Little feet so the hurdle stands on the road
+    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.08, 0.6), postMat);
+    foot.position.set(px, 0.04, 0);
+    hurdle.add(foot);
+    // Red blinking lamp on top of each post
+    const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), new THREE.MeshBasicMaterial({ color: 0xEF4444 }));
+    lamp.position.set(px, postH + 0.06, 0);
+    hurdle.add(lamp);
   });
-}
-function obstacleNear(lane, z, dist) {
-  return activeObstacles.some(o => o.userData.lane === lane && Math.abs(o.position.z - z) < dist);
-}
-// 新しい列車を置けるか: 手前の助走区間・後ろの降り口に障害物がなく、ほかの列車とも重ならない
-function canPlaceTrain(lane, z, hasRamp) {
-  const rear = z - TRAIN_HALF;
-  const front = z + TRAIN_HALF + (hasRamp ? RAMP_LEN : PAD_DIST + 1.0);
-  const approach = hasRamp ? RAMP_APPROACH : padApproach();
-  if (activeObstacles.some(o => o.userData.lane === lane && o.position.z > rear - TRAIN_EXIT_GAP && o.position.z < front + approach)) {
-    return false;
-  }
-  return !activeTrains.some(t => {
-    if (t.lane !== lane) return false;
-    const [r, f] = trainSpan(t);
-    return r < front + approach && f > rear - TRAIN_EXIT_GAP;
+
+  // Striped board (black base + yellow stripes on the front)
+  const board = new THREE.Mesh(new THREE.BoxGeometry(1.9, barH, 0.16), postMat);
+  board.position.set(0, barY, 0);
+  hurdle.add(board);
+  [-0.78, -0.48, 0.48, 0.78].forEach(sx => {
+    const stripe = new THREE.Mesh(new THREE.PlaneGeometry(0.16, barH - 0.06), new THREE.MeshBasicMaterial({ color: 0xFDE047 }));
+    stripe.position.set(sx, barY, 0.085);
+    stripe.rotation.z = -0.5;
+    hurdle.add(stripe);
   });
-}
-function shuffledLanes() {
-  const lanes = [0, 1, 2];
-  for (let i = lanes.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [lanes[i], lanes[j]] = [lanes[j], lanes[i]];
+
+  // Hint arrow painted on the board: ▲ = jump (low hurdle) / ▼ = slide (high hurdle)
+  const arrowShape = new THREE.Shape();
+  arrowShape.moveTo(-0.22, 0); arrowShape.lineTo(0.22, 0); arrowShape.lineTo(0, 0.26); arrowShape.lineTo(-0.22, 0);
+  const arrow = new THREE.Mesh(new THREE.ShapeGeometry(arrowShape), new THREE.MeshBasicMaterial({ color: 0xFFFFFF, side: THREE.DoubleSide }));
+  if (high) {
+    arrow.rotation.z = Math.PI;
+    arrow.position.set(0, barY + 0.13, 0.09);
+  } else {
+    arrow.position.set(0, barY - 0.13, 0.09);
   }
-  return lanes;
+  hurdle.add(arrow);
+  return hurdle;
 }
+
+
 function spawnNextTrackSegment() {
   spawnTrackPieces();
-  // 白黒コースでは、いま出した列車・障害物・アイテムをグレーにする(Moku は対象外)
-  monoize(trainsGroup);
+  // 白黒コースでは、いま出したハードル・アイテムをグレーにする(Moku は対象外)
   monoize(obstaclesGroup);
   monoize(itemsGroup);
 }
 function spawnTrackPieces() {
-  segmentCounter++;
 
-  // Periodically spawn Trains / Subway Cars (every 3rd or 4th segment)
-  if (segmentCounter % 3 === 0 || Math.random() < 0.28) {
-    // 置ける列から選ぶ。ジャンプ台の列車を置ける列がなければ坂つきにし、それも無理なら少し間をあける
-    let hasRamp = Math.random() > 0.35;
-    let lanes = shuffledLanes().filter(l => canPlaceTrain(l, spawnZ, hasRamp));
-    if (!lanes.length && !hasRamp) {
-      hasRamp = true;
-      lanes = shuffledLanes().filter(l => canPlaceTrain(l, spawnZ, true));
-    }
-    if (!lanes.length) {
-      spawnZ -= 8;
-      return;
-    }
-    const trainLane = lanes[0];
-    spawnTrain(trainLane, spawnZ, hasRamp);
-
-    // Occasional double train on adjacent lane
-    let adjacentLane = -1;
-    if (Math.random() < 0.35) {
-      const candLane = trainLane === 1 ? (Math.random() > 0.5 ? 0 : 2) : 1;
-      if (canPlaceTrain(candLane, spawnZ - 12, true)) {
-        adjacentLane = candLane;
-        spawnTrain(adjacentLane, spawnZ - 12, true);
-      }
-    }
-
-    // Spawn berries in one of the open ground lanes (never the lane of the 2nd train)
-    let openLane = (trainLane + 1) % 3;
-    if (openLane === adjacentLane) openLane = (trainLane + 2) % 3;
-    const openLaneX = LANES[openLane];
-    for (let b = 0; b < 4; b++) {
-      if (trainBlocks(openLane, spawnZ + b * 2.5)) continue; // 前の列車の中に埋めない
-      const berryGroup = new THREE.Group();
-      const berryGeo = new THREE.DodecahedronGeometry(0.24);
-      const berryMat = new THREE.MeshStandardMaterial({
-        color: 0xEC4899,
-        emissive: 0xFF1493,
-        emissiveIntensity: 0.85,
-        roughness: 0.2
-      });
-      const berry = new THREE.Mesh(berryGeo, berryMat);
-      berryGroup.add(berry);
-
-      const leafGeo = new THREE.ConeGeometry(0.08, 0.16, 4);
-      const leafMat = new THREE.MeshBasicMaterial({ color: 0x10B981 });
-      const leaf = new THREE.Mesh(leafGeo, leafMat);
-      leaf.position.y = 0.22;
-      berryGroup.add(leaf);
-
-      const ringGeo = new THREE.TorusGeometry(0.3, 0.025, 6, 16);
-      const ringMat = new THREE.MeshBasicMaterial({ color: 0xFDE047 });
-      const ring = new THREE.Mesh(ringGeo, ringMat);
-      ring.rotation.x = Math.PI / 2;
-      berryGroup.add(ring);
-
-      berryGroup.position.set(openLaneX, 0.6, spawnZ + b * 2.5);
-      berryGroup.userData = { type: 'item', subType: 'berry', lane: openLane };
-      itemsGroup.add(berryGroup);
-      activeItems.push(berryGroup);
-    }
-
-    // Chance for a high overhead arch in open ground lane next to train
-    // (not at the tail of an earlier train, and not right after another obstacle)
-    if (Math.random() < 0.45 && !trainBlocks(openLane, spawnZ + 6, TRAIN_EXIT_GAP) && !obstacleNear(openLane, spawnZ + 6, 8)) {
-      const arch = new THREE.Group();
-      [-0.95, 0.95].forEach(px => {
-        const p = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 2.5, 8), new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.7 }));
-        p.position.set(px, 1.25, 0);
-        arch.add(p);
-      });
-      const topBar = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.28, 0.2), new THREE.MeshStandardMaterial({ color: 0x050505 }));
-      topBar.position.set(0, 1.62, 0);
-      arch.add(topBar);
-      const chevron = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.2), new THREE.MeshBasicMaterial({ color: 0xFDE047 }));
-      chevron.position.set(0, 1.62, 0.11);
-      arch.add(chevron);
-      const redB = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), new THREE.MeshBasicMaterial({ color: 0xEF4444 }));
-      redB.position.set(0, 1.88, 0);
-      arch.add(redB);
-
-      arch.position.set(openLaneX, 0, spawnZ + 6);
-      arch.userData = { type: 'obstacle', subType: 'high', lane: openLane, passed: false };
-      obstaclesGroup.add(arch);
-      activeObstacles.push(arch);
-    }
-
-    spawnZ -= 28;
-    return;
-  }
-
-  // 列車・坂・ジャンプ台・列車の降り口に重ならない列を選ぶ
-  const freeLanes = shuffledLanes().filter(l => !trainBlocks(l, spawnZ, TRAIN_EXIT_GAP));
-  if (!freeLanes.length) {
-    spawnZ -= 8;
-    return;
-  }
-  const lane = freeLanes[0];
+  // 障害物はハードルだけ(2026-10-28〜。電車・レーン変更で避ける壁はなくした)
+  //   低いハードル = ジャンプで越える / 高いハードル = スライディングでくぐる
+  const lane = Math.floor(Math.random() * 3);
   const laneX = LANES[lane];
   const typeRand = Math.random();
 
-  if (typeRand < 0.52) {
-    // High Obstacle: Duck/Slide Under (5 rich hazard varieties!)
-    const gate = new THREE.Group();
-    const slideVariant = Math.floor(Math.random() * 5);
-
-    if (slideVariant === 0) {
-      // 1. Hazard Laser Gate with intense glowing RED laser beam
-      [-0.96, 0.96].forEach(px => {
-        const postGeo = new THREE.BoxGeometry(0.18, 2.6, 0.22);
-        const postMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.6 });
-        const post = new THREE.Mesh(postGeo, postMat);
-        post.position.set(px, 1.3, 0);
-        gate.add(post);
-
-        // Hazard yellow/black stripe collars
-        const colGeo = new THREE.BoxGeometry(0.2, 0.4, 0.24);
-        const colMat = new THREE.MeshBasicMaterial({ color: 0xFDE047 });
-        const col = new THREE.Mesh(colGeo, colMat);
-        col.position.set(px, 1.3, 0);
-        gate.add(col);
-
-        // Red flashing beacon
-        const lampGeo = new THREE.SphereGeometry(0.12, 8, 8);
-        const lampMat = new THREE.MeshBasicMaterial({ color: 0xEF4444 });
-        const lamp = new THREE.Mesh(lampGeo, lampMat);
-        lamp.position.set(px, 2.65, 0);
-        gate.add(lamp);
-      });
-
-      // Intense Glowing RED Laser Beam across the lane at neck height (Y = 1.62)
-      const beamGeo = new THREE.CylinderGeometry(0.14, 0.14, 2.1, 8);
-      beamGeo.rotateZ(Math.PI / 2);
-      const beamMat = new THREE.MeshBasicMaterial({ color: 0xEF4444 });
-      const beam = new THREE.Mesh(beamGeo, beamMat);
-      beam.position.y = 1.62;
-      gate.add(beam);
-
-      // Overhead glowing caution arrow sign: ▼ SLIDE ▼
-      const signGeo = new THREE.PlaneGeometry(1.4, 0.36);
-      const signMat = new THREE.MeshBasicMaterial({ color: 0x050505 });
-      const sign = new THREE.Mesh(signGeo, signMat);
-      sign.position.set(0, 2.05, 0.05);
-      gate.add(sign);
-
-      const arrowGeo = new THREE.PlaneGeometry(1.2, 0.26);
-      const arrowMat = new THREE.MeshBasicMaterial({ color: 0xFDE047 });
-      const arrow = new THREE.Mesh(arrowGeo, arrowMat);
-      arrow.position.set(0, 2.05, 0.06);
-      gate.add(arrow);
-
-    } else if (slideVariant === 1) {
-      // 2. Heavy Black Overhead Highway Gantry Sign (LOW CLEARANCE - SLIDE!)
-      [-0.95, 0.95].forEach(px => {
-        const postGeo = new THREE.CylinderGeometry(0.09, 0.09, 2.6, 8);
-        const postMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.6 });
-        const post = new THREE.Mesh(postGeo, postMat);
-        post.position.set(px, 1.3, 0);
-        gate.add(post);
-      });
-
-      // Overhead black cross truss
-      const trussGeo = new THREE.BoxGeometry(2.1, 0.25, 0.3);
-      const trussMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.5 });
-      const truss = new THREE.Mesh(trussGeo, trussMat);
-      truss.position.set(0, 2.1, 0);
-      gate.add(truss);
-
-      // Low-hanging black & hazard yellow barrier plate at Y = 1.62
-      const barPlateGeo = new THREE.BoxGeometry(1.9, 0.55, 0.15);
-      const barPlateMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.7 });
-      const barPlate = new THREE.Mesh(barPlateGeo, barPlateMat);
-      barPlate.position.set(0, 1.62, 0);
-      gate.add(barPlate);
-
-      // Hazard diagonal yellow stripes on the plate
-      for (let s = -3; s <= 3; s++) {
-        const strGeo = new THREE.PlaneGeometry(0.14, 0.52);
-        const strMat = new THREE.MeshBasicMaterial({ color: s % 2 === 0 ? 0xFDE047 : 0x050505 });
-        const str = new THREE.Mesh(strGeo, strMat);
-        str.position.set(s * 0.24, 1.62, 0.08);
-        gate.add(str);
-      }
-
-      // Red flashing beacons
-      [-0.7, 0.7].forEach(rx => {
-        const rLamp = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), new THREE.MeshBasicMaterial({ color: 0xEF4444 }));
-        rLamp.position.set(rx, 2.05, 0.16);
-        gate.add(rLamp);
-      });
-
-    } else if (slideVariant === 2) {
-      // 3. Heavy Black Armored Cyber Steam Pipe (Height = 1.56)
-      [-0.95, 0.95].forEach(px => {
-        const pillarGeo = new THREE.BoxGeometry(0.25, 2.4, 0.25);
-        const pillarMat = new THREE.MeshStandardMaterial({ color: 0x050505 });
-        const pillar = new THREE.Mesh(pillarGeo, pillarMat);
-        pillar.position.set(px, 1.2, 0);
-        gate.add(pillar);
-      });
-
-      // Thick black hazard pipe across the lane
-      const pipeGeo = new THREE.CylinderGeometry(0.22, 0.22, 2.1, 12);
-      pipeGeo.rotateZ(Math.PI / 2);
-      const pipeMat = new THREE.MeshStandardMaterial({ color: 0x080808, roughness: 0.4, metalness: 0.7 });
-      const pipe = new THREE.Mesh(pipeGeo, pipeMat);
-      pipe.position.set(0, 1.56, 0);
-      gate.add(pipe);
-
-      // Yellow hazard caution rings around pipe
-      [-0.5, 0, 0.5].forEach(rx => {
-        const ringGeo = new THREE.CylinderGeometry(0.24, 0.24, 0.18, 12);
-        ringGeo.rotateZ(Math.PI / 2);
-        const ringMat = new THREE.MeshBasicMaterial({ color: 0xFDE047 });
-        const ring = new THREE.Mesh(ringGeo, ringMat);
-        ring.position.set(rx, 1.56, 0);
-        gate.add(ring);
-      });
-
-      // Warning gauge with red light
-      const gaugeGeo = new THREE.SphereGeometry(0.12, 8, 8);
-      const gaugeMat = new THREE.MeshBasicMaterial({ color: 0xEF4444 });
-      const gauge = new THREE.Mesh(gaugeGeo, gaugeMat);
-      gauge.position.set(0, 1.84, 0.12);
-      gate.add(gauge);
-
-    } else if (slideVariant === 3) {
-      // 4. Suspended Black Cyber Cargo Crane with dangling container at Y = 1.62
-      const pCol = new THREE.Mesh(new THREE.BoxGeometry(0.22, 2.8, 0.22), new THREE.MeshStandardMaterial({ color: 0x050505 }));
-      pCol.position.set(-0.95, 1.4, 0);
-      gate.add(pCol);
-
-      const topArm = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.18, 0.25), new THREE.MeshStandardMaterial({ color: 0x050505 }));
-      topArm.position.set(0, 2.5, 0);
-      gate.add(topArm);
-
-      // Black shipping crate hanging above
-      const crate = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.7, 0.9), new THREE.MeshStandardMaterial({ color: 0x0A0A0A, roughness: 0.5 }));
-      crate.position.set(0, 1.65, 0);
-      gate.add(crate);
-
-      // Warning yellow hazard decal
-      const decal = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.25), new THREE.MeshBasicMaterial({ color: 0xFDE047 }));
-      decal.position.set(0, 1.5, 0.46);
-      gate.add(decal);
-
-      // Red flashing strobe lamps underneath
-      [-0.6, 0.6].forEach(cx => {
-        const sLamp = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), new THREE.MeshBasicMaterial({ color: 0xEF4444 }));
-        sLamp.position.set(cx, 1.25, 0.35);
-        gate.add(sLamp);
-      });
-
-    } else {
-      // 5. Heavy Black Underpass Clearance Arch (Y = 1.56)
-      const archFrame = new THREE.Mesh(
-        new THREE.TorusGeometry(1.0, 0.15, 8, 16, Math.PI),
-        new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.6 })
-      );
-      archFrame.position.set(0, 1.2, 0);
-      gate.add(archFrame);
-
-      const clearanceBar = new THREE.Mesh(
-        new THREE.BoxGeometry(1.9, 0.26, 0.16),
-        new THREE.MeshStandardMaterial({ color: 0x050505 })
-      );
-      clearanceBar.position.set(0, 1.56, 0);
-      gate.add(clearanceBar);
-
-      // Downward yellow caution arrows
-      const dSign = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.18), new THREE.MeshBasicMaterial({ color: 0xFDE047 }));
-      dSign.position.set(0, 1.56, 0.09);
-      gate.add(dSign);
-
-      const dSiren = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.22, 8), new THREE.MeshBasicMaterial({ color: 0xEF4444 }));
-      dSiren.position.set(0, 2.2, 0);
-      gate.add(dSiren);
-    }
-
-    gate.position.set(laneX, 0, spawnZ);
-    gate.userData = { type: 'obstacle', subType: 'high', lane, passed: false };
-    obstaclesGroup.add(gate);
-    activeObstacles.push(gate);
-
-  } else if (typeRand < 0.78) {
-    // Low Obstacle: Jump Over (Heavy Black Hazard Barricade)
-    const hurdle = new THREE.Group();
-    const barGeo = new THREE.BoxGeometry(2.0, 0.52, 0.42);
-    const barMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.6 });
-    const bar = new THREE.Mesh(barGeo, barMat);
-    bar.position.y = 0.26;
-    hurdle.add(bar);
-
-    // Hazard yellow/black diagonal warning stripes
-    for (let s = -3; s <= 3; s++) {
-      const stGeo = new THREE.PlaneGeometry(0.18, 0.46);
-      const stMat = new THREE.MeshBasicMaterial({ color: s % 2 === 0 ? 0xFDE047 : 0x050505 });
-      const stripe = new THREE.Mesh(stGeo, stMat);
-      stripe.position.set(s * 0.25, 0.26, 0.22);
-      hurdle.add(stripe);
-    }
-
-    // Left & Right Red Hazard Blinking Beacons
-    [-0.85, 0.85].forEach(lx => {
-      const lampGeo = new THREE.SphereGeometry(0.1, 8, 8);
-      const lampMat = new THREE.MeshBasicMaterial({ color: 0xEF4444 });
-      const lamp = new THREE.Mesh(lampGeo, lampMat);
-      lamp.position.set(lx, 0.56, 0);
-      hurdle.add(lamp);
-    });
-
+  if (typeRand < 0.9) {
+    const high = typeRand < 0.45;
+    const hurdle = buildHurdle(high);
     hurdle.position.set(laneX, 0, spawnZ);
-    hurdle.userData = { type: 'obstacle', subType: 'low', lane, passed: false };
+    hurdle.userData = { type: 'obstacle', subType: high ? 'high' : 'low', lane, passed: false };
     obstaclesGroup.add(hurdle);
     activeObstacles.push(hurdle);
-
-  } else if (typeRand < 0.90) {
-    // Tall Obstacle: Dodge By Switching Lane (Heavy Black Bunker Transformer)
-    const tall = new THREE.Group();
-    const boxGeo = new THREE.BoxGeometry(1.85, 2.5, 1.4);
-    const boxMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.7 });
-    const box = new THREE.Mesh(boxGeo, boxMat);
-    box.position.y = 1.25;
-    tall.add(box);
-
-    // Warning Plate with Yellow/Black Chevrons
-    const plateGeo = new THREE.BoxGeometry(1.65, 0.7, 1.44);
-    const plateMat = new THREE.MeshBasicMaterial({ color: 0xFDE047 });
-    const plate = new THREE.Mesh(plateGeo, plateMat);
-    plate.position.y = 1.3;
-    tall.add(plate);
-
-    // Red Hazard Beacon Light on top
-    const beaconGeo = new THREE.CylinderGeometry(0.15, 0.18, 0.35, 8);
-    const beaconMat = new THREE.MeshBasicMaterial({ color: 0xEF4444 });
-    const beacon = new THREE.Mesh(beaconGeo, beaconMat);
-    beacon.position.y = 2.65;
-    tall.add(beacon);
-
-    tall.position.set(laneX, 0, spawnZ);
-    tall.userData = { type: 'obstacle', subType: 'tall', lane, passed: false };
-    obstaclesGroup.add(tall);
-    activeObstacles.push(tall);
 
   } else {
     // Spawn Power-Up Item: Boost (Rocket) or Mochi (Spring)
@@ -2212,7 +1574,6 @@ function spawnTrackPieces() {
   const berryLane = (lane + (Math.random() > 0.5 ? 1 : 2)) % 3;
   const berryX = LANES[berryLane];
   for (let b = 0; b < 3; b++) {
-    if (trainBlocks(berryLane, spawnZ + b * 2.2)) continue; // 列車の中に埋めない
     const berryGroup = new THREE.Group();
     const berryGeo = new THREE.DodecahedronGeometry(0.24);
     const berryMat = new THREE.MeshStandardMaterial({
@@ -2244,7 +1605,8 @@ function spawnTrackPieces() {
     activeItems.push(berryGroup);
   }
 
-  spawnZ -= 16;
+  // ジャンプの滞空(約0.75秒)で進む距離より間隔を広くとる。速くなっても着地してから次のハードルに備えられる
+  spawnZ -= Math.max(16, state.speed * 0.9);
 }
 
 // --- Player Actions & Controls ---
@@ -2257,11 +1619,18 @@ function changeLane(dir) {
   }
 }
 
-function jump() {
-  if (!state.running || state.paused || state.isJumping) return;
+function jump(superBounce = false) {
+  if (!state.running || state.paused) return;
+  if (state.isJumping) {
+    state.jumpBuffer = 0.25; // remember the tap and jump again right after landing
+    return;
+  }
+  state.jumpBuffer = 0;
   state.isJumping = true;
-  state.playerVelY = state.hasMochiShield ? 16.5 : 12.0; // Higher jump with mochi!
-  sounds.play(state.hasMochiShield ? 'mochi' : 'jump');
+  // Mochi gives one super-high bounce when picked up. Later jumps stay normal so
+  // Moku always lands before the next hurdle (hurdle spacing is based on a normal jump).
+  state.playerVelY = superBounce ? 16.5 : 12.0;
+  sounds.play(superBounce ? 'mochi' : 'jump');
   createJumpPuff(state.playerY);
 }
 
@@ -2337,7 +1706,7 @@ window.addEventListener('keydown', e => {
 // Touch Action Buttons
 document.getElementById('btnTouchLeft').addEventListener('pointerdown', () => changeLane(-1));
 document.getElementById('btnTouchRight').addEventListener('pointerdown', () => changeLane(1));
-document.getElementById('btnTouchJump').addEventListener('pointerdown', jump);
+document.getElementById('btnTouchJump').addEventListener('pointerdown', () => jump());
 document.getElementById('btnTouchSlide').addEventListener('pointerdown', slide);
 
 // --- Power-up Triggers ---
@@ -2356,7 +1725,7 @@ function triggerMochi() {
   shieldMesh.visible = true;
   sounds.play('mochi');
   showBanner('🍡 BOUNCY MOCHI SHIELD ACTIVE!', '#34D399');
-  jump(); // Launch high into the air!
+  if (!state.isJumping) jump(true); // Launch high into the air!
 }
 
 function showBanner(msg, col = '#F59E0B') {
@@ -2416,139 +1785,22 @@ function updateGame(dt) {
   mokuGroup.rotation.y = -laneDelta * 0.15;
   mokuGroup.rotation.z = -laneDelta * 0.12;
 
-  // --- Dynamic Ground & Train Physics ---
-  let currentGroundY = 0;
-  let onTrainThisFrame = false;
+  const currentGroundY = 0;
 
-  for (let i = 0; i < activeTrains.length; i++) {
-    const tr = activeTrains[i];
-    const sameLane = Math.abs(state.currentX - tr.x) < 1.15;
-
-    // Check springboard pad in front of train (when !tr.hasRamp)
-    if (!tr.hasRamp) {
-      const springZ = tr.group.position.z + tr.halfLength + 4.0;
-      if (Math.abs(springZ) < 1.4 && sameLane && state.playerY < 0.6) {
-        state.isJumping = true;
-        state.playerVelY = 16.5;
-        sounds.play('mochi');
-        showBanner('🍡 SPRINGBOARD SUPER JUMP!', '#34D399');
-        createJumpPuff(0.1);
-      }
-    }
-
-    if (sameLane) {
-      const tz = tr.group.position.z;
-      const frontRampZ = tz + tr.halfLength + (tr.hasRamp ? tr.rampLength : 0);
-      const frontBumperZ = tz + tr.halfLength;
-      const rearBumperZ = tz - tr.halfLength;
-
-      // 1. Is Moku on the Boarding Ramp?
-      if (tr.hasRamp && frontRampZ >= 0 && frontBumperZ <= 0) {
-        const rampProgress = (frontRampZ - 0) / tr.rampLength; // 0 to 1
-        const rampHeight = Math.max(0, Math.min(tr.roofY, rampProgress * tr.roofY));
-        currentGroundY = Math.max(currentGroundY, rampHeight);
-        onTrainThisFrame = true;
-      }
-      // 2. Is Moku along the Train Roof?
-      else if (frontBumperZ >= 0 && rearBumperZ <= 0) {
-        if (state.playerY >= tr.roofY - 0.4 || state.onTrain) {
-          // Running along train roof!
-          currentGroundY = Math.max(currentGroundY, tr.roofY);
-          onTrainThisFrame = true;
-
-          // Check if train has roof arch near center (Z=0)
-          if (Math.abs(tz) < 1.0) {
-            for (let c = 0; c < tr.group.children.length; c++) {
-              const child = tr.group.children[c];
-              if (child.userData && child.userData.isTrainRoofArch && !child.userData.passed) {
-                if (state.isSliding) {
-                  child.userData.passed = true;
-                  state.score += 150;
-                  showBanner('💨 TRAIN ROOF SLIDE! +150 PTS', '#06B6D4');
-                  sounds.play('slide');
-                } else if (state.boostTimer > 0) {
-                  child.userData.passed = true;
-                  sounds.play('hit');
-                  showBanner('💥 ROOF ARCH SMASHED BY BOOST!', '#F472B6');
-                } else if (state.hasMochiShield) {
-                  state.hasMochiShield = false;
-                  shieldMesh.visible = false;
-                  sounds.play('mochi');
-                  showBanner('🍡 MOCHI SHIELD BROKE! DUCK NEXT TIME!', '#34D399');
-                  child.userData.passed = true;
-                } else {
-                  triggerGameOver('Hit overhead clearance arch on train roof! Duck next time!');
-                  return;
-                }
-              }
-            }
-          }
-        } else if (state.playerY < tr.roofY - 0.4 && !tr.passed) {
-          // Hitting train bumper at ground level!
-          if (state.boostTimer > 0) {
-            sounds.play('hit');
-            state.score += 500;
-            showBanner('💥 TRAIN SMASHED BY BOOST! +500 PTS', '#F472B6');
-            tr.passed = true;
-          } else if (state.hasMochiShield) {
-            state.hasMochiShield = false;
-            shieldMesh.visible = false;
-            sounds.play('mochi');
-            showBanner('🍡 MOCHI SHIELD BOUNCED ONTO TRAIN!', '#34D399');
-            state.playerY = tr.roofY;
-            state.playerVelY = 3.5;
-            currentGroundY = tr.roofY;
-            onTrainThisFrame = true;
-            tr.passed = true;
-          } else {
-            triggerGameOver('Bumped into a train carriage!');
-            return;
-          }
-        }
-      }
-    }
-  }
-
-  // Detect when Moku first boards a train roof
-  if (onTrainThisFrame && !state.onTrain && currentGroundY >= 1.6) {
-    state.onTrain = true;
-    sounds.play('lane');
-    state.score += 150;
-    showBanner('🚄 TRAIN ROOF RUNNING! +150 PTS', '#06B6D4');
-    for (let s = 0; s < 8; s++) {
-      const spGeo = new THREE.SphereGeometry(0.12, 6, 6);
-      const spMat = new THREE.MeshBasicMaterial({ color: 0x22D3EE });
-      const sp = new THREE.Mesh(spGeo, spMat);
-      sp.position.set(state.currentX + (Math.random() - 0.5) * 0.8, 1.88, (Math.random() - 0.5) * 0.8);
-      sp.userData = { vx: (Math.random() - 0.5) * 3, vy: Math.random() * 2 + 1, vz: 3, life: 0.4 };
-      particleGroup.add(sp);
-    }
-  } else if (!onTrainThisFrame && state.onTrain) {
-    state.onTrain = false;
-  }
-
-  // Jump physics with dynamic ground height
+  // Jump physics
   if (state.isJumping) {
     state.playerY += state.playerVelY * dt;
     state.playerVelY -= 32 * dt; // Gravity
+    state.jumpBuffer = Math.max(0, state.jumpBuffer - dt);
     if (state.playerY <= currentGroundY) {
       state.playerY = currentGroundY;
       state.playerVelY = 0;
       state.isJumping = false;
       createJumpPuff(currentGroundY);
+      if (state.jumpBuffer > 0) jump();
     }
   } else {
-    if (state.playerY < currentGroundY) {
-      // Climb ramp or step up
-      state.playerY += (currentGroundY - state.playerY) * 22 * dt;
-      if (Math.abs(state.playerY - currentGroundY) < 0.05) {
-        state.playerY = currentGroundY;
-      }
-    } else if (state.playerY > currentGroundY + 0.1) {
-      // Stepped off end of train roof or dropped down!
-      state.isJumping = true;
-      state.playerVelY = 0;
-    }
+    state.playerY = currentGroundY;
   }
   mokuGroup.position.y = 0.88 + state.playerY;
 
@@ -2590,44 +1842,8 @@ function updateGame(dt) {
     sounds.play('footstep');
   }
 
-  // Move road, track items, trains, and obstacles forward towards camera
+  // Move road, track items, and obstacles forward towards camera
   const moveZ = effectiveSpeed * dt;
-
-  // Move active trains
-  for (let i = activeTrains.length - 1; i >= 0; i--) {
-    const tr = activeTrains[i];
-    tr.group.position.z += moveZ;
-
-    // Check items attached to train roofs
-    const tg = tr.group;
-    for (let c = tg.children.length - 1; c >= 0; c--) {
-      const child = tg.children[c];
-      if (child.userData && child.userData.type === 'item') {
-        const itemWorldPos = new THREE.Vector3();
-        child.getWorldPosition(itemWorldPos);
-        const distToMoku = itemWorldPos.distanceTo(mokuGroup.position);
-        if (distToMoku < 1.4) {
-          if (child.userData.subType === 'berry') {
-            state.berriesCollected++;
-            state.score += 25 * state.berryMultiplier;
-            sounds.play('berry');
-            progress.totalBerries++;
-            saveProgress(progress);
-          } else if (child.userData.subType === 'boost') {
-            triggerBoost();
-          } else if (child.userData.subType === 'mochi') {
-            triggerMochi();
-          }
-          tg.remove(child);
-        }
-      }
-    }
-
-    if (tr.group.position.z > 35) {
-      trainsGroup.remove(tr.group);
-      activeTrains.splice(i, 1);
-    }
-  }
 
   // Move active obstacles
   for (let i = activeObstacles.length - 1; i >= 0; i--) {
@@ -2653,7 +1869,8 @@ function updateGame(dt) {
         }
 
         // Jump over low obstacles
-        if (obs.userData.subType === 'low' && state.playerY > 0.8) {
+        // 板の上端は 0.57。足が板より上にあれば越えたことにする(以前の 0.8 は見た目より厳しかった)
+        if (obs.userData.subType === 'low' && state.playerY > 0.55) {
           isSafe = true;
         }
         // Slide under high obstacles
@@ -2800,10 +2017,10 @@ function startGame(stageKey) {
   state.playerY = 0;
   state.playerVelY = 0;
   state.isJumping = false;
+  state.jumpBuffer = 0;
   state.isSliding = false;
   state.hasMochiShield = false;
   state.boostTimer = 0;
-  state.onTrain = false;
   shieldMesh.visible = false;
 
   const st = STAGES[stageKey] || STAGES[1];
@@ -2812,9 +2029,7 @@ function startGame(stageKey) {
   // Apply stage visual theme
   applyStageLook(st);
 
-  // Clear existing trains, obstacles and items
-  activeTrains.forEach(t => trainsGroup.remove(t.group));
-  activeTrains.length = 0;
+  // Clear existing obstacles and items
   activeObstacles.forEach(o => obstaclesGroup.remove(o));
   activeObstacles.length = 0;
   activeItems.forEach(item => itemsGroup.remove(item));
@@ -2985,8 +2200,8 @@ function triggerGameOver(reason) {
   document.getElementById('gameOverReason').textContent = reason;
   // 白黒コースでは色で見分けられないので、明るさで説明する
   document.getElementById('goodItemTip').innerHTML = isMonoStage()
-    ? '• <strong>BRIGHT WHITE = GOOD:</strong> Shiny Berries 🫐 with rings, Mochi Shields 🍡, Boost Rockets 🚀, and Ramps ▲ are 100% safe to collect!'
-    : '• <strong>GLOWING COLORFUL = GOOD:</strong> Pink Berries 🫐, Mochi Shields 🍡, Boost Rockets 🚀, and Cyan Ramps ▲ are 100% safe to collect!';
+    ? '• <strong>BRIGHT WHITE = GOOD:</strong> Shiny Berries 🫐 with rings, Mochi Shields 🍡, and Boost Rockets 🚀 are 100% safe to collect!'
+    : '• <strong>GLOWING COLORFUL = GOOD:</strong> Pink Berries 🫐, Mochi Shields 🍡, and Boost Rockets 🚀 are 100% safe to collect!';
   document.getElementById('goFinalScore').textContent = state.score.toLocaleString();
   document.getElementById('goDistance').textContent = Math.round(state.distance) + 'm';
   document.getElementById('goBerries').textContent = state.berriesCollected;
