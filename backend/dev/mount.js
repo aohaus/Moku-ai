@@ -8,6 +8,7 @@
 
 const { createAccountApi } = require("../src/accountApi");
 const { createMatchApi } = require("../src/matchApi");
+const { createChallengeApi } = require("../src/challengeApi");
 const { createMemoryStore } = require("../src/memoryStore");
 
 module.exports = function mountDevAccounts(app) {
@@ -29,6 +30,7 @@ module.exports = function mountDevAccounts(app) {
   });
   // Online matches share the same accounts and store (as in production).
   const matchHandler = createMatchApi(store, { authSecret: DEV_SECRET });
+  const challengeHandler = createChallengeApi(store, { authSecret: DEV_SECRET });
 
   // shared/moku-errors.js posts JSON as text/plain (keeps the request "simple").
   app.post("/errors", require("express").text({ type: "text/plain" }));
@@ -42,8 +44,8 @@ module.exports = function mountDevAccounts(app) {
     });
     res.status(result.statusCode).set(result.headers || {}).send(result.body);
   });
-  app.all(["/matches", "/matches/:id", "/matches/:id/move", "/matches/:id/resign"], async (req, res) => {
-    const result = await matchHandler({
+  app.all(["/matches", "/matches/:id", "/matches/:id/move", "/matches/:id/resign", "/challenges", "/challenges/:id", "/challenges/:id/result"], async (req, res) => {
+    const result = await (req.path.startsWith("/challenges") ? challengeHandler : matchHandler)({
       requestContext: { http: { method: req.method } },
       rawPath: req.path,
       queryStringParameters: req.query,

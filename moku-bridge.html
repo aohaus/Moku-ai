@@ -409,6 +409,39 @@ body.on-title #controls { display: none; }
 .reward-lines div.lucky-line.record { animation: recordPop 0.9s ease-in-out 2; }
 @keyframes recordPop { 50% { transform: scale(1.04); box-shadow: 0 0 0 3px #8CC46A, 0 0 14px rgba(140,196,106,0.6); } }
 #resultIcon { font-size: 48px; line-height: 1; margin-bottom: 4px; }
+.reward-lines div.chal-line { background: #EAF8FB; box-shadow: 0 0 0 2px #A6E3EC; justify-content: center; text-align: center; }
+.reward-lines div.chal-line span:last-child { color: var(--ink); }
+
+/* ---------- Challenge a Friend ---------- */
+body.challenge #hintBtn, body.challenge #carpetBtn { display: none; }
+.badge-n {
+  display: inline-block; min-width: 20px; padding: 1px 6px; margin-left: 4px;
+  border-radius: 999px; background: #E8505B; color: #FFFFFF;
+  font-size: 13px; font-weight: 900; text-shadow: none; vertical-align: 2px;
+}
+.chal-sec { margin-top: 14px; text-align: left; }
+.chal-sec h3 { font-size: 15px; font-weight: 900; color: var(--lo); margin: 0 0 6px 2px; }
+.chal-list { display: flex; flex-direction: column; gap: 8px; }
+.chal-row {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 8px 10px; border-radius: 14px;
+  background: #FFFFFF; box-shadow: 0 0 0 2px #EADBC2;
+  color: var(--ink); text-align: left;
+}
+button.chal-row:active:not(:disabled) { transform: scale(0.98); }
+button.chal-row:disabled { opacity: 0.6; }
+.chal-row.turn { box-shadow: 0 0 0 2px var(--hi), 0 0 10px rgba(94,214,232,0.55); }
+.chal-row.won { background: #FFF6D6; box-shadow: 0 0 0 2px #F0CF7A; }
+.chal-row .av { flex: none; width: 44px; height: 44px; border-radius: 12px; background: radial-gradient(circle at 50% 70%, #FFF1D6, #F2C98A); position: relative; overflow: hidden; }
+.chal-row .av img, .chal-row .av svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.chal-row .who { flex: 1; min-width: 0; }
+.chal-row .nm { font-size: 15px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chal-row .nm small { font-size: 11px; font-weight: 700; opacity: 0.55; margin-left: 4px; }
+.chal-row .st { font-size: 12.5px; font-weight: 800; color: #8A6A52; }
+.chal-row.turn .st { color: var(--lo); }
+.chal-row .on { color: #3E7A3A; font-weight: 900; }
+.chal-row .go { flex: none; font-size: 13px; font-weight: 900; padding: 6px 12px; border-radius: 999px; background: linear-gradient(180deg, #8FE6F2, #39B5C9); color: #FFFFFF; text-shadow: 0 1px 0 var(--lo); }
+.chal-empty { padding: 12px; border-radius: 14px; background: #F6EBD6; color: #8A6A52; font-size: 13.5px; font-weight: 700; text-align: center; }
 
 #toast {
   position: fixed; left: 50%; top: 42%;
@@ -438,6 +471,7 @@ body.on-title #controls { display: none; }
 </style>
 <script src="shared/moku-account.js?v=20261026" data-mode="background"></script>
 <script src="shared/moku-moint.js?v=20261026" data-mode="none"></script>
+<script src="shared/moku-random.js?v=20261030"></script>
 </head>
 <body class="on-title">
 
@@ -445,7 +479,7 @@ body.on-title #controls { display: none; }
 
 <div id="title-frame"></div>
 <a id="hub-link" href="index.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.5.1 · Updated Oct 25, 2026</div>
+<div id="buildInfo">v0.6.0 · Updated Oct 30, 2026</div>
 
 <!-- Item icons, reused by the HUD and the shop -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -473,6 +507,7 @@ body.on-title #controls { display: none; }
   <p id="titleTag">Pick the right glass. Cross the sky!</p>
   <div class="titleMenu">
     <button class="titleMenuItem primary" id="playBtn" type="button">▶ Play</button>
+    <button class="titleMenuItem" id="friendBtn" type="button" hidden>👫 Challenge a Friend</button>
     <button class="titleMenuItem" id="titleShopBtn" type="button">Moint Shop</button>
     <button class="titleMenuItem" id="helpBtn" type="button">How to Play</button>
   </div>
@@ -541,6 +576,7 @@ body.on-title #controls { display: none; }
       <li><span>💡</span><span><b>Hint</b>: the strong panel glows for a moment.</span></li>
       <li><span>🎁</span><span>Having a tough time? Miss a lot on one bridge and <b>Hint</b> and <b>Magic Carpet</b> go <b>50% OFF</b> (one of each).</span></li>
       <li><span>✨</span><span><b>Magic Carpet</b>: flies Moku 3 glasses ahead. The glasses you skip stay a secret!</span></li>
+      <li><span>👫</span><span><b>Challenge a Friend</b>: you both cross the same new bridge. Fewer falls wins! No helpers, and falls cost no Moints.</span></li>
       <li><span>🍀</span><span><b>Luckiest Steps</b>: lucky guesses in a row. Beat your record and show it off in your profile!</span></li>
     </ul>
     <div class="card-actions">
@@ -559,6 +595,24 @@ body.on-title #controls { display: none; }
       <button class="btn" id="resultMain" type="button">Next Bridge</button>
       <button class="btn ghost" id="resultShop" type="button">Moint Shop</button>
       <button class="btn ghost" id="resultTitleBtn" type="button">Title</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="chalOverlay" role="dialog" aria-label="Challenge a Friend">
+  <div class="card">
+    <h2>Challenge a Friend</h2>
+    <p class="sub">You both cross the same new bridge. Fewer falls wins!</p>
+    <div class="chal-sec">
+      <h3>Your challenges</h3>
+      <div class="chal-list" id="chalList"></div>
+    </div>
+    <div class="chal-sec">
+      <h3>Challenge a friend</h3>
+      <div class="chal-list" id="chalPlayers"></div>
+    </div>
+    <div class="card-actions">
+      <button class="btn ghost" id="chalClose" type="button">Close</button>
     </div>
   </div>
 </div>
@@ -673,6 +727,12 @@ body.on-title #controls { display: none; }
     }
   }
   ensureBridge();
+
+  // 今渡っている橋。ふだんは progress そのもの。友達とのチャレンジ中は
+  // progress.challenges[id](同じ形: pattern / solved / broken / tries)
+  var B = progress;
+  var CH = null;              // { id, name, tag, st }
+  function stepsNow() { return CH ? CH.st.steps : stepsFor(progress.bridge); }
 
   function bridgeStats() {
     var b = progress.bridgeStats;
@@ -895,7 +955,7 @@ body.on-title #controls { display: none; }
 
   var GOAL_STAND = 1.0, GOAL_ARCH = 1.9;   // ゴール台の手前からの距離: Mokuが立つ位置 / アーチ
   function rowZ(i) { return (i + 1) * SP; }
-  function goalZ() { return rowZ(stepsFor(progress.bridge) - 1) + SP; }
+  function goalZ() { return rowZ(stepsNow() - 1) + SP; }
 
   var cam = { z: -CAM_BACK, x: 0 };
   function project(X, Y, Z) {
@@ -944,8 +1004,8 @@ body.on-title #controls { display: none; }
   }
 
   function startRun() {
-    ensureBridge();
-    progress.tries = (progress.tries || 0) + 1;
+    if (!CH) ensureBridge();
+    B.tries = (B.tries || 0) + 1;
     progress.totalTries = (progress.totalTries || 0) + 1;
     saveAll();
     step = 0;
@@ -956,31 +1016,35 @@ body.on-title #controls { display: none; }
     closeOverlay('resultOverlay');
     buildDots();
     updateHud();
-    var known = progress.solved.filter(Boolean).length;
+    var known = B.solved.filter(Boolean).length;
     $('stickHelp').hidden = (progress.totalTries || 0) > 2;
-    if (progress.tries === 1) hudMsg('Which glass is strong? Pick one!', 2200);
+    if (CH) hudMsg(B.tries === 1 ? 'Same bridge as ' + CH.name + '! Fewest falls wins.' :
+      'Falls: ' + B.falls + '. Moku remembers ' + known + ' panel' + (known === 1 ? '' : 's') + '!', 2600);
+    else if (B.tries === 1) hudMsg('Which glass is strong? Pick one!', 2200);
     else if (onSale('hint') || onSale('carpet')) hudMsg('🎁 Tough bridge! Helpers are 50% OFF!', 2600);
-    else hudMsg('Moku remembers ' + known + ' panel' + (known === 1 ? '' : 's') + '. Try #' + progress.tries + '!', 2200);
+    else hudMsg('Moku remembers ' + known + ' panel' + (known === 1 ? '' : 's') + '. Try #' + B.tries + '!', 2200);
   }
 
   function toTitle() {
+    leaveChallenge();
     state = STATE.TITLE;
     body.classList.add('on-title');
     closeOverlay('resultOverlay');
     resetMoku();
     renderMoints();
+    refreshFriendBadge();
   }
 
   function buildDots() {
-    var n = stepsFor(progress.bridge);
+    var n = stepsNow();
     var dots = $('stepDots');
     dots.innerHTML = '';
     for (var i = 0; i < n; i++) dots.appendChild(document.createElement('i'));
     var g = document.createElement('i'); g.className = 'goal'; dots.appendChild(g);
   }
   function updateHud() {
-    var n = stepsFor(progress.bridge);
-    $('hudBridge').textContent = 'BRIDGE ' + progress.bridge;
+    var n = stepsNow();
+    $('hudBridge').textContent = CH ? 'VS ' + CH.name + ' · FALLS ' + B.falls : 'BRIDGE ' + progress.bridge;
     $('hudStep').textContent = step >= n ? 'Goal!' : 'Step ' + (step + 1) + ' / ' + n;
     var dots = $('stepDots').children;
     for (var i = 0; i < n; i++) {
@@ -990,9 +1054,9 @@ body.on-title #controls { display: none; }
   }
   function canPick() { return state === STATE.READY; }
   function renderItems() {
-    var n = stepsFor(progress.bridge);
+    var n = stepsNow();
     var ready = canPick() && step < n;
-    var known = ready && progress.solved[step];
+    var known = ready && B.solved[step];
     $('stick').classList.toggle('off', !ready);
     ['hint', 'carpet'].forEach(function (id) {
       var have = progress.items[id] || 0;
@@ -1006,7 +1070,7 @@ body.on-title #controls { display: none; }
       if (sale && !tag) $(id + 'Btn').insertAdjacentHTML('afterbegin', '<span class="sale-tag">50% OFF</span>');
       if (!sale && tag) tag.remove();
       var unknownAhead = false;
-      for (var r = step; ready && r < Math.min(n, step + CARPET_JUMP); r++) if (!progress.solved[r]) unknownAhead = true;
+      for (var r = step; ready && r < Math.min(n, step + CARPET_JUMP); r++) if (!B.solved[r]) unknownAhead = true;
       var usable = ready && (id === 'carpet' ? unknownAhead : !known) && (have > 0 || wallet.balance >= priceOf(id));
       if (id === 'hint' && hintGlow.row === step && hintGlow.t > 0) usable = false;
       $(id + 'Btn').disabled = !usable;
@@ -1017,17 +1081,17 @@ body.on-title #controls { display: none; }
   // ---------- picking ----------
   function pick(side) {
     if (!canPick()) return;
-    var n = stepsFor(progress.bridge);
+    var n = stepsNow();
     if (step >= n) return;
-    var safe = progress.pattern[step] === side;
-    if (!progress.solved[step] && !run.hinted[step]) {
+    var safe = B.pattern[step] === side;
+    if (!CH && !B.solved[step] && !run.hinted[step]) {
       // まだ分からないガラスを自分で選んだ回数とハズレ(お助けセールの判定)
       var b = bridgeStats();
       b.guesses++;
       if (!safe) b.misses++;
       if (missRateHigh(b)) b.saleOn = true;
     }
-    if (!progress.solved[step]) {
+    if (!B.solved[step]) {
       // ヒントを使った段は、光が消えてから選んでもラッキーにしない
       if (safe && !run.hinted[step]) {
         run.lucky++;
@@ -1051,10 +1115,10 @@ body.on-title #controls { display: none; }
     beginHop(step, side, safe ? 'safe' : 'break', false);
   }
   function useItem(id) {
-    if (!canPick()) return;
-    var n = stepsFor(progress.bridge);
+    if (!canPick() || CH) return;   // チャレンジは道具なし(同じ条件で勝負)
+    var n = stepsNow();
     if (step >= n) return;
-    if (id === 'hint' && progress.solved[step]) return;
+    if (id === 'hint' && B.solved[step]) return;
     if (id === 'carpet' && $('carpetBtn').disabled) return;
     if (!(progress.items[id] > 0)) {
       // 持っていなければその場で買って使う
@@ -1069,7 +1133,7 @@ body.on-title #controls { display: none; }
       hintGlow.t = 2.2;
       sfx.hint();
       hudMsg('Look closely… one panel is shining!', 2000);
-      for (var i = 0; i < 14; i++) spawnSparkle(progress.pattern[step] ? LANE_X : -LANE_X, rowZ(step), '#FFF3B0');
+      for (var i = 0; i < 14; i++) spawnSparkle(B.pattern[step] ? LANE_X : -LANE_X, rowZ(step), '#FFF3B0');
     } else {
       run.carpets++;
       run.streak = 0;
@@ -1081,7 +1145,7 @@ body.on-title #controls { display: none; }
         beginHop(n, 0, 'safe', true);
       } else {
         hudMsg('Whoosh! 3 glasses ahead!', 1600);
-        beginHop(target, progress.pattern[target], 'safe', true);
+        beginHop(target, B.pattern[target], 'safe', true);
       }
     }
     renderItems();
@@ -1092,8 +1156,8 @@ body.on-title #controls { display: none; }
     hop = {
       row: row, side: side, outcome: outcome, carpet: carpet,
       fromX: moku.x, fromZ: moku.z,
-      toX: row >= stepsFor(progress.bridge) ? 0 : (side ? LANE_X : -LANE_X),
-      toZ: row >= stepsFor(progress.bridge) ? goalZ() - 0.5 + GOAL_STAND : rowZ(row),
+      toX: row >= stepsNow() ? 0 : (side ? LANE_X : -LANE_X),
+      toZ: row >= stepsNow() ? goalZ() - 0.5 + GOAL_STAND : rowZ(row),
       t: 0, dur: carpet ? 1.5 : 0.46
     };
     if (carpet) carpetFx = { life: 1 };
@@ -1102,7 +1166,7 @@ body.on-title #controls { display: none; }
   }
 
   function landHop() {
-    var n = stepsFor(progress.bridge);
+    var n = stepsNow();
     var h = hop;
     hop = null;
     moku.x = h.toX; moku.z = h.toZ; moku.y = 0;
@@ -1119,7 +1183,7 @@ body.on-title #controls { display: none; }
       return;
     }
     if (h.outcome === 'safe') {
-      progress.solved[h.row] = true;
+      B.solved[h.row] = true;
       saveAll();
       moku.squash = 1;
       sfx.glass();
@@ -1135,11 +1199,18 @@ body.on-title #controls { display: none; }
       }
     } else {
       // ハズレ: パネルが割れて雲の上へふわっと落ちる
-      progress.solved[h.row] = true;
-      progress.broken[h.row] = h.side;
-      refreshWallet();
-      run.penalty = Math.min(FALL_PENALTY, wallet.balance);
-      if (run.penalty) addMoints(-run.penalty); else saveAll();
+      B.solved[h.row] = true;
+      B.broken[h.row] = h.side;
+      if (CH) {
+        // チャレンジでは Moint は減らさず、落ちた回数を数える(すぐ保存。閉じても消えない)
+        B.falls = (B.falls || 0) + 1;
+        run.penalty = 0;
+        saveAll();
+      } else {
+        refreshWallet();
+        run.penalty = Math.min(FALL_PENALTY, wallet.balance);
+        if (run.penalty) addMoints(-run.penalty); else saveAll();
+      }
       state = STATE.FALL;
       fallTimer = 0;
       moku.vy = 1.2;
@@ -1178,15 +1249,16 @@ body.on-title #controls { display: none; }
   // ---------- results ----------
   function showClear() {
     state = STATE.RESULT;
-    var n = stepsFor(progress.bridge);
+    if (CH) { showChallengeClear(); return; }
+    var n = stepsNow();
     var base = GOAL_MOINTS + (n - stepsFor(1)) * 10;   // 100 / 110 / 120
     var lucky = run.lucky * LUCKY_MOINTS;
-    var first = progress.tries === 1 ? 50 : 0;
+    var first = B.tries === 1 ? 50 : 0;
     var total = base + lucky + first;
     progress.cleared = (progress.cleared || 0) + 1;
     if (first) progress.bestFirstTry = (progress.bestFirstTry || 0) + 1;
     var crossedBridge = progress.bridge;
-    var tries = progress.tries;
+    var tries = B.tries;
     progress.bridge += 1;
     progress.pattern = null;
     ensureBridge();      // 次の橋を用意(saveAll も呼ばれる)
@@ -1205,6 +1277,7 @@ body.on-title #controls { display: none; }
     $('rewardLines').innerHTML = html;
     $('rewardLines').style.display = '';
     $('resultMain').textContent = 'Next Bridge ▶';
+    $('resultShop').style.display = '';
     openOverlay('resultOverlay');
     if (paid) countUp($('countUp'), paid);
   }
@@ -1221,11 +1294,20 @@ body.on-title #controls { display: none; }
   }
   function showFall() {
     state = STATE.RESULT;
-    var known = progress.solved.filter(Boolean).length;
-    var n = stepsFor(progress.bridge);
+    var known = B.solved.filter(Boolean).length;
+    var n = stepsNow();
     $('resultIcon').textContent = '☁️';
     $('resultTitle').textContent = 'Oops! Poof!';
     $('resultSub').textContent = 'Moku landed in the fluffy clouds. He now knows ' + known + ' of ' + n + ' steps. You can do it!';
+    $('resultShop').style.display = CH ? 'none' : '';
+    if (CH) {
+      $('resultSub').textContent = 'Moku landed in the fluffy clouds. He now knows ' + known + ' of ' + n + ' steps. Keep going!';
+      $('rewardLines').innerHTML = '<div class="total"><span>Falls on ' + esc(CH.name) + '\'s bridge</span><span>' + B.falls + '</span></div>' + luckyLine();
+      $('rewardLines').style.display = '';
+      $('resultMain').textContent = '↻ Try Again';
+      openOverlay('resultOverlay');
+      return;
+    }
     var html = run.penalty ? '<div class="total"><span>Fall</span><span>−' + run.penalty + ' Moints</span></div>' : '';
     html += luckyLine();
     if (onSale('hint') || onSale('carpet')) {
@@ -1495,9 +1577,9 @@ body.on-title #controls { display: none; }
     var z0 = Math.max(z - PD / 2, cam.z + NEAR), z1 = z + PD / 2;
     if (z1 <= z0) return;
     var detail = z - cam.z > NEAR;
-    var broken = progress.broken[row] === side;
-    var known = progress.solved[row];
-    var isSafe = progress.pattern[row] === side;
+    var broken = B.broken[row] === side;
+    var known = B.solved[row];
+    var isSafe = B.pattern[row] === side;
     // steel-ish wooden frame under the glass
     var pts = quad(x0, x1, z0, z1, 0);
     if (broken) {
@@ -1620,7 +1702,7 @@ body.on-title #controls { display: none; }
   }
 
   function drawRopes(zStart, zEnd) {
-    var n = stepsFor(progress.bridge);
+    var n = stepsNow();
     [-1.62, 1.62].forEach(function (x) {
       // posts
       for (var i = -1; i <= n; i++) {
@@ -1832,7 +1914,7 @@ body.on-title #controls { display: none; }
     drawSky();
     drawCloudSea();
 
-    var n = stepsFor(progress.bridge);
+    var n = stepsNow();
     var gz = goalZ();
     // 落ちているMokuと破片は橋より先(=下)に描く
     if (state === STATE.FALL) {
@@ -1870,9 +1952,307 @@ body.on-title #controls { display: none; }
   requestAnimationFrame(frame);
 
   // ================================================================
+  // 友達とチャレンジ(同じ橋で勝負。backend の /challenges、API_SPEC.md「Challenges」)
+  // サーバーが配ったシードから shared/moku-random.js で2人とも同じ橋を作り、
+  // それぞれ好きな時に渡る。落ちた回数が少ない方の勝ち。道具なし・落ちても Moint は減らない。
+  //   progress.challenges[id] … { steps, seed, name, tag, pattern, solved, broken, tries, falls, done, sent, forgetAt }
+  //   progress.chalPaid[key]  … 払い済み('<id>:finish' / '<id>:win')→ 忘れてよい時刻
+  //   progress.chalWins       … { day, by: { tag: n } }(同じ友達への勝ちで Moint がもらえるのは1日2回まで)
+  // ================================================================
+  var CHAL_FINISH_MOINTS = 20, CHAL_WIN_MOINTS = 30, CHAL_WINS_PER_FRIEND = 2;
+  var CHAL_STEPS = 9;
+  var CHAL_KEEP_MS = 15 * 86400000;   // サーバーは最後の変化から14日で消すので、それより少し長く覚えておく
+
+  function esc(t) {
+    return String(t).replace(/[&<>"']/g, function (c) { return '&#' + c.charCodeAt(0) + ';'; });
+  }
+  function onlineReady() {
+    var A = window.MokuAccount;
+    return !!(A && A.isEnabled() && A.getUser() && window.MokuRandom);
+  }
+  // Rejects with { code, status, data }; code 'offline' when the request never got through
+  function chalApi(method, path, bodyObj) {
+    var A = window.MokuAccount;
+    var headers = { authorization: 'Bearer ' + A.getToken() };
+    if (bodyObj) headers['content-type'] = 'application/json';
+    return fetch(A.apiBase() + path, { method: method, headers: headers, body: bodyObj ? JSON.stringify(bodyObj) : undefined })
+      .then(function (res) {
+        return res.json().catch(function () { return {}; }).then(function (data) {
+          if (res.ok) return data;
+          var err = new Error(data.message || 'Something went wrong.');
+          err.code = data.error || 'http_' + res.status; err.status = res.status; err.data = data;
+          throw err;
+        });
+      }, function () {
+        var err = new Error("You're offline.");
+        err.code = 'offline';
+        throw err;
+      });
+  }
+  function todayKey() {
+    var d = new Date();
+    return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+  }
+  function pruneChallenges() {
+    var now = Date.now();
+    if (!progress.challenges) progress.challenges = {};
+    if (!progress.chalPaid) progress.chalPaid = {};
+    Object.keys(progress.challenges).forEach(function (id) { if (!(progress.challenges[id].forgetAt > now)) delete progress.challenges[id]; });
+    Object.keys(progress.chalPaid).forEach(function (k) { if (!(progress.chalPaid[k] > now)) delete progress.chalPaid[k]; });
+  }
+  pruneChallenges();
+
+  function leaveChallenge() {
+    CH = null;
+    B = progress;
+    body.classList.remove('challenge');
+  }
+  // The bridge from the server's seed: the same on every device
+  function playChallenge(c) {
+    var st = progress.challenges[c.id];
+    if (!st || st.seed !== c.seed) {
+      var rng = MokuRandom.create('moku-bridge/' + c.seed);
+      st = { steps: c.params.steps, seed: c.seed, pattern: [], solved: [], broken: [], tries: 0, falls: 0,
+        done: false, sent: false, forgetAt: Date.now() + CHAL_KEEP_MS };
+      for (var i = 0; i < st.steps; i++) { st.pattern.push(rng.int(0, 1)); st.solved.push(false); st.broken.push(-1); }
+      progress.challenges[c.id] = st;
+    }
+    st.name = c.opponent.name;
+    st.tag = c.opponent.tag;
+    CH = { id: c.id, name: c.opponent.name, tag: c.opponent.tag, st: st };
+    B = st;
+    body.classList.add('challenge');
+    closeOverlay('chalOverlay');
+    saveAll();
+    startRun();
+  }
+
+  // Each reward once per challenge (marked in the save, so other devices don't pay it again)
+  function payOnce(key, n) {
+    if (progress.chalPaid[key]) return -1;
+    progress.chalPaid[key] = Date.now() + CHAL_KEEP_MS;
+    var got = window.MokuMoint ? MokuMoint.earn(GAME_ID, n) : (addMoints(n), n);
+    refreshWallet();
+    if (window.MokuMoint) progress.mointsEarned = (progress.mointsEarned || 0) + got;
+    saveAll();
+    renderMoints();
+    return got;
+  }
+  function payWin(c) {
+    if (c.winner !== 'you' || progress.chalPaid[c.id + ':win']) return -1;
+    var w = progress.chalWins;
+    if (!w || w.day !== todayKey()) w = progress.chalWins = { day: todayKey(), by: {} };
+    var tag = c.opponent.tag;
+    if ((w.by[tag] || 0) >= CHAL_WINS_PER_FRIEND) {
+      progress.chalPaid[c.id + ':win'] = Date.now() + CHAL_KEEP_MS;
+      saveAll();
+      return 0;
+    }
+    w.by[tag] = (w.by[tag] || 0) + 1;
+    return payOnce(c.id + ':win', CHAL_WIN_MOINTS);
+  }
+
+  function outcomeText(c) {
+    var name = esc(c.opponent.name);
+    if (c.status !== 'done') return c.yourTurn ? 'Your turn!' : 'Waiting for ' + name + '…';
+    var score = ' (' + (c.yourResult ? c.yourResult.falls : '?') + ' vs ' + (c.theirResult ? c.theirResult.falls : '?') + ' falls)';
+    if (c.winner === 'you') return 'You won! 🎉' + score;
+    if (c.winner === 'them') return name + ' won' + score;
+    return "It's a tie!" + score;
+  }
+  function fallsText(n) { return n === 0 ? 'no falls' : n + ' fall' + (n === 1 ? '' : 's'); }
+
+  // Sends the falls once. Resolves with the challenge as the server has it now.
+  function sendResult(id, st) {
+    return chalApi('POST', '/challenges/' + id + '/result', { result: { falls: st.falls || 0 } }).then(function (res) {
+      st.sent = true; saveAll();
+      return res.challenge;
+    }, function (err) {
+      if (err.code === 'already_played' && err.data && err.data.challenge) {
+        st.sent = true; saveAll();
+        return err.data.challenge;
+      }
+      if (err.code === 'challenge_not_found') { st.sent = true; saveAll(); }   // gone: nothing left to send to
+      throw err;
+    });
+  }
+  // Results that couldn't be sent yet (offline at the goal)
+  function flushUnsent() {
+    var jobs = Object.keys(progress.challenges).filter(function (id) {
+      var st = progress.challenges[id];
+      return st.done && !st.sent;
+    }).map(function (id) {
+      return sendResult(id, progress.challenges[id]).catch(function () {});
+    });
+    return Promise.all(jobs);
+  }
+
+  function showChallengeClear() {
+    var st = B, ch = CH;
+    st.done = true;
+    st.sent = false;
+    saveAll();
+    var got = payOnce(ch.id + ':finish', CHAL_FINISH_MOINTS);
+    $('resultIcon').textContent = '🏁';
+    $('resultTitle').textContent = 'You Made It!';
+    $('resultSub').textContent = 'Moku crossed ' + ch.name + "'s bridge with " + fallsText(st.falls || 0) + '!';
+    $('resultShop').style.display = 'none';
+    $('resultMain').textContent = 'Challenges ▶';
+    var base = (got >= 0 ? '<div><span>Finished the challenge</span><span>+' + got + '</span></div>' : '') + luckyLine();
+    $('rewardLines').innerHTML = base + '<div class="chal-line"><span>Sending your result…</span></div>';
+    $('rewardLines').style.display = '';
+    openOverlay('resultOverlay');
+    function show(html) {
+      if (CH !== ch || state !== STATE.RESULT) return;
+      $('rewardLines').innerHTML = base + html;
+    }
+    sendResult(ch.id, st).then(function (c) {
+      var html = '<div class="chal-line"><span>' + (c.status === 'done' ? outcomeText(c) :
+        'Waiting for ' + esc(ch.name) + ' to cross. Check back later!') + '</span></div>';
+      var win = payWin(c);
+      if (win > 0) html += '<div><span>Win vs ' + esc(ch.name) + '</span><span>+' + win + '</span></div>';
+      else if (win === 0) html += '<div class="cap-line"><span>Moints for wins over ' + esc(ch.name) + ': 2 a day</span></div>';
+      if (c.winner === 'you') sfx.win();
+      show(html);
+      refreshFriendBadge();
+    }, function (err) {
+      show('<div class="chal-line"><span>' + (err.code === 'challenge_not_found' ? 'This challenge is gone.' :
+        "Couldn't send your result yet. It will be sent when you open Challenges.") + '</span></div>');
+    });
+  }
+
+  // ---- Challenge a Friend panel ----
+  function avatarHTML(tag) {
+    var A = window.MokuAccount, M = window.MokuMoint;
+    var list = A && A.getPlayers && A.getPlayers();
+    var p = list && list.players.filter(function (x) { return x.tag === tag; })[0];
+    var outfit = M && p && p.card && p.card.outfit ? M.outfitSVG(p.card.outfit) : '';
+    return '<span class="av"><img src="brand/mokumoku-hero.png" alt="">' + outfit + '</span>';
+  }
+  function empty(text) { return '<div class="chal-empty">' + text + '</div>'; }
+  var chalRows = null, playersAsked = false, chalBusy = false;
+  function chalRow(c) {
+    var turn = c.status === 'open' && c.yourTurn;
+    var el = document.createElement(turn ? 'button' : 'div');
+    if (turn) el.type = 'button';
+    el.className = 'chal-row' + (turn ? ' turn' : '') + (c.winner === 'you' ? ' won' : '');
+    el.innerHTML = avatarHTML(c.opponent.tag) +
+      '<span class="who"><div class="nm">vs ' + esc(c.opponent.name) + '<small>#' + esc(c.opponent.tag) + '</small></div>' +
+      '<div class="st">' + (turn && c.theyPlayed ? 'Your turn! ' + esc(c.opponent.name) + ' already crossed.' : outcomeText(c)) + '</div></span>' +
+      (turn ? '<span class="go">Play ▶</span>' : '');
+    if (turn) el.onclick = function () { openChallenge(c.id, el); };
+    return el;
+  }
+  function renderChalRows() {
+    var box = $('chalList');
+    if (!chalRows) return;
+    if (!chalRows.length) { box.innerHTML = empty('No challenges yet. Pick a friend below!'); return; }
+    box.innerHTML = '';
+    chalRows.forEach(function (c) { box.appendChild(chalRow(c)); });
+  }
+  function renderChalPlayers() {
+    var box = $('chalPlayers'), A = window.MokuAccount, list = A.getPlayers && A.getPlayers();
+    if (!list) {
+      box.innerHTML = empty(playersAsked ? "Couldn't load your friends. Try again soon." : 'Loading friends…');
+      return;
+    }
+    var others = list.players.filter(function (p) { return !p.you; });
+    if (!others.length) { box.innerHTML = empty('No friends here yet. Ask a grown-up to invite them!'); return; }
+    box.innerHTML = '';
+    others.forEach(function (p) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chal-row';
+      b.innerHTML = avatarHTML(p.tag) +
+        '<span class="who"><div class="nm">' + esc(p.displayName) + '<small>#' + esc(p.tag) + '</small></div>' +
+        '<div class="st">' + (p.online ? '<span class="on">● Online</span>' : 'Send a new bridge') + '</div></span>' +
+        '<span class="go">Go ▶</span>';
+      b.onclick = function () { newChallenge(p.tag, b); };
+      box.appendChild(b);
+    });
+  }
+  window.addEventListener('moku:players', function () {
+    playersAsked = true;
+    if ($('chalOverlay').classList.contains('open')) { renderChalPlayers(); renderChalRows(); }
+  });
+  function chalError(err) {
+    sfx.nope();
+    toast(err.code === 'offline' ? "You're offline. Try again soon." : err.status === 404 && err.code !== 'challenge_not_found' &&
+      err.code !== 'opponent_not_found' ? 'Challenges are coming soon!' : err.message);
+  }
+  function openChallenges() {
+    openOverlay('chalOverlay');
+    var box = $('chalList');
+    if (!onlineReady()) {
+      box.innerHTML = empty('Log in to challenge your friends.');
+      $('chalPlayers').innerHTML = '';
+      return;
+    }
+    chalRows = null;
+    box.innerHTML = empty('Loading…');
+    flushUnsent().then(function () { return chalApi('GET', '/challenges'); }).then(function (res) {
+      chalRows = res.challenges;
+      // Wins you haven't been paid for yet (the friend crossed after you)
+      var total = 0;
+      chalRows.forEach(function (c) { var w = payWin(c); if (w > 0) total += w; });
+      if (total) { sfx.coin(); toast('+' + total + ' Moints for winning!'); }
+      renderChalRows();
+      setFriendBadge(res.yourTurn);
+    }, function (err) {
+      box.innerHTML = empty(err.status === 404 ? 'Challenges are coming soon!' :
+        err.code === 'offline' ? "You're offline. Try again soon." : "Couldn't load your challenges.");
+    });
+    renderChalPlayers();
+    window.MokuAccount.loadPlayers(true);
+  }
+  function openChallenge(id, el) {
+    if (chalBusy) return;
+    chalBusy = true;
+    if (el) el.disabled = true;
+    sfx.tap();
+    chalApi('GET', '/challenges/' + id).then(function (res) {
+      chalBusy = false;
+      var c = res.challenge;
+      if (!c.yourTurn) { toast(outcomeText(c)); openChallenges(); return; }
+      playChallenge(c);
+    }, function (err) {
+      chalBusy = false;
+      if (el) el.disabled = false;
+      chalError(err);
+    });
+  }
+  function newChallenge(tag, el) {
+    if (chalBusy) return;
+    chalBusy = true;
+    el.disabled = true;
+    sfx.tap();
+    chalApi('POST', '/challenges', { game: GAME_ID, opponentTag: tag, steps: CHAL_STEPS }).then(function (res) {
+      chalBusy = false;
+      playChallenge(res.challenge);
+    }, function (err) {
+      chalBusy = false;
+      el.disabled = false;
+      chalError(err);
+    });
+  }
+  // Title button: only when logged in; a red number for challenges waiting on you
+  function setFriendBadge(n) {
+    var b = $('friendBtn');
+    b.hidden = !onlineReady();
+    b.innerHTML = '👫 Challenge a Friend' + (n ? ' <span class="badge-n">' + n + '</span>' : '');
+  }
+  function refreshFriendBadge() {
+    setFriendBadge(0);
+    if (!onlineReady()) return;
+    chalApi('GET', '/challenges').then(function (res) { setFriendBadge(res.yourTurn); }, function () {});
+  }
+
+  // ================================================================
   // Input
   // ================================================================
-  $('playBtn').addEventListener('click', function () { sfx.tap(); startRun(); });
+  $('playBtn').addEventListener('click', function () { sfx.tap(); leaveChallenge(); startRun(); });
+  $('friendBtn').addEventListener('click', function () { sfx.tap(); openChallenges(); });
+  $('chalClose').addEventListener('click', function () { sfx.tap(); closeOverlay('chalOverlay'); });
   $('titleShopBtn').addEventListener('click', function () { sfx.tap(); renderShop(); openOverlay('shopOverlay'); });
   $('helpBtn').addEventListener('click', function () { sfx.tap(); openOverlay('helpOverlay'); });
   $('helpClose').addEventListener('click', function () { sfx.tap(); closeOverlay('helpOverlay'); });
@@ -1886,7 +2266,11 @@ body.on-title #controls { display: none; }
     renderItems();
     sfx.tap();
   });
-  $('resultMain').addEventListener('click', function () { sfx.tap(); startRun(); });
+  $('resultMain').addEventListener('click', function () {
+    sfx.tap();
+    if (CH && CH.st.done) { closeOverlay('resultOverlay'); openChallenges(); }
+    else startRun();
+  });
   $('resultShop').addEventListener('click', function () { sfx.tap(); renderShop(); openOverlay('shopOverlay'); });
   $('resultTitleBtn').addEventListener('click', function () { sfx.tap(); toTitle(); });
 
@@ -1940,7 +2324,7 @@ body.on-title #controls { display: none; }
   stickEl.addEventListener('pointercancel', function (e) { if (e.pointerId === stick.id) releaseStick(); });
   document.addEventListener('keydown', function (e) {
     if (state === STATE.TITLE) {
-      if ((e.key === 'Enter' || e.key === ' ') && !document.querySelector('.overlay.open')) { e.preventDefault(); startRun(); }
+      if ((e.key === 'Enter' || e.key === ' ') && !document.querySelector('.overlay.open')) { e.preventDefault(); leaveChallenge(); startRun(); }
       return;
     }
     if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') pick(0);
@@ -1967,6 +2351,7 @@ body.on-title #controls { display: none; }
   saveAll();
   renderMoints();
   renderOutfit();
+  refreshFriendBadge();
 })();
 </script>
 </body>

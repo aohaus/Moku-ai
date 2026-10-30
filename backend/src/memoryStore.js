@@ -13,8 +13,16 @@ function createMemoryStore() {
   const logs = [];
   const errors = new Map();
   const matches = new Map();
+  const challenges = new Map();
+  const playerChallenges = new Map(); // uid -> Map(challengeId -> row)
   const playerMatches = new Map(); // uid -> Map(matchId -> row)
 
+  function putChalRows(rows) {
+    for (const { uid, ...row } of rows) {
+      if (!playerChallenges.has(uid)) playerChallenges.set(uid, new Map());
+      playerChallenges.get(uid).set(row.challengeId, JSON.parse(JSON.stringify(row)));
+    }
+  }
   function putRows(rows) {
     for (const { uid, ...row } of rows) {
       if (!playerMatches.has(uid)) playerMatches.set(uid, new Map());
@@ -99,6 +107,24 @@ function createMemoryStore() {
     },
     async listPlayerMatches(uid) {
       return [...(playerMatches.get(uid) || new Map()).values()].map((row) => ({ uid, ...JSON.parse(JSON.stringify(row)) }));
+    },
+    async createChallenge(ch, rows) {
+      if (challenges.has(ch.id)) throw codedError("conflict");
+      challenges.set(ch.id, JSON.parse(JSON.stringify(ch)));
+      putChalRows(rows);
+    },
+    async getChallenge(id) {
+      const c = challenges.get(id);
+      return c ? JSON.parse(JSON.stringify(c)) : null;
+    },
+    async saveChallenge(ch, baseVersion, rows) {
+      const current = challenges.get(ch.id);
+      if (!current || current.version !== baseVersion) throw codedError("conflict");
+      challenges.set(ch.id, JSON.parse(JSON.stringify(ch)));
+      putChalRows(rows);
+    },
+    async listPlayerChallenges(uid) {
+      return [...(playerChallenges.get(uid) || new Map()).values()].map((row) => ({ uid, ...JSON.parse(JSON.stringify(row)) }));
     },
     async renameUser(oldId, newId, fields) {
       const u = users.get(oldId);
