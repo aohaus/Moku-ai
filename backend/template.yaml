@@ -215,6 +215,12 @@ Resources:
             ApiId: !Ref MokuScoresApi
             Path: /players
             Method: GET
+        PlayersKin:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /players/kin
+            Method: GET
         AdminListUsers:
           Type: HttpApi
           Properties:

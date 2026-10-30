@@ -199,6 +199,27 @@ IDが存在しない場合と PIN 違いは同じ応答(`401 bad_credentials`)�
 - Player ID(`loginId`)は含めない(ログイン情報の半分のため)。
 - `lastSeenAt` は、認証付きのリクエスト(`/auth/me` `/save` `/players` など)とログイン・新規登録のたびに更新される。書き込みは1人1分に1回まで。
 
+## `GET /players/kin`(2026-10-30〜)
+
+ログイン中のプレイヤーだけが呼べる。The Hollow(`hollow.html`)の「Birds Like You」用。全員の公開カード(`GET /players` の `card`)を `shared/moku-ontology.js`(サーバーは `src/vendor/` のコピー)で自分のカードと比べ、似ている人と「意外な共通点」の人を返す。入力は公開カードだけなので、`GET /players` で見える以上のことは分からない。
+
+**200**
+```json
+{
+  "me": { "spirit": "thinker", "text": "One of the Quiet Thinkers 🦉 — loves Strategy and Patience." },
+  "kin": [
+    { "displayName": "Sora", "tag": "u1a2b3", "online": false, "score": 0.87, "sharedGames": ["moku-chess"],
+      "link": { "type": "spirit", "emoji": "🦉", "text": "Two Quiet Thinkers 🦉 — …" } }
+  ],
+  "surprise": { "displayName": "Aoi", "tag": "u6ffd2", "online": true, "score": 0.36, "sharedGames": [],
+    "link": { "type": "same", "emoji": "⏳", "text": "Who knew? You (Moku Chess) and Aoi (Moku Fishing Pond) are both Patient Souls." } }
+}
+```
+- `kin`: 共通点が見つかった人を `score`(0〜1、似ている度合い)の高い順に最大3人。
+- `surprise`: 同じゲームの記録を1つも持っていないのに共通点がある人の中で、一番意外な1人(なければ `null`)。`kin` とは重ならない。
+- 自分のカードがまだない(ハブで保存したことがない)時は `kin: []`・`surprise: null`・`me.spirit: ""`。カードのない人・管理者は出ない。
+- 文の中の自分は「You」、相手は表示名。服の名前はサーバーに `MokuMoint` がないので ID から作る(`mood-cookie-eyes` → `Cookie Eyes`)。
+
 ---
 
 # Admin(SPEC.md §12)

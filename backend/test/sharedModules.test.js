@@ -113,3 +113,68 @@ test("random: helpers stay in range and are fair enough", () => {
   const s = MokuRandom.newSeed();
   assert.match(s, /^[A-HJKMNP-Z2-9]{8}$/);
 });
+
+// ---- shared/moku-ontology.js: The Hollow's meaning network ----
+const Onto = require("../../shared/moku-ontology.js");
+
+test("ontology: every game and edge points at real traits and spirits", () => {
+  for (const [id, g] of Object.entries(Onto.GAMES)) {
+    for (const t of Object.keys(g.traits)) assert.ok(Onto.TRAITS[t], `${id} → ${t}`);
+  }
+  for (const [id, t] of Object.entries(Onto.TRAITS)) {
+    for (const s of Object.keys(t.spirits)) assert.ok(Onto.SPIRITS[s], `${id} → ${s}`);
+    assert.ok(Onto.DECOR[id], `${id} has a decoration`);
+  }
+  for (const [a, b] of Onto.RELATED) assert.ok(Onto.TRAITS[a] && Onto.TRAITS[b], `${a} ~ ${b}`);
+});
+
+test("ontology: profiles from public cards", () => {
+  const empty = Onto.profile(null);
+  assert.equal(empty.empty, true);
+  assert.equal(empty.spirit, "");
+  const chess = Onto.profile({ records: { "moku-chess": 4 }, outfit: { mood: "mood-cookie-eyes" } }, { name: "Ren" });
+  assert.equal(chess.spirit, "thinker");
+  assert.equal(chess.top[0].id, "strategy");
+  assert.ok(chess.traits.sweets > 0, "a secret Sweet Tooth from the Closet");
+  const total = Object.values(chess.traits).reduce((s, v) => s + v, 0);
+  assert.ok(Math.abs(total - 1) < 1e-9);
+  // unknown games and odd values are ignored, not thrown on
+  assert.equal(Onto.profile({ records: { "not-a-game": 5, "moku-drop": "x" }, highlights: [null, 3] }).empty, true);
+});
+
+test("ontology: finds what different games have in common, the same words every time", () => {
+  const me = Onto.profile({ records: { "moku-chess": 5 } }, { name: "You" });
+  const aoi = Onto.profile({ records: { "moku-fishing": 40 } }, { name: "Aoi" });
+  const c = Onto.compare(me, aoi);
+  assert.equal(c.sharedGames.length, 0);
+  assert.ok(c.best, "Chess and Fishing still share something");
+  assert.deepEqual(c.best.traits, ["patience", "patience"]);
+  assert.ok(c.best.surprise > 0.5);
+  assert.match(c.best.text, /Patient Souls|Patience/);
+  assert.deepEqual(Onto.compare(me, aoi), c, "deterministic");
+  // the same game: a match, but not a surprise
+  const sora = Onto.profile({ records: { "moku-chess": 2 } }, { name: "Sora" });
+  const same = Onto.compare(me, sora);
+  assert.ok(same.score > c.score);
+  assert.ok(same.links.some((l) => l.type === "same" && l.surprise === 0));
+  assert.equal(Onto.compare(me, Onto.profile({})).best, null);
+});
+
+test("ontology: the room's mood and its slowly growing memory", () => {
+  const green = Onto.profile({ records: { mokucity: 3, "moku-fishing": 9 } });
+  const amb = Onto.ambience([green], null);
+  assert.equal(amb.spirit, "green");
+  assert.equal(amb.days, 0);
+  assert.equal(amb.decor.length, 2, "a new room starts with two decorations");
+  assert.equal(Onto.ambience([], null).spirit, "");
+
+  let mem = Onto.remember(null, amb, "2026-10-30");
+  assert.equal(mem.days, 1);
+  assert.equal(Onto.remember(mem, amb, "2026-10-30"), mem, "once a day");
+  for (let d = 1; d <= 8; d++) mem = Onto.remember(mem, amb, "2026-11-0" + d);
+  assert.equal(mem.days, 9);
+  assert.equal(Onto.ambience([green], mem).slots, 5, "more decorations the more days you visit");
+  // a room that remembers Forest Friends stays a little green after a speed fan moves in
+  const kart = Onto.profile({ records: { "moku-kart": 6 } });
+  assert.ok(Onto.ambience([kart], mem).spirits.green > (Onto.ambience([kart], null).spirits.green || 0));
+});

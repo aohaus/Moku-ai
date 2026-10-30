@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script src="shared/moku-errors.js?v=20261026"></script>
+<script src="shared/moku-gate.js?v=20261026"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>The Hollow · Moku Series</title>
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png?v=2">
+<link rel="icon" type="image/x-icon" href="favicon.ico?v=2">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png?v=2">
+<meta name="theme-color" content="#0B0F0B">
+<style>
+/* The Hollow, grown by the room's meaning network (shared/moku-ontology.js).
+   The room itself (walls, floor, frames, Mokus, pop-up, picker) is the same
+   one as hub.html#hollow; this page adds:
+   - the room's mood: light color, wood warmth, moss and fireflies follow the
+     kind of birds who live here, and slowly remember earlier days
+   - decorations the room "picks up" from what everyone loves (chess knight,
+     fishing rod, cookie plate …), one more every 3 days you visit
+   - little thought bubbles (♟️ 🍪 🎵 …) over each Moku
+   - "Hidden Links": what you share with each friend, even across very
+     different games (Chess and Fishing → both Patient Souls) */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { min-height: 100%; background: #0B0F0B; color: #EDEEF6; font-family: -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+body {
+  background:
+    radial-gradient(ellipse 60% 30% at 50% 12%, rgba(var(--hollow-light, 255,214,140), 0.10), transparent 70%),
+    radial-gradient(ellipse 80% 50% at 50% 100%, rgba(110,150,70,0.10), transparent 70%),
+    linear-gradient(180deg, #0B0F0B 0%, #141A12 55%, #0B0E0A 100%);   /* deep in the woods */
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+@keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes meIn { from { opacity: 0; transform: translateY(12px); } }
+/* the dressed-up Moku (shared/moku-moint.js draws the outfit; its CSS only loads on the hub) */
+.mm-doll { position: relative; display: block; aspect-ratio: 1 / 1; }
+.mm-doll img, .mm-doll .mm-outfit { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.mm-doll img { object-fit: contain; }
+
+.me-top {
+  position: sticky; top: 0; z-index: 4;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) max(16px, calc((100% - 860px) / 2 + 16px)) 12px;
+  background: linear-gradient(180deg, rgba(11,15,11,0.96) 60%, rgba(11,15,11,0));
+}
+.me-top h1 { margin: 0; font-size: clamp(18px, 3.6vw, 22px); font-weight: 800; letter-spacing: 0.04em; }
+.me-close, .me-open {
+  appearance: none; border: 1px solid rgba(255,255,255,0.16); background: rgba(255,255,255,0.07); color: #EDEEF6;
+  font: inherit; font-weight: 800; border-radius: 999px; cursor: pointer; white-space: nowrap; text-decoration: none;
+}
+.me-close { font-size: 14px; padding: 9px 16px; }
+.me-open { font-size: 13px; padding: 8px 14px; }
+.me-close:hover, .me-close:focus-visible, .me-open:hover, .me-open:focus-visible { background: rgba(255,255,255,0.13); outline: none; border-color: rgba(110,231,168,0.55); }
+main { animation: meIn 0.22s ease-out; }
+
+/* ---- from hub.html#hollow (keep the two rooms looking the same) ---- */
+.hollow-sub { margin: 2px 0 0; font-size: 12.5px; font-weight: 600; color: rgba(237,238,246,0.6); }
+.hollow-wrap { max-width: 860px; margin: 0 auto; padding: 4px 16px calc(32px + env(safe-area-inset-bottom, 0px)); }
+.hollow-room {
+  position: relative;
+  margin-top: 16px;
+  height: clamp(420px, 54vw, 470px);
+  border-radius: 26px;
+}
+/* a hand-made forest hollow: uneven, rounded like the inside of an old tree */
+.hollow-scene {
+  position: absolute; inset: 0; overflow: hidden;
+  border-radius: 46% 42% 22px 26px / 18% 20% 22px 26px;
+  background: #24170D;
+  box-shadow: 0 16px 36px rgba(0,0,0,0.5), 0 0 0 4px #3A2614, 0 0 0 7px rgba(110,140,70,0.25);
+}
+.hollow-wall, .hollow-floor { position: absolute; left: 0; right: 0; }
+.hollow-wall { top: 0; height: 54%; }
+.hollow-floor { bottom: 0; height: 48%; }
+.hollow-wall svg, .hollow-floor svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* soft amber light: sunshine through the leaves above, a warm pool on the floor */
+.hollow-light {
+  position: absolute; inset: 0; pointer-events: none; mix-blend-mode: screen;
+  background:
+    linear-gradient(112deg, transparent 30%, rgba(255,214,140,0.16) 36%, transparent 44%),
+    linear-gradient(104deg, transparent 46%, rgba(255,214,140,0.12) 51%, transparent 58%),
+    linear-gradient(118deg, transparent 58%, rgba(255,224,160,0.10) 62%, transparent 68%),
+    radial-gradient(ellipse 55% 30% at 50% 82%, rgba(255,190,110,0.28), transparent 70%);
+  animation: hollowSway 9s ease-in-out infinite alternate;
+}
+@keyframes hollowSway { from { opacity: 0.75; transform: translateX(-2%); } to { opacity: 1; transform: translateX(2%); } }
+/* cozy darker corners */
+.hollow-scene::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse 75% 70% at 50% 58%, transparent 55%, rgba(18,10,4,0.55) 100%);
+}
+/* the gap in the leaves at the top, where the light comes in */
+.hollow-gap {
+  position: absolute; left: 50%; top: -14px; width: 46%; height: 50px; margin-left: -23%;
+  border-radius: 0 0 50% 50% / 0 0 100% 100%;
+  background:
+    radial-gradient(circle at 12% 30%, #4E7A36 0 16%, transparent 17%),
+    radial-gradient(circle at 30% 55%, #5E8B3A 0 14%, transparent 15%),
+    radial-gradient(circle at 52% 40%, #6E9B44 0 15%, transparent 16%),
+    radial-gradient(circle at 72% 58%, #5E8B3A 0 13%, transparent 14%),
+    radial-gradient(circle at 90% 32%, #4E7A36 0 15%, transparent 16%),
+    radial-gradient(ellipse at 50% 0%, #FFE9B0 0%, #F5C46A 45%, #C98A3A 100%);
+  box-shadow: 0 6px 24px 8px rgba(255,200,110,0.35);
+}
+/* a woven twig-and-straw nest mat on the floor */
+.hollow-nest {
+  position: absolute; left: 14%; right: 14%; bottom: 6%; height: 25%;
+  border-radius: 50%;
+  background:
+    repeating-radial-gradient(ellipse at center, rgba(120,80,40,0.0) 0 5px, rgba(120,80,40,0.35) 5px 7px),
+    radial-gradient(ellipse at center, #C9A064 0%, #A87C45 60%, #7A5430 100%);
+  box-shadow: inset 0 -6px 12px rgba(0,0,0,0.3), 0 4px 10px rgba(0,0,0,0.3);
+  opacity: 0.8;
+}
+/* glowing amber mushrooms in the corners */
+.hollow-shroom { position: absolute; bottom: 4%; width: 34px; height: 30px; }
+.hollow-shroom.is-left { left: 3%; }
+.hollow-shroom.is-right { right: 3%; transform: scaleX(-1); }
+.hollow-shroom::before {   /* caps */
+  content: ""; position: absolute; left: 0; top: 0; width: 22px; height: 12px; border-radius: 12px 12px 4px 4px;
+  background: radial-gradient(circle at 40% 30%, #FFE7A3, #F5B83D 60%, #D9861E);
+  box-shadow: 0 0 14px 5px rgba(255,190,90,0.55), 16px 8px 0 -3px #F5B83D;
+}
+.hollow-shroom::after {    /* stems */
+  content: ""; position: absolute; left: 8px; top: 10px; width: 6px; height: 18px; border-radius: 3px;
+  background: #F3E2C2; box-shadow: 15px 6px 0 -1px #F3E2C2;
+}
+.hollow-firefly {
+  position: absolute; left: var(--x); top: var(--y); width: 5px; height: 5px; border-radius: 50%;
+  background: #FFF3A6; box-shadow: 0 0 8px 3px rgba(255,236,140,0.7);
+  animation: hollowFly var(--d) ease-in-out infinite;
+}
+@keyframes hollowFly {
+  0%, 100% { transform: translate(0, 0); opacity: 0.3; }
+  30% { transform: translate(14px, -10px); opacity: 1; }
+  60% { transform: translate(-8px, 6px); opacity: 0.6; }
+}
+/* everyone's background, framed on the wall */
+.hollow-frames { position: absolute; left: 0; right: 0; top: 0; height: 54%; pointer-events: none; }
+.hollow-frame {
+  position: absolute; top: 18%;
+  width: clamp(42px, 12%, 92px); aspect-ratio: 1 / 1; margin-left: calc(clamp(42px, 12%, 92px) / -2);
+  border-radius: 5px 8px 6px 9px; overflow: hidden;
+  border: 4px solid #8A6038;   /* a little frame made of twigs */
+  box-shadow: 0 0 0 2px #4E3420, inset 0 0 0 1px rgba(255,230,180,0.25), 0 6px 12px rgba(0,0,0,0.45);
+  background: #EAD9BC;
+  transform: rotate(var(--tilt, 0deg));
+  transition: box-shadow .15s;
+}
+.hollow-frame.is-back { top: 8%; }   /* back-row frames hang a little higher, so neighbors don't overlap */
+.hollow-frame svg { width: 100%; height: 100%; display: block; }
+.hollow-frame.is-empty::after { content: "🦉"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 60%; opacity: 0.25; }
+.hollow-frame.is-open { box-shadow: 0 0 0 2px #4E3420, 0 0 0 5px #FFC94A, 0 0 16px rgba(255,201,74,0.6); }
+/* the Mokus share one floor */
+.hollow-mokus { position: absolute; inset: 0; }
+.hollow-moku { position: absolute; display: flex; justify-content: center; }
+.hollow-walker { display: flex; flex-direction: column; align-items: center; gap: 4px; will-change: transform; }
+.hollow-moku-btn {
+  position: relative; width: var(--size, 120px); aspect-ratio: 1 / 1; padding: 0; border: none; background: none; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.hollow-moku-btn::before {   /* soft shadow on the floor */
+  content: ""; position: absolute; left: 22%; right: 22%; bottom: 1%; height: 10%; border-radius: 50%;
+  background: rgba(40,20,5,0.35);
+}
+.hollow-moku-btn:focus-visible { outline: 3px solid #FFC94A; outline-offset: 2px; border-radius: 16px; }
+.hollow-flip { position: absolute; inset: 0; transition: transform .35s ease; }
+.hollow-moku.face-left .hollow-flip { transform: scaleX(-1); }
+.hollow-flip .mm-doll { position: absolute; inset: 0; width: 100%; animation: bob 3.2s ease-in-out infinite; }
+.hollow-moku:nth-child(2n) .hollow-flip .mm-doll { animation-delay: -1.4s; }
+/* a little waddle while walking */
+.hollow-moku.is-walking .hollow-flip .mm-doll { animation: hollowWaddle .7s ease-in-out infinite; }
+@keyframes hollowWaddle { 0%, 100% { transform: rotate(-5deg) translateY(0); } 50% { transform: rotate(5deg) translateY(-3px); } }
+.hollow-moku.is-open .hollow-moku-btn::after {
+  content: ""; position: absolute; left: 14%; right: 14%; bottom: -2%; height: 14%; border-radius: 50%;
+  border: 3px solid #FFC94A; box-shadow: 0 0 12px rgba(255,201,74,0.7);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hollow-firefly, .hollow-flip .mm-doll, .hollow-light, .hollow-moku.is-walking .hollow-flip .mm-doll { animation: none; }
+}
+.hollow-plate {
+  max-width: 150px;
+  padding: 6px 12px 7px;
+  border-radius: 6px 11px 7px 10px;   /* a scrap of wood, not quite square */
+  text-align: center;
+  background:
+    repeating-linear-gradient(176deg, rgba(120,80,40,0) 0 5px, rgba(120,80,40,0.12) 5px 6px),
+    linear-gradient(180deg, #EBCB98, #D7AD72);
+  color: #4A2F1A;
+  box-shadow: 0 3px 0 #7A5430, 0 6px 12px rgba(0,0,0,0.4);
+  transform: rotate(var(--plate-tilt, 0deg));
+  min-width: 0;
+}
+.hollow-plate b { display: block; font-size: 14px; font-weight: 900; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hollow-plate small { display: block; font-size: 11px; font-weight: 700; color: #8A5A2E; white-space: nowrap; }
+.hollow-plate .is-online { color: #2F8F5B; }
+.hollow-you { display: inline-block; margin-left: 4px; padding: 1px 6px; border-radius: 999px; background: #2F8F5B; color: #fff; font-size: 9.5px; font-weight: 900; letter-spacing: 0.06em; vertical-align: 2px; }
+/* highlights pop-up */
+.hollow-pop {
+  position: absolute;
+  z-index: 3;
+  width: min(300px, calc(100% - 20px));
+  padding: 12px 14px 10px;
+  border-radius: 16px;
+  background: #FFF6E8;
+  color: #4A2F1A;
+  box-shadow: 0 14px 34px rgba(0,0,0,0.5), inset 0 0 0 3px #F1D9B5;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  animation: hollowPop .18s cubic-bezier(.2,1.4,.4,1);
+}
+.hollow-pop[hidden] { display: none; }
+@keyframes hollowPop { from { transform: scale(.9); opacity: 0; } }
+.hollow-pop::before {
+  content: "";
+  position: absolute;
+  left: var(--arrow, 50%);
+  bottom: -8px;
+  width: 16px;
+  height: 16px;
+  margin-left: -8px;
+  background: #FFF6E8;
+  transform: rotate(45deg);
+  box-shadow: 3px 3px 0 0 #F1D9B5;
+}
+.hollow-pop.is-below::before { top: -8px; bottom: auto; box-shadow: -3px -3px 0 0 #F1D9B5; }
+.hollow-pop h3 { margin: 0 0 6px; font-size: 15px; font-weight: 900; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.hollow-pop h3 small { font-size: 11.5px; font-weight: 800; color: #2F8F5B; background: #E6F4D9; padding: 2px 8px; border-radius: 999px; }
+.hollow-hl { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid #F0E0C8; }
+.hollow-hl:first-of-type { border-top: none; }
+.hollow-hl-icon { flex: none; width: 30px; height: 30px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 17px;
+  background: linear-gradient(150deg, var(--hi, #F5B83D), var(--lo, #C9781A)); }
+.hollow-hl-icon img { width: 80%; height: 80%; }
+.hollow-hl-text { flex: 1; min-width: 0; }
+.hollow-hl-text b { display: block; font-size: 13px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hollow-hl-text span { display: block; font-size: 12px; font-weight: 700; color: #9A6512; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hollow-pop .hollow-empty { margin: 4px 0; font-size: 12.5px; font-weight: 700; color: #8A5A2E; line-height: 1.5; }
+.hollow-pop .hollow-foot { margin: 6px 0 0; font-size: 11px; font-weight: 700; color: #A88B6A; }
+.hollow-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+.hollow-note { margin: 0; font-size: 12.5px; font-weight: 600; color: rgba(237,238,246,0.6); }
+/* picker (6+ players) */
+.hollow-picker { position: fixed; inset: 0; z-index: 35; display: flex; align-items: center; justify-content: center; padding: 16px;
+  background: rgba(5,6,12,0.62); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.hollow-picker[hidden] { display: none; }
+.hollow-picker-panel { width: 100%; max-width: 420px; max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow: auto; padding: 18px 16px 14px;
+  border-radius: 20px; background: linear-gradient(180deg, #1A1D30, #10121E); border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 18px 50px rgba(0,0,0,0.5); }
+.hollow-picker-panel h2 { margin: 0; font-size: 18px; font-weight: 800; }
+.hollow-pick-list { display: flex; flex-direction: column; gap: 2px; margin: 12px 0; padding: 4px; border-radius: 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
+.hollow-pick { display: flex; align-items: center; gap: 11px; width: 100%; padding: 7px 8px; border: none; border-radius: 10px; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.hollow-pick:hover, .hollow-pick:focus-visible { background: rgba(255,255,255,0.06); outline: none; }
+.hollow-pick .hollow-mini { flex: none; position: relative; width: 40px; height: 40px; border-radius: 50%; overflow: hidden; background: #3A2416; }
+.hollow-pick .hollow-mini .mm-doll { position: absolute; width: 150%; left: -25%; top: -18%; }
+.hollow-pick-main { flex: 1; min-width: 0; }
+.hollow-pick-main b { display: block; font-size: 14px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hollow-pick-main span { display: block; font-size: 12px; font-weight: 600; color: rgba(237,238,246,0.6); }
+.hollow-pick-main .hollow-you { display: inline-block; color: #fff; font-size: 9.5px; font-weight: 900; }
+.hollow-pick-main .is-online { color: #6EE7A8; }
+.hollow-check { flex: none; width: 24px; height: 24px; border-radius: 7px; border: 2px solid rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; color: #10121E; }
+.hollow-pick.is-on .hollow-check { background: #6EE7A8; border-color: #6EE7A8; }
+.hollow-pick.is-on .hollow-check::after { content: "✓"; }
+.hollow-pick[disabled] { opacity: 0.45; cursor: not-allowed; }
+.hollow-picker-actions { display: flex; justify-content: space-between; gap: 10px; }
+.hollow-done { appearance: none; border: 0; border-radius: 999px; padding: 9px 22px; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer;
+  background: linear-gradient(180deg, #7EF0B4, #3FBF85); color: #0E1A14; }
+
+/* ---------- the room's mood (set from MokuOntology.ambience) ---------- */
+.hollow-room { --hollow-light: 255,214,140; --hollow-warm: 1; --hollow-wood: 1; --hollow-moss: 0.4; }
+.hollow-wall svg, .hollow-floor svg { filter: saturate(var(--hollow-warm)) brightness(var(--hollow-wood)); transition: filter 1.2s ease; }
+.hollow-light {
+  background:
+    linear-gradient(112deg, transparent 30%, rgba(var(--hollow-light), 0.16) 36%, transparent 44%),
+    linear-gradient(104deg, transparent 46%, rgba(var(--hollow-light), 0.12) 51%, transparent 58%),
+    linear-gradient(118deg, transparent 58%, rgba(var(--hollow-light), 0.10) 62%, transparent 68%),
+    radial-gradient(ellipse 55% 30% at 50% 82%, rgba(var(--hollow-light), 0.28), transparent 70%);
+}
+.hollow-firefly { background: rgb(var(--hollow-light)); box-shadow: 0 0 8px 3px rgba(var(--hollow-light), 0.7); }
+/* extra moss creeping in from the corners when Forest Friends live here */
+.hollow-moss {
+  position: absolute; inset: 0; pointer-events: none; opacity: var(--hollow-moss); transition: opacity 1.2s ease;
+  background:
+    radial-gradient(ellipse 14% 10% at 2% 54%, #5E8B3A 0 60%, transparent 62%),
+    radial-gradient(ellipse 10% 7% at 9% 52%, #6E9B44 0 60%, transparent 62%),
+    radial-gradient(ellipse 14% 10% at 98% 55%, #4E7A36 0 60%, transparent 62%),
+    radial-gradient(ellipse 9% 6% at 91% 53%, #6E9B44 0 60%, transparent 62%),
+    radial-gradient(ellipse 18% 9% at 3% 98%, #4E7A36 0 60%, transparent 62%),
+    radial-gradient(ellipse 18% 9% at 97% 98%, #5E8B3A 0 60%, transparent 62%);
+}
+/* decorations the room picked up */
+.hollow-decor { position: absolute; inset: 0; pointer-events: none; }
+.hollow-deco { position: absolute; width: clamp(40px, 9%, 70px); filter: drop-shadow(0 4px 5px rgba(0,0,0,0.45)); animation: decoIn .7s cubic-bezier(.2,1.5,.4,1) both; }
+.hollow-deco svg { display: block; width: 100%; height: auto; }
+.hollow-deco.is-hang { width: clamp(150px, 40%, 300px); }
+.hollow-deco.is-new::after {
+  content: "NEW"; position: absolute; right: -6px; top: -8px; padding: 1px 5px; border-radius: 999px;
+  background: #FFC94A; color: #4A2F1A; font-size: 9px; font-weight: 900; letter-spacing: 0.06em;
+}
+@keyframes decoIn { from { opacity: 0; transform: translateY(-10px) scale(.8); } }
+.hollow-deco .float { animation: noteFloat 3.4s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+.hollow-deco .float:nth-child(2n) { animation-delay: -1.7s; }
+@keyframes noteFloat { 0%, 100% { transform: translateY(0); opacity: .75; } 50% { transform: translateY(-5px); opacity: 1; } }
+/* a little thought bubble over a Moku (their favorite thing) */
+.hollow-think {
+  position: absolute; left: 50%; top: -6px; z-index: 2; pointer-events: none;
+  padding: 3px 8px; border-radius: 14px; background: #FFF6E8; color: #4A2F1A; font-size: 17px; line-height: 1.2;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.35); opacity: 0; transform: translate(-50%, 6px) scale(.7);
+  transition: opacity .35s ease, transform .35s cubic-bezier(.2,1.5,.4,1);
+}
+.hollow-think::after { content: ""; position: absolute; left: 30%; bottom: -7px; width: 8px; height: 8px; border-radius: 50%; background: #FFF6E8; }
+.hollow-think.is-on { opacity: 1; transform: translate(-50%, 0) scale(1); }
+@media (prefers-reduced-motion: reduce) {
+  .hollow-deco, .hollow-deco .float { animation: none; }
+  .hollow-think { transition: opacity .35s ease; transform: translate(-50%, 0); }
+}
+/* "You & Aoi" in the pop-up */
+.hollow-kin { margin-top: 8px; padding: 8px 10px; border-radius: 12px; background: #F6E6CB; }
+.hollow-kin-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; font-weight: 900; color: #8A5A2E; }
+.hollow-kin-meter { flex: 1; height: 6px; border-radius: 3px; background: #E6CFA8; overflow: hidden; }
+.hollow-kin-meter i { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, #F5B83D, #E07A3A); }
+.hollow-kin p { margin: 5px 0 0; font-size: 12.5px; font-weight: 700; line-height: 1.45; }
+
+/* ---------- Hollow Notes: a page from the room's diary ---------- */
+.hollow-notes {
+  margin-top: 18px; padding: 16px 16px 14px; border-radius: 8px 14px 10px 16px;
+  background:
+    repeating-linear-gradient(180deg, transparent 0 25px, rgba(160,112,63,0.14) 25px 26px),
+    linear-gradient(180deg, #FFF6E8, #F6E3C4);
+  color: #4A2F1A; box-shadow: 0 14px 30px rgba(0,0,0,0.45), inset 0 0 0 3px #F1D9B5;
+  transform: rotate(-0.4deg);
+}
+.hollow-notes h2 { margin: 0; font-size: 17px; font-weight: 900; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hollow-notes h2 small { font-size: 11.5px; font-weight: 800; color: #2F8F5B; background: #E6F4D9; padding: 2px 8px; border-radius: 999px; }
+.hollow-notes .hollow-mood { margin: 4px 0 0; font-size: 13px; font-weight: 700; color: #8A5A2E; line-height: 1.5; }
+.hollow-grow { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12px; font-weight: 800; color: #8A5A2E; }
+.hollow-grow .seeds { display: flex; gap: 4px; }
+.hollow-grow .seeds i { width: 14px; height: 14px; border-radius: 50%; background: #E6CFA8; box-shadow: inset 0 -2px 0 rgba(0,0,0,0.12); }
+.hollow-grow .seeds i.is-on { background: radial-gradient(circle at 35% 30%, #A8D86E, #5E8B3A); }
+.hollow-notes h3 { margin: 14px 0 6px; font-size: 13px; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; color: #A0703F; }
+.hollow-me { margin: 0; font-size: 13.5px; font-weight: 700; line-height: 1.5; }
+.hollow-links { display: flex; flex-direction: column; gap: 8px; }
+.hollow-link {
+  display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 8px 10px; border: none; border-radius: 12px;
+  background: rgba(255,255,255,0.55); color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.hollow-link:hover, .hollow-link:focus-visible { background: #fff; outline: none; box-shadow: 0 0 0 2px #FFC94A; }
+.hollow-link .hollow-mini { flex: none; position: relative; width: 40px; height: 40px; border-radius: 50%; overflow: hidden; background: #3A2416; }
+.hollow-link .hollow-mini .mm-doll { position: absolute; width: 150%; left: -25%; top: -18%; }
+.hollow-link-main { flex: 1; min-width: 0; }
+.hollow-link-main b { display: flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 900; }
+.hollow-link-main b span { font-size: 11px; font-weight: 800; color: #9A6512; }
+.hollow-link-main p { margin: 2px 0 0; font-size: 12.5px; font-weight: 700; line-height: 1.45; color: #5A3C22; }
+.hollow-links .hollow-empty { margin: 0; font-size: 12.5px; font-weight: 700; color: #8A5A2E; }
+.hollow-link-main b .is-surprise { padding: 1px 7px; border-radius: 999px; background: #FFE27A; color: #7A4A12; font-size: 10.5px; font-weight: 900; }
+.hollow-link-main b .is-away { color: #A88B6A; font-weight: 700; }
+</style>
+</head>
+<body>
+<header class="me-top">
+  <div>
+    <h1>The Hollow</h1>
+    <p class="hollow-sub" id="hollowSub">Everyone's Moku lives here.</p>
+  </div>
+  <a class="me-close" href="hub.html">✕ Close</a>
+</header>
+<main class="hollow-wrap" id="hollowPage">
+  <div class="hollow-room" id="hollowRoom">
+    <div class="hollow-scene" aria-hidden="true">
+      <div class="hollow-wall" id="hollowWall"></div>
+      <div class="hollow-floor" id="hollowFloor"></div>
+      <div class="hollow-moss"></div>
+      <div class="hollow-nest"></div>
+      <div class="hollow-light"></div>
+      <div class="hollow-gap"></div>
+      <span class="hollow-shroom is-left"></span>
+      <span class="hollow-shroom is-right"></span>
+      <div id="hollowFlies"></div>
+    </div>
+    <div class="hollow-decor" id="hollowDecor" aria-hidden="true"></div>
+    <div class="hollow-frames" id="hollowFrames" aria-hidden="true"></div>
+    <div class="hollow-mokus" id="hollowMokus"></div>
+    <div class="hollow-pop" id="hollowPop" role="dialog" aria-live="polite" hidden></div>
+  </div>
+  <div class="hollow-bar">
+    <p class="hollow-note" id="hollowNote"></p>
+    <button class="me-open" id="hollowChoose" type="button" hidden>Choose Mokus</button>
+  </div>
+
+  <section class="hollow-notes" aria-labelledby="notesTitle">
+    <h2 id="notesTitle"><span id="notesTone">🌳 The Hollow</span> <small id="notesDay" hidden></small></h2>
+    <p class="hollow-mood" id="notesMood"></p>
+    <div class="hollow-grow">
+      <span class="seeds" id="notesSeeds" aria-hidden="true"></span>
+      <span id="notesGrow"></span>
+    </div>
+    <h3>You</h3>
+    <p class="hollow-me" id="notesMe"></p>
+    <div id="notesKinBox" hidden>
+      <h3>Birds Like You</h3>
+      <div class="hollow-links" id="notesKin"></div>
+    </div>
+    <h3>Hidden Links</h3>
+    <div class="hollow-links" id="notesLinks"></div>
+  </section>
+</main>
+
+<div class="hollow-picker" id="hollowPicker" hidden>
+  <div class="hollow-picker-panel" role="dialog" aria-modal="true" aria-labelledby="hollowPickerTitle">
+    <h2 id="hollowPickerTitle">Who lives in the Hollow?</h2>
+    <p class="hollow-sub">Pick up to 5 Mokus. <b id="hollowPickCount">0 / 5</b></p>
+    <div class="hollow-pick-list" id="hollowPickList"></div>
+    <div class="hollow-picker-actions">
+      <button class="me-open" id="hollowPickReset" type="button">Most Recent</button>
+      <button class="hollow-done" id="hollowPickDone" type="button">Done</button>
+    </div>
+  </div>
+</div>
+
+<script src="shared/moku-ontology.js?v=20261030"></script>
+<script>
+(function () {
+  'use strict';
+  var O = window.MokuOntology;
+  var HOLLOW_MAX = 5;
+  var PICKS_KEY = 'moku:hollow:picks';    // same picks as the hub's Hollow (this device's value wins on sync)
+  var WORLD_KEY = 'moku:hollow:world';    // the room's memory (MokuOntology.remember), grows once a day
+  var DECOR_SEEN_KEY = 'moku:hollow:decor-seen';
+  var room = document.getElementById('hollowRoom');
+  var mokusEl = document.getElementById('hollowMokus');
+  var framesEl = document.getElementById('hollowFrames');
+  var pop = document.getElementById('hollowPop');
+  var picker = document.getElementById('hollowPicker');
+  var shown = [];
+  var popFor = null;
+  var mine = null;      // your profile (MokuOntology.profile)
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  function readJSON(key) {
+    try { var raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
+  }
+  function writeJSON(key, v) {
+    try { if (v == null) localStorage.removeItem(key); else localStorage.setItem(key, JSON.stringify(v)); } catch (e) {}
+  }
+  function today() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function relTime(iso) {
+    var t = Date.parse(iso || '');
+    if (!t) return '';
+    var min = Math.floor((Date.now() - t) / 60000);
+    if (min < 1) return 'Just now';
+    if (min < 60) return min + ' min ago';
+    if (min < 24 * 60) return Math.floor(min / 60) + ' h ago';
+    if (min < 48 * 60) return 'Yesterday';
+    var d = new Date(t);
+    return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()] + ' ' + d.getDate();
+  }
+
+  // ---------- Closet items: names and prices for the ontology ----------
+  var itemIndex = null;
+  function item(id) {
+    if (!itemIndex) {
+      itemIndex = {};
+      var M = window.MokuMoint;
+      if (M) [].concat(M.ITEMS || [], M.MOODS || [], M.BACKGROUNDS || []).forEach(function (it) { itemIndex[it.id] = it; });
+    }
+    return itemIndex[id] || null;
+  }
+  var profileOpts = {
+    itemName: function (id) { var it = item(id); return it && it.name; },
+    itemPrice: function (id) { var it = item(id); return it ? it.price : 0; }
+  };
+
+  // ---------- what this device knows about you ----------
+  // Hub card keys (moku:played:<card>) and older save keys → gameId.
+  var CARD_GAME = { am: 'angry-mokumoku', mm: 'moyomoyo', mk: 'mk-mobile', br: 'angry-moku-battle-royal', so: 'shiri-of-moku',
+    mc: 'mokucity', mr: 'moku-rane', md: 'moku-drop', mb: 'moku-bento', mf: 'moku-fishing', mkt: 'moku-kart', fm: 'flying-moku',
+    mrc: 'moku-rhythm', mw: 'moku-wolf', mfg: 'moku-fight', mfr: 'moku-future-run', mw6: 'moku-watch-6-lazy', mbr: 'moku-bridge', mch: 'moku-chess' };
+  var LEGACY = [['amoku-', 'angry-mokumoku'], ['moyomoyo-', 'moyomoyo'], ['moku_drop', 'moku-drop'], ['moku_bento', 'moku-bento'],
+    ['moku_fishing', 'moku-fishing'], ['moku_kart', 'moku-kart'], ['moku_rhythm', 'moku-rhythm'], ['moku_wolf', 'moku-wolf']];
+  function playedHere() {
+    var found = {};
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i) || '';
+        var m = /^moku:played:([a-z0-9]+)$/.exec(k);
+        if (m && CARD_GAME[m[1]]) found[CARD_GAME[m[1]]] = true;
+        m = /^moku:([a-z0-9-]+):/.exec(k);
+        if (m && O.GAMES[m[1]]) found[m[1]] = true;
+        LEGACY.forEach(function (l) { if (k.indexOf(l[0]) === 0) found[l[1]] = true; });
+      }
+    } catch (e) {}
+    return Object.keys(found);
+  }
+  function myExtra() {
+    var M = window.MokuMoint, extra = { played: playedHere() };
+    try { if (M) { extra.balance = M.balance(); extra.owned = (M.closet().owned || []).length; } } catch (e) {}
+    return extra;
+  }
+  function myOutfit() {
+    var out = {};
+    try {
+      var eq = window.MokuMoint ? MokuMoint.closet().equipped || {} : {};
+      Object.keys(eq).forEach(function (k) { if (eq[k]) out[k] = eq[k]; });
+    } catch (e) {}
+    return out;
+  }
+
+  // ---------- who lives here (same order and picks as the hub) ----------
+  function people() {
+    var acc = window.MokuAccount;
+    var user = acc && acc.getUser ? acc.getUser() : null;
+    var list = acc && acc.getPlayers ? acc.getPlayers() : null;
+    var all = (list ? list.players : []).map(function (p) {
+      return { key: p.tag, name: p.displayName, tag: p.tag, online: p.online, lastSeenAt: p.lastSeenAt, you: p.you, card: p.card };
+    });
+    var me = all.filter(function (p) { return p.you; })[0];
+    if (!me) {
+      me = { key: user ? 'u-me' : 'guest', name: user ? user.displayName : 'You', tag: user ? user.tag : '', you: true };
+      all.unshift(me);
+    } else {
+      all = [me].concat(all.filter(function (p) { return !p.you; }));
+    }
+    me.online = true;
+    // your records and highlights come from the card the hub last saved;
+    // what you wear right now is read straight from this device
+    me.card = Object.assign({}, me.card || {}, { outfit: myOutfit() });
+    all.forEach(function (p) {
+      p.profile = O.profile(p.card, Object.assign({ name: p.you ? 'You' : p.name, extra: p.you ? myExtra() : null }, profileOpts));
+    });
+    mine = me.profile;
+    return { people: all, loaded: Boolean(list), user: user };
+  }
+  function readPicks() { var v = readJSON(PICKS_KEY); return Array.isArray(v) ? v : null; }
+  function pickShown(all) {
+    var picks = readPicks();
+    if (picks && all.length > HOLLOW_MAX) {
+      var chosen = picks.map(function (t) { return all.filter(function (p) { return p.key === t; })[0]; }).filter(Boolean);
+      if (chosen.length) return chosen.slice(0, HOLLOW_MAX);
+    }
+    return all.slice(0, HOLLOW_MAX);
+  }
+  function statusText(p) {
+    if (p.online) return '● Online';
+    return p.lastSeenAt ? relTime(p.lastSeenAt) : 'Not seen yet';
+  }
+  function dollMarkup(outfit) {
+    var svg = window.MokuMoint ? MokuMoint.outfitSVG(outfit || {}) : '';
+    return '<span class="mm-doll"><img src="brand/mokumoku-hero.png" alt="">' + svg + '</span>';
+  }
+
+  // ---- the hollow itself: drawn once, the same every visit (fixed seed) ----
+  // Walls: mismatched scrap planks, bark pieces and log end-cuts that birds
+  // pieced together, with nails, twigs and moss. Floor: packed earth with
+  // fallen leaves, pebbles and bits of twig.
+  function seeded(seed) {
+    return function () {
+      seed = (seed + 0x6D2B79F5) | 0;
+      var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function buildHollowScene() {
+    var wallEl = document.getElementById('hollowWall');
+    var floorEl = document.getElementById('hollowFloor');
+    if (!wallEl || wallEl.firstChild) return;
+    var rnd = seeded(20261026);
+    function r(a, b) { return a + rnd() * (b - a); }
+    function pick(list) { return list[Math.floor(rnd() * list.length)]; }
+    function f(n) { return n.toFixed(1); }
+    var WOOD = ['#6B4A2E', '#7A5434', '#5C3D24', '#8A6038', '#6E5034', '#94683E', '#7F5A3A', '#A0703F'];
+    var W = 800, H = 270;
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid slice">' +
+      '<defs><linearGradient id="hwShade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#140A04" stop-opacity="0.6"/>' +
+      '<stop offset="0.55" stop-color="#140A04" stop-opacity="0"/></linearGradient></defs>' +
+      '<rect width="' + W + '" height="' + H + '" fill="#26180C"/>';
+    for (var y = -6; y < H; ) {
+      var h = r(26, 48);
+      for (var x = -14; x < W + 10; ) {
+        var kind = rnd();
+        if (kind < 0.13) {
+          // a log end-cut (round slice with growth rings)
+          var rr = h / 2 - 1, cx = x + rr + 2, cy = y + h / 2;
+          svg += '<circle cx="' + f(cx) + '" cy="' + f(cy) + '" r="' + f(rr) + '" fill="#C49A62" stroke="#4E3420" stroke-width="3"/>';
+          for (var ring = 1; ring <= 3; ring++) svg += '<circle cx="' + f(cx + r(-1, 1)) + '" cy="' + f(cy + r(-1, 1)) + '" r="' + f(rr * ring / 4) + '" fill="none" stroke="#9A6A3C" stroke-width="1" opacity="0.8"/>';
+          svg += '<circle cx="' + f(cx) + '" cy="' + f(cy) + '" r="1.6" fill="#7A5430"/>';
+          x += rr * 2 + 4;
+          continue;
+        }
+        var w = r(36, 120), j = function () { return r(0, 3); };
+        var bark = kind < 0.28;
+        var fill = bark ? pick(['#4A3220', '#553A24', '#3F2A1A']) : pick(WOOD);
+        var pts = [[x + 1.5 + j(), y + 1.5 + j()], [x + w - 1.5 - j(), y + 1.5 + j()], [x + w - 1.5 - j(), y + h - 1.5 - j()], [x + 1.5 + j(), y + h - 1.5 - j()]];
+        var tilt = rnd() < 0.22 ? r(-4, 4) : 0;
+        svg += '<g transform="rotate(' + f(tilt) + ' ' + f(x + w / 2) + ' ' + f(y + h / 2) + ')">' +
+          '<polygon points="' + pts.map(function (p) { return f(p[0]) + ',' + f(p[1]); }).join(' ') + '" fill="' + fill + '"/>';
+        if (bark) {
+          for (var k = 0; k < w / 9; k++) {
+            var bx = x + 5 + k * 9 + r(-2, 2);
+            svg += '<path d="M' + f(bx) + ' ' + f(y + 4) + ' Q' + f(bx + r(-3, 3)) + ' ' + f(y + h / 2) + ' ' + f(bx + r(-2, 2)) + ' ' + f(y + h - 4) + '" stroke="#2E1E12" stroke-width="1.4" fill="none" opacity="0.7"/>';
+          }
+        } else {
+          for (var g = 1; g <= 2; g++) {
+            var gy = y + h * g / 3 + r(-3, 3);
+            svg += '<path d="M' + f(x + 4) + ' ' + f(gy) + ' Q' + f(x + w / 2) + ' ' + f(gy + r(-3, 3)) + ' ' + f(x + w - 4) + ' ' + f(gy + r(-2, 2)) + '" stroke="' + (rnd() < 0.5 ? 'rgba(0,0,0,0.18)' : 'rgba(255,225,170,0.12)') + '" stroke-width="1" fill="none"/>';
+          }
+          svg += '<path d="M' + f(pts[0][0] + 2) + ' ' + f(pts[0][1] + 1.5) + ' L' + f(pts[1][0] - 2) + ' ' + f(pts[1][1] + 1.5) + '" stroke="rgba(255,230,180,0.14)" stroke-width="1.2"/>';
+          if (rnd() < 0.35) {
+            [x + 7, x + w - 7].forEach(function (nx) {
+              svg += '<circle cx="' + f(nx) + '" cy="' + f(y + h / 2) + '" r="1.7" fill="#2A1A0E"/><circle cx="' + f(nx - 0.5) + '" cy="' + f(y + h / 2 - 0.5) + '" r="0.6" fill="rgba(255,255,255,0.35)"/>';
+            });
+          }
+        }
+        svg += '</g>';
+        x += w;
+      }
+      y += h - r(0, 3);
+    }
+    // a few twigs woven across, like a bird would
+    for (var t = 0; t < 5; t++) {
+      var tx = r(-40, W - 200), ty = r(10, H - 60), tl = r(160, 320), dy = r(-50, 50);
+      var d = 'M' + f(tx) + ' ' + f(ty) + ' Q' + f(tx + tl / 2) + ' ' + f(ty + dy / 2 + r(-20, 20)) + ' ' + f(tx + tl) + ' ' + f(ty + dy);
+      svg += '<path d="' + d + '" stroke="#5A3C22" stroke-width="6" fill="none" stroke-linecap="round"/>' +
+        '<path d="' + d + '" stroke="#9A6E44" stroke-width="3.4" fill="none" stroke-linecap="round"/>' +
+        '<path d="' + d + '" stroke="rgba(255,225,170,0.3)" stroke-width="1" fill="none" stroke-linecap="round" transform="translate(0 -1)"/>';
+    }
+    svg += '<rect width="' + W + '" height="' + H + '" fill="url(#hwShade)"/>';
+    // moss along the bottom of the wall
+    for (var m = 0; m < 70; m++) {
+      svg += '<circle cx="' + f(r(0, W)) + '" cy="' + f(r(H - 16, H + 4)) + '" r="' + f(r(5, 13)) + '" fill="' + pick(['#4E7A36', '#5E8B3A', '#6E9B44', '#3F6A2C']) + '" opacity="' + f(r(0.75, 1)) + '"/>';
+    }
+    wallEl.innerHTML = svg + '</svg>';
+
+    var FW = 800, FH = 240;
+    var fl = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + FW + ' ' + FH + '" preserveAspectRatio="xMidYMid slice">' +
+      '<defs><linearGradient id="hfSoil" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3A2818"/><stop offset="1" stop-color="#5A3E26"/></linearGradient></defs>' +
+      '<rect width="' + FW + '" height="' + FH + '" fill="url(#hfSoil)"/>';
+    for (var sp = 0; sp < 160; sp++) fl += '<circle cx="' + f(r(0, FW)) + '" cy="' + f(r(0, FH)) + '" r="' + f(r(0.8, 2.2)) + '" fill="' + pick(['#2E1E12', '#6E5034', '#7A5A3A']) + '" opacity="0.6"/>';
+    for (var pb = 0; pb < 18; pb++) fl += '<ellipse cx="' + f(r(0, FW)) + '" cy="' + f(r(20, FH)) + '" rx="' + f(r(4, 9)) + '" ry="' + f(r(3, 6)) + '" fill="' + pick(['#8A7A66', '#6E6252', '#9A8A72']) + '"/>';
+    for (var tw = 0; tw < 14; tw++) {
+      var x1 = r(0, FW), y1 = r(10, FH), len = r(20, 50), ang = r(0, Math.PI);
+      fl += '<path d="M' + f(x1) + ' ' + f(y1) + ' L' + f(x1 + Math.cos(ang) * len) + ' ' + f(y1 + Math.sin(ang) * len * 0.4) + '" stroke="#7A5434" stroke-width="2.4" stroke-linecap="round"/>';
+    }
+    for (var lf = 0; lf < 90; lf++) {
+      var lx = r(0, FW), ly = r(6, FH), sc = r(1.1, 2.4), rot = r(0, 360);
+      var col = pick(['#C9783A', '#D9A441', '#B5562E', '#8A5A2E', '#6E8B3D', '#E0B050']);
+      fl += '<g transform="translate(' + f(lx) + ' ' + f(ly) + ') rotate(' + f(rot) + ') scale(' + f(sc) + ')">' +
+        '<path d="M0 -6 Q5 0 0 6 Q-5 0 0 -6Z" fill="' + col + '" opacity="0.9"/><path d="M0 -5 L0 5" stroke="rgba(60,30,10,0.45)" stroke-width="0.6"/></g>';
+    }
+    for (var mo = 0; mo < 40; mo++) {
+      var edge = rnd() < 0.5 ? r(0, 90) : r(FW - 90, FW);
+      fl += '<circle cx="' + f(edge) + '" cy="' + f(r(20, FH)) + '" r="' + f(r(6, 16)) + '" fill="' + pick(['#4E7A36', '#5E8B3A', '#3F6A2C']) + '" opacity="0.8"/>';
+    }
+    fl += '<rect width="' + FW + '" height="22" fill="#140A04" opacity="0.45"/>';
+    floorEl.innerHTML = fl + '</svg>';
+  }
+
+  // ---------- decorations (one small drawing per DECOR id in moku-ontology.js) ----------
+  // Hand-made from forest odds and ends, like everything else in here.
+  // hang = strung across the top of the wall; wall = pinned up; floor = on the ground.
+  var DECOR_ART = {
+    pennants: { at: 'hang', svg: '<svg viewBox="0 0 200 34"><path d="M2 6 Q100 22 198 6" stroke="#7A5434" stroke-width="2" fill="none"/>' +
+      [[14, '#E07A3A'], [42, '#F5B83D'], [70, '#6E9B44'], [100, '#E98FC7'], [130, '#5ED6E8'], [158, '#F5B83D'], [186, '#E07A3A']].map(function (f, i) {
+        var y = 6 + 16 * Math.sin(Math.PI * f[0] / 200) * 0.9;
+        return '<path d="M' + (f[0] - 8) + ' ' + y.toFixed(1) + ' L' + (f[0] + 8) + ' ' + y.toFixed(1) + ' L' + f[0] + ' ' + (y + 15).toFixed(1) + 'Z" fill="' + f[1] + '" stroke="#4E3420" stroke-width="1"/>';
+      }).join('') + '</svg>' },
+    garland: { at: 'hang', svg: '<svg viewBox="0 0 200 34"><path d="M2 6 Q100 24 198 6" stroke="#7A5434" stroke-width="2" fill="none"/>' +
+      [16, 38, 60, 82, 104, 126, 148, 170, 190].map(function (x, i) {
+        var y = 7 + 17 * Math.sin(Math.PI * x / 200) * 0.9;
+        return '<circle cx="' + x + '" cy="' + (y + 5).toFixed(1) + '" r="6" fill="' + ['#FFB3C7', '#FFE27A', '#A8D86E', '#9FD0FF'][i % 4] + '" stroke="#4E3420" stroke-width="1"/>';
+      }).join('') + '</svg>' },
+    notes: { at: 'hang', svg: '<svg viewBox="0 0 200 40">' +
+      [[30, 22, '♪'], [70, 12, '♫'], [110, 24, '♪'], [150, 10, '♬'], [182, 22, '♪']].map(function (n) {
+        return '<text class="float" x="' + n[0] + '" y="' + n[1] + '" font-size="20" fill="#FFE9B0" stroke="#7A5434" stroke-width="0.6">' + n[2] + '</text>';
+      }).join('') + '</svg>' },
+    chess: { at: 'floor', svg: '<svg viewBox="0 0 60 70"><ellipse cx="30" cy="62" rx="24" ry="6" fill="#7A5434"/><rect x="8" y="48" width="44" height="14" rx="3" fill="#A0703F"/>' +
+      '<ellipse cx="30" cy="48" rx="22" ry="5" fill="#C49A62" stroke="#7A5434" stroke-width="1.5"/>' +
+      '<path d="M22 46 L38 46 L36 40 L34 40 Q40 30 36 20 Q32 12 24 14 L18 22 L22 26 L26 24 Q22 32 24 40 L22 40Z" fill="#F3E2C2" stroke="#4E3420" stroke-width="1.6"/><circle cx="27" cy="20" r="1.4" fill="#4E3420"/></svg>' },
+    blocks: { at: 'floor', svg: '<svg viewBox="0 0 60 60"><rect x="6" y="36" width="22" height="22" rx="3" fill="#E07A3A" stroke="#4E3420" stroke-width="1.5"/>' +
+      '<rect x="30" y="36" width="22" height="22" rx="3" fill="#6E9B44" stroke="#4E3420" stroke-width="1.5"/><rect x="17" y="13" width="22" height="22" rx="3" fill="#F5B83D" stroke="#4E3420" stroke-width="1.5" transform="rotate(-6 28 24)"/>' +
+      '<text x="13" y="53" font-size="12" font-weight="900" fill="#FFF6E8">M</text><text x="37" y="53" font-size="12" font-weight="900" fill="#FFF6E8">O</text><text x="23" y="30" font-size="12" font-weight="900" fill="#FFF6E8">K</text></svg>' },
+    hourglass: { at: 'wall', svg: '<svg viewBox="0 0 50 64"><rect x="6" y="4" width="38" height="6" rx="2" fill="#8A6038"/><rect x="6" y="54" width="38" height="6" rx="2" fill="#8A6038"/>' +
+      '<path d="M12 10 Q12 30 25 32 Q12 34 12 54 L38 54 Q38 34 25 32 Q38 30 38 10Z" fill="rgba(255,246,232,0.55)" stroke="#4E3420" stroke-width="1.5"/>' +
+      '<path d="M16 16 L34 16 Q30 28 25 30 Q20 28 16 16Z" fill="#E0B050"/><path d="M15 52 Q25 40 35 52Z" fill="#E0B050"/></svg>' },
+    letters: { at: 'wall', svg: '<svg viewBox="0 0 64 56"><rect x="6" y="10" width="30" height="22" rx="2" fill="#FFF6E8" stroke="#A0703F" stroke-width="1.5" transform="rotate(-8 21 21)"/>' +
+      '<path d="M8 12 L21 22 L34 12" stroke="#A0703F" stroke-width="1.5" fill="none" transform="rotate(-8 21 21)"/><rect x="28" y="22" width="30" height="24" rx="2" fill="#F6E3C4" stroke="#A0703F" stroke-width="1.5" transform="rotate(6 43 34)"/>' +
+      '<path d="M33 30 H52 M33 35 H50 M33 40 H46" stroke="#C49A62" stroke-width="1.5" transform="rotate(6 43 34)"/><circle cx="20" cy="8" r="3" fill="#E07A3A"/><circle cx="44" cy="20" r="3" fill="#6E9B44"/></svg>' },
+    ferns: { at: 'floor', svg: '<svg viewBox="0 0 60 70"><path d="M30 46 Q14 30 6 14 M30 46 Q30 24 30 6 M30 46 Q46 30 54 14 M30 46 Q20 36 10 34 M30 46 Q40 36 50 34" stroke="#5E8B3A" stroke-width="5" stroke-linecap="round" fill="none"/>' +
+      '<path d="M30 46 Q14 30 6 14 M30 46 Q30 24 30 6 M30 46 Q46 30 54 14" stroke="#A8D86E" stroke-width="1.5" fill="none"/><circle cx="18" cy="22" r="3" fill="#FFB3C7"/><circle cx="44" cy="20" r="3" fill="#FFE27A"/>' +
+      '<path d="M14 46 L46 46 L42 66 L18 66Z" fill="#B5562E" stroke="#4E3420" stroke-width="1.5"/><rect x="12" y="44" width="36" height="6" rx="2" fill="#C9783A" stroke="#4E3420" stroke-width="1.5"/></svg>' },
+    birdhouse: { at: 'wall', svg: '<svg viewBox="0 0 54 64"><path d="M4 26 L27 6 L50 26Z" fill="#B5562E" stroke="#4E3420" stroke-width="1.6"/><rect x="10" y="24" width="34" height="32" fill="#C49A62" stroke="#4E3420" stroke-width="1.6"/>' +
+      '<circle cx="27" cy="38" r="6" fill="#3A2416"/><rect x="24" y="47" width="6" height="2.5" fill="#7A5434"/><path d="M27 56 L27 64" stroke="#7A5434" stroke-width="3"/></svg>' },
+    fishing: { at: 'floor', svg: '<svg viewBox="0 0 64 70"><path d="M10 66 L48 4" stroke="#8A6038" stroke-width="3" stroke-linecap="round"/><path d="M48 4 Q58 20 56 38" stroke="#EDE3D0" stroke-width="1" fill="none"/>' +
+      '<path d="M53 38 q3 4 0 6" stroke="#9AA4AE" stroke-width="1.5" fill="none"/><path d="M26 48 L48 48 L45 68 L29 68Z" fill="#7F9BB0" stroke="#3E4E5A" stroke-width="1.5"/>' +
+      '<path d="M32 48 q4 -6 10 -2 l4 -3 v6 l-4 -3 q-6 4 -10 2Z" fill="#F5B83D" stroke="#7A5434" stroke-width="1"/></svg>' },
+    clover: { at: 'wall', svg: '<svg viewBox="0 0 50 64"><rect x="12" y="24" width="26" height="34" rx="6" fill="rgba(200,236,255,0.35)" stroke="#E6F4FF" stroke-width="1.5"/><rect x="14" y="20" width="22" height="6" rx="2" fill="#A0703F"/>' +
+      '<path d="M25 52 Q24 44 25 36" stroke="#4E7A36" stroke-width="2" fill="none"/>' +
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].map(function (d) { return '<circle cx="' + (25 + d[0] * 4) + '" cy="' + (34 + d[1] * 4) + '" r="4.6" fill="#6E9B44" stroke="#3F6A2C" stroke-width="1"/>'; }).join('') + '</svg>' },
+    acorns: { at: 'floor', svg: '<svg viewBox="0 0 64 50">' +
+      [[16, 36], [30, 40], [44, 36], [23, 26], [38, 27]].map(function (a) {
+        return '<ellipse cx="' + a[0] + '" cy="' + (a[1] + 3) + '" rx="6" ry="7" fill="#C9783A" stroke="#4E3420" stroke-width="1.2"/><path d="M' + (a[0] - 7) + ' ' + a[1] + ' Q' + a[0] + ' ' + (a[1] - 8) + ' ' + (a[0] + 7) + ' ' + a[1] + 'Z" fill="#7A5434" stroke="#4E3420" stroke-width="1.2"/>';
+      }).join('') + '<circle cx="52" cy="42" r="7" fill="#FFD25A" stroke="#9A6512" stroke-width="1.5"/><text x="48.5" y="45.5" font-size="9" font-weight="900" fill="#9A6512">M</text></svg>' },
+    map: { at: 'wall', svg: '<svg viewBox="0 0 70 54"><path d="M4 8 L24 4 L46 8 L66 4 L66 46 L46 50 L24 46 L4 50Z" fill="#F6E3C4" stroke="#A0703F" stroke-width="1.5"/><path d="M24 4 V46 M46 8 V50" stroke="#D7B98A" stroke-width="1"/>' +
+      '<path d="M10 40 Q20 22 32 30 T58 14" stroke="#E07A3A" stroke-width="2" stroke-dasharray="3 3" fill="none"/><path d="M54 10 l6 6 M60 10 l-6 6" stroke="#B5562E" stroke-width="2.4"/><circle cx="12" cy="12" r="3" fill="#B5562E"/></svg>' },
+    bento: { at: 'floor', svg: '<svg viewBox="0 0 64 46"><rect x="4" y="10" width="56" height="32" rx="6" fill="#B5562E" stroke="#4E3420" stroke-width="1.6"/><rect x="8" y="14" width="48" height="24" rx="4" fill="#FFF6E8"/>' +
+      '<path d="M32 14 V38" stroke="#E6CFA8" stroke-width="2"/><ellipse cx="20" cy="26" rx="8" ry="7" fill="#FFFFFF" stroke="#E6CFA8"/><rect x="17" y="27" width="6" height="7" fill="#3A4A3A"/>' +
+      '<circle cx="40" cy="22" r="4" fill="#E0503A"/><path d="M44 30 q4 -6 8 0 q-4 4 -8 0Z" fill="#F5D04A"/><circle cx="48" cy="21" r="3" fill="#6E9B44"/></svg>' },
+    cookies: { at: 'floor', svg: '<svg viewBox="0 0 64 44"><ellipse cx="32" cy="34" rx="28" ry="8" fill="#F3E2C2" stroke="#A0703F" stroke-width="1.5"/>' +
+      [[20, 28], [36, 30], [28, 20], [44, 22]].map(function (c) {
+        return '<circle cx="' + c[0] + '" cy="' + c[1] + '" r="8" fill="#D9A441" stroke="#7A5434" stroke-width="1.2"/><circle cx="' + (c[0] - 3) + '" cy="' + (c[1] - 2) + '" r="1.4" fill="#4E3420"/><circle cx="' + (c[0] + 3) + '" cy="' + (c[1] + 2) + '" r="1.4" fill="#4E3420"/>';
+      }).join('') + '</svg>' },
+    mirror: { at: 'wall', svg: '<svg viewBox="0 0 50 64"><ellipse cx="25" cy="30" rx="19" ry="25" fill="#8A6038" stroke="#4E3420" stroke-width="1.6"/><ellipse cx="25" cy="30" rx="14" ry="20" fill="#CFE7EF"/>' +
+      '<path d="M16 22 Q20 14 28 13" stroke="#FFFFFF" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.8"/><circle cx="25" cy="6" r="3" fill="#FFB3C7"/><circle cx="12" cy="12" r="2.4" fill="#FFE27A"/><circle cx="38" cy="12" r="2.4" fill="#A8D86E"/></svg>' },
+    trophy: { at: 'wall', svg: '<svg viewBox="0 0 54 60"><path d="M14 6 H40 V18 Q40 34 27 36 Q14 34 14 18Z" fill="#F5C44A" stroke="#9A6512" stroke-width="1.6"/>' +
+      '<path d="M14 10 Q4 10 6 18 Q8 26 16 26 M40 10 Q50 10 48 18 Q46 26 38 26" stroke="#9A6512" stroke-width="2.4" fill="none"/><rect x="24" y="36" width="6" height="8" fill="#C49A3A"/>' +
+      '<rect x="14" y="44" width="26" height="10" rx="2" fill="#8A6038" stroke="#4E3420" stroke-width="1.4"/><path d="M22 14 l5 8 l5 -8" stroke="#FFF3C0" stroke-width="2" fill="none"/></svg>' }
+  };
+  // Spots in the room (percent of the room): hanging along the top of the
+  // wall, pinned on the wall between the frames, or standing in the corners.
+  var DECOR_SPOTS = {
+    hang: [{ left: 50, top: 6, center: true }],
+    wall: [{ left: 3, top: 26 }, { left: 88, top: 24 }, { left: 3, top: 6 }, { left: 88, top: 5 }],
+    floor: [{ left: 2, bottom: 12 }, { left: 89, bottom: 12 }, { left: 14, bottom: 3 }, { left: 77, bottom: 3 }]
+  };
+  function renderDecor(amb) {
+    var box = document.getElementById('hollowDecor');
+    box.textContent = '';
+    var seen = readJSON(DECOR_SEEN_KEY) || [];
+    var used = { hang: 0, wall: 0, floor: 0 };
+    amb.decor.forEach(function (id) {
+      var art = DECOR_ART[id];
+      if (!art) return;
+      var place = art.at;
+      // a second hanging thing goes on the wall instead
+      if (!DECOR_SPOTS[place][used[place]]) place = place === 'hang' ? 'wall' : place;
+      var spot = DECOR_SPOTS[place][used[place]];
+      if (!spot) return;
+      used[place]++;
+      var d = el('span', 'hollow-deco' + (art.at === 'hang' && place === 'hang' ? ' is-hang' : ''));
+      d.innerHTML = art.svg;
+      d.style.left = spot.left + '%';
+      if (spot.center) d.style.transform = 'translateX(-50%)';
+      if (spot.top != null) d.style.top = spot.top + '%'; else d.style.bottom = spot.bottom + '%';
+      d.style.animationDelay = (used.wall + used.floor + used.hang) * 0.12 + 's';
+      if (seen.length && seen.indexOf(id) < 0) d.classList.add('is-new');
+      box.appendChild(d);
+    });
+    writeJSON(DECOR_SEEN_KEY, Array.from(new Set(seen.concat(amb.decor))));
+  }
+  function renderFlies(amb) {
+    var box = document.getElementById('hollowFlies');
+    var n = 3 + Math.round(amb.sparkle * 6);
+    if (box.childElementCount === n) return;
+    box.textContent = '';
+    for (var i = 0; i < n; i++) {
+      var f = el('span', 'hollow-firefly');
+      // fixed spots (not random), so the room looks the same each visit
+      f.style.setProperty('--x', (8 + ((i * 37) % 84)) + '%');
+      f.style.setProperty('--y', (16 + ((i * 23) % 36)) + '%');
+      f.style.setProperty('--d', (7 + (i % 5)) + 's');
+      box.appendChild(f);
+    }
+  }
+
+  // ---------- the room's mood: who lives here + what it remembers ----------
+  var currentAmb = null;
+  // settled = everyone's cards are here (or you're not logged in), so today's
+  // snapshot is the whole room and not just you while friends are still loading
+  function applyAmbience(profiles, settled) {
+    var memory = readJSON(WORLD_KEY);
+    var amb = O.ambience(profiles, memory);
+    if (amb.spirit && settled) {
+      var next = O.remember(memory, amb, today());
+      if (next !== memory) { writeJSON(WORLD_KEY, next); amb = O.ambience(profiles, next); }
+    }
+    currentAmb = amb;
+    room.style.setProperty('--hollow-light', amb.light);
+    document.body.style.setProperty('--hollow-light', amb.light);
+    room.style.setProperty('--hollow-warm', amb.warmth);
+    room.style.setProperty('--hollow-wood', amb.wood);
+    room.style.setProperty('--hollow-moss', amb.moss);
+    renderDecor(amb);
+    renderFlies(amb);
+    return amb;
+  }
+
+  // Where each Moku stands. Wide rooms: one row along the floor. Narrow
+  // (phones): three in front, two a little further back and smaller.
+  function hollowLayout(n, width) {
+    var oneRow = width >= 620 || n <= 3;
+    var spots = [];
+    if (oneRow) {
+      var size = Math.min(150, width / (n <= 3 ? 4 : 5.6));
+      for (var i = 0; i < n; i++) spots.push({ x: (i + 0.5) / n, bottom: 9, size: size, zone: width / n, z: 2 });
+    } else {
+      var front = Math.min(3, n), back = n - front;
+      var fs = Math.min(130, width / 3.6), bs = fs * 0.8;
+      for (var f = 0; f < front; f++) spots.push({ x: (f + 0.5) / front, bottom: 6, size: fs, zone: width / front, z: 2 });
+      for (var k = 0; k < back; k++) spots.push({ x: (k + 0.5) / back * 0.8 + 0.1, bottom: 40, size: bs, zone: width * 0.8 / back, z: 1 });
+    }
+    return spots;
+  }
+
+  function render() {
+    stopWalking();
+    stopThinking();
+    buildHollowScene();
+    var data = people();
+    var all = data.people;
+    shown = pickShown(all);
+    var width = room.clientWidth || 360;
+    var spots = hollowLayout(shown.length, width);
+    mokusEl.textContent = '';
+    framesEl.textContent = '';
+    shown.forEach(function (p, i) {
+      var outfit = p.card && p.card.outfit;
+      var spot = spots[i];
+      var frame = el('span', 'hollow-frame');
+      frame.setAttribute('data-key', p.key);
+      frame.style.left = (spot.x * 100).toFixed(2) + '%';
+      if (spot.z === 1) frame.classList.add('is-back');
+      frame.style.setProperty('--tilt', ((i % 2 ? 1 : -1) * (1 + (i % 3))) + 'deg');
+      var bgSvg = outfit && outfit.bg && window.MokuMoint ? MokuMoint.itemSVG(outfit.bg) : '';
+      if (bgSvg) frame.innerHTML = bgSvg; else frame.classList.add('is-empty');
+      framesEl.appendChild(frame);
+
+      var moku = el('div', 'hollow-moku');
+      moku.setAttribute('data-key', p.key);
+      moku.style.left = (spot.x * 100).toFixed(2) + '%';
+      moku.style.bottom = spot.bottom + '%';
+      moku.style.width = '0';
+      moku.style.zIndex = spot.z;
+      moku.style.setProperty('--size', Math.round(spot.size) + 'px');
+      moku.style.setProperty('--plate-tilt', ((i % 2 ? 1 : -1) * (0.8 + (i % 3) * 0.6)).toFixed(1) + 'deg');
+      moku.setAttribute('data-range', Math.max(0, Math.min(90, spot.zone / 2 - spot.size * 0.2)).toFixed(0));
+      var walker = el('div', 'hollow-walker');
+      var btn = el('button', 'hollow-moku-btn');
+      btn.type = 'button';
+      btn.setAttribute('aria-label', p.name + (p.you ? ' (you)' : '') + ', ' + statusText(p) + '. Show highlights');
+      var flip = el('span', 'hollow-flip');
+      flip.innerHTML = dollMarkup(outfit);
+      btn.appendChild(flip);
+      btn.appendChild(el('span', 'hollow-think'));
+      var plate = el('div', 'hollow-plate');
+      var name = el('b', null, p.name);
+      if (p.you) name.appendChild(el('span', 'hollow-you', 'YOU'));
+      plate.appendChild(name);
+      plate.appendChild(el('small', p.online ? 'is-online' : null, (p.tag ? '#' + p.tag + ' · ' : '') + statusText(p)));
+      walker.appendChild(btn);
+      walker.appendChild(plate);
+      walker.addEventListener('transitionend', function (e) {
+        if (e.target === walker && popFor === p.key) popOpen(p);
+      });
+      moku.appendChild(walker);
+      mokusEl.appendChild(moku);
+    });
+    var amb = applyAmbience(shown.map(function (p) { return p.profile; }), data.loaded || !data.user);
+    var others = all.filter(function (p) { return !p.you; });
+    var online = others.filter(function (p) { return p.online; }).length;
+    document.getElementById('hollowSub').textContent = others.length
+      ? all.length + ' Mokus live here' + (online ? ' · ' + online + ' online now' : '') + '.'
+      : 'Everyone\'s Moku lives here.';
+    var note = '';
+    if (!data.user) note = 'Log in to see your friends\' Mokus here.';
+    else if (!data.loaded) note = 'Calling your friends…';
+    else if (!others.length) note = 'No friends here yet. Ask a grown-up for an invite code!';
+    else note = 'Tap a Moku to see what you have in common.';
+    document.getElementById('hollowNote').textContent = note;
+    var choose = document.getElementById('hollowChoose');
+    choose.hidden = all.length <= HOLLOW_MAX;
+    choose.textContent = 'Choose Mokus (' + all.length + ')';
+    renderNotes(amb);
+    if (kinData) renderKin();
+    if (popFor) {
+      var still = shown.filter(function (p) { return p.key === popFor; })[0];
+      if (still) popOpen(still); else popClose();
+    }
+    startWalking();
+    startThinking();
+  }
+
+  // ---------- Hollow Notes ----------
+  function renderNotes(amb) {
+    var S = O.SPIRITS;
+    if (amb.spirit) {
+      document.getElementById('notesTone').textContent = S[amb.spirit].emoji + ' ' + amb.tone;
+      document.getElementById('notesMood').textContent = S[amb.spirit].label + (amb.second ? ' and ' + S[amb.second].label : '') +
+        ' fill the Hollow today. The light, the moss and the little things around the room follow who lives here.';
+    } else {
+      document.getElementById('notesTone').textContent = '🌳 A Quiet Hollow';
+      document.getElementById('notesMood').textContent = 'The room is waiting to get to know you. Play some games, dress up your Moku, and it will start to change.';
+    }
+    var dayEl = document.getElementById('notesDay');
+    dayEl.hidden = !amb.days;
+    dayEl.textContent = 'Day ' + amb.days;
+    var seeds = document.getElementById('notesSeeds');
+    seeds.textContent = '';
+    for (var i = 0; i < 5; i++) seeds.appendChild(el('i', i < amb.decor.length ? 'is-on' : null));
+    var nextAt = amb.slots < 5 ? (Math.floor(amb.days / 3) + 1) * 3 : 0;
+    document.getElementById('notesGrow').textContent = amb.decor.length + ' / 5 treasures' +
+      (nextAt ? ' · room for one more on day ' + nextAt : ' · the Hollow is full of treasures!');
+    document.getElementById('notesMe').textContent = O.describe(mine);
+
+    var links = document.getElementById('notesLinks');
+    links.textContent = '';
+    var friends = shown.filter(function (p) { return !p.you; });
+    if (!friends.length) {
+      links.appendChild(el('p', 'hollow-empty', 'When friends move in, you will find out what you secretly have in common.'));
+      return;
+    }
+    friends.forEach(function (p) {
+      var c = O.compare(mine, p.profile);
+      var b = el('button', 'hollow-link');
+      b.type = 'button';
+      b.setAttribute('data-key', p.key);
+      var mini = el('span', 'hollow-mini');
+      mini.innerHTML = dollMarkup(p.card && p.card.outfit);
+      var main = el('span', 'hollow-link-main');
+      var title = el('b', null, p.name);
+      if (c.best) title.appendChild(el('span', null, Math.round(c.score * 100) + '% alike'));
+      main.appendChild(title);
+      main.appendChild(el('p', null, c.best ? c.best.text : (p.profile.empty
+        ? p.name + '\'s Moku is still new. Look again after they play a little!'
+        : (mine.empty ? 'Play a few games to find out what you share with ' + p.name + '!' : 'Very different birds! Maybe teach each other a favorite game?'))));
+      b.appendChild(mini);
+      b.appendChild(main);
+      links.appendChild(b);
+    });
+  }
+  // ---------- Birds Like You: the server compares you with everyone (GET /players/kin) ----------
+  // Same meaning network, run on every public card, so you can meet birds who
+  // aren't in your room yet. Older servers (404), offline or guests: hidden.
+  var kinData = null;
+  function loadKin() {
+    var acc = window.MokuAccount;
+    var token = acc && acc.getToken && acc.getToken();
+    if (!token || !acc.isEnabled()) return;
+    fetch(acc.apiBase() + '/players/kin', { headers: { authorization: 'Bearer ' + token } }).then(function (res) {
+      return res.ok ? res.json() : null;
+    }).then(function (data) {
+      kinData = data && Array.isArray(data.kin) ? data : null;
+      renderKin();
+    }, function () {});
+  }
+  function outfitOf(tag) {
+    var list = window.MokuAccount && MokuAccount.getPlayers ? MokuAccount.getPlayers() : null;
+    var p = list ? list.players.filter(function (x) { return x.tag === tag; })[0] : null;
+    return p && p.card ? p.card.outfit : null;
+  }
+  function renderKin() {
+    var box = document.getElementById('notesKinBox');
+    var list = document.getElementById('notesKin');
+    var rows = kinData ? (kinData.surprise ? [kinData.surprise] : []).concat(kinData.kin) : [];
+    box.hidden = !rows.length;
+    list.textContent = '';
+    rows.forEach(function (k, i) {
+      var inRoom = Boolean(personByKey(k.tag));
+      var b = el('button', 'hollow-link');
+      b.type = 'button';
+      b.setAttribute('data-kin', k.tag);
+      var mini = el('span', 'hollow-mini');
+      mini.innerHTML = dollMarkup(outfitOf(k.tag));
+      var main = el('span', 'hollow-link-main');
+      var title = el('b', null, k.displayName);
+      if (k === kinData.surprise) title.appendChild(el('span', 'is-surprise', '✨ Surprise'));
+      else title.appendChild(el('span', null, Math.round(k.score * 100) + '% alike'));
+      if (!inRoom) title.appendChild(el('span', 'is-away', '· not in the room'));
+      main.appendChild(title);
+      main.appendChild(el('p', null, k.link.text));
+      b.appendChild(mini);
+      b.appendChild(main);
+      list.appendChild(b);
+    });
+  }
+  // Tap: open their pop-up if they're in the room, or bring them in (swaps
+  // out the last friend in your picks; you always stay).
+  document.getElementById('notesKin').addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('[data-kin]') : null;
+    if (!b) return;
+    var tag = b.getAttribute('data-kin');
+    if (!personByKey(tag)) {
+      var keys = shown.map(function (p) { return p.key; }).filter(function (k) { return k !== tag; });
+      if (keys.length >= HOLLOW_MAX) keys.pop();
+      keys.push(tag);
+      writeJSON(PICKS_KEY, keys);
+      render();
+    }
+    var p = personByKey(tag);
+    if (!p) return;
+    room.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    popOpen(p);
+  });
+
+  document.getElementById('notesLinks').addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('.hollow-link') : null;
+    if (!b) return;
+    var p = personByKey(b.getAttribute('data-key'));
+    if (!p) return;
+    room.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    popOpen(p);
+  });
+
+  // ---------- now and then, a Moku waddles slowly a little to the left or right ----------
+  var walkTimers = [];
+  function stopWalking() { walkTimers.forEach(clearTimeout); walkTimers = []; }
+  function startWalking() {
+    stopWalking();
+    Array.prototype.forEach.call(mokusEl.querySelectorAll('.hollow-moku'), function (m, i) {
+      queueWalk(m, 800 + Math.random() * 2500 + i * 700);
+    });
+  }
+  function queueWalk(m, delay) { walkTimers.push(setTimeout(function () { walkOnce(m); }, delay)); }
+  function walkOnce(m) {
+    if (!m.isConnected) return;
+    if (document.hidden || m.getAttribute('data-key') === popFor) { queueWalk(m, 3000); return; }
+    var range = +m.getAttribute('data-range') || 0;
+    if (range < 8) return;
+    var from = +m.getAttribute('data-x') || 0;
+    var to = Math.round((Math.random() * 2 - 1) * range);
+    if (Math.abs(to - from) < range * 0.5) to = Math.round(from > 0 ? -range * (0.5 + Math.random() * 0.5) : range * (0.5 + Math.random() * 0.5));
+    var dur = Math.max(2, Math.abs(to - from) / 22);
+    var walker = m.querySelector('.hollow-walker');
+    m.classList.toggle('face-left', to < from);
+    m.classList.add('is-walking');
+    walker.style.transition = 'transform ' + dur.toFixed(2) + 's ease-in-out';
+    walker.style.transform = 'translateX(' + to + 'px)';
+    m.setAttribute('data-x', to);
+    walkTimers.push(setTimeout(function () {
+      m.classList.remove('is-walking', 'face-left');
+      queueWalk(m, 4000 + Math.random() * 8000);
+    }, dur * 1000));
+  }
+
+  // ---------- thought bubbles: each Moku now and then thinks of what they love ----------
+  var thinkTimers = [];
+  function stopThinking() { thinkTimers.forEach(clearTimeout); thinkTimers = []; }
+  function startThinking() {
+    stopThinking();
+    shown.forEach(function (p, i) {
+      if (p.profile.empty) return;
+      thinkTimers.push(setTimeout(function () { thinkOnce(p); }, 2500 + i * 1700 + Math.random() * 3000));
+    });
+  }
+  function thinkOnce(p) {
+    var moku = mokuEl(p.key);
+    if (!moku) return;
+    var bubble = moku.querySelector('.hollow-think');
+    if (!document.hidden && popFor !== p.key) {
+      // mostly their favorite, sometimes their second or third
+      var tops = p.profile.top;
+      var r = Math.random();
+      var t = tops[r < 0.6 || tops.length < 2 ? 0 : r < 0.85 || tops.length < 3 ? 1 : 2];
+      bubble.textContent = O.TRAITS[t.id].emoji;
+      bubble.classList.add('is-on');
+      thinkTimers.push(setTimeout(function () { bubble.classList.remove('is-on'); }, 2200));
+    }
+    thinkTimers.push(setTimeout(function () { thinkOnce(p); }, 7000 + Math.random() * 9000));
+  }
+
+  // ---------- pop-up: highlights + what you have in common ----------
+  function mokuEl(key) { return mokusEl.querySelector('.hollow-moku[data-key="' + String(key).replace(/"/g, '') + '"]'); }
+  function popOpen(p) {
+    var moku = mokuEl(p.key);
+    if (!moku) return;
+    popFor = p.key;
+    Array.prototype.forEach.call(room.querySelectorAll('.hollow-moku, .hollow-frame'), function (n) {
+      n.classList.toggle('is-open', n.getAttribute('data-key') === p.key);
+    });
+    var card = p.card || {};
+    var hls = card.highlights || [];
+    pop.textContent = '';
+    var h3 = el('h3', null, p.name + (p.you ? ' (you)' : ''));
+    if (card.level) h3.appendChild(el('small', null, 'Lv.' + card.level));
+    pop.appendChild(h3);
+    if (!hls.length) {
+      pop.appendChild(el('p', 'hollow-empty', p.you
+        ? 'Play some games and your best moments will show up here!'
+        : 'No highlights yet. They will show up after ' + p.name + ' opens the Moku Series hub.'));
+    }
+    hls.forEach(function (h) {
+      var row = el('div', 'hollow-hl');
+      var icon = el('span', 'hollow-hl-icon');
+      if (h.game && O.GAMES[h.game]) {
+        var img = el('img'); img.alt = ''; img.src = 'icons/games/' + h.game + '.svg';
+        icon.style.background = '#F1D9B5';
+        icon.appendChild(img);
+      } else {
+        icon.textContent = h.icon || '⭐';
+      }
+      var text = el('span', 'hollow-hl-text');
+      text.appendChild(el('b', null, h.title));
+      text.appendChild(el('span', null, h.value));
+      row.appendChild(icon);
+      row.appendChild(text);
+      pop.appendChild(row);
+    });
+    // the meaning network's part: who this bird is, and what you share
+    var kin = el('div', 'hollow-kin');
+    if (p.you) {
+      kin.appendChild(el('p', null, O.describe(p.profile)));
+    } else {
+      var c = O.compare(mine, p.profile);
+      var head = el('div', 'hollow-kin-head');
+      head.appendChild(el('span', null, 'You & ' + p.name));
+      if (c.best) {
+        var meter = el('span', 'hollow-kin-meter');
+        var fill = el('i');
+        fill.style.width = Math.round(c.score * 100) + '%';
+        meter.appendChild(fill);
+        head.appendChild(meter);
+        head.appendChild(el('span', null, Math.round(c.score * 100) + '%'));
+      }
+      kin.appendChild(head);
+      kin.appendChild(el('p', null, c.best ? c.best.text : O.describe(p.profile)));
+    }
+    pop.appendChild(kin);
+    if (!p.you && card.updatedAt) pop.appendChild(el('p', 'hollow-foot', 'Updated ' + relTime(card.updatedAt).toLowerCase()));
+    pop.hidden = false;
+    var r = room.getBoundingClientRect();
+    var btn = moku.querySelector('.hollow-moku-btn').getBoundingClientRect();
+    var plate = moku.querySelector('.hollow-plate').getBoundingClientRect();
+    var w = pop.offsetWidth, h = pop.offsetHeight;
+    var cx = btn.left - r.left + btn.width / 2;
+    var left = Math.max(10, Math.min(r.width - w - 10, cx - w / 2));
+    var top = btn.top - r.top - h - 6;
+    var below = top < 6;
+    if (below) top = plate.bottom - r.top + 10;
+    pop.classList.toggle('is-below', below);
+    pop.style.left = left + 'px';
+    pop.style.top = top + 'px';
+    pop.style.setProperty('--arrow', (cx - left) + 'px');
+  }
+  function popClose() {
+    pop.hidden = true;
+    popFor = null;
+    Array.prototype.forEach.call(room.querySelectorAll('.is-open'), function (n) { n.classList.remove('is-open'); });
+  }
+  function personByKey(key) { return shown.filter(function (p) { return p.key === key; })[0]; }
+  var canHover = window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches;
+  mokusEl.addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('.hollow-moku-btn') : null;
+    if (!btn) return;
+    var key = btn.closest('.hollow-moku').getAttribute('data-key');
+    if (popFor === key && !canHover) { popClose(); return; }
+    var p = personByKey(key);
+    if (p) popOpen(p);
+  });
+  if (canHover) {
+    mokusEl.addEventListener('mouseover', function (e) {
+      var btn = e.target.closest ? e.target.closest('.hollow-moku-btn') : null;
+      if (!btn) return;
+      var key = btn.closest('.hollow-moku').getAttribute('data-key');
+      if (key === popFor) return;
+      var p = personByKey(key);
+      if (p) popOpen(p);
+    });
+  }
+  document.addEventListener('click', function (e) {
+    if (pop.hidden) return;
+    if (e.target.closest && (e.target.closest('.hollow-moku-btn') || e.target.closest('#hollowPop') || e.target.closest('.hollow-link'))) return;
+    popClose();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    if (!picker.hidden) pickerClose();
+    else if (!pop.hidden) popClose();
+    else location.href = 'hub.html';
+  });
+  var resizeT = 0;
+  window.addEventListener('resize', function () {
+    clearTimeout(resizeT);
+    resizeT = setTimeout(render, 200);
+  });
+
+  // ---------- picker: who lives in the Hollow (6+ players) ----------
+  var pickDraft = [];
+  function renderPicker() {
+    var all = people().people;
+    var list = document.getElementById('hollowPickList');
+    list.textContent = '';
+    all.forEach(function (p) {
+      var on = pickDraft.indexOf(p.key) >= 0;
+      var b = el('button', 'hollow-pick' + (on ? ' is-on' : ''));
+      b.type = 'button';
+      b.setAttribute('data-key', p.key);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      b.disabled = !on && pickDraft.length >= HOLLOW_MAX;
+      var mini = el('span', 'hollow-mini');
+      mini.innerHTML = dollMarkup(p.card && p.card.outfit);
+      var main = el('span', 'hollow-pick-main');
+      var nm = el('b', null, p.name);
+      if (p.you) nm.appendChild(el('span', 'hollow-you', 'YOU'));
+      main.appendChild(nm);
+      main.appendChild(el('span', p.online ? 'is-online' : null, (p.tag ? '#' + p.tag + ' · ' : '') + statusText(p)));
+      b.appendChild(mini);
+      b.appendChild(main);
+      b.appendChild(el('span', 'hollow-check'));
+      list.appendChild(b);
+    });
+    document.getElementById('hollowPickCount').textContent = pickDraft.length + ' / ' + HOLLOW_MAX;
+  }
+  function pickerOpen() {
+    pickDraft = shown.map(function (p) { return p.key; });
+    popClose();
+    renderPicker();
+    picker.hidden = false;
+    document.getElementById('hollowPickDone').focus();
+  }
+  function pickerClose() {
+    picker.hidden = true;
+    document.getElementById('hollowChoose').focus();
+  }
+  document.getElementById('hollowChoose').addEventListener('click', pickerOpen);
+  document.getElementById('hollowPickList').addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('.hollow-pick') : null;
+    if (!b || b.disabled) return;
+    var key = b.getAttribute('data-key');
+    var i = pickDraft.indexOf(key);
+    if (i >= 0) pickDraft.splice(i, 1);
+    else if (pickDraft.length < HOLLOW_MAX) pickDraft.push(key);
+    renderPicker();
+  });
+  document.getElementById('hollowPickReset').addEventListener('click', function () {
+    pickDraft = people().people.slice(0, HOLLOW_MAX).map(function (p) { return p.key; });
+    renderPicker();
+  });
+  document.getElementById('hollowPickDone').addEventListener('click', function () {
+    writeJSON(PICKS_KEY, pickDraft.length ? pickDraft.slice(0, HOLLOW_MAX) : null);
+    pickerClose();
+    render();
+  });
+  picker.addEventListener('click', function (e) { if (e.target === picker) pickerClose(); });
+
+  // ---------- start ----------
+  window.addEventListener('moku:players', render);
+  function boot() {
+    render();
+    if (window.MokuAccount && MokuAccount.loadPlayers) MokuAccount.loadPlayers(true);
+    loadKin();
+  }
+  // moku-account.js / moku-moint.js load after this script (end of body)
+  window.addEventListener('DOMContentLoaded', boot);
+})();
+</script>
+<script src="shared/moku-account.js?v=20261026"></script>
+<script src="shared/moku-moint.js?v=20261026" data-mode="none"></script>
+</body>
+</html>
