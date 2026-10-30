@@ -204,8 +204,11 @@ function createMatchApi(store, config) {
 
   async function loadOwnMatch(user, id) {
     const match = await store.getMatch(id);
-    // Someone else's match looks the same as a missing one.
+    // Someone else's match looks the same as a missing one. So does an
+    // expired one: DynamoDB's TTL delete can lag a day or two, and a move
+    // would otherwise bring it back to life.
     if (!match || !colorOf(match, user.uid)) return null;
+    if (match.ttl && match.ttl <= Math.floor(now() / 1000)) return null;
     return match;
   }
 

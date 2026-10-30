@@ -190,6 +190,16 @@ test("matches expire a week after the last move (a month once finished)", async 
   assert.equal((await t.store.getMatch(m.id)).ttl, stored.ttl + 3600);
 });
 
+test("an expired match can't be read or moved, even before DynamoDB deletes it", async () => {
+  const t = await setup();
+  const m = await newGame(t);
+  t.tick(7 * 86400 * 1000 + 1000);
+  assert.equal((await t.call("GET", `/matches/${m.id}`, "aoi")).status, 404);
+  const r = await t.call("POST", `/matches/${m.id}/move`, "aoi", { move: "e2e4", version: 0 });
+  assert.equal(r.status, 404);
+  assert.equal((await t.store.getMatch(m.id)).version, 0, "not brought back to life");
+});
+
 test("one player can't have more than 20 games going", async () => {
   const t = await setup();
   for (let i = 0; i < 20; i++) await newGame(t);
