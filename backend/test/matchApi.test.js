@@ -190,6 +190,19 @@ test("matches expire a week after the last move (a month once finished)", async 
   assert.equal((await t.store.getMatch(m.id)).ttl, stored.ttl + 3600);
 });
 
+test("resigning hands the win to the friend, on either turn", async () => {
+  const t = await setup();
+  const m = await newGame(t);
+  await t.call("POST", `/matches/${m.id}/move`, "aoi", { move: "e2e4", version: 0 });
+  assert.equal((await t.call("POST", `/matches/${m.id}/resign`, "sora")).status, 404, "not a player");
+  const r = await t.call("POST", `/matches/${m.id}/resign`, "aoi"); // black (ren) to move
+  assert.equal(r.status, 200);
+  assert.deepEqual([r.body.match.status, r.body.match.result, r.body.match.endReason, r.body.match.version], ["finished", "black", "resign", 2]);
+  assert.equal((await t.call("POST", `/matches/${m.id}/resign`, "ren")).body.error, "match_over");
+  const ren = (await t.call("GET", "/matches", "ren")).body.matches[0];
+  assert.deepEqual([ren.status, ren.result], ["finished", "black"]);
+});
+
 test("an expired match can't be read or moved, even before DynamoDB deletes it", async () => {
   const t = await setup();
   const m = await newGame(t);

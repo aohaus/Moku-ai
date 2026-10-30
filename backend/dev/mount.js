@@ -42,7 +42,7 @@ module.exports = function mountDevAccounts(app) {
     });
     res.status(result.statusCode).set(result.headers || {}).send(result.body);
   });
-  app.all(["/matches", "/matches/:id", "/matches/:id/move"], async (req, res) => {
+  app.all(["/matches", "/matches/:id", "/matches/:id/move", "/matches/:id/resign"], async (req, res) => {
     const result = await matchHandler({
       requestContext: { http: { method: req.method } },
       rawPath: req.path,

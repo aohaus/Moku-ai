@@ -320,6 +320,12 @@ Resources:
             ApiId: !Ref MokuScoresApi
             Path: /matches/{id}/move
             Method: POST
+        Resign:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /matches/{id}/resign
+            Method: POST
 
 Outputs:
   ApiUrl:
