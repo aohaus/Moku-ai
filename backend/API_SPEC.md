@@ -299,3 +299,59 @@ PINはどこにも記録しない。DynamoDB の `ttl` で90日後に自動削�
 ## `DELETE /admin/errors/{sig}`
 
 **200** `{ "deleted": "<sig>" }`。同じエラーがまた起きれば `new` で作り直される。
+
+# Matches(オンライン対戦、2026-10-30〜)
+
+ログインした2人のオンライン対戦。最初は Moku Chess で、手紙チェスのように持ち時間はない(`src/matchApi.js`、Lambda は `MatchFunction`)。
+
+- **サーバーが正**: `POST /matches/{id}/move` のたびに、サーバーが最初からの手順を `shared/moku-chess-rules.js`(Lambda には `src/vendor/` のコピー)で指し直し、合法手か・終局かを決める。
+- **ポーリング**: 相手の番の間、ページは `GET /matches/{id}?v=<持っている version>` を3秒おきに呼ぶ。変化がなければ `{ "changed": false }` だけ返る。
+- **見せるもの**: 表示名と `#u` タグだけ。Player ID・uid は返さない。対局はその2人だけが見られる(ほかの人には `404`)。
+- **データ**: `pk MATCH#<id> / sk STATE`(対局。手の列・FEN・手番・`version`)と、2人それぞれの一覧用 `pk PLAYER#<uid> / sk MATCH#<id>`。指すたびに3つを1つのトランザクションで書く(`version` が読んだ時と同じ時だけ)。プレイヤーは変わらない `uid` で持つ(管理者が Player ID を変えても対局は残る)。
+- **期限**: 最後の手から7日動きがなければ消える(DynamoDB の TTL)。終わった対局は30日。
+- **上限**: 1人が同時に進められる対局は20まで。スロットリングは `template.yaml` の `RouteSettings`(`GET /matches/{id}` 40/秒・瞬間80、ほかは 5〜15/秒)。
+
+全エンドポイントで `Authorization: Bearer <token>` が必要(なければ `401 unauthorized`)。
+
+## 対局の形(`match`)
+
+```json
+{ "id": "6f44822846471414", "game": "moku-chess", "status": "active",
+  "you": "w", "white": { "name": "Aoi", "tag": "u1a2b3" }, "black": { "name": "Ren", "tag": "u4c5d6" },
+  "moves": ["e2e4"], "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
+  "turn": "b", "yourTurn": false, "version": 1,
+  "result": null, "endReason": null, "createdAt": "…", "updatedAt": "…" }
+```
+
+- `status`: `active` / `finished`。`result`: `white` / `black` / `draw`(終わるまで `null`)。
+- `endReason`: `checkmate` / `stalemate` / `fifty` / `material` / `repetition`。
+
+## `POST /matches`
+
+`{ "game": "moku-chess", "opponentTag": "u4c5d6", "color": "white" | "black" | "random" }`(`color` は省略すると `random`)
+→ **201** `{ "match": … }`。相手の一覧にもすぐ出る(相手が受ける操作はない。最初の手番の人から指せる)。
+
+- `400 invalid_game` / `invalid_opponent`(自分自身など)/ `invalid_color`
+- `404 opponent_not_found`(タグの人がいない。管理者も選べない)
+- `409 too_many_matches`(自分が20局進行中)/ `opponent_busy`(相手が20局進行中)
+
+## `GET /matches`
+
+**200** `{ "matches": [ { "id", "game", "status", "you", "opponent": { "name", "tag" }, "turn", "yourTurn", "version", "result", "endReason", "updatedAt" } ], "yourTurn": 2 }`
+並びは「自分の番」→ ほかの進行中 → 終わった対局、それぞれ新しい順。`yourTurn` はハブの「Your turn!」バッジ用の数。
+
+## `GET /matches/{id}?v=<version>`
+
+- `v` が今の `version` と同じ → **200** `{ "changed": false, "version": 3 }`
+- それ以外(`v` なしを含む)→ **200** `{ "changed": true, "match": … }`
+- `404 match_not_found`(ない・期限切れ・自分の対局でない)
+
+## `POST /matches/{id}/move`
+
+`{ "move": "e2e4", "version": 0 }`(`move` は UCI。成る時は駒の文字が必要: `e7e8q`。`version` は今持っている値)
+→ **200** `{ "match": … }`(`version` が1増える。終局なら `status: "finished"`)。
+
+- `400 invalid_move`(書き方が違う)/ `illegal_move`(反則。今の `match` を添える)/ `invalid_version`
+- `409 version_conflict`(先に別の手が入った・二度押し)/ `not_your_turn` / `match_over` — どれも今の `match` を添えるので、ページはそれで描き直す
+- `404 match_not_found`
+

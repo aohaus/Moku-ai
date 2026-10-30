@@ -13,6 +13,9 @@ const { doc } = require("./db");
 //   pk "LOGIN#<loginId>", sk "PROFILE"  user profile + PIN hash + lockout state
 //   pk "LOGIN#<loginId>", sk "SAVE"     cloud save (rev-numbered snapshot)
 //   pk "META",            sk "USERS"    { count } — enforces MAX_USERS on sign-up
+//   pk "MATCH#<id>",      sk "STATE"    an online match (matchApi.js): players, moves, version
+//   pk "PLAYER#<uid>",    sk "MATCH#<id>"  that player's row in their match list
+// (plus the log and error items further down). Match items carry `ttl`.
 
 const TABLE = process.env.ACCOUNTS_TABLE_NAME;
 const userKey = (loginId) => ({ pk: `LOGIN#${loginId}`, sk: "PROFILE" });
@@ -382,7 +385,81 @@ async function deleteError(sig) {
   await doc.send(new DeleteCommand({ TableName: TABLE, Key: errKey(sig) }));
 }
 
+// ---------- online matches (matchApi.js) ----------
+
+const matchKey = (id) => ({ pk: `MATCH#${id}`, sk: "STATE" });
+const playerMatchKey = (uid, id) => ({ pk: `PLAYER#${uid}`, sk: `MATCH#${id}` });
+
+function indexPuts(rows) {
+  return rows.map(({ uid, ...row }) => ({ Put: { TableName: TABLE, Item: { ...playerMatchKey(uid, row.matchId), ...row } } }));
+}
+
+// The match and both players' list rows, all or nothing.
+async function createMatch(match, rows) {
+  await doc.send(
+    new TransactWriteCommand({
+      TransactItems: [
+        { Put: { TableName: TABLE, Item: { ...matchKey(match.id), ...match }, ConditionExpression: "attribute_not_exists(pk)" } },
+        ...indexPuts(rows),
+      ],
+    })
+  );
+}
+
+async function getMatch(id) {
+  const res = await doc.send(new GetCommand({ TableName: TABLE, Key: matchKey(id) }));
+  if (!res.Item) return null;
+  const { pk, sk, ...match } = res.Item;
+  return match;
+}
+
+// Writes the next state only if nobody else wrote since `baseVersion`
+// (two taps, two devices): otherwise throws code "conflict".
+async function saveMatch(match, baseVersion, rows) {
+  try {
+    await doc.send(
+      new TransactWriteCommand({
+        TransactItems: [
+          {
+            Put: {
+              TableName: TABLE,
+              Item: { ...matchKey(match.id), ...match },
+              ConditionExpression: "version = :v",
+              ExpressionAttributeValues: { ":v": baseVersion },
+            },
+          },
+          ...indexPuts(rows),
+        ],
+      })
+    );
+  } catch (e) {
+    if (e.name === "TransactionCanceledException") throw codedError("conflict");
+    throw e;
+  }
+}
+
+async function listPlayerMatches(uid) {
+  const items = [];
+  let ExclusiveStartKey;
+  do {
+    const res = await doc.send(
+      new QueryCommand({
+        TableName: TABLE,
+        KeyConditionExpression: "pk = :pk AND begins_with(sk, :m)",
+        ExpressionAttributeValues: { ":pk": `PLAYER#${uid}`, ":m": "MATCH#" },
+        ExclusiveStartKey,
+      })
+    );
+    items.push(...(res.Items || []));
+    ExclusiveStartKey = res.LastEvaluatedKey;
+  } while (ExclusiveStartKey);
+  const t = Math.floor(Date.now() / 1000);
+  // TTL deletes are lazy (can lag a day or two): skip rows that have already expired.
+  return items.filter((i) => !i.ttl || i.ttl > t).map(({ pk, sk, ...row }) => ({ uid, ...row }));
+}
+
 module.exports = {
   getUser, createUser, updateUser, getSave, putSave, listUsers, listSaves, deleteUser, renameUser,
   addLog, listLogs, recordError, listErrors, updateError, deleteError,
+  createMatch, getMatch, saveMatch, listPlayerMatches,
 };
