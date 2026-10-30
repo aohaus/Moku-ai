@@ -350,6 +350,8 @@ main { animation: meIn 0.22s ease-out; }
 .hollow-link-main b span { font-size: 11px; font-weight: 800; color: #9A6512; }
 .hollow-link-main p { margin: 2px 0 0; font-size: 12.5px; font-weight: 700; line-height: 1.45; color: #5A3C22; }
 .hollow-links .hollow-empty { margin: 0; font-size: 12.5px; font-weight: 700; color: #8A5A2E; }
+.hollow-link-main b .is-surprise { padding: 1px 7px; border-radius: 999px; background: #FFE27A; color: #7A4A12; font-size: 10.5px; font-weight: 900; }
+.hollow-link-main b .is-away { color: #A88B6A; font-weight: 700; }
 </style>
 </head>
 <body>
@@ -392,6 +394,10 @@ main { animation: meIn 0.22s ease-out; }
     </div>
     <h3>You</h3>
     <p class="hollow-me" id="notesMe"></p>
+    <div id="notesKinBox" hidden>
+      <h3>Birds Like You</h3>
+      <div class="hollow-links" id="notesKin"></div>
+    </div>
     <h3>Hidden Links</h3>
     <div class="hollow-links" id="notesLinks"></div>
   </section>
@@ -870,6 +876,7 @@ main { animation: meIn 0.22s ease-out; }
     choose.hidden = all.length <= HOLLOW_MAX;
     choose.textContent = 'Choose Mokus (' + all.length + ')';
     renderNotes(amb);
+    if (kinData) renderKin();
     if (popFor) {
       var still = shown.filter(function (p) { return p.key === popFor; })[0];
       if (still) popOpen(still); else popClose();
@@ -926,6 +933,70 @@ main { animation: meIn 0.22s ease-out; }
       links.appendChild(b);
     });
   }
+  // ---------- Birds Like You: the server compares you with everyone (GET /players/kin) ----------
+  // Same meaning network, run on every public card, so you can meet birds who
+  // aren't in your room yet. Older servers (404), offline or guests: hidden.
+  var kinData = null;
+  function loadKin() {
+    var acc = window.MokuAccount;
+    var token = acc && acc.getToken && acc.getToken();
+    if (!token || !acc.isEnabled()) return;
+    fetch(acc.apiBase() + '/players/kin', { headers: { authorization: 'Bearer ' + token } }).then(function (res) {
+      return res.ok ? res.json() : null;
+    }).then(function (data) {
+      kinData = data && Array.isArray(data.kin) ? data : null;
+      renderKin();
+    }, function () {});
+  }
+  function outfitOf(tag) {
+    var list = window.MokuAccount && MokuAccount.getPlayers ? MokuAccount.getPlayers() : null;
+    var p = list ? list.players.filter(function (x) { return x.tag === tag; })[0] : null;
+    return p && p.card ? p.card.outfit : null;
+  }
+  function renderKin() {
+    var box = document.getElementById('notesKinBox');
+    var list = document.getElementById('notesKin');
+    var rows = kinData ? (kinData.surprise ? [kinData.surprise] : []).concat(kinData.kin) : [];
+    box.hidden = !rows.length;
+    list.textContent = '';
+    rows.forEach(function (k, i) {
+      var inRoom = Boolean(personByKey(k.tag));
+      var b = el('button', 'hollow-link');
+      b.type = 'button';
+      b.setAttribute('data-kin', k.tag);
+      var mini = el('span', 'hollow-mini');
+      mini.innerHTML = dollMarkup(outfitOf(k.tag));
+      var main = el('span', 'hollow-link-main');
+      var title = el('b', null, k.displayName);
+      if (k === kinData.surprise) title.appendChild(el('span', 'is-surprise', '✨ Surprise'));
+      else title.appendChild(el('span', null, Math.round(k.score * 100) + '% alike'));
+      if (!inRoom) title.appendChild(el('span', 'is-away', '· not in the room'));
+      main.appendChild(title);
+      main.appendChild(el('p', null, k.link.text));
+      b.appendChild(mini);
+      b.appendChild(main);
+      list.appendChild(b);
+    });
+  }
+  // Tap: open their pop-up if they're in the room, or bring them in (swaps
+  // out the last friend in your picks; you always stay).
+  document.getElementById('notesKin').addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('[data-kin]') : null;
+    if (!b) return;
+    var tag = b.getAttribute('data-kin');
+    if (!personByKey(tag)) {
+      var keys = shown.map(function (p) { return p.key; }).filter(function (k) { return k !== tag; });
+      if (keys.length >= HOLLOW_MAX) keys.pop();
+      keys.push(tag);
+      writeJSON(PICKS_KEY, keys);
+      render();
+    }
+    var p = personByKey(tag);
+    if (!p) return;
+    room.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    popOpen(p);
+  });
+
   document.getElementById('notesLinks').addEventListener('click', function (e) {
     var b = e.target.closest ? e.target.closest('.hollow-link') : null;
     if (!b) return;
@@ -1171,6 +1242,7 @@ main { animation: meIn 0.22s ease-out; }
   function boot() {
     render();
     if (window.MokuAccount && MokuAccount.loadPlayers) MokuAccount.loadPlayers(true);
+    loadKin();
   }
   // moku-account.js / moku-moint.js load after this script (end of body)
   window.addEventListener('DOMContentLoaded', boot);
