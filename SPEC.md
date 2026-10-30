@@ -305,6 +305,15 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
 - **Luckiest Steps**(2026-10-25〜): 1回の挑戦で、ヒントなしで続けて当てた段数の最高記録を `moku:moku-bridge:progress` の `bestLucky` に保存する。答えが分かっている段は数えず連続も切らない。ヒント・カーペット・ハズレで連続が切れる。
 - **My Moku の My Bests**: `hub.html` の `profileBests()` が返す `{ title, game, value, hi, lo, icon }` の一覧を My Moku 画面の右列の先頭に出す。他のタイトルの自慢できる記録もここに足せる。
 
+## 14. マルチプレイの共通基盤(2026-10-30〜)
+
+マルチプレイ(まず Moku Chess のオンライン対戦)に向けて、ブラウザと Lambda(Node.js 20)の両方で同じコードを使う共通モジュールを先に用意した。どちらも UMD 形式(ブラウザは `window.<名前>`、Node は `require`)で、外部ライブラリなし。テストは `backend/test/sharedModules.test.js`(`cd backend && npm test`)。
+
+- **`shared/moku-random.js`(`MokuRandom`)**: シード付きの乱数。同じシード(文字列か数)なら、どの端末でもサーバーでも同じ数が出る(「同じ橋・同じ玉の順番で勝負」用)。`create(seed)` → `next()`(0以上1未満、`Math.random()` の代わり)/ `int(min, max)`(両端を含む)/ `pick(list)` / `shuffle(list)`(コピーを返す)/ `chance(p)` / `fork(label)`(同じシードから別の流れ)。`newSeed()` は人に渡すための8文字のシード(紛らわしい 0/O・1/I/L を使わない)。中身は mulberry32+シード文字列の32ビットハッシュ。**数列を変えると古いページと新しいページで別の問題になる**ので、テストで最初の値を固定している。
+- **`shared/moku-chess-rules.js`(`MokuChessRules`)**: チェスのルールだけ(0x88 盤・FEN・合法手・指す/戻す・チェック・終局判定)。`moku-chess.html` から切り出した。`create(fen?)` → `play(uci)`(合法なら指して手を返す、だめなら null で何も変えない)/ `moveFromUci` / `uciOf` / `legalMoves` / `make` / `unmake` / `fen` / `posKey` / `status(keys)`(`checkmate` `stalemate` `fifty` `material` `repetition` / null)。`replay(moves, fen?)` は手の列を最初から指して `{ ok, applied, fen, turn, keys, status }` を返す(サーバーで手の正しさと終局を決める用)。UCI は厳密(成る時は駒の文字が必要、成らない手に付けると無効)。標準の perft 局面で合法手の数を確認している。
+  - `moku-chess.html` の CPU(探索・評価・10段階)は `MokuChessEngine(MokuChessRules.create)` としてこの上に載る。Web Worker には `create.toString()` を渡すので、**`create()` の中から外の変数を使わないこと**。
+  - Lambda はデプロイ時に `backend/` しか入らないので、サーバーで使う時はコピーを置き、元ファイルと同じかをテストで確かめる(予定)。
+
 ## 未決事項 / 次に決めること
 
 - [ ] `shared/moku-ui.css`・`shared/moku-save.js` の実ファイルを作成するか
