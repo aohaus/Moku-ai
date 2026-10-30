@@ -304,7 +304,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
   - チャレンジ中は Hint / Magic Carpet なし(ボタンも出さない)、お助けセールの成績にも数えない。落ちても Moint は減らない。何度落ちても続きから(ふだんの橋と同じく、分かったガラスは覚えている)。HUD は「VS <名前> · FALLS n」。ふだんの橋の進み具合(`bridge` など)は変えない。
   - 渡りきったら落ちた回数をサーバーへ送る。相手がまだなら「Waiting for …」。相手の結果は自分が送るまで見えない。オフラインで送れなかった時は、次に Challenges を開いた時に送る。
   - Moint: 渡りきった +20、勝ち +30(どちらも1チャレンジ1回、`MokuMoint.earn` の 1日 500 の中)。相手が後から渡って勝ちが決まった分は、次に Challenges を開いた時に払う。同じ友達への勝ちで Moint がもらえるのは1日2回まで(`chalWins`)。
-  - 記録は `moku:moku-bridge:progress` の `challenges[id] = { steps, seed, name, tag, pattern, solved, broken, tries, falls, done, sent, forgetAt }` と `chalPaid['<id>:finish' | '<id>:win'] = 忘れてよい時刻`。どちらもサーバーが消す14日より長い15日で消す。
+  - 記録は `moku:moku-bridge:progress` の `challenges[id] = { steps, seed, name, tag, pattern, solved, broken, tries, falls, done, sent, forgetAt }` と `chalPaid['<id>:finish' | '<id>:win'] = 忘れてよい時刻`。`challenges` はチャレンジを作ってから29日(まだ渡っていない人のチャレンジがサーバーに残りうる最長28日より長く)、`chalPaid` は払ってから15日(サーバーが最後の変化から消す14日より長く)で消す。
 - **お助けセール**(2026-10-25〜): その橋で「まだ分からないガラスを自分で選んだ回数」のうちハズレが7割以上(3回以上選んでから)になったら、次の挑戦から Hint / Magic Carpet を強調(光る枠+「50% OFF」タグ)して半額(Hint 8 / Carpet 20、切り上げ)で買えるようにする。一度始まったセールはその橋を渡りきるまで続く(次の挑戦で当てて割合が下がっても取り消さない。`bridgeStats.saleOn`)。半額は橋ごとに各1つまで(買い溜め防止)。分かっているガラス・ヒントを使った段は数えない。成績は `moku:moku-bridge:progress` の `bridgeStats = { guesses, misses, saleUsed: { hint, carpet } }` で、次の橋でリセット。落ちた時の結果画面と次の挑戦の最初のメッセージでも知らせる。
 - Magic Carpet は3枚先のガラスへ飛ぶ。とばした2段は踏まないので正解は分からないまま(次の挑戦でも未知)。
 - **Luckiest Steps**(2026-10-25〜): 1回の挑戦で、ヒントなしで続けて当てた段数の最高記録を `moku:moku-bridge:progress` の `bestLucky` に保存する。答えが分かっている段は数えず連続も切らない。ヒント・カーペット・ハズレで連続が切れる。

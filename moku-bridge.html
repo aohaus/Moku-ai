@@ -1961,7 +1961,10 @@ button.chal-row:disabled { opacity: 0.6; }
   // ================================================================
   var CHAL_FINISH_MOINTS = 20, CHAL_WIN_MOINTS = 30, CHAL_WINS_PER_FRIEND = 2;
   var CHAL_STEPS = 9;
-  var CHAL_KEEP_MS = 15 * 86400000;   // サーバーは最後の変化から14日で消すので、それより少し長く覚えておく
+  var CHAL_KEEP_MS = 15 * 86400000;   // 払い済みの印: サーバーは最後の変化から14日で消すので、それより少し長く覚えておく
+  // 途中の橋(落ちた回数・分かったガラス)は、サーバーにチャレンジが残りうる間ずっと覚えておく。
+  // まだ渡っていない人のチャレンジは、作ってから14日+相手の結果で延びた14日 = 最長28日残る
+  var CHAL_LOCAL_KEEP_MS = 29 * 86400000;
 
   function esc(t) {
     return String(t).replace(/[&<>"']/g, function (c) { return '&#' + c.charCodeAt(0) + ';'; });
@@ -2013,10 +2016,11 @@ button.chal-row:disabled { opacity: 0.6; }
     if (!st || st.seed !== c.seed) {
       var rng = MokuRandom.create('moku-bridge/' + c.seed);
       st = { steps: c.params.steps, seed: c.seed, pattern: [], solved: [], broken: [], tries: 0, falls: 0,
-        done: false, sent: false, forgetAt: Date.now() + CHAL_KEEP_MS };
+        done: false, sent: false, forgetAt: 0 };
       for (var i = 0; i < st.steps; i++) { st.pattern.push(rng.int(0, 1)); st.solved.push(false); st.broken.push(-1); }
       progress.challenges[c.id] = st;
     }
+    st.forgetAt = Math.max(st.forgetAt || 0, (Date.parse(c.createdAt) || Date.now()) + CHAL_LOCAL_KEEP_MS);
     st.name = c.opponent.name;
     st.tag = c.opponent.tag;
     CH = { id: c.id, name: c.opponent.name, tag: c.opponent.tag, st: st };
