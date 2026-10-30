@@ -12,6 +12,15 @@ function createMemoryStore() {
   const saves = new Map();
   const logs = [];
   const errors = new Map();
+  const matches = new Map();
+  const playerMatches = new Map(); // uid -> Map(matchId -> row)
+
+  function putRows(rows) {
+    for (const { uid, ...row } of rows) {
+      if (!playerMatches.has(uid)) playerMatches.set(uid, new Map());
+      playerMatches.get(uid).set(row.matchId, { ...row });
+    }
+  }
 
   return {
     async getUser(loginId) {
@@ -72,6 +81,24 @@ function createMemoryStore() {
       if (!users.has(loginId)) throw codedError("not_found");
       users.delete(loginId);
       saves.delete(loginId);
+    },
+    async createMatch(match, rows) {
+      if (matches.has(match.id)) throw codedError("conflict");
+      matches.set(match.id, JSON.parse(JSON.stringify(match)));
+      putRows(rows);
+    },
+    async getMatch(id) {
+      const m = matches.get(id);
+      return m ? JSON.parse(JSON.stringify(m)) : null;
+    },
+    async saveMatch(match, baseVersion, rows) {
+      const current = matches.get(match.id);
+      if (!current || current.version !== baseVersion) throw codedError("conflict");
+      matches.set(match.id, JSON.parse(JSON.stringify(match)));
+      putRows(rows);
+    },
+    async listPlayerMatches(uid) {
+      return [...(playerMatches.get(uid) || new Map()).values()].map((row) => ({ uid, ...JSON.parse(JSON.stringify(row)) }));
     },
     async renameUser(oldId, newId, fields) {
       const u = users.get(oldId);

@@ -102,11 +102,27 @@ Resources:
   MokuScoresApi:
     Type: AWS::Serverless::HttpApi
     Properties:
-      # Caps the whole API — slows down PIN guessing on top of the
-      # per-account lockout, and is far above what 100 players need.
+      # Per-route cap (each route gets its own 10/s): slows down PIN guessing
+      # on top of the per-account lockout, and is far above what 100 players need.
       DefaultRouteSettings:
         ThrottlingBurstLimit: 20
         ThrottlingRateLimit: 10
+      # Online matches get their own limits. A page polls GET /matches/{id}
+      # every 3 s while it waits for the friend's move, so that route is the
+      # busy one: ~50 players waiting at once ≈ 17/s.
+      RouteSettings:
+        "GET /matches/{id}":
+          ThrottlingBurstLimit: 80
+          ThrottlingRateLimit: 40
+        "POST /matches/{id}/move":
+          ThrottlingBurstLimit: 30
+          ThrottlingRateLimit: 15
+        "GET /matches":
+          ThrottlingBurstLimit: 30
+          ThrottlingRateLimit: 15
+        "POST /matches":
+          ThrottlingBurstLimit: 10
+          ThrottlingRateLimit: 5
       CorsConfiguration:
         AllowOrigins:
           - !Ref AllowedOrigin
@@ -265,6 +281,45 @@ Resources:
             ApiId: !Ref MokuScoresApi
             Path: /save
             Method: PUT
+
+  # Online matches (src/matchApi.js, API_SPEC.md "Matches"). Its own function so
+  # polling never waits behind the slow scrypt logins of AccountFunction.
+  MatchFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/matchApi.handler
+      CodeUri: .
+      Environment:
+        Variables:
+          ACCOUNTS_TABLE_NAME: !Ref AccountsTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AccountsTable
+      Events:
+        CreateMatch:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /matches
+            Method: POST
+        ListMatches:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /matches
+            Method: GET
+        GetMatch:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /matches/{id}
+            Method: GET
+        MakeMove:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /matches/{id}/move
+            Method: POST
 
 Outputs:
   ApiUrl:

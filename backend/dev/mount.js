@@ -7,6 +7,7 @@
 // Dev-only admin for admin.html: ID "admin", PIN "1357" (not the real one).
 
 const { createAccountApi } = require("../src/accountApi");
+const { createMatchApi } = require("../src/matchApi");
 const { createMemoryStore } = require("../src/memoryStore");
 
 module.exports = function mountDevAccounts(app) {
@@ -20,11 +21,14 @@ module.exports = function mountDevAccounts(app) {
     { uncounted: true }
   );
   require("../src/pin").hashPin("1357").then((h) => store.updateUser("admin", { pinHash: h }));
+  const DEV_SECRET = "dev-only-secret-not-for-production-0000";
   const handler = createAccountApi(store, {
-    authSecret: "dev-only-secret-not-for-production-0000",
+    authSecret: DEV_SECRET,
     inviteCode: process.env.MOKU_INVITE_CODE || "moku-dev",
     maxUsers: 100,
   });
+  // Online matches share the same accounts and store (as in production).
+  const matchHandler = createMatchApi(store, { authSecret: DEV_SECRET });
 
   // shared/moku-errors.js posts JSON as text/plain (keeps the request "simple").
   app.post("/errors", require("express").text({ type: "text/plain" }));
@@ -35,6 +39,16 @@ module.exports = function mountDevAccounts(app) {
       queryStringParameters: req.query,
       headers: req.headers,
       body: typeof req.body === "string" ? req.body : req.body && Object.keys(req.body).length ? JSON.stringify(req.body) : "",
+    });
+    res.status(result.statusCode).set(result.headers || {}).send(result.body);
+  });
+  app.all(["/matches", "/matches/:id", "/matches/:id/move"], async (req, res) => {
+    const result = await matchHandler({
+      requestContext: { http: { method: req.method } },
+      rawPath: req.path,
+      queryStringParameters: req.query,
+      headers: req.headers,
+      body: req.body && Object.keys(req.body).length ? JSON.stringify(req.body) : "",
     });
     res.status(result.statusCode).set(result.headers || {}).send(result.body);
   });
