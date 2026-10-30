@@ -480,7 +480,7 @@
 <!-- Title Frame Elements per SPEC.md -->
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">Moku Future Run v1.4.1 · Updated Oct 30, 2026</div>
+<div id="buildInfo">Moku Future Run v1.4.2 · Updated Oct 30, 2026</div>
 
 <!-- Title Screen Overlay -->
 <div class="screen-overlay" id="titleScreen">
@@ -1054,6 +1054,9 @@ const STAGES = {
 // the hat from the hub's Moku Closet instead, like Moku Bridge) ---
 const MOKU_BODY_COLOR = 0xF6F3EB;
 const MOKU_WING_COLOR = 0xC29B75;
+// しっぽは胸の葉っぱの蝶ネクタイと同じ緑(brand/mokumoku-hero.png の葉の色 ≈ #389082)。
+// 以前は羽と同じ茶色で、光が当たると黄色っぽく見えていた
+const MOKU_LEAF_COLOR = 0x389082;
 
 // --- Lane Coordinates ---
 const LANES = [-2.4, 0, 2.4];
@@ -1510,7 +1513,7 @@ function buildMokuCharacter() {
     const tailGeo = new THREE.ConeGeometry(idx === 1 ? 0.16 : 0.13, 0.42, 6);
     tailGeo.scale(1, 0.35, 1.3);
     const tailMat = new THREE.MeshStandardMaterial({
-      color: MOKU_WING_COLOR,
+      color: MOKU_LEAF_COLOR,
       roughness: 0.4
     });
     const tailFeather = new THREE.Mesh(tailGeo, tailMat);
