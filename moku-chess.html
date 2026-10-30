@@ -179,6 +179,37 @@ body:not(.on-title) #buildInfo { display: none; }
 .rcard.locked .st { color: #7A5A44; }
 .rcard .lock { position: absolute; top: 34px; left: 50%; transform: translateX(-50%); font-size: 28px; }
 
+/* ---------- play a friend (online) ---------- */
+#friendsScreen {
+  z-index: 25; flex-direction: column; align-items: center;
+  padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px calc(env(safe-area-inset-bottom, 0px) + 16px);
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+}
+.fr-sec { width: min(560px, 100%); margin-top: 14px; }
+.fr-sec h3 { font-size: 15px; font-weight: 900; color: #FFFDF7; text-shadow: 0 2px 0 var(--lo); margin: 0 0 8px 4px; }
+.fr-list { display: flex; flex-direction: column; gap: 8px; }
+.fr-row {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  padding: 8px 12px 8px 8px; border-radius: 16px;
+  background: linear-gradient(180deg, #FFFBF2, #F4E4CB);
+  border: 2px solid #C9A27A;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.8), 0 3px 8px rgba(90,50,20,0.16);
+  transition: transform 0.15s ease;
+}
+.fr-row:active { transform: scale(0.98); }
+.fr-row.turn { border-color: var(--hi); box-shadow: 0 0 0 3px rgba(143,179,232,0.45), 0 3px 8px rgba(90,50,20,0.16); }
+.fr-row .av { flex: none; width: 46px; height: 46px; border-radius: 12px; background: radial-gradient(circle at 50% 70%, #FFF1D6, #F2C98A); position: relative; overflow: hidden; }
+.fr-row .av img, .fr-row .av svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.fr-row .who { flex: 1; min-width: 0; }
+.fr-row .nm { font-size: 15px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fr-row .nm small { font-size: 11px; font-weight: 700; opacity: 0.55; margin-left: 4px; }
+.fr-row .st { font-size: 12.5px; font-weight: 800; color: #7A5A44; }
+.fr-row.turn .st { color: #2C4A7A; }
+.fr-row .go { flex: none; font-size: 13px; font-weight: 900; padding: 6px 12px; border-radius: 999px; background: linear-gradient(180deg, #A9C8F2, #6F95CF); color: #fff; }
+.fr-row .on { color: #3E7A3A; font-weight: 900; }
+.fr-empty { padding: 14px; border-radius: 14px; background: rgba(255,250,240,0.75); color: #6A4214; font-size: 13.5px; font-weight: 700; text-align: center; }
+.badge-n { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; background: #E85A5A; color: #fff; font-size: 12px; font-weight: 900; }
+
 /* ---------- game ---------- */
 #gameScreen {
   z-index: 20; flex-direction: column; align-items: center;
@@ -331,7 +362,7 @@ body:not(.on-title) #buildInfo { display: none; }
 </svg>
 <div id="title-frame"></div>
 <a id="hub-link" href="index.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.1.3 · Updated Oct 30, 2026</div>
+<div id="buildInfo">v0.2.0 · Updated Oct 30, 2026</div>
 
 <section id="titleScreen" class="screen on">
   <div id="titleArt">
@@ -343,6 +374,7 @@ body:not(.on-title) #buildInfo { display: none; }
   <div class="titleMenu">
     <button class="btn primary wide" id="btnPlay">▶ Play</button>
     <button class="btn wide" id="btnContinue" style="display:none"></button>
+    <button class="btn wide" id="btnFriend" style="display:none">👫 Play a Friend</button>
     <button class="btn wide" id="btnShop">🎨 Board Shop</button>
     <button class="btn wide" id="btnHow">❓ How to Play</button>
   </div>
@@ -356,6 +388,22 @@ body:not(.on-title) #buildInfo { display: none; }
   </div>
   <div class="sel-note">Win to unlock the next rival. Win: <i class="coin">M</i> +30 to +120 · First win: up to +500!</div>
   <div id="rivalGrid"></div>
+</section>
+
+<section id="friendsScreen" class="screen">
+  <div class="sel-head">
+    <button class="btn small" id="btnFrBack">◀ Back</button>
+    <h2>Play a Friend</h2>
+  </div>
+  <div class="sel-note">Take turns, like writing letters. Play your move, then come back later! Win: <i class="coin">M</i> +40</div>
+  <div class="fr-sec">
+    <h3>Your games</h3>
+    <div class="fr-list" id="frGames"></div>
+  </div>
+  <div class="fr-sec">
+    <h3>Start a new game</h3>
+    <div class="fr-list" id="frPlayers"></div>
+  </div>
 </section>
 
 <section id="gameScreen" class="screen">
@@ -1069,7 +1117,8 @@ body:not(.on-title) #buildInfo { display: none; }
     goro:  { dy: 62, s: 0.85, bg: ['#4a5a7a', '#1a2236'] },
     ninja: { dy: 62, s: 0.9,  bg: ['#7a3a5a', '#1e1838'] },
     chef:  { dy: 72, s: 0.82, bg: ['#ffd6a0', '#c0602a'] },
-    moyo:  { dy: 30, s: 0.95, bg: ['#ffc9e0', '#c8a0f0'] }
+    moyo:  { dy: 30, s: 0.95, bg: ['#ffc9e0', '#c8a0f0'] },
+    moku:  { dy: 34, s: 0.8,  bg: ['#b9d3f5', '#4a6a9e'] }   // a friend (online games)
   };
   // Draws a rival's face into a canvas (70×58 design units, scaled to fit).
   // state: 'idle' | 'hit' | 'win' | 'ko'
@@ -1488,6 +1537,8 @@ body:not(.on-title) #buildInfo { display: none; }
       played: p.played || 0, wins: p.wins || 0, losses: p.losses || 0, draws: p.draws || 0,
       winsBy: p.winsBy || {},
       mointClaims: p.mointClaims || {},
+      // Play a Friend: which finished games already paid, wins per friend today
+      online: p.online && Array.isArray(p.online.paid) ? p.online : { day: '', wins: {}, paid: [], played: 0, won: 0 },
       boards: Array.isArray(p.boards) && p.boards.length ? p.boards : ['oak'],
       board: p.board || 'oak',
       updatedAt: p.updatedAt || null
@@ -1552,19 +1603,29 @@ body:not(.on-title) #buildInfo { display: none; }
   // ================================================================
   var squaresEl = $('squares'), spritesEl = $('sprites'), stageEl = $('stage'), wrapEl = $('boardWrap');
   var sqEls = {}, spriteAt = {};
-  (function buildSquares() {
-    for (var r = 0; r < 8; r++) {
-      for (var c = 0; c < 8; c++) {
+  // flip = Black's view (online games where you play Black): the squares are
+  // laid out from h1 to a8, and the sprites follow the squares on screen.
+  var boardFlipped = null;
+  function buildSquares(flip) {
+    if (boardFlipped === flip) return;
+    boardFlipped = flip;
+    squaresEl.innerHTML = '';
+    for (var i = 0; i < 8; i++) {
+      for (var j = 0; j < 8; j++) {
+        var r = flip ? 7 - i : i, c = flip ? 7 - j : j;
         var sq = r * 16 + c, d = document.createElement('div');
         d.className = 'sq' + ((r + c) % 2 ? ' dk' : '');
         d.dataset.sq = sq;
-        if (r === 7) d.innerHTML += '<span class="crd f">' + 'abcdefgh'.charAt(c) + '</span>';
-        if (c === 0) d.innerHTML += '<span class="crd r">' + (8 - r) + '</span>';
+        if (i === 7) d.innerHTML += '<span class="crd f">' + 'abcdefgh'.charAt(c) + '</span>';
+        if (j === 0) d.innerHTML += '<span class="crd r">' + (8 - r) + '</span>';
         squaresEl.appendChild(d);
         sqEls[sq] = d;
       }
     }
-  })();
+  }
+  buildSquares(false);
+  // Front rows draw on top of the rows behind them
+  function depthOf(sq) { return boardFlipped ? 7 - (sq >> 4) : sq >> 4; }
   squaresEl.addEventListener('click', function (e) {
     var t = e.target.closest('.sq');
     if (t) onSquare(+t.dataset.sq);
@@ -1610,7 +1671,7 @@ body:not(.on-title) #buildInfo { display: none; }
     el.style.height = h + 'px';
     el.style.left = (r.left + r.width / 2 - w / 2 - lr.left) + 'px';
     el.style.top = (baseY - h * (117 / 130)) + 'px';
-    el.style.zIndex = 10 + (sq >> 4);
+    el.style.zIndex = 10 + depthOf(sq);
     el.dataset.sq = sq;
   }
   function placeAll() {
@@ -1676,7 +1737,7 @@ body:not(.on-title) #buildInfo { display: none; }
       el.style.zIndex = 40;
       el.classList.remove('sel');
       restart(el, 'hop');
-      setTimeout(function () { if (spriteAt[m.t] === el) { el.style.zIndex = 10 + (m.t >> 4); restart(el, 'land'); } }, 290);
+      setTimeout(function () { if (spriteAt[m.t] === el) { el.style.zIndex = 10 + depthOf(m.t); restart(el, 'land'); } }, 290);
     }
     if (m.fl & 4) {
       var rf = m.t === 118 ? 119 : m.t === 114 ? 112 : m.t === 6 ? 7 : 0;
@@ -1711,8 +1772,9 @@ body:not(.on-title) #buildInfo { display: none; }
       ['q', 'r', 'b', 'n', 'p'].forEach(function (t) { score[side] += have[side][t] * PIECE_VAL[t]; });
       return html;
     }
-    var takenByMe = lost('b'), takenByRival = lost('w');
-    var diff = score.w - score.b;
+    var me = myColor() ? 'b' : 'w', them = myColor() ? 'w' : 'b';
+    var takenByMe = lost(them), takenByRival = lost(me);
+    var diff = score[me] - score[them];
     $('capsMe').innerHTML = takenByMe + (diff > 0 ? '<span class="adv">+' + diff + '</span>' : '');
     $('capsRival').innerHTML = takenByRival + (diff < 0 ? '<span class="adv">+' + (-diff) + '</span>' : '');
   }
@@ -1720,7 +1782,11 @@ body:not(.on-title) #buildInfo { display: none; }
   // ================================================================
   // 対局
   // ================================================================
-  var G = { rival: RIVALS[0], moves: [], keys: [], over: true, busy: false, sel: -1, legal: [], last: null, hint: null };
+  // online: null for CPU games; { id, you: 0 | 1, version, friend, sending, waitSince } with a friend
+  var G = { rival: RIVALS[0], moves: [], keys: [], over: true, busy: false, sel: -1, legal: [], last: null, hint: null, online: null };
+  // 0 = White, 1 = Black. Against the CPU you are always White.
+  function myColor() { return G.online ? G.online.you : 0; }
+  function isMine(p) { return !!p && ((p & 8) ? 1 : 0) === myColor(); }
 
   function refreshMarks() {
     Object.keys(sqEls).forEach(function (sq) { sqEls[sq].classList.remove('sel', 'dot', 'cap', 'last', 'check', 'hint'); });
@@ -1732,9 +1798,10 @@ body:not(.on-title) #buildInfo { display: none; }
       G.legal.forEach(function (m) { if (m.f === G.sel) sqEls[m.t].classList.add(m.c ? 'cap' : 'dot'); });
     }
     if (G.hint) { sqEls[G.hint.f].classList.add('hint'); sqEls[G.hint.t].classList.add('hint'); }
-    var mine = E.turn() === 0 && !G.over;
-    $('turnText').textContent = G.over ? 'Game over' : mine ? (E.inCheck() ? 'Check! Save your king!' : 'Your turn!') : G.rival.name + "'s turn";
-    var helpers = G.rival.lv <= HELPER_MAX_LV;
+    var mine = E.turn() === myColor() && !G.over;
+    $('turnText').textContent = G.over ? 'Game over' : mine ? (E.inCheck() ? 'Check! Save your king!' : 'Your turn!') :
+      G.online ? 'Waiting for ' + G.rival.name + '…' : G.rival.name + "'s turn";
+    var helpers = !G.online && G.rival.lv <= HELPER_MAX_LV;
     $('btnHint').style.display = helpers ? '' : 'none';
     $('btnUndo').style.display = helpers ? '' : 'none';
     $('btnHint').disabled = !mine || G.busy;
@@ -1778,6 +1845,7 @@ body:not(.on-title) #buildInfo { display: none; }
   }
 
   function saveGame() {
+    if (G.online) return; // online games live on the server
     if (G.over) { removeKey(SAVED_GAME_KEY); return; }
     writeJSON(SAVED_GAME_KEY, { version: 1, level: G.rival.lv, moves: G.moves.slice(), updatedAt: new Date().toISOString() });
   }
@@ -1795,6 +1863,9 @@ body:not(.on-title) #buildInfo { display: none; }
 
   function startGame(lv, moves) {
     cancelEngine();
+    stopPoll();
+    G.online = null;
+    buildSquares(false);
     var rival = RIVALS[lv - 1];
     G.rival = rival; G.over = false; G.busy = false; G.sel = -1; G.hint = null;
     TEAM.b.accent = rival.color;
@@ -1816,7 +1887,7 @@ body:not(.on-title) #buildInfo { display: none; }
   }
 
   function onSquare(sq) {
-    if (G.over || G.busy || E.turn() !== 0) return;
+    if (G.over || G.busy || E.turn() !== myColor() || (G.online && G.online.sending)) return;
     var p = E.at(sq);
     if (G.sel >= 0) {
       var options = G.legal.filter(function (m) { return m.f === G.sel && m.t === sq; });
@@ -1826,7 +1897,7 @@ body:not(.on-title) #buildInfo { display: none; }
         return;
       }
     }
-    if (p && !(p & 8)) {
+    if (isMine(p)) {
       if (G.sel === sq) { G.sel = -1; refreshMarks(); return; }
       G.sel = sq;
       if (!G.legal.some(function (m) { return m.f === sq; })) {
@@ -1845,7 +1916,7 @@ body:not(.on-title) #buildInfo { display: none; }
       var m = options.filter(function (o) { return typeOf(o.pr) === t; })[0];
       if (!m) return;
       var b = document.createElement('button');
-      b.innerHTML = pieceSVG(t, 'w');
+      b.innerHTML = pieceSVG(t, myColor() ? 'b' : 'w');
       b.onclick = function () { $('promoOv').classList.remove('on'); playerMove(m); };
       box.appendChild(b);
     });
@@ -1853,10 +1924,11 @@ body:not(.on-title) #buildInfo { display: none; }
   }
 
   function doMove(m) {
-    var byRival = E.turn() === 1;
+    var byRival = E.turn() !== myColor();
+    var uci = uciOf(m);
     animateMove(m);
     E.make(m);
-    G.moves.push(uciOf(m));
+    G.moves.push(uci);
     G.keys.push(E.posKey());
     G.last = { f: m.f, t: m.t };
     G.sel = -1; G.hint = null;
@@ -1876,10 +1948,12 @@ body:not(.on-title) #buildInfo { display: none; }
         if (m.pr) toast('Your pawn grew up!');
       }
     }
+    if (G.online && !byRival) sendMove(uci);
     refreshMarks();
     renderCaptures();
     if (end) { finish(end); return; }
     saveGame();
+    if (G.online) { schedulePoll(); return; }
     if (!byRival) cpuTurn();
   }
   function playerMove(m) { doMove(m); }
@@ -1903,9 +1977,10 @@ body:not(.on-title) #buildInfo { display: none; }
     });
   }
 
-  function finish(end) {
+  function finish(end, onlineResult) {
     G.over = true; G.busy = false;
     cancelEngine();
+    if (G.online) { finishOnline(end, onlineResult); return; }
     var lv = G.rival.lv, result;
     if (end === 'checkmate') result = E.turn() === 1 ? 'win' : 'lose';
     else if (end === 'resign') result = 'lose';
@@ -1963,11 +2038,13 @@ body:not(.on-title) #buildInfo { display: none; }
       html += '<div class="rw total"><span><i class="coin">M</i> Moints</span><span id="rwTotal">+0</span></div>';
       if (M) html += '<div class="note">Today from Moku Chess: ' + M.earnedToday(GAME_ID) + ' / ' + M.DAILY_GAME_CAP + '</div>';
     } else if (result === 'lose') {
-      html = '<div class="note">' + (G.rival.lv <= HELPER_MAX_LV ? 'Tip: Use 💡 Hint when you are stuck!' : 'Tip: Before you move, check what the rival can take!') + '</div>';
+      html = '<div class="note">' + (G.online ? 'Good game! Ask for a rematch!' : G.rival.lv <= HELPER_MAX_LV ? 'Tip: Use 💡 Hint when you are stuck!' : 'Tip: Before you move, check what the rival can take!') + '</div>';
     }
     $('rewards').innerHTML = html;
-    var next = G.rival.lv < 10 && unlocked(G.rival.lv + 1);
+    var next = !G.online && G.rival.lv < 10 && unlocked(G.rival.lv + 1);
     $('btnNext').style.display = result === 'win' && next ? '' : 'none';
+    $('btnAgain').textContent = G.online ? '↻ Play Again' : '↻ Rematch';
+    $('btnRivals').textContent = G.online ? 'Your Games' : 'Rivals';
     $('resultOv').classList.add('on');
     if (total > 0) {
       var el = $('rwTotal'), start = performance.now();
@@ -1978,6 +2055,327 @@ body:not(.on-title) #buildInfo { display: none; }
         if (k < 1) requestAnimationFrame(step);
       })(start);
     }
+  }
+
+  // ================================================================
+  // 友達とオンライン対戦(手紙チェス型。backend の /matches、API_SPEC.md「Matches」)
+  // 自分の番で指して閉じてよい。相手の番の間だけ GET /matches/{id}?v= を3秒おきに見る
+  // ================================================================
+  var ONLINE_WIN_MOINTS = 40, ONLINE_DRAW_MOINTS = 10;
+  var ONLINE_WINS_PER_FRIEND = 2;   // Moints for wins over the same friend, per day (no farming with a sibling)
+  var FRIEND_COLOR = '#5E8FD6';
+
+  function onlineReady() {
+    var A = window.MokuAccount;
+    return !!(A && A.isEnabled() && A.getUser());
+  }
+  // Rejects with { code, status, data }; code 'offline' when the request never got through
+  function onlineApi(method, path, body) {
+    var A = window.MokuAccount;
+    var headers = { authorization: 'Bearer ' + A.getToken() };
+    if (body) headers['content-type'] = 'application/json';
+    return fetch(A.apiBase() + path, { method: method, headers: headers, body: body ? JSON.stringify(body) : undefined })
+      .then(function (res) {
+        return res.json().catch(function () { return {}; }).then(function (data) {
+          if (res.ok) return data;
+          var err = new Error(data.message || 'Something went wrong.');
+          err.code = data.error || 'http_' + res.status; err.status = res.status; err.data = data;
+          throw err;
+        });
+      }, function () {
+        var err = new Error("You're offline.");
+        err.code = 'offline';
+        throw err;
+      });
+  }
+  function todayKey() {
+    var d = new Date();
+    return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+  }
+  // The friend's Moku in their Closet outfit (from GET /players, when we have it)
+  function friendCard(tag) {
+    var A = window.MokuAccount, list = A && A.getPlayers && A.getPlayers();
+    var p = list && list.players.filter(function (x) { return x.tag === tag; })[0];
+    return p || null;
+  }
+  function avatarHTML(tag) {
+    var M = window.MokuMoint, p = friendCard(tag);
+    var outfit = M && p && p.card && p.card.outfit ? M.outfitSVG(p.card.outfit) : '';
+    return '<span class="av"><img src="brand/mokumoku-hero.png" alt="">' + outfit + '</span>';
+  }
+  function friendRival(match) {
+    var f = match.you === 'b' ? match.white : match.black;
+    return {
+      lv: 0, char: 'moku', name: f.name, tag: f.tag, title: '#' + f.tag, color: FRIEND_COLOR, friend: true,
+      say: { hello: "Let's play! Good luck!", think: 'Thinking…', capture: 'Got one of yours!', ouch: 'Nice capture!',
+        check: 'Check!', inCheck: 'Oh no, check!', win: 'I won! Good game!', lose: 'You won! Good game!', draw: 'A draw! Good game!' }
+    };
+  }
+  function resultFor(match) {
+    if (match.result === 'draw') return 'draw';
+    return match.result === (G.online.you ? 'black' : 'white') ? 'win' : 'lose';
+  }
+
+  function startOnline(match) {
+    cancelEngine();
+    stopPoll();
+    var rival = friendRival(match);
+    G.online = { id: match.id, you: match.you === 'b' ? 1 : 0, version: match.version, tag: rival.tag, sending: false, waitSince: Date.now() };
+    G.rival = rival; G.over = false; G.busy = false; G.sel = -1; G.hint = null;
+    TEAM.b.accent = '#A78BFA';
+    replay(match.moves || []);
+    G.legal = E.legalMoves();
+    document.documentElement.style.setProperty('--rc', rival.color);
+    $('rivalName').textContent = rival.name;
+    $('rivalLv').textContent = 'Friend';
+    showScreen('game');
+    applyBoardSkin();
+    buildSquares(G.online.you === 1);
+    face('idle');
+    var mine = E.turn() === myColor();
+    say(match.status === 'finished' ? 'Good game!' : !match.moves.length && !mine ? rival.say.hello :
+      mine ? 'Your move!' : rival.name + ' will move soon. Come back later!');
+    requestAnimationFrame(function () {
+      layoutBoard();
+      renderAll();
+      if (match.status === 'finished') finish(match.endReason, resultFor(match));
+      else schedulePoll();
+    });
+  }
+  function openMatch(id) {
+    onlineApi('GET', '/matches/' + id).then(function (res) { startOnline(res.match); }, function (err) {
+      sfx.nope();
+      toast(err.code === 'offline' ? "You're offline. Try again soon." : err.message);
+      if (screen === 'friends') renderFriends();
+    });
+  }
+  function newOnlineGame(tag) {
+    onlineApi('POST', '/matches', { game: GAME_ID, opponentTag: tag, color: 'random' }).then(function (res) {
+      sfx.select();
+      startOnline(res.match);
+    }, function (err) {
+      sfx.nope();
+      toast(err.code === 'offline' ? "You're offline. Try again soon." : err.message);
+    });
+  }
+
+  // Puts the board exactly where the server has it (after a refused move,
+  // or when this page fell behind by more than one move).
+  function resync(match) {
+    G.online.version = match.version;
+    G.over = false;
+    $('resultOv').classList.remove('on');
+    replay(match.moves);
+    G.legal = E.legalMoves();
+    G.sel = -1;
+    renderAll();
+    if (match.status === 'finished') finish(match.endReason, resultFor(match));
+    else schedulePoll();
+  }
+  function applyServerMatch(match) {
+    var on = G.online;
+    if (!on || match.id !== on.id || match.version < on.version) return;
+    var n = G.moves.length;
+    var oneMore = match.moves.length === n + 1 && G.moves.every(function (u, i) { return u === match.moves[i]; });
+    var same = match.moves.length === n && G.moves.every(function (u, i) { return u === match.moves[i]; });
+    if (oneMore && !G.over) {
+      var m = fromUci(match.moves[n]);
+      if (!m) { resync(match); return; }
+      on.version = match.version;
+      on.waitSince = Date.now();
+      doMove(m);   // the friend's move, with the usual hop and sounds (ends the game here if it should)
+      if (match.status === 'finished' && !G.over) finish(match.endReason, resultFor(match));
+      return;
+    }
+    if (!same) { resync(match); return; }
+    on.version = match.version;
+    if (match.status === 'finished' && !G.over) finish(match.endReason, resultFor(match));   // e.g. the friend gave up
+    else schedulePoll();
+  }
+  function sendMove(uci) {
+    var on = G.online, version = on.version;
+    on.sending = true;
+    (function attempt(tries) {
+      onlineApi('POST', '/matches/' + on.id + '/move', { move: uci, version: version }).then(function (res) {
+        if (G.online !== on) return;
+        on.sending = false;
+        on.version = res.match.version;
+        on.waitSince = Date.now();
+        refreshMarks();
+        if (res.match.status === 'finished' && !G.over) finish(res.match.endReason, resultFor(res.match));
+        schedulePoll();
+      }, function (err) {
+        if (G.online !== on) return;
+        if (err.code === 'offline' && tries < 40) {
+          if (tries === 0) toast('No connection… your move will be sent soon.');
+          setTimeout(function () { attempt(tries + 1); }, 3000);
+          return;
+        }
+        on.sending = false;
+        sfx.nope();
+        if (err.data && err.data.match) {
+          toast(err.code === 'version_conflict' ? 'The game moved on. Here it is now!' : "That move didn't go through.");
+          resync(err.data.match);
+        } else {
+          toast("Couldn't send your move. Let's check the game again.");
+          setTimeout(function () { if (G.online === on) openMatch(on.id); }, 1500);
+        }
+      });
+    })(0);
+  }
+
+  var pollTimer = null;
+  function stopPoll() { clearTimeout(pollTimer); pollTimer = null; }
+  // While it's the friend's turn: every 3 s, every 10 s after 2 minutes. On your
+  // own turn: every 15 s (only to notice if the friend gave up).
+  function schedulePoll() {
+    stopPoll();
+    var on = G.online;
+    if (!on || G.over || screen !== 'game' || on.sending) return;
+    var mine = E.turn() === myColor();
+    var delay = mine ? 15000 : Date.now() - on.waitSince < 120000 ? 3000 : 10000;
+    pollTimer = setTimeout(pollNow, delay);
+  }
+  function pollNow() {
+    stopPoll();
+    var on = G.online;
+    if (!on || G.over || screen !== 'game' || on.sending || document.hidden) return;
+    onlineApi('GET', '/matches/' + on.id + '?v=' + on.version).then(function (res) {
+      if (G.online !== on) return;
+      if (res.changed) applyServerMatch(res.match); else schedulePoll();
+    }, function (err) {
+      if (G.online !== on) return;
+      if (err.status === 404) { G.over = true; refreshMarks(); toast('This game is gone.'); return; }
+      schedulePoll();
+    });
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && screen === 'game' && G.online && !G.over) { G.online.waitSince = Date.now(); pollNow(); }
+  });
+
+  function resignOnline() {
+    var on = G.online;
+    onlineApi('POST', '/matches/' + on.id + '/resign').then(function () {
+      if (G.online === on) finish('resign', 'lose');
+    }, function (err) {
+      if (G.online !== on) return;
+      if (err.data && err.data.match) resync(err.data.match);
+      else toast(err.code === 'offline' ? "You're offline. Try again soon." : err.message);
+    });
+  }
+
+  function finishOnline(end, result) {
+    stopPoll();
+    var on = G.online, name = G.rival.name;
+    if (!result) result = end === 'checkmate' ? (E.turn() !== myColor() ? 'win' : 'lose') : end === 'resign' ? 'lose' : 'draw';
+    var o = save.online;
+    if (o.day !== todayKey()) { o.day = todayKey(); o.wins = {}; }
+    var rewards = [], total = 0, M = window.MokuMoint;
+    // Each finished game pays once, even if it's opened again from Your games
+    if (M && result !== 'lose' && o.paid.indexOf(on.id) < 0) {
+      o.paid.push(on.id);
+      if (o.paid.length > 60) o.paid.shift();
+      o.played++;
+      if (result === 'win') {
+        o.won++;
+        if ((o.wins[on.tag] || 0) < ONLINE_WINS_PER_FRIEND) {
+          o.wins[on.tag] = (o.wins[on.tag] || 0) + 1;
+          var got = M.earn(GAME_ID, ONLINE_WIN_MOINTS);
+          rewards.push({ label: 'Win vs ' + name, n: got });
+          total += got;
+        } else rewards.push({ label: 'Moints for wins over ' + name + ': 2 a day', n: 0 });
+      } else {
+        var gd = M.earn(GAME_ID, ONLINE_DRAW_MOINTS);
+        rewards.push({ label: 'Draw', n: gd });
+        total += gd;
+      }
+    } else if (result === 'lose' && o.paid.indexOf(on.id) < 0) {
+      o.paid.push(on.id);
+      if (o.paid.length > 60) o.paid.shift();
+      o.played++;
+    }
+    saveProgress();
+    refreshMarks();
+    var titles = {
+      win: end === 'resign' ? name + ' gave up. You Win! 🎉' : 'Checkmate! You Win! 🎉',
+      lose: end === 'resign' ? 'You gave up…' : 'Checkmate… ' + name + ' wins',
+      draw: { stalemate: 'Stalemate! Draw', fifty: 'Draw (50 moves)', material: 'Draw (not enough pieces)', repetition: 'Draw (same moves 3 times)' }[end] || 'Draw'
+    };
+    face(result === 'win' ? 'ko' : result === 'lose' ? 'win' : 'idle');
+    say(rivalLine(result));
+    if (result === 'win') sfx.win(); else if (result === 'lose') sfx.lose(); else sfx.check();
+    setTimeout(function () { showResult(result, titles[result], rewards, total); }, end === 'checkmate' ? 1200 : 300);
+  }
+
+  // ---- Play a Friend screen ----
+  function gameRow(m) {
+    var b = document.createElement('button');
+    var st, won = m.result === (m.you === 'b' ? 'black' : 'white');
+    if (m.status === 'active') st = m.yourTurn ? 'Your turn!' : 'Waiting for ' + m.opponent.name + '…';
+    else st = m.result === 'draw' ? 'Draw' : won ? 'You won! 🎉' : 'You lost';
+    b.className = 'fr-row' + (m.yourTurn ? ' turn' : '');
+    b.innerHTML = avatarHTML(m.opponent.tag) +
+      '<span class="who"><div class="nm"></div><div class="st"></div></span>' +
+      (m.yourTurn ? '<span class="go">Play ▶</span>' : '');
+    b.querySelector('.nm').textContent = 'vs ' + m.opponent.name;
+    b.querySelector('.nm').insertAdjacentHTML('beforeend', '<small>#' + m.opponent.tag + '</small>');
+    b.querySelector('.st').textContent = st;
+    b.onclick = function () { sfx.select(); openMatch(m.id); };
+    return b;
+  }
+  var playersAsked = false;
+  function renderPeople() {
+    var box = $('frPlayers'), A = window.MokuAccount, list = A.getPlayers && A.getPlayers();
+    if (!list) {
+      box.innerHTML = '<div class="fr-empty">' + (playersAsked ? "Couldn't load your friends. Try again soon." : 'Loading friends…') + '</div>';
+      return;
+    }
+    var others = list.players.filter(function (p) { return !p.you; });
+    if (!others.length) { box.innerHTML = '<div class="fr-empty">No friends here yet. Ask a grown-up to invite them!</div>'; return; }
+    box.innerHTML = '';
+    others.forEach(function (p) {
+      var b = document.createElement('button');
+      b.className = 'fr-row';
+      b.innerHTML = avatarHTML(p.tag) + '<span class="who"><div class="nm"></div><div class="st"></div></span><span class="go">Play ▶</span>';
+      b.querySelector('.nm').textContent = p.displayName;
+      b.querySelector('.nm').insertAdjacentHTML('beforeend', '<small>#' + p.tag + '</small>');
+      b.querySelector('.st').innerHTML = p.online ? '<span class="on">● Online</span>' : 'Start a game';
+      b.onclick = function () { b.disabled = true; newOnlineGame(p.tag); };
+      box.appendChild(b);
+    });
+  }
+  window.addEventListener('moku:players', function () {
+    playersAsked = true;
+    if (screen === 'friends') { renderPeople(); renderFriendGames(); }
+  });
+  var lastGames = null;
+  function renderFriendGames() {
+    var box = $('frGames');
+    if (!lastGames) return;
+    if (!lastGames.length) { box.innerHTML = '<div class="fr-empty">No games yet. Pick a friend below!</div>'; return; }
+    box.innerHTML = '';
+    lastGames.forEach(function (m) { box.appendChild(gameRow(m)); });
+  }
+  function renderFriends() {
+    var games = $('frGames');
+    if (!onlineReady()) {
+      games.innerHTML = '<div class="fr-empty">Log in to play with your friends.</div>';
+      $('frPlayers').innerHTML = '';
+      return;
+    }
+    lastGames = null;
+    games.innerHTML = '<div class="fr-empty">Loading…</div>';
+    onlineApi('GET', '/matches').then(function (res) {
+      if (screen !== 'friends') return;
+      lastGames = res.matches;
+      renderFriendGames();
+    }, function (err) {
+      if (screen !== 'friends') return;
+      games.innerHTML = '<div class="fr-empty">' + (err.status === 404 ? 'Online games are coming soon!' :
+        err.code === 'offline' ? "You're offline. Try again soon." : "Couldn't load your games.") + '</div>';
+    });
+    renderPeople();
+    window.MokuAccount.loadPlayers(true);
   }
 
   // ---- ライバルの顔のアニメーション ----
@@ -2001,10 +2399,13 @@ body:not(.on-title) #buildInfo { display: none; }
     $('titleScreen').classList.toggle('on', name === 'title');
     $('selectScreen').classList.toggle('on', name === 'select');
     $('gameScreen').classList.toggle('on', name === 'game');
+    $('friendsScreen').classList.toggle('on', name === 'friends');
+    if (name !== 'game') stopPoll();
     document.body.classList.toggle('on-title', name === 'title');
     document.querySelectorAll('.ov').forEach(function (o) { o.classList.remove('on'); });
     if (name === 'title') renderTitle();
     if (name === 'select') renderSelect();
+    if (name === 'friends') renderFriends();
   }
   function mointText() {
     var M = window.MokuMoint;
@@ -2027,6 +2428,14 @@ body:not(.on-title) #buildInfo { display: none; }
       cont.textContent = '↻ Continue vs ' + RIVALS[g.level - 1].name;
       cont.onclick = function () { startGame(g.level, g.moves); };
     } else cont.style.display = 'none';
+    var fb = $('btnFriend');
+    fb.style.display = onlineReady() ? '' : 'none';
+    fb.innerHTML = '👫 Play a Friend';
+    if (onlineReady()) {
+      onlineApi('GET', '/matches').then(function (res) {
+        if (screen === 'title' && res.yourTurn) fb.innerHTML = '👫 Play a Friend <span class="badge-n">' + res.yourTurn + '</span>';
+      }, function () {});
+    }
   }
   function renderSelect() {
     var grid = $('rivalGrid');
@@ -2112,9 +2521,15 @@ body:not(.on-title) #buildInfo { display: none; }
   $('confirmNo').onclick = function () { $('confirmOv').classList.remove('on'); };
   $('btnResign').onclick = function () {
     if (G.over) return;
+    if (G.online) {
+      confirmBox('Give up?', G.rival.name + ' will win this game.', resignOnline);
+      return;
+    }
     confirmBox('Give up?', G.rival.name + ' will win this game.', function () { finish('resign'); });
   };
   $('btnMenu').onclick = function () {
+    // Online games are saved on the server after every move
+    if (G.online) { showScreen('friends'); return; }
     if (G.over) { cancelEngine(); showScreen('title'); return; }
     confirmBox('Take a break?', 'Your game is saved. You can continue it from the title screen.', function () {
       cancelEngine();
@@ -2152,9 +2567,11 @@ body:not(.on-title) #buildInfo { display: none; }
       refreshMarks();
     });
   };
-  $('btnAgain').onclick = function () { startGame(G.rival.lv); };
+  $('btnAgain').onclick = function () { if (G.online) newOnlineGame(G.online.tag); else startGame(G.rival.lv); };
   $('btnNext').onclick = function () { startGame(Math.min(10, G.rival.lv + 1)); };
-  $('btnRivals').onclick = function () { showScreen('select'); };
+  $('btnRivals').onclick = function () { showScreen(G.online ? 'friends' : 'select'); };
+  $('btnFriend').onclick = function () { sfx.select(); showScreen('friends'); };
+  $('btnFrBack').onclick = function () { showScreen('title'); };
 
   window.addEventListener('resize', function () { if (screen === 'game') layoutBoard(); });
   window.addEventListener('orientationchange', function () { setTimeout(function () { if (screen === 'game') layoutBoard(); }, 200); });

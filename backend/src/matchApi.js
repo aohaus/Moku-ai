@@ -265,16 +265,41 @@ function createMatchApi(store, config) {
     return json(200, { match: matchView(updated, user.uid) });
   }
 
+  // Giving up: the other player wins. Any time while the game is on, either turn.
+  async function resign(user, id) {
+    const match = await loadOwnMatch(user, id);
+    if (!match) return err(404, "match_not_found", "This game is gone.");
+    if (match.status !== "active") return err(409, "match_over", "This game is over.", { match: matchView(match, user.uid) });
+    const you = colorOf(match, user.uid);
+    const updated = {
+      ...match,
+      version: match.version + 1,
+      status: "finished",
+      result: you === "w" ? "black" : "white",
+      endReason: "resign",
+    };
+    stamp(updated);
+    try {
+      await store.saveMatch(updated, match.version, indexItems(updated));
+    } catch (e) {
+      if (e.code !== "conflict") throw e;
+      // A move landed first: try again on top of it (it may have ended the game).
+      return resign(user, id);
+    }
+    return json(200, { match: matchView(updated, user.uid) });
+  }
+
   return async function handler(event) {
     const method = event.requestContext?.http?.method || "GET";
     const path = (event.rawPath || "/").replace(/\/+$/, "") || "/";
-    const one = /^\/matches\/([^/]+)(\/move)?$/.exec(path);
+    const one = /^\/matches\/([^/]+)(\/move|\/resign)?$/.exec(path);
 
     try {
       const isList = path === "/matches" && (method === "GET" || method === "POST");
       const isOne = one && !one[2] && method === "GET";
-      const isMove = one && one[2] && method === "POST";
-      if (!isList && !isOne && !isMove) return err(404, "not_found", "not found");
+      const isMove = one && one[2] === "/move" && method === "POST";
+      const isResign = one && one[2] === "/resign" && method === "POST";
+      if (!isList && !isOne && !isMove && !isResign) return err(404, "not_found", "not found");
       if (one && !MATCH_ID_RE.test(one[1])) return err(404, "match_not_found", "This game is gone.");
 
       const user = await authenticate(event);
@@ -282,6 +307,7 @@ function createMatchApi(store, config) {
 
       if (isOne) return await getMatch(user, one[1], event.queryStringParameters || {});
       if (isList && method === "GET") return await listMatches(user);
+      if (isResign) return await resign(user, one[1]);
 
       const body = parseBody(event);
       if (!body) return err(400, "invalid_json", "invalid JSON body");

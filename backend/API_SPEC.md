@@ -324,7 +324,7 @@ PINはどこにも記録しない。DynamoDB の `ttl` で90日後に自動削�
 ```
 
 - `status`: `active` / `finished`。`result`: `white` / `black` / `draw`(終わるまで `null`)。
-- `endReason`: `checkmate` / `stalemate` / `fifty` / `material` / `repetition`。
+- `endReason`: `checkmate` / `stalemate` / `fifty` / `material` / `repetition` / `resign`(投了)。
 
 ## `POST /matches`
 
@@ -354,4 +354,9 @@ PINはどこにも記録しない。DynamoDB の `ttl` で90日後に自動削�
 - `400 invalid_move`(書き方が違う)/ `illegal_move`(反則。今の `match` を添える)/ `invalid_version`
 - `409 version_conflict`(先に別の手が入った・二度押し)/ `not_your_turn` / `match_over` — どれも今の `match` を添えるので、ページはそれで描き直す
 - `404 match_not_found`
+
+## `POST /matches/{id}/resign`
+
+本文なし。自分の手番でなくても、進行中ならいつでも投了できる(相手の勝ち、`endReason: "resign"`)。
+→ **200** `{ "match": … }`。`409 match_over`(もう終わっている。今の `match` を添える)/ `404 match_not_found`。
 
