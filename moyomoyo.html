@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <script src="shared/moku-errors.js?v=20261026"></script>
@@ -7,7 +7,7 @@
 <script src="shared/moku-account.js?v=20261026" data-mode="background"></script>
 <script src="shared/moku-moint.js?v=20261026" data-mode="none"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-<title>モヨモヨ - Moyomoyo</title>
+<title>Moyomoyo</title>
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>
@@ -434,34 +434,34 @@ body.on-title #title-bg { display: block; }
 </div>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v1.3.0 · Updated Oct 30, 2026</div>
+<div id="buildInfo">v1.4.0 · Updated Oct 30, 2026</div>
 <div id="game-layout">
   <div id="wrapper">
     <canvas id="c"></canvas>
     <div id="hud" style="visibility:hidden">
       <div id="hud-marathon-info">
-        <div id="score-display">Lv.1  スコア: 0</div>
-        <div id="best-display">ベスト: 0</div>
-        <div id="next-lv-display">つぎのLvまで: 0pt</div>
+        <div id="score-display">Lv.1  Score: 0</div>
+        <div id="best-display">Best: 0</div>
+        <div id="next-lv-display">Next Lv: 0 pt to go</div>
         <div id="time-display">⏱ 0:00</div>
       </div>
-      <button id="pause-btn" title="一時停止">⏸</button>
+      <button id="pause-btn" title="Pause" aria-label="Pause">⏸</button>
     </div>
     <div class="side-col" id="left-col">
-      <button class="ctrl-btn" data-action="left" aria-label="左へ">◀</button>
-      <button class="ctrl-btn" data-action="down" aria-label="下へ">▼</button>
+      <button class="ctrl-btn" data-action="left" aria-label="Move left">◀</button>
+      <button class="ctrl-btn" data-action="down" aria-label="Drop">▼</button>
     </div>
     <div class="side-col" id="right-col">
-      <button class="ctrl-btn" data-action="right" aria-label="右へ">▶</button>
-      <button class="ctrl-btn" data-action="rotate" aria-label="回転">🔄</button>
+      <button class="ctrl-btn" data-action="right" aria-label="Move right">▶</button>
+      <button class="ctrl-btn" data-action="rotate" aria-label="Rotate">🔄</button>
     </div>
     <div id="overlay" class="hidden">
       <h1 id="ov-title"></h1>
       <p id="ov-sub"></p>
       <div id="ov-moints" class="hidden"></div>
       <div class="btn-row">
-        <button id="ov-title-btn" class="secondary">🏠 タイトルへ</button>
-        <button id="ov-btn">もう一度！</button>
+        <button id="ov-title-btn" class="secondary">🏠 Title</button>
+        <button id="ov-btn">Play Again!</button>
       </div>
     </div>
   </div>
@@ -563,11 +563,11 @@ const VS_GARBAGE_PER_DROP = GRID_COLS;
 // tune CPU difficulty primarily through its fall speed rather than
 // through AI skill or board rules.
 const CPU_ENEMIES = [
-  { type: 'baby',  name: 'あかちゃんネズミ', fallInterval: 50 },
-  { type: 'ninja', name: 'にんじゃネズミ',   fallInterval: 40 },
-  { type: 'chef',  name: 'コックネズミ',     fallInterval: 32 },
-  { type: 'suit',  name: 'スーツネズミ',     fallInterval: 24 },
-  { type: 'boss',  name: 'ボスネズミ',       fallInterval: 16 },
+  { type: 'baby',  name: 'Baby Rat',  fallInterval: 50 },
+  { type: 'ninja', name: 'Ninja Rat', fallInterval: 40 },
+  { type: 'chef',  name: 'Chef Rat',  fallInterval: 32 },
+  { type: 'suit',  name: 'Suit Rat',  fallInterval: 24 },
+  { type: 'boss',  name: 'Boss Rat',  fallInterval: 16 },
 ];
 function currentCpuEnemy() { return CPU_ENEMIES[cpuLevel - 1]; }
 
@@ -601,11 +601,11 @@ function garbageCellsForChain(chainCount) {
 // Radii scaled up with CELL (78/64 ≈ 1.22x) so each stage still fills its
 // cell the same way it did before, just bigger.
 const STAGES = [
-  { name: 'たまごモク', r: 32, color: '#CFF2C2', face: '#8A6A40', pts: 1 },  // mint
-  { name: 'ひよこモク', r: 46, color: '#2DD4A8', face: '#0A4A3E', pts: 2 },  // teal
-  { name: 'ひなモク',   r: 61, color: '#9B5DE5', face: '#3A1060', pts: 4 },  // violet
-  { name: 'モクモク',   r: 78, color: '#FF5C7A', face: '#4A2800', pts: 8 },  // pink
-  { name: 'デカモク',   r: 98, color: '#4F9DFF', face: '#3A1800', pts: 16, legendary: true }, // blue, final tier
+  { name: 'Egg Moku',   r: 32, color: '#CFF2C2', face: '#8A6A40', pts: 1 },  // mint
+  { name: 'Chick Moku', r: 46, color: '#2DD4A8', face: '#0A4A3E', pts: 2 },  // teal
+  { name: 'Young Moku', r: 61, color: '#9B5DE5', face: '#3A1060', pts: 4 },  // violet
+  { name: 'Mokumoku',   r: 78, color: '#FF5C7A', face: '#4A2800', pts: 8 },  // pink
+  { name: 'Big Moku',   r: 98, color: '#4F9DFF', face: '#3A1800', pts: 16, legendary: true }, // blue, final tier
 ];
 // Which stages can drop directly, gated by level — colors climb in as the
 // board gets harder (Lv1-2: 3 colors, Lv3-4: +pink, Lv5+: +デカモク) so
@@ -894,14 +894,14 @@ function resolveStep() {
       topStageThisStep = Math.max(topStageThisStep, newStage);
       if (STAGES[newStage].legendary) {
         score += 100;
-        legendText = `🎉 ${STAGES[newStage].name}進化！ +100`;
+        legendText = `🎉 ${STAGES[newStage].name} is born! +100`;
         legendTimer = 130;
         addParticles(mx, my, STAGES[newStage].color, 26, 6);
       }
     } else {
       score += Math.round(150 * mult);
       topStageThisStep = Math.max(topStageThisStep, g.stage);
-      legendText = `🎉 ${STAGES[g.stage].name}大連鎖！ +150`;
+      legendText = `🎉 ${STAGES[g.stage].name} Mega Pop! +150`;
       legendTimer = 130;
       addParticles(mx, my, STAGES[g.stage].color, 30, 7);
     }
@@ -911,7 +911,7 @@ function resolveStep() {
   const rainbowFired = triggerRainbows(clearedCells, affectedCols);
 
   if (rainbowFired) {
-    legendText = '🌈 レインボーモクモク発動！';
+    legendText = '🌈 Rainbow Moku Power!';
     legendTimer = 130;
     addShake(14);
     playSfx('magic');
@@ -921,7 +921,7 @@ function resolveStep() {
 
   addShake(4 + chainCount * 2);
   if (chainCount > 1) {
-    comboText = `${chainCount}れんさ！ ×${mult.toFixed(1)}`;
+    comboText = `${chainCount} Chain! ×${mult.toFixed(1)}`;
     comboTimer = 90;
   }
   if (chainCount >= 2) {
@@ -930,7 +930,7 @@ function resolveStep() {
   }
   if (chainCount >= 3) {
     const isBig = chainCount >= 5;
-    celebrateText = isBig ? '🎉🎉 大連鎖！！ 🎉🎉' : '🎉 3連鎖ボーナス！';
+    celebrateText = isBig ? '🎉🎉 MEGA CHAIN!! 🎉🎉' : '🎉 3-Chain Bonus!';
     celebrateTimer = 110;
     flashAlpha = isBig ? 0.7 : 0.5;
     const burstCols = [...STAGES.map(s => s.color), '#FFD700', '#FF6FA8'];
@@ -960,8 +960,8 @@ function checkLevelUp() {
   level = newLevel;
   pendingLevelPreset = true;
   celebrateText = level >= MAX_LEVEL
-    ? `⬆️ Lv.${level} UP！ラスト！`
-    : `⬆️ Lv.${level} UP！盤面リセット！`;
+    ? `⬆️ Lv.${level} UP! Final level!`
+    : `⬆️ Lv.${level} UP! New board!`;
   celebrateTimer = 100;
   flashAlpha = 0.5;
   addShake(10);
@@ -986,8 +986,8 @@ function applyLevelPreset() {
 }
 
 function updateHUD() {
-  document.getElementById('score-display').textContent = `Lv.${level}  スコア: ${score}`;
-  document.getElementById('best-display').textContent = `ベスト: ${Math.max(score, bestScore)}`;
+  document.getElementById('score-display').textContent = `Lv.${level}  Score: ${score}`;
+  document.getElementById('best-display').textContent = `Best: ${Math.max(score, bestScore)}`;
   const nextLvEl = document.getElementById('next-lv-display');
   if (level >= MAX_LEVEL) {
     nextLvEl.style.display = 'none';
@@ -997,7 +997,7 @@ function updateHUD() {
     // LEVEL_STEP*(1+2+...+level).
     const threshold = LEVEL_STEP * level * (level + 1) / 2;
     nextLvEl.style.display = '';
-    nextLvEl.textContent = `つぎのLvまで: ${Math.max(0, threshold - score)}pt`;
+    nextLvEl.textContent = `Next Lv: ${Math.max(0, threshold - score)} pt to go`;
   }
 }
 
@@ -1144,7 +1144,7 @@ function drawNextPreview() {
   ctx.beginPath(); ctx.roundRect(bx, by, 112, 150, 20); ctx.fill();
   ctx.fillStyle = 'rgba(255,255,255,0.7)';
   ctx.font = '16px Arial'; ctx.textAlign = 'center';
-  ctx.fillText('つぎ', bx + 56, by + 24);
+  ctx.fillText('NEXT', bx + 56, by + 24);
   ctx.restore();
   if (nextPair) {
     const r = 24;
@@ -1406,7 +1406,7 @@ function drawPausedOverlay(w, h) {
   ctx.fillStyle = '#FFE9F5';
   ctx.font = 'bold 36px Arial';
   ctx.shadowColor = '#FF7FC0'; ctx.shadowBlur = 20;
-  ctx.fillText('⏸ 一時停止中', w/2, h * 0.36);
+  ctx.fillText('⏸ Paused', w/2, h * 0.36);
   ctx.shadowBlur = 0;
   ctx.restore();
 
@@ -1416,7 +1416,7 @@ function drawPausedOverlay(w, h) {
   ctx.fillStyle = 'white';
   ctx.font = 'bold 23px Arial';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('▶ 再開', w/2, resumeY);
+  ctx.fillText('▶ Resume', w/2, resumeY);
   ctx.textBaseline = 'alphabetic';
   ctx.restore();
 
@@ -1428,7 +1428,7 @@ function drawPausedOverlay(w, h) {
   ctx.fillStyle = 'rgba(255,255,255,0.85)';
   ctx.font = '19px Arial';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('🏠 タイトルへ', w/2, quitY);
+  ctx.fillText('🏠 Title', w/2, quitY);
   ctx.textBaseline = 'alphabetic';
   ctx.restore();
 }
@@ -1554,14 +1554,14 @@ function endRun(title, sfxKind) {
   ov.classList.remove('hidden');
   document.getElementById('ov-title').textContent = title;
   document.getElementById('ov-sub').textContent =
-    `Lv.${level}　スコア: ${score}pt　ベスト: ${bestScore}pt\n⏱ ${mm}:${String(ss).padStart(2,'0')}`;
+    `Lv.${level} · Score: ${score} pt · Best: ${bestScore} pt\n⏱ ${mm}:${String(ss).padStart(2,'0')}`;
   renderMoints(moints);
   document.getElementById('left-col').style.visibility = 'hidden';
   document.getElementById('right-col').style.visibility = 'hidden';
 }
 
 function gameOver() {
-  endRun('😵 モヨモヨがあふれた！', 'gameover');
+  endRun('😵 The gummies overflowed!', 'gameover');
 }
 
 function winClear() {
@@ -1573,7 +1573,7 @@ function winClear() {
     const by = GRID_Y0 + Math.random() * GRID_H;
     addParticles(bx, by, burstCols[Math.floor(Math.random() * burstCols.length)], 30, 7);
   }
-  endRun('🎉 全面クリア！おめでとう！', 'magic');
+  endRun('🎉 All Clear! Congratulations!', 'magic');
 }
 
 function startGame() {
@@ -2261,7 +2261,7 @@ function vbDrawNextPreview(b) {
   ctx.beginPath(); ctx.roundRect(bx, by, boxW, boxH, 12); ctx.fill();
   ctx.fillStyle = 'rgba(255,255,255,0.7)';
   ctx.font = '11px Arial'; ctx.textAlign = 'center';
-  ctx.fillText('つぎ', bx + boxW / 2, by + 14);
+  ctx.fillText('NEXT', bx + boxW / 2, by + 14);
   ctx.restore();
   const r = 14;
   const v1 = stageVisual(b.nextPair.s1), v2 = stageVisual(b.nextPair.s2);
@@ -2309,15 +2309,15 @@ function drawVs() {
   ctx.textAlign = 'left';
   ctx.shadowColor = '#FF7FC0'; ctx.shadowBlur = 12;
   ctx.fillStyle = '#FFE9F5';
-  ctx.font = 'bold 22px "Hiragino Sans", "Yu Gothic", Meiryo, Arial, sans-serif';
-  ctx.fillText('⚔️ モヨクエスト', VS_MARGIN_X, 28);
+  ctx.font = 'bold 22px Arial, sans-serif';
+  ctx.fillText('⚔️ Moyo Quest', VS_MARGIN_X, 28);
   ctx.shadowBlur = 0;
   ctx.fillStyle = 'rgba(255,224,102,0.85)';
   ctx.font = 'bold 13px Arial';
   ctx.fillText(`Lv.${cpuLevel}/${CPU_ENEMIES.length}`, VS_MARGIN_X, 48);
   ctx.fillStyle = 'rgba(255,255,255,0.45)';
   ctx.font = '11px Arial';
-  ctx.fillText('デカモクを消して連鎖で攻撃！', VS_MARGIN_X, 65);
+  ctx.fillText('Pop Big Moku & chain to attack!', VS_MARGIN_X, 65);
   ctx.restore();
 
   ctx.save();
@@ -2347,7 +2347,7 @@ function drawVs() {
   ctx.textAlign = 'center';
   ctx.fillStyle = 'rgba(255,255,255,0.35)';
   ctx.font = '18px Arial';
-  ctx.fillText('◀▶で移動・🔄で回転・▼で下に落とす', VS_CANVAS_W / 2, VS_CANVAS_H - VS_BOTTOM_MARGIN);
+  ctx.fillText('◀▶ Move · 🔄 Rotate · ▼ Drop', VS_CANVAS_W / 2, VS_CANVAS_H - VS_BOTTOM_MARGIN);
   ctx.restore();
 
   if (flashAlpha > 0.01) {
@@ -2384,7 +2384,7 @@ function drawVsCountdown() {
   ctx.scale(1 / pulse, 1 / pulse);
   ctx.font = 'bold 22px Arial';
   ctx.fillStyle = 'rgba(255,255,255,0.75)';
-  ctx.fillText(`Lv.${cpuLevel} ${currentCpuEnemy().name} とうじょう！`, 0, 100);
+  ctx.fillText(`Lv.${cpuLevel} ${currentCpuEnemy().name} is here!`, 0, 100);
   ctx.textBaseline = 'alphabetic';
   ctx.restore();
 }
@@ -2407,7 +2407,7 @@ function drawVsLevelClear() {
   ctx.shadowColor = '#FFD700'; ctx.shadowBlur = 20;
   ctx.fillStyle = '#FFE9F5';
   ctx.font = 'bold 30px Arial';
-  ctx.fillText(`🎉 ${beaten.name}を倒した！`, VS_CANVAS_W / 2, VS_CANVAS_H * 0.28);
+  ctx.fillText(`🎉 You beat ${beaten.name}!`, VS_CANVAS_W / 2, VS_CANVAS_H * 0.28);
   ctx.shadowBlur = 0;
   ctx.restore();
 
@@ -2427,7 +2427,7 @@ function drawVsLevelClear() {
   ctx.fillStyle = 'rgba(255,255,255,0.75)';
   ctx.font = '18px Arial';
   ctx.fillText(
-    isFinal ? '🏆 5体すべて撃破！チャンピオン確定間近…' : `つぎ: Lv.${cpuLevel + 1} ${CPU_ENEMIES[cpuLevel].name}`,
+    isFinal ? '🏆 All 5 rats beaten! Almost champion…' : `Next: Lv.${cpuLevel + 1} ${CPU_ENEMIES[cpuLevel].name}`,
     VS_CANVAS_W / 2, VS_CANVAS_H * 0.60
   );
   ctx.restore();
@@ -2438,7 +2438,7 @@ function drawVsLevelClear() {
   ctx.fillStyle = 'white';
   ctx.font = 'bold 21px Arial';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('▶ つぎへ', VS_CANVAS_W / 2, VS_LEVEL_CLEAR_BTN_Y);
+  ctx.fillText('▶ Next', VS_CANVAS_W / 2, VS_LEVEL_CLEAR_BTN_Y);
   ctx.textBaseline = 'alphabetic';
   ctx.restore();
 }
@@ -2531,7 +2531,6 @@ const MOINT = {
   boss: [20, 30, 40, 50, 80],              // each rat beaten in a Quest run
   firstBoss: [100, 150, 200, 250, 500],    // first win ever over each rat
 };
-const BOSS_EN = ['Baby Rat', 'Ninja Rat', 'Chef Rat', 'Suit Rat', 'Boss Rat'];
 let questMoints = { lines: [], capHit: false, last: 0 };
 function loadProgress() {
   try {
@@ -2574,12 +2573,12 @@ function payBossMoints(lv) {
   questMoints.last = 0;
   if (!window.MokuMoint) return;
   const i = lv - 1;
-  questMoints.last += mointPay(questMoints, `Beat ${BOSS_EN[i]}`, MOINT.boss[i], true);
+  questMoints.last += mointPay(questMoints, `Beat ${CPU_ENEMIES[i].name}`, MOINT.boss[i], true);
   const prog = loadProgress();
   if (!prog.mointClaims['boss' + lv]) {
     prog.mointClaims['boss' + lv] = true;
     saveProgress(prog);
-    questMoints.last += mointPay(questMoints, `First win vs ${BOSS_EN[i]}!${lv === 5 ? ' 🏆' : ''}`, MOINT.firstBoss[i], false);
+    questMoints.last += mointPay(questMoints, `First win vs ${CPU_ENEMIES[i].name}!${lv === 5 ? ' 🏆' : ''}`, MOINT.firstBoss[i], false);
   }
 }
 function renderMoints(m) {
@@ -2602,10 +2601,10 @@ function endRunVs() {
   }
   const ov = document.getElementById('overlay');
   ov.classList.remove('hidden');
-  document.getElementById('ov-title').textContent = vsWinnerIsPlayer ? '🏆 5体撃破！チャンピオン！' : '😵 まけ...';
+  document.getElementById('ov-title').textContent = vsWinnerIsPlayer ? '🏆 You beat all 5 rats! Champion!' : '😵 You lost...';
   document.getElementById('ov-sub').textContent = vsWinnerIsPlayer
-    ? `あなたのスコア: ${vsP.score}pt`
-    : `あなたのスコア: ${vsP.score}pt　到達: Lv.${cpuLevel} ${currentCpuEnemy().name}`;
+    ? `Your score: ${vsP.score} pt`
+    : `Your score: ${vsP.score} pt · Reached: Lv.${cpuLevel} ${currentCpuEnemy().name}`;
   renderMoints(questMoints);
   document.getElementById('left-col').style.visibility = 'hidden';
   document.getElementById('right-col').style.visibility = 'hidden';
