@@ -474,7 +474,7 @@ body:not(.on-title) #buildInfo { display: none; }
   </div>
 </div>
 
-<div id="buildInfo">v1.0.0 · Updated Oct 30, 2026</div>
+<div id="buildInfo">v1.1.0 · Updated Oct 30, 2026</div>
 
 <script>
 (function() {
@@ -503,6 +503,25 @@ body:not(.on-title) #buildInfo { display: none; }
         'C C F C F C G C ' +
         'C F C G C F C G ' +
         'C C F C F C G C'
+    },
+    {
+      // かえるのうた(ドイツ民謡)。輪唱の曲なので、2周目から2小節遅れでもう1人が追いかける(canon)
+      id: 'frog',
+      title: 'The Frog Song',
+      icon: '🐸',
+      level: 'Easy',
+      bpm: 100,
+      rounds: 3,
+      canon: 8,
+      lanes: { C4: 0, D4: 0, E4: 1, F4: 1, G4: 2, A4: 2 },
+      melody:
+        'C4:1 D4:1 E4:1 F4:1 E4:1 D4:1 C4:2 ' +
+        'E4:1 F4:1 G4:1 A4:1 G4:1 F4:1 E4:2 ' +
+        'C4:1 R:1 C4:1 R:1 C4:1 R:1 C4:1 R:1 ' +
+        'C4:0.5 C4:0.5 D4:0.5 D4:0.5 E4:0.5 E4:0.5 F4:0.5 F4:0.5 E4:1 D4:1 C4:2',
+      chords:
+        'C C G C C F C C ' +
+        'C C C C C F G C'
     },
     {
       id: 'ode',
@@ -677,6 +696,9 @@ body:not(.on-title) #buildInfo { display: none; }
       case 'guide': // メロディのガイド(小さめのオルゴール)。タップしなくても曲が分かるように
         tone(dest, t, ev.freq, Math.min(ev.beats * spb * 0.9, 0.9), 'triangle', 0.075, 0.01);
         break;
+      case 'canon': // 輪唱で追いかけるもう1人(1オクターブ上の小さな笛)
+        tone(dest, t, ev.freq * 2, Math.min(ev.beats * spb * 0.85, 0.8), 'sine', 0.045, 0.02);
+        break;
       case 'chord':
         for (var i = 0; i < ev.tones.pad.length; i++) {
           tone(dest, t, noteFreq(ev.tones.pad[i]), spb * 1.9, 'triangle', 0.035, 0.04);
@@ -801,6 +823,9 @@ body:not(.on-title) #buildInfo { display: none; }
         var lane = song.lanes[n.name];
         notes.push({ time: t, lane: lane == null ? 1 : lane, freq: freq, hit: false, judged: false });
         events.push({ type: 'guide', t: t, freq: freq, beats: n.beats });
+        if (song.canon && r > 0) {
+          events.push({ type: 'canon', t: t + song.canon * spb, freq: freq, beats: n.beats });
+        }
       });
       chords.forEach(function(ch, i) {
         events.push({ type: 'chord', t: (off + i * 2) * spb, tones: CHORD_TONES[ch] || CHORD_TONES.C });
@@ -813,8 +838,17 @@ body:not(.on-title) #buildInfo { display: none; }
         if (r > 0) events.push({ type: 'hat', t: bt, vol: 0.02 });
       }
     }
+    // 輪唱の曲は、追いかける人が歌い終わるまで伴奏を続ける(最後の canon 拍ぶんのコードをもう一度)
+    var lastBeat = song.rounds * mel.beats;
+    if (song.canon) {
+      var tail = chords.slice(chords.length - song.canon / 2);
+      tail.forEach(function(ch, i) {
+        events.push({ type: 'chord', t: (lastBeat + i * 2) * spb, tones: CHORD_TONES[ch] || CHORD_TONES.C });
+      });
+      lastBeat += song.canon;
+    }
     // 最後にジャーン
-    var last = song.rounds * mel.beats * spb;
+    var last = lastBeat * spb;
     events.push({ type: 'chord', t: last, tones: CHORD_TONES.C });
     events.push({ type: 'kick', t: last });
 
@@ -881,6 +915,9 @@ body:not(.on-title) #buildInfo { display: none; }
     state = 'title';
     stopSongAudio();
     notes = [];
+    currentScore = 0;
+    combo = 0;
+    updateHud();
     renderSongList();
     document.body.classList.add('on-title');
     document.getElementById('resultsModal').classList.remove('active');
