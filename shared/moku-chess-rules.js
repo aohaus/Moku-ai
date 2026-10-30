@@ -304,12 +304,15 @@
   }
 
   // Plays a list of UCI moves from the start (or startFen). Stops at the
-  // first illegal move: ok = false and applied = how many were played.
-  // keys = the position after every move, the start included (for repetition).
+  // first illegal move, or at a move after the game has already ended
+  // (checkmate, a draw): ok = false and applied = how many were played, so
+  // status stays the ending's. keys = the position after every move, the
+  // start included (for repetition).
   function replay(moves, startFen) {
     var pos = create(startFen);
     var keys = [pos.posKey()], applied = 0, list = moves || [];
     for (var i = 0; i < list.length; i++) {
+      if (pos.status(keys)) break;
       if (!pos.play(list[i])) break;
       keys.push(pos.posKey());
       applied++;

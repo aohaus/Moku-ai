@@ -53,6 +53,12 @@ test("chess rules: replay finds every way a game ends", () => {
   const knights = ["g1f3", "g8f6", "f3g1", "f6g8", "g1f3", "g8f6", "f3g1", "f6g8"];
   assert.equal(Rules.replay(knights).status, "repetition");
   assert.equal(Rules.replay(knights.slice(0, 7)).status, null);
+  const afterDraw = Rules.replay([...knights, "e2e4"]);
+  assert.equal(afterDraw.ok, false, "no moves after the game has ended");
+  assert.equal(afterDraw.applied, 8);
+  assert.equal(afterDraw.status, "repetition");
+  const afterMate = Rules.replay(["f2f3", "e7e5", "g2g4", "d8h4", "a2a3"]);
+  assert.deepEqual([afterMate.ok, afterMate.applied, afterMate.status], [false, 4, "checkmate"]);
   assert.equal(Rules.replay([], "7k/5Q2/6K1/8/8/8/8/8 b - - 0 1").status, "stalemate");
   assert.equal(Rules.replay([], "7k/8/6K1/8/8/8/8/6B1 b - - 0 1").status, "material");
   assert.equal(Rules.replay(["a1a2"], "7k/8/6K1/8/8/8/8/R7 w - - 99 80").status, "fifty");
