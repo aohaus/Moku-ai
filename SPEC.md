@@ -71,7 +71,8 @@ Mokuball は実装済みだがハブ未公開(準備中)。
 - **タイポグラフィ**: `-apple-system, "Segoe UI", Roboto, sans-serif`。見出しは `font-weight: 800`、字間 `0.01〜0.04em`。
 - **タイトル画面メニューの統一(2026-08-14〜)**: フォント**ファミリー**はゲームごとの世界観を尊重して統一しない(Angry MokumokuはCourier New、他はArial/システムフォントのままでよい)。ただし**サイズ・太さ・揃え方・行間**は統一する。
   - HTML実装(Battle Royal / Shiri of Moku / Mokuball): `.titleMenuItem`(または相当クラス)は `font-size: 19px; font-weight: 800;` 固定値(`clamp()`にしない)、`padding: 8px 18px;`。コンテナは `margin-top: 10px; gap: 6px;` で中央揃え。
-  - canvas実装(Angry Mokumoku / Moyomoyo): タイトルロゴを基準にメニュー文字サイズを概ね0.38〜0.40倍にする(Angry Mokumoku: 50px→20px。Moyomoyo: 110px→43px)。太字・中央揃え・選択中はグロー+`▶ `プレフィックス、非選択は低コントラストという表現もこの2タイトルで共通。
+  - canvas実装(Angry Mokumoku): タイトルロゴを基準にメニュー文字サイズを概ね0.38〜0.40倍にする(50px→20px)。太字・中央揃え・選択中はグロー+`▶ `プレフィックス、非選択は低コントラスト。
+  - Moyomoyo(2026-10-30〜): タイトル画面をHTMLで作り直した(`#title-screen`。枠いっぱいに、横長は「ロゴ+Moku+進化の列|メニュー」の2列、縦長は1列)。メニューは上の HTML 実装と同じ 19px/800 で、Marathon / ⚔️ Moyo Quest の2つ(各ベストスコアつき)+Moint 残高と今日の分。グミの絵だけ canvas(`#title-art` / 背景の `#title-bg`)で、プレイ中と同じ `drawGummyShape()` を使う。ゲーム内の端末ローカルのランキング(Top 10・名前登録)は廃止(Marathon のベストはハブの Achievements に出る)。古い `moyomoyo-leaderboard` キーは起動時に消す。
   - **MK Mobileは対象外**: 現状メニューがテキストリストではなくピルボタン(`▶ START`)のまま(§9の積み残しタスク)。テキストリスト化してから本項のサイズ統一を適用する。
 - **共通コンポーネント**
   - カード(`.card`): 角丸16px、2pxボーダー(アクセントカラー)、内側に1pxの縁取り、hoverで浮き上がる。
@@ -348,7 +349,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
 - [ ] 残り6タイトルのアクセントカラー割り当てルール
 - [ ] ハブ背景を都市写真ベースに差し替え(§7参照、素材生成待ち)
 - [ ] 各ゲームのスタート画面リデザイン(写真背景刷新の後続タスクとして想定)
-- [ ] ゲーム内の日本語UIを英語化(§3、2026-10-24 時点): Moku Wolf(お題の単語が中心。英語化すると遊び方が変わるので要相談)、Shiri of Moku、Moyomoyo、MK Mobile、Angry Mokumoku、Mokuball
+- [ ] ゲーム内の日本語UIを英語化(§3、2026-10-24 時点): Moku Wolf(お題の単語が中心。英語化すると遊び方が変わるので要相談)、Shiri of Moku、MK Mobile、Angry Mokumoku、Mokuball
 - [ ] Moku Future Run への子どもたちの要望(2026-10 AI Studio から引き継ぎ): ①危険な障害物を黒やハザードストライプでひと目で分かるようにする ②ジャンプするとベリーの列も一緒に動くバグ ③クリアはお祝い・失敗は残念な演出で差をはっきりさせる ④しゃがんでくぐる障害物を増やす
 
 ## 開発履歴について
