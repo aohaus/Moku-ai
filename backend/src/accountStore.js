@@ -15,6 +15,8 @@ const { doc } = require("./db");
 //   pk "META",            sk "USERS"    { count } — enforces MAX_USERS on sign-up
 //   pk "MATCH#<id>",      sk "STATE"    an online match (matchApi.js): players, moves, version
 //   pk "PLAYER#<uid>",    sk "MATCH#<id>"  that player's row in their match list
+//   pk "CHAL#<id>",       sk "STATE"    a "same puzzle" challenge (challengeApi.js)
+//   pk "PLAYER#<uid>",    sk "CHAL#<id>"   that player's row in their challenge list
 // (plus the log and error items further down). Match items carry `ttl`.
 
 const TABLE = process.env.ACCOUNTS_TABLE_NAME;
@@ -458,8 +460,78 @@ async function listPlayerMatches(uid) {
   return items.filter((i) => !i.ttl || i.ttl > t).map(({ pk, sk, ...row }) => ({ uid, ...row }));
 }
 
+// ---------- challenges (challengeApi.js): same shape as matches ----------
+
+const chalKey = (id) => ({ pk: `CHAL#${id}`, sk: "STATE" });
+const playerChalKey = (uid, id) => ({ pk: `PLAYER#${uid}`, sk: `CHAL#${id}` });
+
+function chalRowPuts(rows) {
+  return rows.map(({ uid, ...row }) => ({ Put: { TableName: TABLE, Item: { ...playerChalKey(uid, row.challengeId), ...row } } }));
+}
+
+async function createChallenge(ch, rows) {
+  await doc.send(
+    new TransactWriteCommand({
+      TransactItems: [
+        { Put: { TableName: TABLE, Item: { ...chalKey(ch.id), ...ch }, ConditionExpression: "attribute_not_exists(pk)" } },
+        ...chalRowPuts(rows),
+      ],
+    })
+  );
+}
+
+async function getChallenge(id) {
+  const res = await doc.send(new GetCommand({ TableName: TABLE, Key: chalKey(id) }));
+  if (!res.Item) return null;
+  const { pk, sk, ...ch } = res.Item;
+  return ch;
+}
+
+async function saveChallenge(ch, baseVersion, rows) {
+  try {
+    await doc.send(
+      new TransactWriteCommand({
+        TransactItems: [
+          {
+            Put: {
+              TableName: TABLE,
+              Item: { ...chalKey(ch.id), ...ch },
+              ConditionExpression: "version = :v",
+              ExpressionAttributeValues: { ":v": baseVersion },
+            },
+          },
+          ...chalRowPuts(rows),
+        ],
+      })
+    );
+  } catch (e) {
+    if (e.name === "TransactionCanceledException") throw codedError("conflict");
+    throw e;
+  }
+}
+
+async function listPlayerChallenges(uid) {
+  const items = [];
+  let ExclusiveStartKey;
+  do {
+    const res = await doc.send(
+      new QueryCommand({
+        TableName: TABLE,
+        KeyConditionExpression: "pk = :pk AND begins_with(sk, :c)",
+        ExpressionAttributeValues: { ":pk": `PLAYER#${uid}`, ":c": "CHAL#" },
+        ExclusiveStartKey,
+      })
+    );
+    items.push(...(res.Items || []));
+    ExclusiveStartKey = res.LastEvaluatedKey;
+  } while (ExclusiveStartKey);
+  const t = Math.floor(Date.now() / 1000);
+  return items.filter((i) => !i.ttl || i.ttl > t).map(({ pk, sk, ...row }) => ({ uid, ...row }));
+}
+
 module.exports = {
   getUser, createUser, updateUser, getSave, putSave, listUsers, listSaves, deleteUser, renameUser,
   addLog, listLogs, recordError, listErrors, updateError, deleteError,
   createMatch, getMatch, saveMatch, listPlayerMatches,
+  createChallenge, getChallenge, saveChallenge, listPlayerChallenges,
 };

@@ -300,6 +300,11 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
 - Moku Bridge 内の買い物(Hint 15 / Magic Carpet 40)と所持数は `moku:moku-bridge:progress` の `items`。初回だけお試し用に 40 Moint 配る(`welcomeGift`)。
 - Moku Bridge で橋を渡りきると最低 100 Moint(8段の橋 100 / 9段 110 / 10段 120)+ヒントなしで当てた段ごとに 10 + 1回目でクリアなら 50。このクリア報酬は全部「毎回もらえる分」で、1日 500 まで(2026-10-25〜。`MokuMoint.earn`。超えた分は結果画面に「You got all of today's bridge Moints!」)。落ちた時の −3 や Hint / Magic Carpet の買い物は上限と関係ない。
 - Moku Bridge で落ちると 3 Moint 減る(残高が 3 未満ならあるだけ。0 未満にはしない)。
+- **Challenge a Friend**(2026-10-30〜、v0.6.0。§14 の `/challenges`): タイトル画面のボタン(ログイン中だけ。自分の番のチャレンジがあれば赤い数字)→「Your challenges」と「Challenge a friend」(Players の一覧)。友達を選ぶと、サーバーが配ったシードから作る9段の新しい橋をすぐ渡る。友達も同じ橋を好きな時に渡り、**落ちた回数が少ない方の勝ち**(同じなら引き分け)。
+  - チャレンジ中は Hint / Magic Carpet なし(ボタンも出さない)、お助けセールの成績にも数えない。落ちても Moint は減らない。何度落ちても続きから(ふだんの橋と同じく、分かったガラスは覚えている)。HUD は「VS <名前> · FALLS n」。ふだんの橋の進み具合(`bridge` など)は変えない。
+  - 渡りきったら落ちた回数をサーバーへ送る。相手がまだなら「Waiting for …」。相手の結果は自分が送るまで見えない。オフラインで送れなかった時は、次に Challenges を開いた時に送る。
+  - Moint: 渡りきった +20、勝ち +30(どちらも1チャレンジ1回、`MokuMoint.earn` の 1日 500 の中)。相手が後から渡って勝ちが決まった分は、次に Challenges を開いた時に払う。同じ友達への勝ちで Moint がもらえるのは1日2回まで(`chalWins`)。
+  - 記録は `moku:moku-bridge:progress` の `challenges[id] = { steps, seed, name, tag, pattern, solved, broken, tries, falls, done, sent, forgetAt }` と `chalPaid['<id>:finish' | '<id>:win'] = 忘れてよい時刻`。`challenges` はチャレンジを作ってから29日(まだ渡っていない人のチャレンジがサーバーに残りうる最長28日より長く)、`chalPaid` は払ってから15日(サーバーが最後の変化から消す14日より長く)で消す。
 - **お助けセール**(2026-10-25〜): その橋で「まだ分からないガラスを自分で選んだ回数」のうちハズレが7割以上(3回以上選んでから)になったら、次の挑戦から Hint / Magic Carpet を強調(光る枠+「50% OFF」タグ)して半額(Hint 8 / Carpet 20、切り上げ)で買えるようにする。一度始まったセールはその橋を渡りきるまで続く(次の挑戦で当てて割合が下がっても取り消さない。`bridgeStats.saleOn`)。半額は橋ごとに各1つまで(買い溜め防止)。分かっているガラス・ヒントを使った段は数えない。成績は `moku:moku-bridge:progress` の `bridgeStats = { guesses, misses, saleUsed: { hint, carpet } }` で、次の橋でリセット。落ちた時の結果画面と次の挑戦の最初のメッセージでも知らせる。
 - Magic Carpet は3枚先のガラスへ飛ぶ。とばした2段は踏まないので正解は分からないまま(次の挑戦でも未知)。
 - **Luckiest Steps**(2026-10-25〜): 1回の挑戦で、ヒントなしで続けて当てた段数の最高記録を `moku:moku-bridge:progress` の `bestLucky` に保存する。答えが分かっている段は数えず連続も切らない。ヒント・カーペット・ハズレで連続が切れる。
@@ -318,6 +323,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
   - DynamoDB は同じ `moku-accounts` テーブル: `MATCH#<id> / STATE`(対局)と `PLAYER#<uid> / MATCH#<id>`(2人それぞれの一覧の行)。プレイヤーは `uid` で持ち、返すのは表示名と `#u` タグだけ。最後の手から7日で消える(終わった対局は30日)。1人20局まで。
   - Lambda は `MatchFunction`(ログインの scrypt で遅くなる `AccountFunction` と分けた)。スロットリングはルートごとに `RouteSettings` で設定(ポーリングの `GET /matches/{id}` は 40/秒・瞬間80。既定の 10/秒 はルートごとの値)。
   - `POST /matches/{id}/resign`(投了。自分の番でなくてもよい。相手の勝ち)も足した。
+- **同じ問題で勝負する API**(`/challenges`、2026-10-30〜。仕様は `backend/API_SPEC.md` の「Challenges」): 2人が同時にいなくても遊べる非同期の勝負。サーバーがシードと条件を配り、2人がそれぞれ遊んで結果を1回ずつ送り、そろったらサーバーが勝ち負けを決める。自分が送るまで相手の結果は見えない。最初は Moku Bridge(§13)。新しいゲームは `backend/src/challengeApi.js` の `GAMES` に `params` / `result` / `compare` を足す。Lambda は `MatchFunction` を共用、データは同じテーブルの `CHAL#<id>` と `PLAYER#<uid> / CHAL#<id>`、14日で消える。共通の処理(ログイン確認・相手探し)は `backend/src/playCommon.js`。
 - **Moku Chess の「Play a Friend」**(2026-10-30〜、v0.2.0): タイトル画面のボタン(ログイン中だけ出る。自分の番の対局があれば赤い数字)→ 「Your games」(自分の番が先頭。相手の着せ替えた Moku・`#u` タグ・状態)と「Start a new game」(Players の一覧。先手後手はランダム)。
   - 対局画面は CPU 戦と同じ。上の段は友達(Moku の顔・「Friend」)。黒番の時は盤を逆さにする(マスを h1→a8 の順に作り直し、駒はマスの位置に付いてくる)。Hint / Undo はなし。Give Up はサーバーに投了を送る。Menu は「Your games」へ戻る(対局はサーバーに残っている)。
   - 指すとすぐ盤に反映して送る。サーバーが受け付けなかった時(先に別の手が入った等)は、返ってきた対局に合わせて盤を描き直す。オフラインの間は3秒おきに送り直す。

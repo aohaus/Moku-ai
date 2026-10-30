@@ -326,6 +326,32 @@ Resources:
             ApiId: !Ref MokuScoresApi
             Path: /matches/{id}/resign
             Method: POST
+        # "Same puzzle" challenges (src/challengeApi.js, API_SPEC.md "Challenges").
+        # No polling, so the default per-route limits are plenty.
+        CreateChallenge:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /challenges
+            Method: POST
+        ListChallenges:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /challenges
+            Method: GET
+        GetChallenge:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /challenges/{id}
+            Method: GET
+        ChallengeResult:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /challenges/{id}/result
+            Method: POST
 
 Outputs:
   ApiUrl:

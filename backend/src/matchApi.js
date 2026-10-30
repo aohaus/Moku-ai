@@ -1,6 +1,6 @@
 const crypto = require("crypto");
 const { json } = require("./response");
-const token = require("./token");
+const { err, parseBody, tagOf, makeAuthenticate, findOpponent } = require("./playCommon");
 const MokuChessRules = require("./vendor/moku-chess-rules");
 
 // Online matches between two logged-in players (see API_SPEC.md "Matches").
@@ -16,7 +16,6 @@ const MokuChessRules = require("./vendor/moku-chess-rules");
 // can rename that, and it is half of a login, so it never leaves the server).
 
 const MATCH_ID_RE = /^[0-9a-f]{16}$/;
-const TAG_RE = /^u[0-9a-f]{5}$/;
 const UCI_RE = /^[a-h][1-8][a-h][1-8][nbrq]?$/;
 const MAX_ACTIVE_MATCHES = 20;      // per player, so nobody can flood a friend with invites
 const MAX_MOVES = 600;              // far past any real game; keeps an item small
@@ -37,25 +36,6 @@ const GAMES = {
     },
   },
 };
-
-function err(statusCode, code, message, extra = {}) {
-  return json(statusCode, { error: code, message, ...extra });
-}
-
-function parseBody(event) {
-  if (!event.body) return {};
-  const raw = event.isBase64Encoded ? Buffer.from(event.body, "base64").toString("utf8") : event.body;
-  try {
-    const body = JSON.parse(raw);
-    return body && typeof body === "object" && !Array.isArray(body) ? body : null;
-  } catch {
-    return null;
-  }
-}
-
-function tagOf(user) {
-  return `u${user.uid.slice(0, 5)}`; // same public tag as accountApi.js publicUserView
-}
 
 function seatOf(user) {
   return { uid: user.uid, name: user.displayName, tag: tagOf(user) };
@@ -133,17 +113,7 @@ function createMatchApi(store, config) {
     throw new Error("AUTH_SECRET must be at least 32 characters");
   }
 
-  // Same rule as accountApi.js: a valid token for a user whose uid and token
-  // version still match (a PIN change or an ID change logs other devices out).
-  async function authenticate(event) {
-    const header = event.headers?.authorization || event.headers?.Authorization || "";
-    const m = /^Bearer\s+(\S+)$/i.exec(header);
-    const payload = m && token.verify(m[1], authSecret, now());
-    if (!payload) return null;
-    const user = await store.getUser(payload.lid);
-    if (!user || user.uid !== payload.uid || user.tv !== payload.tv) return null;
-    return user;
-  }
+  const authenticate = makeAuthenticate(store, authSecret, now);
 
   function stamp(match) {
     const t = now();
@@ -158,12 +128,9 @@ function createMatchApi(store, config) {
   async function createMatch(user, body) {
     const game = body.game;
     if (!GAMES[game]) return err(400, "invalid_game", "This game can't be played online yet.");
-    if (typeof body.opponentTag !== "string" || !TAG_RE.test(body.opponentTag)) {
-      return err(400, "invalid_opponent", "Choose a friend to play with.");
-    }
-    const opponent = (await store.listUsers()).find((u) => tagOf(u) === body.opponentTag && u.role !== "admin");
-    if (!opponent) return err(404, "opponent_not_found", "We couldn't find that player.");
-    if (opponent.uid === user.uid) return err(400, "invalid_opponent", "You can't play against yourself.");
+    const found = await findOpponent(store, user, body.opponentTag);
+    if (found.error) return found.error;
+    const opponent = found.opponent;
     const color = body.color === undefined ? "random" : body.color;
     if (!["white", "black", "random"].includes(color)) return err(400, "invalid_color", "color must be white, black or random.");
     if ((await activeCount(user.uid)) >= MAX_ACTIVE_MATCHES) {
@@ -320,14 +287,19 @@ function createMatchApi(store, config) {
   };
 }
 
-let prodHandler = null;
+let prodMatches = null;
+let prodChallenges = null;
 
-// Lambda entry point (MatchFunction in template.yaml).
+// Lambda entry point (MatchFunction in template.yaml): /matches and /challenges
+// (challengeApi.js) share one function — both are light and play-with-friends.
 exports.handler = async (event) => {
-  if (!prodHandler) {
-    prodHandler = createMatchApi(require("./accountStore"), { authSecret: process.env.AUTH_SECRET });
+  if (!prodMatches) {
+    const store = require("./accountStore");
+    const { createChallengeApi } = require("./challengeApi");
+    prodMatches = createMatchApi(store, { authSecret: process.env.AUTH_SECRET });
+    prodChallenges = createChallengeApi(store, { authSecret: process.env.AUTH_SECRET });
   }
-  return prodHandler(event);
+  return (event.rawPath || "").startsWith("/challenges") ? prodChallenges(event) : prodMatches(event);
 };
 
 exports.createMatchApi = createMatchApi;

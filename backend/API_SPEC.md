@@ -360,3 +360,50 @@ PINはどこにも記録しない。DynamoDB の `ttl` で90日後に自動削�
 本文なし。自分の手番でなくても、進行中ならいつでも投了できる(相手の勝ち、`endReason: "resign"`)。
 → **200** `{ "match": … }`。`409 match_over`(もう終わっている。今の `match` を添える)/ `404 match_not_found`。
 
+# Challenges(同じ問題で勝負、2026-10-30〜)
+
+ログインした2人が、サーバーの配った**同じ問題**をそれぞれ好きな時に遊び、結果を比べる(`src/challengeApi.js`、Lambda は `MatchFunction` を `/matches` と共用)。最初は Moku Bridge(同じ新しいガラスの橋。落ちた回数が少ない方の勝ち)。
+
+- **問題**: サーバーが8文字のシード(`seed`)と条件(`params`、Moku Bridge は `{ steps: 8〜10 }`、省略すると 9)を決める。ページは `shared/moku-random.js` で `MokuRandom.create('moku-bridge/' + seed)` から橋を作るので、2人とも同じ橋になる。
+- **結果はページから**: `{ falls }`(0〜99 の整数)を1人1回だけ送る。2人そろった時にサーバーが勝ち負けを決める(少ない方の勝ち、同じなら引き分け)。手の正しさまでは検証しない(招待制の子ども向けのカジュアルな勝負と割り切る)。
+- **見せるもの**: 表示名と `#u` タグだけ。**自分が結果を送るまで、相手の結果は返さない**(`theirResult: null`。遊んだかどうかの `theyPlayed` だけ)。一覧の行にはシードを入れない。
+- **データ**: `pk CHAL#<id> / sk STATE` と2人それぞれの一覧用 `pk PLAYER#<uid> / sk CHAL#<id>`。結果を書く時は `version` が読んだ時と同じ時だけ書き、2人が同時に送った時は読み直して重ねる(どちらも消えない)。
+- **期限**: 最後の変化から14日で消える(DynamoDB の TTL。期限を過ぎたものは消える前でも `404`)。
+- **上限**: 1人が同時に進められる(`open` の)チャレンジは20まで。
+
+## チャレンジの形(`challenge`)
+
+```json
+{ "id": "6f44822846471414", "game": "moku-bridge", "status": "open",
+  "you": "from", "opponent": { "name": "Ren", "tag": "u4c5d6" },
+  "seed": "K7QMZ2PA", "params": { "steps": 9 },
+  "yourResult": { "falls": 1 }, "theirResult": null, "theyPlayed": false, "yourTurn": false,
+  "winner": null, "version": 1, "createdAt": "…", "updatedAt": "…" }
+```
+
+- `status`: `open` / `done`(2人の結果がそろった)。`winner`: `you` / `them` / `tie`(`done` まで `null`)。
+- `yourTurn`: まだ自分の結果を送っていない。
+
+## `POST /challenges`
+
+`{ "game": "moku-bridge", "opponentTag": "u4c5d6", "steps": 9 }` → **201** `{ "challenge": … }`(相手の一覧にもすぐ出る)。
+
+- `400 invalid_game` / `invalid_params` / `invalid_opponent`
+- `404 opponent_not_found`(管理者も選べない)
+- `409 too_many_challenges` / `opponent_busy`
+
+## `GET /challenges`
+
+**200** `{ "challenges": [ challenge から seed と params を除いたもの ], "yourTurn": 1 }`。並びは「自分の番」→ 相手待ち → 終わったもの、それぞれ新しい順。
+
+## `GET /challenges/{id}`
+
+**200** `{ "challenge": … }` / `404 challenge_not_found`(ない・期限切れ・自分のでない)。
+
+## `POST /challenges/{id}/result`
+
+`{ "result": { "falls": 2 } }` → **200** `{ "challenge": … }`(相手がもう送っていれば `status: "done"` と `winner` が入る)。
+
+- `400 invalid_result`
+- `409 already_played`(もう送った。今の `challenge` を添える)
+- `404 challenge_not_found`
