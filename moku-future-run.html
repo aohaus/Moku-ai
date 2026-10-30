@@ -461,7 +461,7 @@
   }
   #bannerToast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
-  /* Info / Wardrobe Cards */
+  /* Info Cards */
   .info-guide-row {
     display: flex; gap: 10px; align-items: center; margin: 10px 0; text-align: left;
     background: rgba(255,255,255,0.04); padding: 8px 12px; border-radius: 10px;
@@ -469,8 +469,10 @@
   .info-guide-icon { font-size: 24px; flex-shrink: 0; }
   .info-guide-text h4 { font-size: 12.5px; font-weight: 800; color: #F59E0B; }
   .info-guide-text p { font-size: 11px; color: #D1D5DB; margin-top: 2px; line-height: 1.3; }
+  .closet-hint { margin-top: 12px; font-size: 11.5px; font-weight: 700; color: #C4B5FD; text-align: center; }
 </style>
 <script src="shared/moku-account.js?v=20261026" data-mode="background"></script>
+<script src="shared/moku-moint.js?v=20261026" data-mode="none"></script>
 </head>
 <body class="on-title">
 <canvas id="webgl-canvas"></canvas>
@@ -478,7 +480,7 @@
 <!-- Title Frame Elements per SPEC.md -->
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">Moku Future Run v1.3.0 · Updated Oct 28, 2026</div>
+<div id="buildInfo">Moku Future Run v1.4.0 · Updated Oct 30, 2026</div>
 
 <!-- Title Screen Overlay -->
 <div class="screen-overlay" id="titleScreen">
@@ -520,9 +522,9 @@
 
   <div class="menu-actions-row">
     <button class="btn-secondary" id="btnHowToPlay">❓ How to Play</button>
-    <button class="btn-secondary" id="btnWardrobe">🎨 Outfits</button>
     <button class="btn-secondary" id="btnSoundToggleTitle">🔊 Audio: ON</button>
   </div>
+  <div class="closet-hint">🎩 Moku wears the hat you picked in the Moku Closet!</div>
 </div>
 
 <!-- In-Game HUD -->
@@ -706,32 +708,13 @@
       • <b>HURDLES</b> with <b>YELLOW & BLACK STRIPES</b> and red lamps.<br>
       • LOW hurdle = JUMP over it. HIGH hurdle = SLIDE under it.<br><br>
       <strong style="color:#34D399;">✅ HELPFUL ITEMS (TOUCH & COLLECT!):</strong><br>
-      • 🫐 <b>Glowing Berries:</b> Safe points, score multipliers, and wardrobe currency!<br>
+      • 🫐 <b>Glowing Berries:</b> Safe points and a bigger score!<br>
       • 🚀 <b>Boost Rocket:</b> Invincible smash speed + mega points!<br>
       • 🍡 <b>Mochi:</b> Absorbs 1 hit + one super-high bounce!
     </div>
 
     <div class="modal-btn-row">
       <button class="btn-start" id="btnCloseHowTo" style="padding:10px 32px; font-size:14px;">GOT IT!</button>
-    </div>
-  </div>
-</div>
-
-<!-- Wardrobe Modal -->
-<div class="screen-overlay hidden" id="wardrobeScreen">
-  <div class="modal-dialog">
-    <h2>MOKU WARDROBE</h2>
-    <p style="font-size:12px; color:#A78BFA; margin-bottom:14px;">Spend collected berries on stylish outfits!</p>
-    <div style="font-size:14px; font-weight:800; color:#F472B6; margin-bottom:16px;">
-      Total Berries: <span id="wardrobeBerryCount">0</span> 🫐
-    </div>
-
-    <div style="display:flex; flex-direction:column; gap:8px;" id="outfitListContainer">
-      <!-- Outfits populated dynamically -->
-    </div>
-
-    <div class="modal-btn-row">
-      <button class="btn-secondary" id="btnCloseWardrobe" style="padding:10px 30px;">CLOSE</button>
     </div>
   </div>
 </div>
@@ -986,9 +969,7 @@ function getSavedProgress() {
     version: 1,
     highScore: 0,
     totalBerries: 0,
-    unlockedStages: 1,
-    outfit: 'classic',
-    unlockedOutfits: ['classic']
+    unlockedStages: 1
   };
 }
 function saveProgress(data) {
@@ -1069,13 +1050,10 @@ const STAGES = {
   }
 };
 
-// --- Outfits Data ---
-const OUTFITS = [
-  { id: 'classic', name: 'Classic Moku', cost: 0, color: 0xF6F3EB, wingColor: 0xC29B75 },
-  { id: 'neon_visor', name: 'Cyber Neon Visor', cost: 100, color: 0x38BDF8, wingColor: 0x0284C7, hasVisor: true },
-  { id: 'rainbow_runner', name: 'Rainbow Champion', cost: 250, color: 0xF472B6, wingColor: 0xA855F7, isRainbow: true },
-  { id: 'golden_legend', name: 'Golden Moku', cost: 500, color: 0xFBBF24, wingColor: 0xF59E0B, isGold: true }
-];
+// --- Moku's colors (the old berry Outfits shop was removed 2026-10-30; Moku now wears
+// the hat from the hub's Moku Closet instead, like Moku Bridge) ---
+const MOKU_BODY_COLOR = 0xF6F3EB;
+const MOKU_WING_COLOR = 0xC29B75;
 
 // --- Lane Coordinates ---
 const LANES = [-2.4, 0, 2.4];
@@ -1140,7 +1118,7 @@ function comboMultiplier() {
 
 // --- Three.js Setup ---
 let scene, camera, renderer;
-let mokuGroup, mokuBody, leftWing, rightWing, leftFoot, rightFoot, headGroup, visorMesh, shieldMesh, tailGroup;
+let mokuGroup, mokuBody, leftWing, rightWing, leftFoot, rightFoot, headGroup, shieldMesh, tailGroup;
 let roadMesh, roadMaterial, skyMesh, starParticles;
 let laneStripeMats = [], roadBorderMat, moonMat, dirLight, rimLight, ambientLight, cloudGroup;
 let cloudTopMat, cloudShadeMat, speedLines, speedLineMat;
@@ -1459,11 +1437,10 @@ function buildMokuCharacter() {
   // Body: Round, fluffy, chubby owl body
   const bodyGeo = new THREE.SphereGeometry(0.72, 24, 24);
   bodyGeo.scale(1, 1.15, 0.95);
-  const curOutfit = OUTFITS.find(o => o.id === progress.outfit) || OUTFITS[0];
   const bodyMat = new THREE.MeshStandardMaterial({
-    color: curOutfit.color,
+    color: MOKU_BODY_COLOR,
     roughness: 0.4,
-    metalness: curOutfit.isGold ? 0.8 : 0.1
+    metalness: 0.1
   });
   mokuBody = new THREE.Mesh(bodyGeo, bodyMat);
   mokuBody.castShadow = true;
@@ -1533,7 +1510,7 @@ function buildMokuCharacter() {
     const tailGeo = new THREE.ConeGeometry(idx === 1 ? 0.16 : 0.13, 0.42, 6);
     tailGeo.scale(1, 0.35, 1.3);
     const tailMat = new THREE.MeshStandardMaterial({
-      color: curOutfit.wingColor,
+      color: MOKU_WING_COLOR,
       roughness: 0.4
     });
     const tailFeather = new THREE.Mesh(tailGeo, tailMat);
@@ -1549,7 +1526,7 @@ function buildMokuCharacter() {
   const wingGeo = new THREE.ConeGeometry(0.24, 0.75, 8);
   wingGeo.scale(0.3, 1, 0.8);
   const wingMat = new THREE.MeshStandardMaterial({
-    color: curOutfit.wingColor,
+    color: MOKU_WING_COLOR,
     roughness: 0.4
   });
 
@@ -1579,15 +1556,6 @@ function buildMokuCharacter() {
   rightFoot.position.set(0.28, -0.72, 0.0);
   rightFoot.castShadow = true;
   mokuGroup.add(rightFoot);
-
-  // Visor (Optional outfit accessory)
-  const visorGeo = new THREE.TorusGeometry(0.42, 0.08, 8, 16, Math.PI);
-  const visorMat = new THREE.MeshBasicMaterial({ color: 0x06B6D4, wireframe: false });
-  visorMesh = new THREE.Mesh(visorGeo, visorMat);
-  visorMesh.rotation.x = -Math.PI / 2;
-  visorMesh.position.set(0, 0.08, -0.28);
-  visorMesh.visible = !!curOutfit.hasVisor;
-  headGroup.add(visorMesh);
 
   // Mochi Protective Shield Bubble
   const shieldGeo = new THREE.SphereGeometry(1.2, 20, 20);
@@ -2553,6 +2521,7 @@ function startGame(stageKey) {
   updateSpeedHUD(false);
   updateComboHUD();
   armHistoryGuard();
+  refreshHat();
 
   // Apply stage visual theme
   applyStageLook(st);
@@ -2779,80 +2748,58 @@ function returnToTitle() {
   document.getElementById('gameOverScreen').classList.add('hidden');
   document.getElementById('stageClearScreen').classList.add('hidden');
   document.getElementById('howToPlayScreen').classList.add('hidden');
-  document.getElementById('wardrobeScreen').classList.add('hidden');
   document.getElementById('hud').classList.add('hidden');
   document.getElementById('titleScreen').classList.remove('hidden');
 }
 
-// --- Wardrobe UI ---
-function openWardrobe() {
-  document.getElementById('wardrobeBerryCount').textContent = progress.totalBerries;
-  const container = document.getElementById('outfitListContainer');
-  container.innerHTML = '';
+// --- Hat from the Moku Closet (shared/moku-moint.js) ---
+// 後ろ姿なので、Moku Bridge と同じく帽子だけを頭に載せる(服・表情・メガネは見えない)。
+// 絵は moku-moint.js の 100×100 グリッドの SVG。Moku の体の幅 = 76 マス、頭のてっぺん ≈ y 10。
+// 3D の Moku は卵形で、カメラは後ろ上から見下ろすので、2D の比率より少し大きく・少し上に置く
+const HAT_U = (0.72 * 2) / 76 * 1.15; // body width 1.44 (local units) = 76 grid units, +15%
+const HAT_LIFT = 0.16;
+const HAT_VIEW = [-10, -20, 120];   // draw a little outside the grid (bunny ears etc. stick out)
+let hatMesh = null;
+let hatId = null;
 
-  OUTFITS.forEach(outfit => {
-    const isUnlocked = progress.unlockedOutfits.includes(outfit.id);
-    const isEquipped = progress.outfit === outfit.id;
-
-    const row = document.createElement('div');
-    row.className = 'info-guide-row';
-    row.style.justifyContent = 'space-between';
-
-    row.innerHTML = `
-      <div style="display:flex; align-items:center; gap:10px;">
-        <span style="font-size:22px;">🦉</span>
-        <div style="text-align:left;">
-          <h4 style="font-size:13px; color:#FFF;">${outfit.name}</h4>
-          <span style="font-size:11px; color:#A78BFA;">${isUnlocked ? 'Unlocked' : outfit.cost + ' 🫐'}</span>
-        </div>
-      </div>
-      <div>
-        ${isEquipped ?
-          `<span style="font-size:12px; font-weight:800; color:#10B981;">EQUIPPED</span>` :
-          isUnlocked ?
-          `<button class="btn-secondary" onclick="equipOutfit('${outfit.id}')" style="padding:6px 14px; font-size:11.5px;">EQUIP</button>` :
-          `<button class="btn-start" onclick="unlockOutfit('${outfit.id}', ${outfit.cost})" style="padding:6px 16px; font-size:11.5px;">BUY</button>`
-        }
-      </div>
-    `;
-    container.appendChild(row);
-  });
-
-  document.getElementById('wardrobeScreen').classList.remove('hidden');
-}
-
-window.equipOutfit = function(id) {
-  progress.outfit = id;
-  saveProgress(progress);
-  applyEquippedOutfit();
-  openWardrobe();
-};
-
-window.unlockOutfit = function(id, cost) {
-  if (progress.totalBerries >= cost) {
-    progress.totalBerries -= cost;
-    progress.unlockedOutfits.push(id);
-    progress.outfit = id;
-    saveProgress(progress);
-    applyEquippedOutfit();
-    sounds.play('clear');
-    openWardrobe();
-  } else {
-    showBanner('NOT ENOUGH BERRIES!', '#EF4444');
+function refreshHat() {
+  let id = null;
+  try {
+    id = (window.MokuMoint && MokuMoint.closet().equipped.head) || null;
+  } catch (e) {}
+  if (id === hatId) return;
+  hatId = id;
+  if (hatMesh) {
+    mokuBody.remove(hatMesh);
+    disposeObject(hatMesh);
+    hatMesh = null;
   }
-};
-
-function applyEquippedOutfit() {
-  const outfit = OUTFITS.find(o => o.id === progress.outfit) || OUTFITS[0];
-  mokuBody.material.color.setHex(outfit.color);
-  mokuBody.material.metalness = outfit.isGold ? 0.8 : 0.1;
-  leftWing.material.color.setHex(outfit.wingColor);
-  rightWing.material.color.setHex(outfit.wingColor);
-  if (tailGroup) {
-    tailGroup.children.forEach(feather => feather.material.color.setHex(outfit.wingColor));
-  }
-  visorMesh.visible = !!outfit.hasVisor;
+  if (!id) return;
+  const svg = MokuMoint.itemSVG(id, HAT_VIEW.slice(0, 2).concat([HAT_VIEW[2], HAT_VIEW[2]]).join(' '));
+  if (!svg) return;
+  const img = new Image();
+  img.onload = () => {
+    if (hatId !== id || !mokuBody) return;
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = 256;
+    cv.getContext('2d').drawImage(img, 0, 0, 256, 256);
+    const tex = new THREE.CanvasTexture(cv);
+    const size = HAT_VIEW[2] * HAT_U;
+    const mesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(size, size),
+      new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.05, fog: false })
+    );
+    // Grid y 10 sits on top of the body (local y 0.828); the picture's center is grid (50, 40).
+    const centerGridY = HAT_VIEW[1] + HAT_VIEW[2] / 2;
+    mesh.position.set(0, 0.72 * 1.15 + HAT_LIFT - (centerGridY - 10) * HAT_U, 0.5); // a bit behind the head, toward the camera
+    hatMesh = mesh;
+    mokuBody.add(mesh);
+  };
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 }
+// Picked a new hat in the hub (another tab) or came back to this page
+window.addEventListener('storage', e => { if (e.key === null || e.key === 'moku:moint:closet') refreshHat(); });
+window.addEventListener('pageshow', () => { if (mokuBody) refreshHat(); });
 
 // --- Event Listeners Registration ---
 document.getElementById('btnStartGame').addEventListener('click', () => {
@@ -2875,10 +2822,6 @@ document.getElementById('btnCloseHowTo').addEventListener('click', () => {
   document.getElementById('howToPlayScreen').classList.add('hidden');
 });
 
-document.getElementById('btnWardrobe').addEventListener('click', openWardrobe);
-document.getElementById('btnCloseWardrobe').addEventListener('click', () => {
-  document.getElementById('wardrobeScreen').classList.add('hidden');
-});
 
 document.getElementById('btnSoundToggleTitle').addEventListener('click', function() {
   const on = sounds.toggleMute();
@@ -2911,7 +2854,7 @@ document.getElementById('btnScHome').addEventListener('click', returnToTitle);
 // Initialize Scene on load
 window.addEventListener('load', () => {
   initThree();
-  applyEquippedOutfit();
+  refreshHat();
   requestAnimationFrame(animate);
 });
 </script>

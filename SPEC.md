@@ -279,6 +279,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
   - **Backgrounds**(2026-10-25〜): My Moku 画面の左の Moku の後ろに敷く背景カード(Closet のプレビューにも出る)。各 300 Moint。Japan / Kuala Lumpur / Singapore / Vietnam / Indonesia / Thailand / Cambodia。シンプルな色数のポップアート調(平らな空+サンバースト+網点+太い輪郭線のランドマーク)。Moku が真ん中に立つので、ランドマークは上と左右に置く。絵は `moku-moint.js` の `BACKGROUNDS`(自分の 100×100 グリッド)。`[data-moku-doll data-moku-scene]` のスロットが背景つきで描く(ハブの帯・下部ナビ・ゲームのタイトル画面は背景なし)。
   - 服の絵は `brand/mokumoku-hero.png` にぴったり重なる 100×100 グリッドの SVG(頭のてっぺん ≈ y 8、目 ≈ (35, 41.5) / (65, 41.5)、葉の蝶ネクタイ ≈ y 44〜58)。どの大きさの Moku にも同じ絵を重ねられる。新しい服は `moku-moint.js` の `ITEMS` に足す。
   - Moku Bridge はタイトル画面のヒーロー画像に全部の服を、プレイ中の後ろ姿の Moku には帽子だけを描く。他のタイトルでも `MokuMoint.outfitSVG()` / `layerImage()` で同じ服を着せられる。
+  - Moku Future Run(2026-10-30〜)も後ろ姿の 3D Moku に帽子だけを載せる(帽子の SVG を Canvas に描いて板ポリゴンのテクスチャにし、頭の上・少しカメラ側に置く。Moku の体の幅 = 76 マス)。それまでのベリーで買う独自の Outfits は廃止した(古いセーブの `outfit` / `unlockedOutfits` は読まないだけで残っていても害はない)。
 - 最初に導入したのは Moku Bridge。財布は `localStorage` の `moku:moint:wallet` = `{ version: 1, balance, updatedAt }`(ゲームIDを付けないシリーズ共通キー。`moku:` 接頭辞なのでクラウドセーブ・引き継ぎコードの対象)。
 - 他のタイトルで Moint を配る・使う場合も同じキーを読み書きする。`balance` は 0 未満にしない。
 - **他のゲームへの展開**(2026-10-25〜、1本ずつ): 相場は「1回遊ぶ(2〜3分)と 50〜150、毎日遊べば 300 Moint の物が1日1個買える」。
