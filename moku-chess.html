@@ -362,7 +362,7 @@ body:not(.on-title) #buildInfo { display: none; }
 </svg>
 <div id="title-frame"></div>
 <a id="hub-link" href="index.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.2.0 · Updated Oct 30, 2026</div>
+<div id="buildInfo">v0.2.1 · Updated Oct 30, 2026</div>
 
 <section id="titleScreen" class="screen on">
   <div id="titleArt">
@@ -1538,11 +1538,28 @@ body:not(.on-title) #buildInfo { display: none; }
       winsBy: p.winsBy || {},
       mointClaims: p.mointClaims || {},
       // Play a Friend: which finished games already paid, wins per friend today
-      online: p.online && Array.isArray(p.online.paid) ? p.online : { day: '', wins: {}, paid: [], played: 0, won: 0 },
+      online: loadOnline(p.online),
       boards: Array.isArray(p.boards) && p.boards.length ? p.boards : ['oak'],
       board: p.board || 'oak',
       updatedAt: p.updatedAt || null
     };
+  }
+  // paid = { matchId: time (ms) it can be forgotten }. The server keeps a finished
+  // game 30 days, so a game stays marked as paid a little longer than that.
+  var PAID_KEEP_MS = 31 * 24 * 60 * 60 * 1000;
+  function loadOnline(o) {
+    var out = { day: '', wins: {}, paid: {}, played: 0, won: 0 };
+    if (!o || typeof o !== 'object') return out;
+    out.day = typeof o.day === 'string' ? o.day : '';
+    out.wins = o.wins && typeof o.wins === 'object' ? o.wins : {};
+    out.played = o.played || 0;
+    out.won = o.won || 0;
+    var t = Date.now();
+    if (Array.isArray(o.paid)) o.paid.forEach(function (id) { out.paid[id] = t + PAID_KEEP_MS; });   // first version kept a list
+    else if (o.paid && typeof o.paid === 'object') {
+      Object.keys(o.paid).forEach(function (id) { if (o.paid[id] > t) out.paid[id] = o.paid[id]; });
+    }
+    return out;
   }
   var save = loadProgress();
   function saveProgress() {
@@ -1951,7 +1968,13 @@ body:not(.on-title) #buildInfo { display: none; }
     if (G.online && !byRival) sendMove(uci);
     refreshMarks();
     renderCaptures();
-    if (end) { finish(end); return; }
+    if (end) {
+      // Online: my move ended the game → the result (and its Moints) waits
+      // until the server accepts the move (sendMove). If it refuses, resync.
+      if (G.online && !byRival) { G.busy = true; refreshMarks(); return; }
+      finish(end);
+      return;
+    }
     saveGame();
     if (G.online) { schedulePoll(); return; }
     if (!byRival) cpuTurn();
@@ -2164,6 +2187,7 @@ body:not(.on-title) #buildInfo { display: none; }
   function resync(match) {
     G.online.version = match.version;
     G.over = false;
+    G.busy = false;
     $('resultOv').classList.remove('on');
     replay(match.moves);
     G.legal = E.legalMoves();
@@ -2272,9 +2296,9 @@ body:not(.on-title) #buildInfo { display: none; }
     if (o.day !== todayKey()) { o.day = todayKey(); o.wins = {}; }
     var rewards = [], total = 0, M = window.MokuMoint;
     // Each finished game pays once, even if it's opened again from Your games
-    if (M && result !== 'lose' && o.paid.indexOf(on.id) < 0) {
-      o.paid.push(on.id);
-      if (o.paid.length > 60) o.paid.shift();
+    var firstTime = !o.paid[on.id];
+    if (firstTime) o.paid[on.id] = Date.now() + PAID_KEEP_MS;
+    if (M && result !== 'lose' && firstTime) {
       o.played++;
       if (result === 'win') {
         o.won++;
@@ -2289,9 +2313,7 @@ body:not(.on-title) #buildInfo { display: none; }
         rewards.push({ label: 'Draw', n: gd });
         total += gd;
       }
-    } else if (result === 'lose' && o.paid.indexOf(on.id) < 0) {
-      o.paid.push(on.id);
-      if (o.paid.length > 60) o.paid.shift();
+    } else if (result === 'lose' && firstTime) {
       o.played++;
     }
     saveProgress();
