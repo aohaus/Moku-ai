@@ -280,6 +280,11 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
   - **Moods**(表情、2026-10-26〜): 28種類、150〜320 Moint。ふつう(Happy / Wink / Heart Eyes / Star Eyes / Sleepy / Surprised / Shy / Puppy Eyes / Laughing / Cool)150〜200、おもしろ系(Googly Eyes / Dizzy / Moint Eyes / Crying a River / Derp / Tongue Out / Snoring / Side-Eye / Sweat Drop / Pixel Eyes)200〜300、子どもたちのアイデア(Cake / Ice Cream / Chocolate / Candy / Rice Cracker / Cookie Eyes、Show-Off(カッコつけ)/ Meh(やる気なし))250〜320。いつもの怒り眉の顔は「Usual」(表情なし)で、いつでも戻せる。
     - 描き方: 元の目と眉を、顔の毛の色(`#F4E6D7`)のふちをぼかした楕円で隠してから新しい目を描く(`moodPatch()`)。重ねる順は 表情 → ネックレス → Face(メガネ)→ 帽子 なので、メガネと同時に付けられる。Closet の一覧では Moku の顔のアップで見せる。
     - 出る場所: 着せ替えた Moku が出る所すべて(ハブの帯・下部ナビ・My Moku・Closet・`index.html`・Moku Bridge のタイトル画面)。Moku Bridge のプレイ中は後ろ姿なので出ない。
+  - **Blind Box**(2026-10-31〜、子どもたちのアイデア): Hats / Moods / Face / Necklaces の各タブの先頭に **Silver Box(500 Moint)** と **Gold Box(700 Moint)**。箱ごとに、お店では売っていないアイテムが5種類入っている(4タブ × 2箱 × 5 = 40種類。Gold はキラキラした特別なもの)。
+    - 開けると、まだ持っていないものから1つがランダムに出る(かぶらない)。5つ全部そろった箱は「All found!」で開けられない。箱のタイルに「n / 5 found」。
+    - 開封の演出: 箱がガタガタ揺れて(約1秒)、光の筋の中からアイテムが出る(NEW!・名前・Silver/Gold)。出たものはすぐに着る。
+    - 出たアイテムは一覧の後ろに「★ SILVER」「★ GOLD」の印つきで並ぶ。まだ出ていないものは一覧に出さない(お楽しみ)。
+    - データ: `moku-moint.js` の `BOX_ITEMS`(各アイテムに `blind: 'silver' | 'gold'`)、`BLIND_BOXES`(名前と値段)、`openBox(slot, tier)`。持ち物は通常のアイテムと同じ `moku:moint:closet` の `owned`。Backgrounds タブには箱はない。
   - **Backgrounds**(2026-10-25〜): My Moku 画面の左の Moku の後ろに敷く背景カード(Closet のプレビューにも出る)。各 300 Moint。Japan / Kuala Lumpur / Singapore / Vietnam / Indonesia / Thailand / Cambodia。シンプルな色数のポップアート調(平らな空+サンバースト+網点+太い輪郭線のランドマーク)。Moku が真ん中に立つので、ランドマークは上と左右に置く。絵は `moku-moint.js` の `BACKGROUNDS`(自分の 100×100 グリッド)。`[data-moku-doll data-moku-scene]` のスロットが背景つきで描く(ハブの帯・下部ナビ・ゲームのタイトル画面は背景なし)。
   - 服の絵は `brand/mokumoku-hero.png` にぴったり重なる 100×100 グリッドの SVG(頭のてっぺん ≈ y 8、目 ≈ (35, 41.5) / (65, 41.5)、葉の蝶ネクタイ ≈ y 44〜58)。どの大きさの Moku にも同じ絵を重ねられる。新しい服は `moku-moint.js` の `ITEMS` に足す。
   - Moku Bridge はタイトル画面のヒーロー画像に全部の服を、プレイ中の後ろ姿の Moku には帽子だけを描く。他のタイトルでも `MokuMoint.outfitSVG()` / `layerImage()` で同じ服を着せられる。
