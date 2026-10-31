@@ -2186,6 +2186,14 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     var p = readJSON('moku:moku-word-riddles:progress');
     return p && p.solved && typeof p.solved === 'object' ? Object.keys(p.solved).length : 0;
   }
+  // Moku Dropper の星(progress.stars = { round: ビット 1/2/4 })。9ラウンド × 3
+  var DROPPER_STAR_TOTAL = 27;
+  function dropperStars() {
+    var p = readJSON('moku:moku-dropper:progress'), n = 0;
+    if (!p || !p.stars || typeof p.stars !== 'object') return 0;
+    Object.keys(p.stars).forEach(function (k) { var b = p.stars[k] | 0; n += (b & 1 ? 1 : 0) + (b & 2 ? 1 : 0) + (b & 4 ? 1 : 0); });
+    return n;
+  }
   var GAMES = [
     {
       name: 'Angry Mokumoku',
@@ -2765,6 +2773,33 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
       }
     },
     {
+      name: 'Moku Dropper',
+      card: 'mdp',
+      gameId: 'moku-dropper',
+      // 完了 = Grand Race(9番目、stars['8'])で1位になった(星のビット4)
+      isCompleted: function () {
+        if (isExplicitlyMarked('completed', 'mdp')) return true;
+        var p = readJSON('moku:moku-dropper:progress');
+        return Boolean(p && p.stars && ((p.stars['8'] | 0) & 4));
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'mdp')) return true;
+        var p = readJSON('moku:moku-dropper:progress');
+        return Boolean(p && p.played > 0);
+      },
+      progress: function () {
+        if (this.isCompleted()) return 1;
+        return Math.min(1, dropperStars() / DROPPER_STAR_TOTAL);
+      },
+      badge: function () {
+        var p = readJSON('moku:moku-dropper:progress');
+        if (!p || !this.isPlayed()) return null;
+        var stars = dropperStars() + ' / ' + DROPPER_STAR_TOTAL + ' ⭐';
+        if (this.isCompleted()) return stars + ' · Great Tree Champion';
+        return stars + ' · ' + (p.wins || 0) + (p.wins === 1 ? ' race won' : ' races won');
+      }
+    },
+    {
       name: 'Mokuball',
       card: null,
       gameId: 'mokuball',
@@ -2817,7 +2852,8 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     mw6: { title: 'Laziest Watch', read: function () { var p = readJSON('moku:moku-watch-6-lazy:progress'); return p && p.lazy; }, fmt: function (n) { return num(n) + '% lazy'; } },
     mbr: { title: 'Luckiest Steps', read: function () { var p = readJSON('moku:moku-bridge:progress'); return p && p.bestLucky; }, fmt: function (n) { return n + ' in a row 🍀'; } },
     mch: { title: 'Strongest CPU Beaten', read: function () { var p = readJSON('moku:moku-chess:progress'); return p && p.best; }, fmt: function (n) { return 'Lv.' + n + ' / 10'; } },
-    mwr: { title: 'Riddles Solved', read: riddlesSolved, fmt: function (n) { return n + ' / ' + RIDDLE_TOTAL + ' 🧩'; } }
+    mwr: { title: 'Riddles Solved', read: riddlesSolved, fmt: function (n) { return n + ' / ' + RIDDLE_TOTAL + ' 🧩'; } },
+    mdp: { title: 'Stars Collected', read: dropperStars, fmt: function (n) { return n + ' / ' + DROPPER_STAR_TOTAL + ' ⭐'; } }
   };
   function myRecords() {
     var out = {};
@@ -2973,10 +3009,14 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
            tag: 'CYCLE CYCLE = BICYCLE!',
            desc: 'Picture word riddles! Look where the words are, how big they are, and how many there are, then find the hidden English word. 100 riddles from Easy to Tricky.',
            moint: { cap: true, how: 'Solve a riddle: +10 (+5 more with no hints on the first try). Solve all 5 in a round: +20. Riddle Race: +5 for each riddle you win, +10 for finishing, +30 for 1st place. Spend Moints on Hints, Choices and Skips.' },
-           multi: { how: 'Riddle Race: up to 6 friends get the same riddles at the same time. The first right answer wins each one!' } }
+           multi: { how: 'Riddle Race: up to 6 friends get the same riddles at the same time. The first right answer wins each one!' } },
+    mdp: { name: 'Moku Dropper', gameId: 'moku-dropper', genre: '3D Drop Race', cta: 'Drop', hi: '#A79BFF', lo: '#3F3590', newUntil: '2026-12-01',
+           tag: 'Drop down the Great Tree!',
+           desc: 'Jump into the hole and fall down the inside of the Great Tree. Slip through the gaps, dodge flying snacks, and race the Moku Fight rivals to the purple portal. Made from an idea by one of our young game designers!',
+           moint: { cap: true, how: 'Clear a round: +15. Win a race: +30 to +80. No bonks: +10. First clear of each round: +20 to +300.' } }
   };
   var SHELVES = [
-    { title: 'Action & Sports', sub: 'Fling, kick, fight, race', cards: ['mfg', 'mfr', 'mkt', 'br', 'mk', 'am'] },
+    { title: 'Action & Sports', sub: 'Fling, kick, fight, race', cards: ['mdp', 'mfg', 'mfr', 'mkt', 'br', 'mk', 'am'] },
     { title: 'Puzzle & Brain',  sub: 'Think, match, merge',      cards: ['mwr', 'mch', 'md', 'so', 'mm'] },
     { title: 'Cozy & Create',   sub: 'Take it slow',             cards: ['mw6', 'mrc', 'fm', 'mf', 'mb', 'mc'] },
     { title: 'Party & Arcade',  sub: 'Play with friends',        cards: ['mbr', 'mw', 'mr'] }

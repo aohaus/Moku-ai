@@ -121,6 +121,7 @@
     'moku-bridge':             { name: 'Moku Bridge',       traits: { luck: 1, courage: 0.6 } },
     'moku-chess':              { name: 'Moku Chess',        traits: { strategy: 1, patience: 0.6 } },
     'moku-word-riddles':       { name: 'Word Riddles',      traits: { words: 1, puzzle: 0.6 } },
+    'moku-dropper':            { name: 'Moku Dropper',      traits: { courage: 0.8, speed: 0.6, explorer: 0.3 } },
     'mokuball':                { name: 'Mokuball',          traits: { action: 0.5, luck: 0.4 } }
   };
 
