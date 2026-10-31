@@ -3,6 +3,7 @@ const { json } = require("./response");
 const { TAG_RE, err, parseBody, tagOf, makeAuthenticate, findOpponent } = require("./playCommon");
 const MokuRiddles = require("./vendor/moku-riddles");
 const moyo = require("./moyoParty");
+const wolf = require("./wolfParty");
 
 // Riddle Race rooms (API_SPEC.md "Rooms"): several logged-in players solve the
 // same Moku Word Riddles at the same time. A host opens a room (a 4-letter
@@ -20,6 +21,10 @@ const moyo = require("./moyoParty");
 // The same rooms also host Moyomoyo Multiplayer (game "moyomoyo", moyoParty.js):
 // 2–4 players, 3 games, and each player posts their board to
 // POST /rooms/{code}/state instead of answering riddles.
+//
+// And Moku Wolf Multiplayer (game "wolf", wolfParty.js): 3–10 players, the
+// server deals each one a secret word, and players act through
+// POST /rooms/{code}/wolf (ready / vote / guess / host skip).
 
 const CODE_LETTERS = "ABCDEFGHJKMNPQRSTUVWXYZ";   // no I, L, O: easy to read out and type
 const CODE_RE = /^[A-Z]{4}$/;
@@ -29,13 +34,14 @@ const COUNTS = [5, 10];
 const MAX_OPEN_ROOMS = 10;                 // lobby/playing rooms you can be in at once (a soft cap)
 const TTL_SEC = 24 * 60 * 60;              // a day after the last change, DynamoDB deletes it
 const { RACE } = MokuRiddles;
-const GAMES = ["riddles", "moyomoyo"];
+const GAMES = ["riddles", "moyomoyo", "wolf"];
 const gameOf = (room) => room.game || "riddles";   // rooms from before "game" existed are riddle rooms
-const maxPlayers = (room) => (gameOf(room) === "moyomoyo" ? moyo.RULES.MAX_PLAYERS : MAX_PLAYERS);
+const maxPlayers = (room) => (gameOf(room) === "moyomoyo" ? moyo.RULES.MAX_PLAYERS : gameOf(room) === "wolf" ? wolf.RULES.MAX_PLAYERS : MAX_PLAYERS);
+const minPlayers = (room) => (gameOf(room) === "wolf" ? wolf.RULES.MIN_PLAYERS : 2);
 
-// lobby / playing / done / closed, for either game
+// lobby / playing / done / closed, for any game
 function phaseOf(room, t) {
-  if (gameOf(room) === "moyomoyo") return room.status;
+  if (gameOf(room) !== "riddles") return room.status;
   return MokuRiddles.raceTimeline(room, t).phase;
 }
 
@@ -72,6 +78,27 @@ function scores(room) {
 
 // What a player (or an invited friend) sees. states: the Moyomoyo players' rows.
 function roomView(room, uid, t, states) {
+  if (gameOf(room) === "wolf") {
+    const tagByUid = {};
+    room.players.forEach((p) => { tagByUid[p.uid] = p.tag; });
+    return {
+      id: room.id,
+      key: room.key,
+      game: "wolf",
+      status: room.status,
+      you: room.players.concat(room.invited).find((p) => p.uid === uid)?.tag || null,
+      joined: isPlayer(room, uid),
+      isHost: room.host === uid,
+      players: room.players.map((p) => ({ name: p.name, tag: p.tag, host: p.uid === room.host, score: 0 })),
+      invited: room.invited.filter((p) => !isPlayer(room, p.uid)).map((p) => ({ name: p.name, tag: p.tag })),
+      ...wolf.view(room, uid, tagByUid),
+      next: room.next || null,
+      version: room.version,
+      createdAt: room.createdAt,
+      updatedAt: room.updatedAt,
+      now: t,
+    };
+  }
   if (gameOf(room) === "moyomoyo") {
     const totals = {};
     moyo.standings(room).forEach((row) => { totals[row.uid] = row.total; });
@@ -125,7 +152,7 @@ function roomView(room, uid, t, states) {
 function createRoomApi(store, config) {
   const {
     authSecret, now = () => Date.now(), newKey = () => crypto.randomBytes(8).toString("hex"), code = newCode, pick = pickRiddles,
-    newSeed = () => crypto.randomBytes(4).toString("hex"),
+    newSeed = () => crypto.randomBytes(4).toString("hex"), randInt = (n) => crypto.randomInt(n),
   } = config;
   if (!authSecret || authSecret.length < 32) {
     throw new Error("AUTH_SECRET must be at least 32 characters");
@@ -188,7 +215,8 @@ function createRoomApi(store, config) {
     return { error: err(409, "busy", "Lots happening! Try again.") };
   }
 
-  async function newRoom(host, game, count, players) {
+  // prev: the room "again" was pressed in (Moku Wolf keeps its settings).
+  async function newRoom(host, game, count, players, prev) {
     const t = now();
     for (let i = 0; i < 8; i++) {
       const room = {
@@ -199,6 +227,7 @@ function createRoomApi(store, config) {
         status: "lobby",
         count,
         ...(game === "moyomoyo" ? moyo.newRoomFields() : {}),
+        ...(game === "wolf" ? wolf.newRoomFields(prev) : {}),
         players,
         invited: [],
         riddles: [],
@@ -222,7 +251,7 @@ function createRoomApi(store, config) {
   async function create(user, body) {
     const game = body.game === undefined ? "riddles" : body.game;
     if (!GAMES.includes(game)) return err(400, "invalid_game", "That game can't be played in a room.");
-    const count = game === "moyomoyo" ? moyo.RULES.ROUNDS : body.count === undefined ? 5 : body.count;
+    const count = game === "moyomoyo" ? moyo.RULES.ROUNDS : game === "wolf" ? 1 : body.count === undefined ? 5 : body.count;
     if (game === "riddles" && !COUNTS.includes(count)) return err(400, "invalid_count", "Choose 5 or 10 riddles.");
     if ((await openRooms(user.uid)).filter((r) => isPlayer(r, user.uid)).length >= MAX_OPEN_ROOMS) {
       return err(409, "too_many_rooms", "Finish a game before opening a new room.");
@@ -251,6 +280,15 @@ function createRoomApi(store, config) {
       const settled = await settle(id, room, states);
       return json(200, { changed: true, room: roomView(settled, user.uid, now(), states) });
     }
+    if (gameOf(room) === "wolf" && room.status === "playing") {
+      // Timed stages (talk → vote → guess) move on when someone looks.
+      const settled = await settleWolf(id, room);
+      if (settled.error) return settled.error;
+      if (!settled.room) return gone();
+      const t = now();
+      if (query && query.v !== undefined && String(settled.room.version) === String(query.v)) return json(200, { changed: false, now: t });
+      return json(200, { changed: true, room: roomView(settled.room, user.uid, t, {}) });
+    }
     const t = now();
     if (query && query.v !== undefined && String(room.version) === String(query.v)) return json(200, { changed: false, now: t });
     const states = gameOf(room) === "moyomoyo" && room.status === "done" ? await statesOf(room) : {};
@@ -265,13 +303,38 @@ function createRoomApi(store, config) {
     return out;
   }
 
-  // Moyomoyo: save the room when a game ended or the next one starts.
+  // A change() that found nothing to save (settle / settleWolf).
   const NO_CHANGE = { noChange: true };
+
+  // Moyomoyo: save the room when a game ended or the next one starts.
   async function settle(id, room, states) {
     const t = now();
     if (!moyo.advance(JSON.parse(JSON.stringify(room)), states, t)) return room;
     const res = await update(id, (r) => (moyo.advance(r, states, t) ? null : NO_CHANGE));
     return res.room || room;
+  }
+
+  // Moku Wolf: save the room when a timed stage ran out. → { room } (or { error }).
+  async function settleWolf(id, room) {
+    const t = now();
+    if (!wolf.advance(JSON.parse(JSON.stringify(room)), t, randInt)) return { room };
+    const res = await update(id, (r) => (wolf.advance(r, now(), randInt) ? null : NO_CHANGE));
+    if (res.error === NO_CHANGE) return { room: res.room };
+    return res;
+  }
+
+  // Moku Wolf: { do: "ready" | "vote" | "guess" | "skip", tag?, pick? }.
+  async function postWolf(user, id, body) {
+    const res = await update(id, (room) => {
+      if (!isPlayer(room, user.uid)) return gone();
+      if (gameOf(room) !== "wolf") return err(400, "wrong_game", "This room isn't a Moku Wolf room.");
+      const t = now();
+      wolf.advance(room, t, randInt);
+      const no = wolf.act(room, user.uid, body, t, randInt);
+      return no ? err(no.status, no.error, no.message) : null;
+    });
+    if (res.error) return res.error;
+    return json(200, { room: roomView(res.room, user.uid, now(), {}) });
   }
 
   // Moyomoyo: { r, score, alive, final, board, attacks } — this player's board
@@ -338,12 +401,18 @@ function createRoomApi(store, config) {
     return json(200, { ok: true });
   }
 
-  async function start(user, id) {
+  async function start(user, id, body) {
     const res = await update(id, (room) => {
       if (!isPlayer(room, user.uid)) return gone();
       if (room.host !== user.uid) return err(403, "not_host", "Only the host can start the game.");
       if (room.status !== "lobby") return json(200, { room: roomView(room, user.uid, now(), {}) });
-      if (room.players.length < 2) return err(409, "need_players", "Wait for a friend to join.");
+      if (room.players.length < minPlayers(room)) {
+        return err(409, "need_players", minPlayers(room) > 2 ? `You need ${minPlayers(room)} players to start.` : "Wait for a friend to join.");
+      }
+      if (gameOf(room) === "wolf") {
+        const no = wolf.start(room, body, now(), randInt);
+        return no ? err(no.status, no.error, no.message) : null;
+      }
       if (gameOf(room) === "moyomoyo") {
         moyo.start(room, now(), newSeed);
         return null;
@@ -389,7 +458,7 @@ function createRoomApi(store, config) {
       const existing = await load(old.next);
       if (existing && existing.key === old.nextKey) return json(200, { room: roomView(existing, user.uid, now(), {}) });
     }
-    const room = await newRoom(user, gameOf(old), old.count, old.players.map((p) => ({ ...p })));
+    const room = await newRoom(user, gameOf(old), old.count, old.players.map((p) => ({ ...p })), old);
     // Point the old room at the new one, so the friends waiting on the results move over too.
     const res = await update(id, (r) => { r.next = room.id; r.nextKey = room.key; return null; });
     if (res.error) return res.error;
@@ -399,7 +468,7 @@ function createRoomApi(store, config) {
   return async function handler(event) {
     const method = event.requestContext?.http?.method || "GET";
     const path = (event.rawPath || "/").replace(/\/+$/, "") || "/";
-    const one = /^\/rooms\/([^/]+)(?:\/(join|invite|leave|start|answer|again|state))?$/.exec(path);
+    const one = /^\/rooms\/([^/]+)(?:\/(join|invite|leave|start|answer|again|state|wolf))?$/.exec(path);
     try {
       const isList = path === "/rooms" && (method === "GET" || method === "POST");
       const isOne = one && !one[2] && method === "GET";
@@ -420,9 +489,10 @@ function createRoomApi(store, config) {
         case "join": return await join(user, id);
         case "invite": return await invite(user, id, body);
         case "leave": return await leave(user, id);
-        case "start": return await start(user, id);
+        case "start": return await start(user, id, body);
         case "answer": return await answer(user, id, body);
         case "state": return await postState(user, id, body);
+        case "wolf": return await postWolf(user, id, body);
         default: return await again(user, id);
       }
     } catch (e) {

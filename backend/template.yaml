@@ -136,6 +136,11 @@ Resources:
         "POST /rooms/{id}/state":
           ThrottlingBurstLimit: 80
           ThrottlingRateLimit: 40
+        # Moku Wolf Multiplayer: up to 10 players tap "ready" or vote at about
+        # the same moment (the polling goes through GET /rooms/{id} above).
+        "POST /rooms/{id}/wolf":
+          ThrottlingBurstLimit: 40
+          ThrottlingRateLimit: 20
       CorsConfiguration:
         AllowOrigins:
           - !Ref AllowedOrigin
@@ -431,6 +436,13 @@ Resources:
           Properties:
             ApiId: !Ref MokuScoresApi
             Path: /rooms/{id}/state
+            Method: POST
+        # Moku Wolf Multiplayer (src/wolfParty.js): ready / vote / guess / host skip.
+        RoomWolf:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /rooms/{id}/wolf
             Method: POST
 
 Outputs:

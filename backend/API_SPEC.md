@@ -554,3 +554,61 @@ PINはどこにも記録しない。DynamoDB の `ttl` で90日後に自動削�
 - `r` が今の試合(休憩・カウントダウン中は次の試合)の時だけ保存する。前の試合の遅れた送信は保存せず、今の部屋を返す。一度 `alive: false` になったら、その試合は `false` のまま。`final` の後のスコアは変わらない。
 - `attacks` は最大30件(古いものはページが消す)、送り先は3人まで、1件200マスまで。
 → **200** `{ "room": … }`(全員の `states` つき)/ `400 invalid_state` / `wrong_game` / `404 room_not_found`
+
+# Moku Wolf Multiplayer(Rooms の `game: "wolf"`、2026-10-31〜)
+
+ログインした3〜10人が、それぞれの端末で Moku Wolf(ワードウルフ)を遊ぶ(`src/wolfParty.js`。部屋のコード・招待・`again` は Riddle Race と同じ `src/roomApi.js`)。1台を回す遊び方(パス&プレイ)はそのまま残っていて、こちらは「みんなのスマホで遊ぶ」版。
+
+- **言葉はサーバーが配る**: 開始の時にサーバーがお題から言葉のペアを1つ選び、ワードモクを決める。部屋の返事には**自分の言葉だけ**が入る(ほかの人の言葉・だれがワードモクかは、終わるまでどの端末にも届かない)。言葉のデータは `shared/moku-wolf-words.js`(Lambda には `src/vendor/` のコピー。違うと `npm test` が失敗)。
+- **進み方(`wolf.stage`)**:
+  1. `check`: みんなが自分の言葉を見て「OK, I Remember!」(`ready`)。全員そろったら `talk`。
+  2. `talk`: 全員の画面で同じ話し合いタイマー(`talkEndAt`、ホストが選んだ 1 / 2 / 3 / 5 分)。
+  3. `vote`: それぞれの端末でワードモクだと思う人に投票(自分以外。時間内なら変えられる)。全員が投票するか60秒(`VOTE_MS`)で開票。
+  4. いちばん票が多い人が1人なら、その人がつかまる。同票(または投票なし)はだれもつかまらず、ワードモクの勝ち。つかまったのが市民でもワードモクの勝ち。
+  5. `guess`: つかまったのがワードモクなら、その人だけに4つの選択肢(市民の言葉+同じお題のほかの言葉3つ。自分の言葉は入らない)が届き、30秒(`GUESS_MS`)以内に選ぶ。当たればワードモクの逆転勝ち、はずれ・時間切れは市民の勝ち。
+  6. `done`: 全員に、両方の言葉・ワードモクがだれか・だれがだれに投票したか・勝ったチームを返す。
+- **ホストのスキップ**(`skip`): どの段階でも次へ進められる(おぼえるのを待たずに話し合い / 早めに投票 / いますぐ開票 / 答えをスキップ=市民の勝ち)。だれかが抜けて止まった時のため。
+- **時間で進む段階**(`talk` の終わり・投票の締め切り・答えの締め切り)は、だれかが部屋を読んだ時に `advance()` が判定して保存する(Moyomoyo と同じ考え方。裏で動く処理はない)。
+- **ポーリング**: ゲーム中は `GET /rooms/{code}?v=` を1秒おき、ロビーは2秒、終わった後は3秒。スロットリングは `POST /rooms/{id}/wolf` 20/秒・瞬間40。
+- **Moint**: なし(パーティーゲームなので、勝ち負けでポイントは配らない)。
+
+## Moku Wolf の部屋の形
+
+```json
+{ "id": "RSXY", "key": "…", "game": "wolf", "status": "playing", "you": "u1a2b3", "joined": true, "isHost": true,
+  "players": [ { "name": "Aoi", "tag": "u1a2b3", "host": true, "score": 0 } ], "invited": [],
+  "rules": { "MIN_PLAYERS": 3, "MAX_PLAYERS": 10, "MINUTES": [1, 2, 3, 5], "VOTE_MS": 60000, "GUESS_MS": 30000, "CHOICES": 4 },
+  "settings": { "topic": "school", "wolves": 1, "minutes": 3 },
+  "wolf": {
+    "stage": "vote", "topic": "school", "minutes": 3, "wolves": 1,
+    "you": { "w": "Globe", "j": "ちきゅうぎ", "e": "🌍" },
+    "ready": ["u1a2b3", "…"], "talkEndAt": 1793420180000, "voteEndAt": 1793420240000,
+    "voted": ["u1a2b3"], "myVote": "u4c5d6",
+    "caught": null, "tie": false, "guessEndAt": null,
+    "choices": null, "result": null
+  },
+  "next": null, "version": 7, "now": 1793420200000 }
+```
+
+- `wolf`: ロビーの間は `null`。`settings` はホストが最後に始めた設定(`again` の新しい部屋にも引きつぐ)。
+- `voted`: 投票した人(だれに入れたかは `done` まで見えない。`myVote` は自分の票だけ)。
+- `caught`: 開票の後、つかまった人。`choices`: `guess` の間はつかまった本人にだけ、`done` では全員に。
+- `result`(`done` だけ): `{ winner: "citizens" | "wolf", citizenWord, wolfWord, wolves: [タグ], votes: [{ from, to }], pick, answer }`。`pick: null` は時間切れ・スキップ。
+
+## `POST /rooms`(Moku Wolf)
+
+`{ "game": "wolf" }` → **201** `{ "room": … }`。`GET /rooms?game=wolf` で Moku Wolf の部屋だけ。1部屋10人まで。`POST …/answer` `…/state` は `400 wrong_game`。
+
+## `POST /rooms/{code}/start`(Moku Wolf)
+
+`{ "topic": "food" | "sports" | "school" | "fantasy" | "mix", "wolves": 1, "minutes": 3 }`(省略した項目は既定値 food / 1 / 3)。ホストだけ、**3人以上**。ワードモクは `floor((人数 - 1) / 2)` 人まで(3〜4人なら1人、5〜6人なら2人)。
+→ **200** `{ "room": … }` / `400 invalid_topic` / `invalid_wolves` / `invalid_minutes` / `403 not_host` / `409 need_players`
+
+## `POST /rooms/{code}/wolf`
+
+- `{ "do": "ready" }`: 自分の言葉をおぼえた(`check` の間だけ。ほかの段階では何もしない)。
+- `{ "do": "vote", "tag": "u4c5d6" }`: 投票(`vote` の間だけ、自分以外)。もう一度送ると変えられる。
+- `{ "do": "guess", "pick": 2 }`: つかまったワードモクが選択肢を選ぶ(`guess` の間、本人だけ)。
+- `{ "do": "skip" }`: ホストだけ。今の段階を終わらせて次へ。
+
+→ **200** `{ "room": … }` / `400 invalid_action` / `invalid_vote` / `invalid_pick` / `wrong_game` / `403 not_host` / `409 not_playing` / `not_voting` / `not_guessing` / `404 room_not_found`
