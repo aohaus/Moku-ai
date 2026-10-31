@@ -36,6 +36,7 @@
 | Moku Bridge | `moku-bridge.html` | ガラスの橋渡り(左右を選ぶ運試し+Mointショップ) |
 | Moku Chess | `moku-chess.html` | 3D盤のチェス(Moku Fight のライバルが10段階のCPU) |
 | Moku Word Riddles | `moku-word-riddles.html` | 英語のレバス・パズル100問(文字の配置・大きさ・数から単語を当てる)+早押しの Riddle Race |
+| Moku Dropper | `moku-dropper.html` | 3Dドロッパー(大きな木の幹の中を落ちてポータルへ。ライバルとレース) |
 | Mokuball | `mokuball.html` | サッカー/ピンボール風(ハブ未公開) |
 
 ハブは `index.html`(入口のスプラッシュ)と `hub.html`(ゲーム一覧)。最新の一覧は `hub.html` の `CATALOG` が正。
@@ -43,6 +44,7 @@
 ### 子どもたちと決めた、コードからは見えない意図
 
 - **Moku City**: 「ただビルを建てるだけだと普通のシムシティと同じ」という子どもの意見から、**緑(自然)を一定割合残さないと市民の幸福度が下がる**ルールを入れた。環境教育とゲーム性の両立がテーマ。
+- **Moku Dropper**: 子どもが別の Claude で作った「Moku Dropper 3D」(マイクラのドロッパー風、青い壁の縦穴)が元。ラウンド構成・障害物のおやつ・CPUの強さ・「ぶつかったら上からやり直し」・紫のポータルは子どもの設計なので変えない。舞台だけ The Hollow の大きな木の幹の中にして、シリーズの世界観とつないだ。
 - **Moku Bento / Shiri of Moku**: レース・パズル・格闘のような定番ジャンルだけでなく、「日常の可愛いもの」「子どもが大笑いするもの」を入れたいという子どもたちのアイディアから誕生。高度なグラフィックより、動きの愛嬌(イージングアニメーション)を大事にする。
 - **ゲーム内は英語**: 英語学習・グローバル展開・友達への自慢を意識した方針(§4)。
 
@@ -81,7 +83,7 @@ cd backend && npm test   # アカウントAPIのテスト(AWS不要)
 - **音**: iOS Safari などは最初のタップまで `AudioContext` が `suspended` のまま。`ctx.resume()` をタッチ/クリックに紐付ける。効果音・BGMは音源ファイルを使わず Web Audio API で合成している。
 - **画面**: iPhone のノッチ/ホームバー(`env(safe-area-inset-*)`)、iPad の 4:3、縦長スマホで HUD や操作ボタンが重ならない・見切れないか確認する(特に `moku-kart.html` / `moku-bento.html` の固定操作パネル)。
 - **localStorage**: プライベートブラウズ等で例外が出てもゲームが止まらないよう try-catch で包む。
-- **Three.js**(`moku-future-run.html` / `flying-moku.html` / `moku-rane.html`): リトライやシーン再初期化で geometry / material / texture を `dispose()` しているか気をつける。
+- **Three.js**(`moku-future-run.html` / `flying-moku.html` / `moku-rane.html` / `moku-dropper.html`): リトライやシーン再初期化で geometry / material / texture を `dispose()` しているか気をつける。
 
 ## 6. ブランチ・PR運用
 

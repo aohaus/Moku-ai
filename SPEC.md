@@ -68,6 +68,7 @@ Mokuball は実装済みだがハブ未公開(準備中)。
     - Moku Bridge: `#5ED6E8` / `#16596A`(グラスアクア。ガラスの橋の色)
     - Moku Chess: `#8FB3E8` / `#2C4A7A`(スレートブルー。夕暮れの空と盤の落ち着いた色)
     - Moku Word Riddles: `#C4D04A` / `#56601A`(オリーブ。鉛筆と葉っぱのノートの色)
+    - Moku Dropper: `#A79BFF` / `#3F3590`(ライラック。木の根元の紫のポータルの色)
     - 追加タイトルは新規ペアを定義(既存と被らない色相を選ぶ)
 - **タイポグラフィ**: `-apple-system, "Segoe UI", Roboto, sans-serif`。見出しは `font-weight: 800`、字間 `0.01〜0.04em`。
 - **タイトル画面メニューの統一(2026-08-14〜)**: フォント**ファミリー**はゲームごとの世界観を尊重して統一しない(Angry MokumokuはCourier New、他はArial/システムフォントのままでよい)。ただし**サイズ・太さ・揃え方・行間**は統一する。
@@ -228,7 +229,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
     - Lambda には `backend/` しか入らないので `backend/src/vendor/moku-ontology.js` にコピーを置いている。**`shared/` の方を直して `cp shared/moku-ontology.js backend/src/vendor/`**(違うと `npm test` が失敗する)。
   - 次の候補: ハブの `#hollow` と1つにまとめる / マッチ・チャレンジの対戦履歴を辺に足す。
 - **Achievements**(`hub.html#awards`、2026-10-26〜。下部ナビの左から2番目「🏆 Achievements」。それまでは Coming soon で押せなかった): ゲームごとに「難関の記録」を1つ決め、全プレイヤーの Top 3 を出す画面。
-  - **記録**(大きいほど上。`hub.html` の `RECORDS`、`GAMES` と同じ card キー): Angry Mokumoku / Moku Drop / Moku Bento / Moku Rhythm Cafe / Moku Future Run = High Score、Moyomoyo = Marathon High Score、MK Mobile = Strongest Player(持っている選手の Sp+Sh+Def の最大)、Battle Royal = Battle Level、Shiri of Moku = Stages Cleared、Moku City = City Level、Moku-rane = Prizes Won、Moku Fishing Pond = Fish Caught、Moku Kart = Grand Prix Trophies、Flying Moku = Acorns Found、Moku Wolf = Rounds Played、Moku Fight = Wins、Moku Watch 6 Lazy = Laziest Watch、Moku Bridge = Luckiest Steps、Moku Chess = Strongest CPU Beaten(勝ったCPUの最高レベル)、Moku Word Riddles = Riddles Solved(自力で解いた問題の数)。新しいタイトルは `RECORDS` に1つ足す。
+  - **記録**(大きいほど上。`hub.html` の `RECORDS`、`GAMES` と同じ card キー): Angry Mokumoku / Moku Drop / Moku Bento / Moku Rhythm Cafe / Moku Future Run = High Score、Moyomoyo = Marathon High Score、MK Mobile = Strongest Player(持っている選手の Sp+Sh+Def の最大)、Battle Royal = Battle Level、Shiri of Moku = Stages Cleared、Moku City = City Level、Moku-rane = Prizes Won、Moku Fishing Pond = Fish Caught、Moku Kart = Grand Prix Trophies、Flying Moku = Acorns Found、Moku Wolf = Rounds Played、Moku Fight = Wins、Moku Watch 6 Lazy = Laziest Watch、Moku Bridge = Luckiest Steps、Moku Chess = Strongest CPU Beaten(勝ったCPUの最高レベル)、Moku Word Riddles = Riddles Solved(自力で解いた問題の数)、Moku Dropper = Stars Collected(星の数、最大27)。新しいタイトルは `RECORDS` に1つ足す。
   - **表示**: ゲームごとのカード(アイコン・名前・記録の名前)に 🥇🥈🥉 の3人(着せ替えた Moku の顔・表示名・`#u` タグ・記録)。同じ記録は同じ順位。自分が4位以下なら「⋮」の下に自分の行と「Beat ○○ to move up!」。1位なら「You are No. 1! 👑」。記録がまだないゲームは1行(「No records yet. Be the first!」)で、記録のあるゲームを上に並べる。「All Games / Games I Play」で、自分が記録を持っているゲームだけに絞れる。幅 700px 以上は2列。
   - **データ**: Hollow と同じ公開カードに `records = { gameId: 数 }` を足した(`window.MOKU_PUBLIC_CARD()`。サーバーは正の数だけ整数で残す。`backend/API_SPEC.md`)。ほかの人の記録はその人が次にハブで保存した時から出る。自分の記録はこの端末から直接読む。管理者アカウントは Players と同じく出ない。
   - ✕ Close・戻る・Esc でハブへ。
@@ -286,7 +287,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
 - 他のタイトルで Moint を配る・使う場合も同じキーを読み書きする。`balance` は 0 未満にしない。
 - **他のゲームへの展開**(2026-10-25〜、1本ずつ): 相場は「1回遊ぶ(2〜3分)と 50〜150、毎日遊べば 300 Moint の物が1日1個買える」。
   - 配る時は `MokuMoint.earn(gameId, amount)`。毎回もらえる分(勝ち・クリアなど)は**1ゲーム1日 500 まで**(`DAILY_GAME_CAP`)。1回きりの実績は `{ capped: false }` で上限の外。今日の分は `moku:moint:earned` = `{ version: 1, day, games: { gameId: n }, updatedAt }`(クラウドセーブではこの端末の値を使う)。実績を受け取ったかどうかはそのゲーム自身のセーブに記録する(2台で食い違った時、ゲームごとに選ばせるため)。
-  - **ハブの印**: `hub.html` の `CATALOG` に `moint: { how, cap }` を書いたゲームは、タイルの左上に小さい金色のMコインが付き、詳細シートに「Earn Moints」(もらい方の説明。`cap` があれば今日の分 n / 500)が出る。今は Moku Fight / Moku Bridge / Moku Drop / Moyomoyo / MK Mobile / Moku Chess / Moku Word Riddles。
+  - **ハブの印**: `hub.html` の `CATALOG` に `moint: { how, cap }` を書いたゲームは、タイルの左上に小さい金色のMコインが付き、詳細シートに「Earn Moints」(もらい方の説明。`cap` があれば今日の分 n / 500)が出る。今は Moku Fight / Moku Bridge / Moku Drop / Moyomoyo / MK Mobile / Moku Chess / Moku Word Riddles / Moku Dropper。
   - 次の候補: Moku Kart(独自コインがあるので実績だけにするか要相談)など。
 - **Moku Drop**(2026-10-26〜): ビンがいっぱいになった(JAR FULL)時の画面に内訳と今日の分 n / 500。途中で 🔄 でやり直した回は払わない。
   - 毎回(上限 500/日): スコア 100 点ごとに 1(1回で最大 150。コンボで点が大きく伸びるので Moyomoyo より割る数を大きくした)。自己ベスト更新 +30(ベストが 0 の初回は除く)。
@@ -311,6 +312,14 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
   - 使い道(上限と関係ない): 💡 Hint 10(意味のヒント+文字数のタイル+各単語の頭文字)→ 🔤 Choices 15(4択)→ ⏭ Skip 30(答えを見て次へ。その問題は後でもう一度出る)。
   - 記録は `moku:moku-word-riddles:progress` = `{ version: 1, solved: { id: 1 }, skipped: { id: 1 }, totalScore, bestRound, rounds, played, welcomeGift, race: { paid, played, won } }`。問題データと答えの判定は [`shared/moku-riddles.js`](shared/moku-riddles.js)(`MokuRiddles`、UMD。サーバーも同じ判定を使う。`id` はセーブのキーなので変えない)。問題を足したら `hub.html` の `RIDDLE_TOTAL` も直し、`cp shared/moku-riddles.js backend/src/vendor/`。
   - 出題の順(2026-10-31〜 ランダム): まだ見ていない問題 → スキップした問題 → 全部解いたら解いた問題。それぞれの中はシャッフル。
+- **Moku Dropper**(2026-10-31〜、v1.0.0): 子どもが作った「Moku Dropper 3D」をシリーズ用に作り直した 3D のドロッパー(three.js r128)。The Hollow の大きな木の幹の中(9×9の縦穴)を、木の床・苔の土の層のすき間を通って落ち、根元の紫のポータルに入る。床や動くおやつに当たると上からやり直し。
+  - ラウンド(子どもの設計のまま): Tutorial 1〜3 → Race 1〜5 → Grand Race。障害物はハンバーガー / ドーナツ / ピザ / アイス / TNT / サボテン / イガ(子どもの Spike balls)/ はちみつブロック / Grand Race は全部。CPU は Moku Fight のライバル5人(Moyo Super Easy / Ponta Easy / Kon Medium / Nox Hard / Goro Super Hard。強さの数字は子どもの `TIERS`)。Grand Race は5人全員。
+  - 練習ラウンドはクリア、レースは1位で次のラウンドが開く(`progress.unlocked`)。
+  - 星(ラウンドごとに3つ、ビットで保存): 1 = ポータルに着いた / 2 = ノーミス / 4 = レースで1位(練習は目標タイム 12秒以内)。
+  - 落ちている間はカメラを真上からにする(横からだと通った床で Moku が隠れる)。Moku Closet の帽子を頭に載せる(上から見るので Sprite)。
+  - 毎回(上限 500/日): クリア 15(レースで1位ならそのラウンドの `win` = Tutorial 3 30 / Race 1〜5 35〜55 / Grand Race 80)、ノーミス +10、自己ベスト更新 +10(初回は除く)。
+  - 1回きり: ラウンドごとの初クリア(レースは初の1位)20 / 20 / 30 / 50 / 60 / 80 / 100 / 150 / 300。受け取り済みは `mointClaims`(`r0`〜`r8`)。
+  - 記録は `moku:moku-dropper:progress` = `{ version: 1, gameId, unlocked, stars: { round: ビット }, best: { round: 秒 }, played, wins, bonks, mointClaims, updatedAt }`。音のオン/オフは `moku:moku-dropper:settings`。
 - **Moku Fight**(2026-10-25〜): 結果画面に内訳(コインが数え上がる)。タイトル画面に残高と今日の分。負けても減らない。
   - 毎回(上限 500/日): 勝ち Easy 30 / Normal 60 / Hard 120。ノーダメージで取ったラウンドがあれば +20。連勝ボーナスは2連勝目から1つごとに +10(最大 +50)。
   - 1回きり: ライバルごと・CPUの難易度ごとの初勝利 100 / 200 / 300(ゲストのライバルも)。Goro への初勝利は 500(その時の難易度の初勝利も済みにする)。新しい技を覚えた 50。技の練習を初めて終えた 10。
