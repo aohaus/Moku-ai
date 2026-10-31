@@ -2181,6 +2181,11 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
            localStorage.getItem('moku:' + prefix + ':' + card) !== null;
   }
 
+  var RIDDLE_TOTAL = 25;
+  function riddlesSolved() {
+    var p = readJSON('moku:moku-word-riddles:progress');
+    return p && p.solved && typeof p.solved === 'object' ? Object.keys(p.solved).length : 0;
+  }
   var GAMES = [
     {
       name: 'Angry Mokumoku',
@@ -2735,6 +2740,31 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
       }
     },
     {
+      name: 'Moku Word Riddles',
+      card: 'mwr',
+      gameId: 'moku-word-riddles',
+      // RIDDLE_TOTAL = moku-word-riddles.html の RIDDLES の数(問題を足したらここも)
+      isCompleted: function () {
+        if (isExplicitlyMarked('completed', 'mwr')) return true;
+        return riddlesSolved() >= RIDDLE_TOTAL;
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'mwr')) return true;
+        var p = readJSON('moku:moku-word-riddles:progress');
+        return Boolean(p && p.played > 0);
+      },
+      progress: function () {
+        if (this.isCompleted()) return 1;
+        return Math.min(1, riddlesSolved() / RIDDLE_TOTAL);
+      },
+      badge: function () {
+        var p = readJSON('moku:moku-word-riddles:progress');
+        if (!p || !this.isPlayed()) return null;
+        var solved = riddlesSolved() + ' / ' + RIDDLE_TOTAL + ' Solved';
+        return p.bestRound > 0 ? solved + ' · Best ' + p.bestRound + ' pts' : solved;
+      }
+    },
+    {
       name: 'Mokuball',
       card: null,
       gameId: 'mokuball',
@@ -2786,7 +2816,8 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     mfr: { title: 'High Score', read: function () { var p = readJSON('moku:moku-future-run:progress'); return p && p.highScore; }, fmt: function (n) { return num(n) + ' pts'; } },
     mw6: { title: 'Laziest Watch', read: function () { var p = readJSON('moku:moku-watch-6-lazy:progress'); return p && p.lazy; }, fmt: function (n) { return num(n) + '% lazy'; } },
     mbr: { title: 'Luckiest Steps', read: function () { var p = readJSON('moku:moku-bridge:progress'); return p && p.bestLucky; }, fmt: function (n) { return n + ' in a row 🍀'; } },
-    mch: { title: 'Strongest CPU Beaten', read: function () { var p = readJSON('moku:moku-chess:progress'); return p && p.best; }, fmt: function (n) { return 'Lv.' + n + ' / 10'; } }
+    mch: { title: 'Strongest CPU Beaten', read: function () { var p = readJSON('moku:moku-chess:progress'); return p && p.best; }, fmt: function (n) { return 'Lv.' + n + ' / 10'; } },
+    mwr: { title: 'Riddles Solved', read: riddlesSolved, fmt: function (n) { return n + ' / ' + RIDDLE_TOTAL + ' 🧩'; } }
   };
   function myRecords() {
     var out = {};
@@ -2937,11 +2968,15 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
            tag: 'Checkmate the Moku Fight rivals!',
            desc: 'Real chess on a 3D board! Team Moku (the knight is Moku himself) takes on 10 CPU rivals from Moku Fight, from bouncy Moyo to Thunder King Goro.',
            moint: { cap: true, how: 'Win a game: +30 to +120 (stronger rivals pay more). Draw: +8 to +35. First win over each rival: +50 to +500. Spend Moints on new boards in the Board Shop.' },
-           multi: { how: 'Play a Friend: play chess online with a friend, one move at a time.' } }
+           multi: { how: 'Play a Friend: play chess online with a friend, one move at a time.' } },
+    mwr: { name: 'Moku Word Riddles', gameId: 'moku-word-riddles', genre: 'Word Puzzle', cta: 'Solve', hi: '#C4D04A', lo: '#56601A', newUntil: '2026-12-01',
+           tag: 'CYCLE CYCLE = BICYCLE!',
+           desc: 'Picture word riddles! Look where the words are, how big they are, and how many there are, then find the hidden English word. 25 riddles from Easy to Tricky.',
+           moint: { cap: true, how: 'Solve a riddle: +10 (+5 more with no hints on the first try). Solve all 5 in a round: +20. Spend Moints on Hints, Choices and Skips.' } }
   };
   var SHELVES = [
     { title: 'Action & Sports', sub: 'Fling, kick, fight, race', cards: ['mfg', 'mfr', 'mkt', 'br', 'mk', 'am'] },
-    { title: 'Puzzle & Brain',  sub: 'Think, match, merge',      cards: ['mch', 'md', 'so', 'mm'] },
+    { title: 'Puzzle & Brain',  sub: 'Think, match, merge',      cards: ['mwr', 'mch', 'md', 'so', 'mm'] },
     { title: 'Cozy & Create',   sub: 'Take it slow',             cards: ['mw6', 'mrc', 'fm', 'mf', 'mb', 'mc'] },
     { title: 'Party & Arcade',  sub: 'Play with friends',        cards: ['mbr', 'mw', 'mr'] }
   ];
