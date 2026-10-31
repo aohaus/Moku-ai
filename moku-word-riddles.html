@@ -271,6 +271,7 @@ body.on-title #playScreen { display: none; }
 .pc.vert { display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * 0.6); }
 .pc.line { height: calc(var(--u) * 0.9); border-radius: 4px; background: var(--ink); }
 .pc.op { color: var(--ink-soft); font-weight: 600; }
+.pc.box { border: calc(var(--u) * 0.9) solid var(--ink); border-radius: calc(var(--u) * 1.5); }
 
 /* Moku のつぶやき */
 #mokuRow { display: flex; align-items: center; gap: 8px; min-height: 52px; }
@@ -385,7 +386,7 @@ body.on-title #playScreen { display: none; }
 #solvedTiles { margin-top: 14px; }
 #solvedTiles .tile { opacity: 0; animation: tileIn .35s ease forwards; }
 @keyframes tileIn { from { opacity: 0; transform: translateY(-14px) rotate(-10deg); } to { opacity: 1; transform: none; } }
-#solvedWhy {
+#solvedWhy, #revealWhy {
   margin-top: 14px; padding: 10px 12px;
   border-radius: 12px; background: #F7EDD8;
   font-size: 14px; font-weight: 700; color: var(--ink); line-height: 1.45;
@@ -439,6 +440,95 @@ body.on-title #playScreen { display: none; }
 }
 #toast.show { opacity: 1; transform: translate(-50%, 0); }
 
+/* ---------- Riddle Race ---------- */
+.badge-n {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 20px; height: 20px; padding: 0 6px; margin-left: 6px; vertical-align: 2px;
+  border-radius: 10px; background: var(--bad); color: #fff; font-size: 12px; text-shadow: none;
+}
+body.on-race #playScreen { display: none; }
+#raceScreen {
+  position: fixed; inset: 0; z-index: 25;
+  display: none; justify-content: center; align-items: flex-start;
+  padding: calc(env(safe-area-inset-top, 0px) + 12px) calc(env(safe-area-inset-right, 0px) + 14px) calc(env(safe-area-inset-bottom, 0px) + 20px) calc(env(safe-area-inset-left, 0px) + 14px);
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+}
+body.on-race #raceScreen { display: flex; }
+#raceInner { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 12px; }
+.raceHead { display: flex; align-items: center; gap: 10px; }
+.raceTitle { font-family: var(--round); font-size: 24px; font-weight: 700; color: #FFFDF7; text-shadow: 0 2px 0 var(--lo); }
+.backBtn { font-size: 13px; font-weight: 800; color: #FFFDF7; padding: 6px 11px; border-radius: 10px; background: rgba(107,58,32,0.45); }
+.panel {
+  background: rgba(255,250,236,0.95); border-radius: 18px; padding: 14px;
+  box-shadow: 0 4px 0 #E3CFA8, 0 10px 20px rgba(90,45,20,0.18);
+}
+.panel h3 { font-family: var(--round); font-size: 18px; font-weight: 700; color: var(--lo); margin-bottom: 6px; }
+.panel .bigBtn { margin-top: 10px; }
+.note { font-size: 13px; font-weight: 700; color: var(--ink-soft); line-height: 1.4; }
+.seg { display: flex; gap: 6px; margin-top: 8px; }
+.seg button { flex: 1; padding: 9px; border-radius: 11px; background: #F7EDD8; font-size: 15px; font-weight: 800; color: var(--ink); }
+.seg button.on { background: var(--hi); color: #fff; box-shadow: 0 3px 0 var(--lo); text-shadow: 0 1px 0 rgba(86,96,26,0.8); }
+.codeInput {
+  width: 100%; margin-top: 4px;
+  font-family: var(--round); font-size: 28px; font-weight: 700; letter-spacing: 0.4em; text-indent: 0.4em; text-align: center; text-transform: uppercase;
+  color: var(--ink); padding: 8px; border-radius: 14px; border: 3px solid #F2D9B0; background: #FFFDF7; outline: none;
+  user-select: text; -webkit-user-select: text;
+}
+.codeInput:focus { border-color: var(--hi); }
+.codeInput::placeholder { color: #D8C4A6; letter-spacing: 0.2em; }
+.row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 8px; margin-top: 6px; border-radius: 12px; background: #FFFDF7;
+}
+.row .who { flex: 1; min-width: 0; font-size: 15px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .who small { display: block; font-size: 11.5px; font-weight: 700; color: var(--ink-soft); }
+.smallBtn {
+  flex: none; padding: 7px 12px; border-radius: 10px;
+  background: var(--hi); color: #fff; font-size: 14px; font-weight: 800;
+  box-shadow: 0 3px 0 var(--lo); text-shadow: 0 1px 0 rgba(86,96,26,0.8);
+}
+.smallBtn:disabled { background: #E3D6C0; color: var(--ink-soft); box-shadow: none; text-shadow: none; }
+.av { width: 40px; height: 40px; position: relative; flex: none; border-radius: 50%; background: #F7EDD8; overflow: hidden; }
+.av img, .av svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.av img { object-fit: cover; object-position: center 30%; }
+.online { display: inline-block; width: 8px; height: 8px; margin-right: 4px; border-radius: 50%; background: var(--easy); }
+#lobbyCode { margin: 8px 0 6px; }
+.lobbyTop { text-align: center; }
+#lobbyPlayers .host { font-size: 12px; }
+#raceBar { display: none; flex-direction: column; gap: 6px; }
+body.racing #raceBar { display: flex; }
+body.racing #helpRow, body.racing #hudScore, body.racing #roundDots { display: none; }
+#scoreChips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px 3px 3px; border-radius: 999px;
+  background: rgba(255,250,236,0.92); font-size: 13px; font-weight: 800; color: var(--ink);
+  max-width: 46%;
+}
+.chip .av { width: 24px; height: 24px; }
+.chip .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip b { color: var(--lo); font-family: var(--round); font-size: 15px; }
+.chip.me { box-shadow: 0 0 0 2px var(--hi); }
+.chip.pop { animation: pop .6s ease; }
+#timerBar { height: 8px; border-radius: 6px; background: rgba(255,250,236,0.55); overflow: hidden; }
+#timerFill { height: 100%; width: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--hi), #F5B83D); transition: width .2s linear; }
+#timerFill.low { background: var(--medium); }
+#countdownOv {
+  position: fixed; inset: 0; z-index: 65;
+  display: none; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  background: rgba(70,35,20,0.35);
+}
+#countdownOv.show { display: flex; }
+#countNum { font-family: var(--round); font-size: 120px; font-weight: 700; line-height: 1; color: #FFFDF7; text-shadow: 0 6px 0 var(--lo); }
+#countNum.pop { animation: pop .5s ease; }
+#countdownOv .sub { font-size: 16px; font-weight: 800; color: #FFFDF7; text-shadow: 0 1px 2px rgba(60,30,10,0.6); }
+#revealNext { margin-top: 12px; font-size: 13px; font-weight: 800; color: var(--ink-soft); }
+#finalList { margin-top: 12px; text-align: left; }
+#finalList .row { background: #F7EDD8; }
+#finalList .row.me { box-shadow: 0 0 0 2px var(--hi); }
+#finalList .rank { width: 28px; text-align: center; font-size: 22px; font-family: var(--round); font-weight: 700; color: var(--ink-soft); }
+#finalList b { font-family: var(--round); font-size: 22px; color: var(--lo); }
+
 @media (min-height: 760px) {
   #playInner { gap: 14px; margin-top: 8px; }
 }
@@ -457,7 +547,7 @@ body.on-title #playScreen { display: none; }
 
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.1.0 · Updated Oct 31, 2026</div>
+<div id="buildInfo">v0.2.0 · Updated Oct 31, 2026</div>
 
 <!-- ---------- title ---------- -->
 <div id="titleScreen">
@@ -467,6 +557,7 @@ body.on-title #playScreen { display: none; }
   <div id="titleTag">Look closely. Find the hidden word!</div>
   <div id="titleMenu">
     <button class="titleMenuItem primary" id="playBtn">▶ Play</button>
+    <button class="titleMenuItem" id="raceBtn" style="display:none">👥 Riddle Race</button>
     <button class="titleMenuItem" id="howBtn">📖 How to Play</button>
   </div>
   <div id="titleProgress"></div>
@@ -484,6 +575,10 @@ body.on-title #playScreen { display: none; }
         <div id="roundDots"></div>
       </div>
       <span class="moint-pill"><span class="mcoin">M</span><span id="hudBalance">0</span></span>
+    </div>
+    <div id="raceBar">
+      <div id="scoreChips"></div>
+      <div id="timerBar"><div id="timerFill"></div></div>
     </div>
     <div id="cardWrap">
       <div class="tape l"></div><div class="tape r"></div>
@@ -510,7 +605,76 @@ body.on-title #playScreen { display: none; }
   </div>
 </div>
 
+<!-- ---------- Riddle Race: menu + lobby ---------- -->
+<div id="raceScreen">
+  <div id="raceInner">
+    <div class="raceHead">
+      <button class="backBtn" id="raceBack">◀ Back</button>
+      <div class="raceTitle">👥 Riddle Race</div>
+    </div>
+    <div id="raceMenu">
+      <div class="panel">
+        <h3>Make a Room</h3>
+        <div class="note">Race your friends! Everyone gets the same riddle. Be the first to solve it!</div>
+        <div class="seg" id="countSeg"><button data-n="5" class="on">5 riddles</button><button data-n="10">10 riddles</button></div>
+        <button class="bigBtn" id="makeRoomBtn">Make a Room ▶</button>
+      </div>
+      <div class="panel" style="margin-top:12px">
+        <h3>Join a Room</h3>
+        <div class="note">Type the 4-letter code from your friend.</div>
+        <form id="joinForm" autocomplete="off">
+          <input id="codeInput" class="codeInput" maxlength="4" placeholder="CODE" autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="go">
+          <button class="bigBtn" type="submit">Join ▶</button>
+        </form>
+      </div>
+      <div class="panel" style="margin-top:12px">
+        <h3>Invites</h3>
+        <div id="myRooms"></div>
+      </div>
+    </div>
+    <div id="raceLobby">
+      <div class="panel lobbyTop">
+        <div class="note">Room code</div>
+        <div id="lobbyCode"></div>
+        <div class="note" id="lobbyHint">Tell your friends this code!</div>
+      </div>
+      <div class="panel" style="margin-top:12px">
+        <h3 id="lobbyTitle">Players</h3>
+        <div id="lobbyPlayers"></div>
+        <button class="bigBtn" id="startBtn">Start the Race ▶</button>
+        <div class="note" id="lobbyWait" style="margin-top:10px; text-align:center"></div>
+      </div>
+      <div class="panel" id="invitePanel" style="margin-top:12px">
+        <h3>Invite Friends</h3>
+        <div id="inviteList"></div>
+      </div>
+      <div style="text-align:center"><button class="textBtn" id="leaveBtn">Leave Room</button></div>
+    </div>
+  </div>
+</div>
+
 <!-- ---------- overlays ---------- -->
+<div id="countdownOv"><div class="sub" id="countSub">Get ready!</div><div id="countNum">3</div></div>
+<div class="overlay" id="revealOverlay">
+  <div class="sheet">
+    <h2 id="revealTitle"></h2>
+    <div class="sub" id="revealSub"></div>
+    <div id="revealTiles" style="margin-top:14px"></div>
+    <div id="revealWhy" class="why"></div>
+    <div id="revealNext"></div>
+  </div>
+</div>
+<div class="overlay" id="finalOverlay">
+  <div class="sheet">
+    <h2 id="finalTitle">Race Over!</h2>
+    <div class="sub" id="finalSub"></div>
+    <div id="finalList"></div>
+    <div class="rewards" id="finalRewards"></div>
+    <div class="moint-note" id="finalNote"></div>
+    <button class="bigBtn" id="finalAgain">Play Again ▶</button>
+    <button class="textBtn" id="finalMenu">Back to Menu</button>
+  </div>
+</div>
 <div class="overlay" id="solvedOverlay">
   <div class="sheet">
     <h2 id="solvedTitle">Correct!</h2>
@@ -544,158 +708,15 @@ body.on-title #playScreen { display: none; }
       <li>Stuck? Use a <b>💡 Hint</b>, then <b>🔤 Choices</b>. They cost Moints.</li>
       <li>Too hard? <b>⏭ Skip</b> shows the answer. You can try it again later.</li>
       <li>Every correct answer gives you points and Moints!</li>
+      <li><b>👥 Riddle Race</b>: play with friends at the same time. The first right answer wins each riddle!</li>
     </ol>
     <button class="bigBtn" id="howClose">Got it!</button>
   </div>
 </div>
 <div id="toast"></div>
 
-<!-- ================================================================
-     riddles-data(旧案の riddles-data.js にあたる部分)
-     1問 = { id, level: 1 Easy / 2 Medium / 3 Tricky, answer, alts, clue,
-             why(正解後の説明), choices(ヒント2段目のハズレ3つ), art }
-     art の部品: { t: 文字, x, y: 中心の位置(カードの%), s: 大きさ(カード幅の%),
-       c: 色, r: 回転, fx: -1 で左右反転, emoji, vert(1文字ずつ縦), op(+ など薄い記号),
-       line: w(線の幅%) }
-     問題を足す時は id を変えないこと(セーブの solved のキー)。
-     ================================================================ -->
-<script>
-var RIDDLES = [
-  // ---------- Easy: picture + picture ----------
-  { id: 'sunglasses', level: 1, answer: 'sunglasses', alts: ['sun glasses'],
-    clue: 'You wear them on a bright, sunny day.',
-    why: 'SUN ☀️ + GLASSES 👓 = SUNGLASSES',
-    choices: ['sunflower', 'sunshine', 'eyeglasses'],
-    art: [ { t: '☀️', emoji: 1, x: 27, y: 50, s: 20 }, { t: '+', op: 1, x: 50, y: 50, s: 10 }, { t: '👓', emoji: 1, x: 73, y: 50, s: 20 } ] },
-  { id: 'starfish', level: 1, answer: 'starfish', alts: ['star fish'],
-    clue: 'It lives in the sea and has five arms.',
-    why: 'STAR ⭐ + FISH 🐟 = STARFISH',
-    choices: ['goldfish', 'shooting star', 'jellyfish'],
-    art: [ { t: '⭐', emoji: 1, x: 27, y: 50, s: 20 }, { t: '+', op: 1, x: 50, y: 50, s: 10 }, { t: '🐟', emoji: 1, x: 73, y: 50, s: 20 } ] },
-  { id: 'rainbow', level: 1, answer: 'rainbow', alts: ['rain bow'],
-    clue: 'Look up at the sky after the rain!',
-    why: 'RAIN 🌧️ + BOW 🎀 = RAINBOW',
-    choices: ['raincoat', 'umbrella', 'ribbon'],
-    art: [ { t: '🌧️', emoji: 1, x: 27, y: 50, s: 20 }, { t: '+', op: 1, x: 50, y: 50, s: 10 }, { t: '🎀', emoji: 1, x: 73, y: 50, s: 20 } ] },
-  { id: 'butterfly', level: 1, answer: 'butterfly', alts: ['butter fly'],
-    clue: 'A pretty bug with big, colorful wings.',
-    why: 'BUTTER 🧈 + FLY = BUTTERFLY',
-    choices: ['dragonfly', 'ladybug', 'butter knife'],
-    art: [ { t: '🧈', emoji: 1, x: 25, y: 50, s: 20 }, { t: '+', op: 1, x: 46, y: 50, s: 10 }, { t: 'FLY', x: 72, y: 50, s: 16, c: 'blue' } ] },
-  { id: 'popcorn', level: 1, answer: 'popcorn', alts: ['pop corn'],
-    clue: 'A crunchy snack at the movies.',
-    why: 'POP! + CORN 🌽 = POPCORN',
-    choices: ['cornflakes', 'lollipop', 'cupcake'],
-    art: [ { t: 'POP!', x: 26, y: 50, s: 15, c: 'red', r: -8 }, { t: '+', op: 1, x: 51, y: 50, s: 10 }, { t: '🌽', emoji: 1, x: 74, y: 50, s: 20 } ] },
-  { id: 'night-owl', level: 1, answer: 'night owl', alts: ['nightowl'],
-    clue: 'Someone who stays up late… like Moku!',
-    why: 'NIGHT 🌙 + OWL 🦉 = NIGHT OWL. Moku is a night owl too!',
-    choices: ['moon bird', 'sleepy owl', 'good night'],
-    art: [ { t: '🌙', emoji: 1, x: 27, y: 50, s: 20 }, { t: '+', op: 1, x: 50, y: 50, s: 10 }, { t: '🦉', emoji: 1, x: 73, y: 50, s: 20 } ] },
-  { id: 'football', level: 1, answer: 'football', alts: ['foot ball'],
-    clue: 'A game where you kick a ball.',
-    why: 'FOOT 🦶 + BALL ⚽ = FOOTBALL',
-    choices: ['footprint', 'basketball', 'kickball'],
-    art: [ { t: '🦶', emoji: 1, x: 27, y: 50, s: 20 }, { t: '+', op: 1, x: 50, y: 50, s: 10 }, { t: '⚽', emoji: 1, x: 73, y: 50, s: 20 } ] },
-  { id: 'treehouse', level: 1, answer: 'treehouse', alts: ['tree house'],
-    clue: 'A little home built up in the branches.',
-    why: 'The HOUSE is up in a TREE = TREEHOUSE',
-    choices: ['birdhouse', 'greenhouse', 'tree trunk'],
-    art: [ { t: '🌳', emoji: 1, x: 50, y: 60, s: 30 }, { t: 'HOUSE', x: 50, y: 30, s: 9, c: 'red' } ] },
-
-  // ---------- Medium: where are the words? ----------
-  { id: 'bicycle', level: 2, answer: 'bicycle', alts: ['bike'],
-    clue: 'It has two wheels and you pedal it.',
-    why: 'BI means two. Two CYCLEs = BICYCLE!',
-    choices: ['motorcycle', 'tricycle', 'unicycle'],
-    art: [ { t: 'CYCLE', x: 29, y: 50, s: 13, c: 'blue' }, { t: 'CYCLE', x: 71, y: 50, s: 13, c: 'blue' } ] },
-  { id: 'tricycle', level: 2, answer: 'tricycle', alts: [],
-    clue: 'Little kids ride it. It has three wheels.',
-    why: 'TRI means three. Three CYCLEs = TRICYCLE!',
-    choices: ['bicycle', 'triangle', 'unicycle'],
-    art: [ { t: 'CYCLE', x: 50, y: 24, s: 10, c: 'green' }, { t: 'CYCLE', x: 50, y: 50, s: 10, c: 'green' }, { t: 'CYCLE', x: 50, y: 76, s: 10, c: 'green' } ] },
-  { id: 'downtown', level: 2, answer: 'downtown', alts: ['down town'],
-    clue: 'The busy middle of a city.',
-    why: 'TOWN is going DOWN = DOWNTOWN',
-    choices: ['uptown', 'countdown', 'town hall'],
-    art: [ { t: 'TOWN', vert: 1, x: 50, y: 50, s: 9, c: 'purple' }, { t: '⬇', x: 64, y: 50, s: 9, c: 'soft' } ] },
-  { id: 'high-chair', level: 2, answer: 'high chair', alts: ['highchair'],
-    clue: 'A tall seat for a baby at the table.',
-    why: 'The CHAIR is way up HIGH = HIGH CHAIR',
-    choices: ['armchair', 'rocking chair', 'chairlift'],
-    art: [ { t: 'CHAIR', x: 50, y: 15, s: 10, c: 'brown' }, { t: '⬆', x: 50, y: 48, s: 10, c: 'soft' }, { t: '⬆', x: 50, y: 78, s: 10, c: 'soft' } ] },
-  { id: 'upside-down', level: 2, answer: 'upside down', alts: ['upsidedown'],
-    clue: 'When the top is at the bottom.',
-    why: 'The word DOWN is flipped UPSIDE DOWN!',
-    choices: ['sit down', 'inside out', 'downstairs'],
-    art: [ { t: 'DOWN', x: 50, y: 50, s: 18, c: 'orange', r: 180 } ] },
-  { id: 'backpack', level: 2, answer: 'backpack', alts: ['back pack'],
-    clue: 'You carry your school books in it.',
-    why: 'PACK is written BACKwards = BACKPACK',
-    choices: ['lunch box', 'school bag', 'pack it'],
-    art: [ { t: 'KCAP', x: 50, y: 50, s: 18, c: 'green' }, { t: '◀', x: 50, y: 78, s: 6, c: 'soft' } ] },
-  { id: 'banana-split', level: 2, answer: 'banana split', alts: ['bananasplit'],
-    clue: 'A yummy ice cream treat with fruit.',
-    why: 'The word BANANA is SPLIT in two = BANANA SPLIT',
-    choices: ['banana bread', 'banana peel', 'half banana'],
-    art: [ { t: 'BAN', x: 30, y: 50, s: 15, c: 'orange', r: -6 }, { t: 'ANA', x: 72, y: 50, s: 15, c: 'orange', r: 6 } ] },
-  { id: 'waterfall', level: 2, answer: 'waterfall', alts: ['water fall'],
-    clue: 'Water tumbling down from a cliff.',
-    why: 'The letters of WATER FALL down = WATERFALL',
-    choices: ['rainfall', 'waterslide', 'raindrop'],
-    art: [ { t: 'W', x: 30, y: 18, s: 11, c: 'blue' }, { t: 'A', x: 40, y: 32, s: 11, c: 'blue', r: 15 }, { t: 'T', x: 48, y: 48, s: 11, c: 'blue', r: 35 },
-           { t: 'E', x: 55, y: 64, s: 11, c: 'blue', r: 60 }, { t: 'R', x: 60, y: 82, s: 11, c: 'blue', r: 95 } ] },
-  { id: 'crossroads', level: 2, answer: 'crossroads', alts: ['cross roads', 'crossroad'],
-    clue: 'A place where two streets meet.',
-    why: 'ROAD crosses ROAD = CROSSROADS',
-    choices: ['roadwork', 'side road', 'crosswalk'],
-    art: [ { t: 'R', x: 33, y: 50, s: 11 }, { t: 'O', x: 45, y: 50, s: 11, c: 'red' }, { t: 'A', x: 57, y: 50, s: 11 }, { t: 'D', x: 69, y: 50, s: 11 },
-           { t: 'R', x: 45, y: 31, s: 11 }, { t: 'A', x: 45, y: 69, s: 11 }, { t: 'D', x: 45, y: 88, s: 11 } ] },
-  { id: 'man-overboard', level: 2, answer: 'man overboard', alts: ['man over board'],
-    clue: 'Someone fell off the ship! Shout it!',
-    why: 'MAN is OVER the BOARD = MAN OVERBOARD',
-    choices: ['man on board', 'boatman', 'skateboard'],
-    art: [ { t: 'MAN', x: 50, y: 32, s: 13, c: 'blue' }, { t: 'BOARD', x: 50, y: 68, s: 13, c: 'brown' } ] },
-
-  // ---------- Tricky: phrases ----------
-  { id: 'i-understand', level: 3, answer: 'i understand', alts: ['understand'],
-    clue: 'What you say when you get it.',
-    why: 'I is UNDER STAND = I UNDERSTAND',
-    choices: ['i stand up', 'standing by', 'stand under'],
-    art: [ { t: 'STAND', x: 50, y: 34, s: 14, c: 'purple' }, { t: 'I', x: 50, y: 70, s: 14, c: 'red' } ] },
-  { id: 'once-upon-a-time', level: 3, answer: 'once upon a time', alts: ['once upon time'],
-    clue: 'How many fairy tales begin.',
-    why: 'ONCE is UPON A TIME = ONCE UPON A TIME',
-    choices: ['one more time', 'time after time', 'once a day'],
-    art: [ { t: 'ONCE', x: 50, y: 34, s: 13, c: 'purple' }, { t: 'A TIME', x: 50, y: 68, s: 13, c: 'brown' } ] },
-  { id: 'reading-between-the-lines', level: 3, answer: 'reading between the lines', alts: ['read between the lines', 'reading between lines'],
-    clue: 'Finding the secret meaning a story does not say out loud.',
-    why: 'READING is BETWEEN THE LINES!',
-    choices: ['reading a book', 'lined paper', 'line by line'],
-    art: [ { line: 70, x: 50, y: 28 }, { t: 'READING', x: 50, y: 50, s: 12, c: 'blue' }, { line: 70, x: 50, y: 72 } ] },
-  { id: 'three-blind-mice', level: 3, answer: 'three blind mice', alts: ['3 blind mice'],
-    clue: 'A nursery rhyme about little animals that cannot see.',
-    why: 'Three MICE with no I (eye) = THREE BLIND MICE',
-    choices: ['three little mice', 'missing letters', 'cheese thieves'],
-    art: [ { t: 'M  CE', x: 50, y: 24, s: 10, c: 'brown' }, { t: 'M  CE', x: 50, y: 50, s: 10, c: 'brown' }, { t: 'M  CE', x: 50, y: 76, s: 10, c: 'brown' } ] },
-  { id: 'paradise', level: 3, answer: 'paradise', alts: ['pair of dice', 'pairadice'],
-    clue: 'A perfect, happy place.',
-    why: 'A PAIR of DICE sounds like PARADISE!',
-    choices: ['double dice', 'dice game', 'lucky roll'],
-    art: [ { t: 'DICE', x: 30, y: 50, s: 14, c: 'red', r: -6 }, { t: 'DICE', x: 70, y: 50, s: 14, c: 'red', r: 6 } ] },
-  { id: 'forget-it', level: 3, answer: 'forget it', alts: ['forgetit'],
-    clue: 'What you say when it does not matter anymore.',
-    why: 'FOUR "GET IT"s = FOR-GET IT = FORGET IT',
-    choices: ['get it all', 'forgot it', 'get it four'],
-    art: [ { t: 'GET IT', x: 29, y: 32, s: 9, c: 'green' }, { t: 'GET IT', x: 71, y: 32, s: 9, c: 'green' },
-           { t: 'GET IT', x: 29, y: 68, s: 9, c: 'green' }, { t: 'GET IT', x: 71, y: 68, s: 9, c: 'green' } ] },
-  { id: 'big-deal', level: 3, answer: 'big deal', alts: ['bigdeal'],
-    clue: 'Something very important… or is it?',
-    why: 'The word DEAL is BIG = BIG DEAL',
-    choices: ['good deal', 'big cards', 'deal or no deal'],
-    art: [ { t: 'DEAL', x: 50, y: 52, s: 30, c: 'orange' } ] }
-];
-</script>
+<!-- riddles-data: 100問の問題データと答えの判定は shared/moku-riddles.js(Riddle Race でサーバーも同じ判定を使う) -->
+<script src="shared/moku-riddles.js?v=20261031"></script>
 
 <!-- ================================================================
      game(旧案の game.js にあたる部分)
@@ -714,6 +735,7 @@ var RIDDLES = [
   var WELCOME_GIFT = 30; // 初回だけ、ヒントを試せるように
   var LEVEL_NAMES = { 1: 'EASY', 2: 'MEDIUM', 3: 'TRICKY' };
   var LEVEL_COLORS = { 1: 'var(--easy)', 2: 'var(--medium)', 3: 'var(--tricky)' };
+  var RIDDLES = MokuRiddles.RIDDLES;
   var COLORS = { ink: '#3B2A20', red: '#D9534F', blue: '#3C7DD9', green: '#4E9A4A', orange: '#E8832A', purple: '#8A5BD1', brown: '#8B5A2B', soft: '#B9A48C' };
 
   function $(id) { return document.getElementById(id); }
@@ -734,6 +756,8 @@ var RIDDLES = [
       rounds: p.rounds || 0,
       played: p.played || 0,
       welcomeGift: !!p.welcomeGift,
+      // Riddle Race: paid = { 部屋の key: 忘れてよい時刻 }(1レース1回だけ払う)
+      race: p.race && typeof p.race === 'object' ? { paid: p.race.paid || {}, played: p.race.played || 0, won: p.race.won || 0 } : { paid: {}, played: 0, won: 0 },
       updatedAt: p.updatedAt || null
     };
   }
@@ -795,8 +819,7 @@ var RIDDLES = [
   };
 
   // ---------- helpers ----------
-  function norm(s) { return String(s || '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]/g, ''); }
-  function accepted(r) { return [r.answer].concat(r.alts || []).map(norm); }
+  var norm = MokuRiddles.norm, accepted = MokuRiddles.accepted;
   function editDistance(a, b) {
     var prev = [], cur, i, j;
     for (j = 0; j <= b.length; j++) prev[j] = j;
@@ -867,7 +890,7 @@ var RIDDLES = [
   }
 
   // ---------- riddle card ----------
-  function renderArt(r) {
+  function renderArt(r, race) {
     var card = $('riddleCard');
     var html = '';
     r.art.forEach(function (p) {
@@ -876,16 +899,22 @@ var RIDDLES = [
         html += '<span class="pc line" style="' + style + 'width:' + p.line + '%"></span>';
         return;
       }
+      if (p.box) {
+        html += '<span class="pc box" style="' + style + 'width:' + p.box[0] + '%;height:' + p.box[1] + '%"></span>';
+        return;
+      }
       style += 'font-size:calc(var(--u) * ' + p.s + ');';
       if (p.c) style += 'color:' + (COLORS[p.c] || p.c) + ';';
       if (p.r) style += '--r:' + p.r + 'deg;';
       if (p.fx) style += '--fx:' + p.fx + ';';
+      if (p.sp) style += 'letter-spacing:' + p.sp + 'em;';
       var cls = 'pc' + (p.emoji ? ' emoji' : '') + (p.op ? ' op' : '') + (p.vert ? ' vert' : '');
-      var inner = p.vert ? p.t.split('').map(function (ch) { return '<span>' + esc(ch) + '</span>'; }).join('') : esc(p.t);
+      var inner = p.parts ? p.parts.map(function (part) { return '<span style="color:' + (COLORS[part[1]] || part[1]) + '">' + esc(part[0]) + '</span>'; }).join('')
+        : p.vert ? p.t.split('').map(function (ch) { return '<span>' + esc(ch) + '</span>'; }).join('') : esc(p.t);
       html += '<span class="' + cls + '" style="' + style + '">' + inner + '</span>';
     });
     html += '<span id="levelChip" style="background:' + LEVEL_COLORS[r.level] + '">' + LEVEL_NAMES[r.level] + '</span>';
-    if (!progress.solved[r.id]) html += '<span id="newChip">' + (progress.skipped[r.id] ? 'Try again!' : 'New riddle') + '</span>';
+    if (!race && !progress.solved[r.id]) html += '<span id="newChip">' + (progress.skipped[r.id] ? 'Try again!' : 'New riddle') + '</span>';
     card.innerHTML = html;
     sizeCard();
   }
@@ -896,10 +925,10 @@ var RIDDLES = [
   window.addEventListener('resize', sizeCard);
 
   // ---------- round ----------
-  // 出題の順: まだ見ていない問題(Easy → Tricky の順)→ スキップした問題 → 全部解いたら解いた問題からランダム。
+  // 出題の順(ランダム): まだ見ていない問題 → スキップした問題 → 全部解いたら解いた問題。それぞれの中はシャッフル。
   function pickRound() {
-    var fresh = RIDDLES.filter(function (r) { return !progress.solved[r.id] && !progress.skipped[r.id]; });
-    var skipped = RIDDLES.filter(function (r) { return !progress.solved[r.id] && progress.skipped[r.id]; });
+    var fresh = shuffle(RIDDLES.filter(function (r) { return !progress.solved[r.id] && !progress.skipped[r.id]; }));
+    var skipped = shuffle(RIDDLES.filter(function (r) { return !progress.solved[r.id] && progress.skipped[r.id]; }));
     var list = fresh.concat(skipped).slice(0, ROUND_SIZE);
     if (list.length < ROUND_SIZE) {
       var replay = shuffle(RIDDLES.filter(function (r) { return list.indexOf(r) < 0; }));
@@ -1099,6 +1128,8 @@ var RIDDLES = [
   }
 
   function toTitle() {
+    stopRace();
+    body.classList.remove('on-race');
     $('solvedOverlay').classList.remove('show');
     $('resultOverlay').classList.remove('show');
     $('answer').blur();
@@ -1125,6 +1156,14 @@ var RIDDLES = [
     $('titleToday').textContent = 'Today ' + earnedToday() + ' / ' + dailyCap() + ' Moints';
     renderMoints();
     renderOutfit();
+    var rb = $('raceBtn');
+    rb.style.display = onlineReady() ? '' : 'none';
+    rb.innerHTML = '👥 Riddle Race';
+    if (onlineReady()) {
+      api('GET', '/rooms').then(function (res) {
+        if (body.classList.contains('on-title') && res.invites) rb.innerHTML = '👥 Riddle Race <span class="badge-n">' + res.invites + '</span>';
+      }, function () {});
+    }
   }
   // タイトル画面とプレイ中の Moku にも、ハブの Moku Closet で選んだ服を着せる
   function renderOutfit() {
@@ -1134,12 +1173,474 @@ var RIDDLES = [
     $('miniOutfit').innerHTML = svg;
   }
 
+
+  // ================================================================
+  // Riddle Race(SPEC.md §14、backend/src/roomApi.js、API_SPEC.md "Rooms")
+  // 2〜6人が同時に同じ問題を解く早押し。ホストが部屋を作り、友達は4文字のコードか招待で入る。
+  // どこまで進んだか(カウントダウン/問題/答え合わせ/終わり)は、サーバーと同じ
+  // MokuRiddles.raceTimeline() で startAt と wins から出す。部屋は GET /rooms/{id}?v= を1秒おきに見る。
+  // ================================================================
+  var RACE_WIN_RIDDLE = 5, RACE_FINISH = 10, RACE_FIRST = 30;   // Moint(1日 500 の上限の中)
+  var PAID_KEEP_MS = 3 * 24 * 60 * 60 * 1000;                   // 部屋は1日で消えるので、それより長く覚える
+  var race = null;   // { id, key, room, offset, poll, tick, shownQ, revealQ, finalShown, lobbySig, movingNext }
+  var raceCount = 5;
+
+  function onlineReady() {
+    var A = window.MokuAccount;
+    return !!(A && A.isEnabled() && A.getUser());
+  }
+  // Rejects with { code, status, data }; code 'offline' when the request never got through
+  function api(method, path, data) {
+    var A = window.MokuAccount;
+    var headers = { authorization: 'Bearer ' + A.getToken() };
+    if (data) headers['content-type'] = 'application/json';
+    return fetch(A.apiBase() + path, { method: method, headers: headers, body: data ? JSON.stringify(data) : undefined })
+      .then(function (res) {
+        return res.json().catch(function () { return {}; }).then(function (d) {
+          if (res.ok) return d;
+          var err = new Error(d.message || 'Something went wrong.');
+          err.code = d.error || 'http_' + res.status; err.status = res.status; err.data = d;
+          throw err;
+        });
+      }, function () {
+        var err = new Error("You're offline.");
+        err.code = 'offline';
+        throw err;
+      });
+  }
+  function serverNow() { return Date.now() + (race ? race.offset : 0); }
+  // サーバーの部屋(wins は配列)を raceTimeline の形(wins は q → { at, tag })に
+  function timeline() {
+    var room = race.room, wins = {};
+    room.wins.forEach(function (w) { wins[w.q] = w; });
+    return MokuRiddles.raceTimeline({ status: room.status === 'done' ? 'playing' : room.status, startAt: room.startAt, count: room.count, wins: wins }, serverNow());
+  }
+  function playerByTag(tag) {
+    return race ? race.room.players.filter(function (p) { return p.tag === tag; })[0] || null : null;
+  }
+  // 友達の Moku は Closet の服で(GET /players の公開カード。まだなければ素の Moku)
+  function avatarHTML(tag) {
+    var M = window.MokuMoint, outfit = '';
+    if (M && race && tag === race.room.you) outfit = M.outfitSVG(M.closet().equipped);
+    else if (M) {
+      var A = window.MokuAccount, list = A && A.getPlayers && A.getPlayers();
+      var p = list && list.players.filter(function (x) { return x.tag === tag; })[0];
+      if (p && p.card && p.card.outfit) outfit = M.outfitSVG(p.card.outfit);
+    }
+    return '<span class="av"><img src="brand/mokumoku-hero.png" alt="">' + outfit + '</span>';
+  }
+  function errText(err) {
+    return err.code === 'offline' ? "You're offline. Try again soon." : err.status === 404 && err.code === 'not_found' ? 'Riddle Race is coming soon!' : err.message;
+  }
+
+  // ---------- menu ----------
+  function showRaceView(view) {
+    body.classList.remove('on-title', 'racing');
+    body.classList.add('on-race');
+    $('raceMenu').style.display = view === 'menu' ? '' : 'none';
+    $('raceLobby').style.display = view === 'lobby' ? '' : 'none';
+    ['solvedOverlay', 'resultOverlay', 'revealOverlay', 'finalOverlay'].forEach(function (id) { $(id).classList.remove('show'); });
+    $('countdownOv').classList.remove('show');
+  }
+  function openRaceMenu() {
+    stopRace();
+    showRaceView('menu');
+    $('raceScreen').scrollTop = 0;
+    loadMyRooms();
+    if (window.MokuAccount) MokuAccount.loadPlayers(true);
+  }
+  function loadMyRooms() {
+    var box = $('myRooms');
+    box.innerHTML = '<div class="note">Loading…</div>';
+    api('GET', '/rooms').then(function (res) {
+      if (!res.rooms.length) { box.innerHTML = '<div class="note">No invites yet. Make a room and share the code!</div>'; return; }
+      box.innerHTML = '';
+      res.rooms.forEach(function (room) {
+        var host = room.players.filter(function (p) { return p.host; })[0] || room.players[0];
+        var row = document.createElement('div');
+        row.className = 'row';
+        var what = room.status === 'playing' ? 'Racing now' : room.joined ? 'Waiting in the room' : 'Invited you!';
+        row.innerHTML = avatarHTML(host.tag) + '<span class="who"></span><button class="smallBtn">' + (room.joined ? 'Back ▶' : 'Join ▶') + '</button>';
+        row.querySelector('.who').textContent = host.name + '’s room · ' + room.id;
+        row.querySelector('.who').insertAdjacentHTML('beforeend', '<small>' + what + ' · ' + room.players.length + ' player' + (room.players.length === 1 ? '' : 's') + '</small>');
+        row.querySelector('button').addEventListener('click', function () { sfx.tap(); joinRoom(room.id); });
+        box.appendChild(row);
+      });
+    }, function (err) {
+      box.innerHTML = '<div class="note"></div>';
+      box.firstChild.textContent = errText(err);
+    });
+  }
+  function makeRoom() {
+    var btn = $('makeRoomBtn');
+    btn.disabled = true;
+    api('POST', '/rooms', { count: raceCount }).then(function (res) {
+      btn.disabled = false;
+      enterRoom(res.room);
+    }, function (err) { btn.disabled = false; toast(errText(err)); });
+  }
+  function joinRoom(code) {
+    code = String(code || '').toUpperCase().replace(/[^A-Z]/g, '');
+    if (code.length !== 4) { toast('Room codes have 4 letters.'); return; }
+    api('POST', '/rooms/' + code + '/join', {}).then(function (res) { $('codeInput').value = ''; enterRoom(res.room); }, function (err) {
+      toast(err.code === 'room_not_found' ? 'No room with that code.' : errText(err));
+    });
+  }
+
+  // ---------- room ----------
+  function enterRoom(room) {
+    stopRace();
+    race = { id: room.id, key: room.key, room: room, offset: room.now - Date.now(), shownQ: -1, revealQ: -1, finalShown: false, lobbySig: null, movingNext: false };
+    race.tick = setInterval(renderRace, 200);
+    renderRace();
+    schedulePoll();
+  }
+  function stopRace() {
+    if (race) { clearInterval(race.tick); clearTimeout(race.poll); }
+    race = null;
+    cur = null;
+    body.classList.remove('racing');
+    ['revealOverlay', 'finalOverlay'].forEach(function (id) { $(id).classList.remove('show'); });
+    $('countdownOv').classList.remove('show');
+  }
+  function schedulePoll() {
+    if (!race) return;
+    clearTimeout(race.poll);
+    var ph = timeline().phase;
+    race.poll = setTimeout(pollRoom, ph === 'lobby' ? 2000 : ph === 'done' ? 3000 : 1000);
+  }
+  function pollRoom() {
+    if (!race) return;
+    var r = race;
+    if (document.hidden) { schedulePoll(); return; }
+    api('GET', '/rooms/' + r.id + '?v=' + r.room.version).then(function (res) {
+      if (race !== r) return;
+      r.offset = res.now - Date.now();
+      if (res.changed) setRoom(res.room);
+      schedulePoll();
+    }, function (err) {
+      if (race !== r) return;
+      if (err.status === 404 || err.status === 401) { toast('This room is gone.'); openRaceMenu(); return; }
+      schedulePoll();
+    });
+  }
+  function setRoom(room) {
+    if (!race || room.key !== race.key) return;
+    var before = {};
+    race.room.players.forEach(function (p) { before[p.tag] = p.score; });
+    race.room = room;
+    race.offset = room.now - Date.now();
+    race.bumped = room.players.filter(function (p) { return before[p.tag] !== undefined && p.score > before[p.tag]; }).map(function (p) { return p.tag; });
+    renderRace();
+  }
+
+  function renderRace() {
+    if (!race) return;
+    var tl = timeline();
+    if (tl.phase === 'closed') { toast('The host closed the room.'); openRaceMenu(); return; }
+    if (tl.phase === 'lobby') {
+      if (!body.classList.contains('on-race') || $('raceLobby').style.display === 'none') showRaceView('lobby');
+      renderLobby();
+      return;
+    }
+    if (!body.classList.contains('racing')) {
+      body.classList.remove('on-race', 'on-title');
+      body.classList.add('racing');
+      race.chipSig = null;
+      $('answer').blur();
+    }
+    renderChips();
+    $('countdownOv').classList.toggle('show', tl.phase === 'countdown');
+    if (tl.phase === 'countdown') {
+      var n = String(Math.max(1, Math.ceil((tl.startAt - serverNow()) / 1000)));
+      if ($('countNum').textContent !== n) {
+        $('countNum').textContent = n;
+        var c = $('countNum'); c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop');
+        tone(n === '1' ? 784 : 587, 0, 0.15, 'triangle', 0.12);
+      }
+      $('countSub').textContent = race.room.count + ' riddles. Be the first!';
+      $('hudCount').textContent = 'Get ready!';
+      $('timerFill').style.width = '100%';
+      return;
+    }
+    if (tl.phase === 'question') {
+      if (race.shownQ !== tl.q) showRaceRiddle(tl.q);
+      $('revealOverlay').classList.remove('show');
+      var left = tl.endsAt - serverNow(), elapsed = serverNow() - tl.startAt;
+      $('timerFill').style.width = Math.max(0, left / MokuRiddles.RACE.LIMIT_MS * 100) + '%';
+      $('timerFill').classList.toggle('low', left < 10000);
+      // 時間がたったら、みんなに同じヒントが出る(15秒で意味、30秒で頭文字)
+      if (elapsed > 15000 && cur.hint < 1) { cur.hint = 1; showFreeHint(false); }
+      if (elapsed > 30000 && cur.hint < 2) { cur.hint = 2; showFreeHint(true); }
+      return;
+    }
+    if (tl.phase === 'reveal') {
+      if (race.revealQ !== tl.q) showReveal(tl);
+      var last = tl.q + 1 >= race.room.count;
+      $('revealNext').textContent = (last ? 'Results in ' : 'Next riddle in ') + Math.max(1, Math.ceil((tl.nextAt - serverNow()) / 1000)) + '…';
+      return;
+    }
+    // done
+    $('revealOverlay').classList.remove('show');
+    if (!race.finalShown) showFinal();
+    else if (race.room.next && !race.room.isHost && !race.movingNext) moveToNext();
+  }
+
+  function renderLobby() {
+    var room = race.room, A = window.MokuAccount, list = A && A.getPlayers && A.getPlayers();
+    var sig = room.version + ':' + (list ? list.players.length : 0);
+    if (race.lobbySig === sig) return;
+    race.lobbySig = sig;
+    $('lobbyCode').innerHTML = tilesHTML(room.id, { size: 48, maxW: 260 });
+    $('lobbyHint').textContent = room.joined ? 'Tell your friends this code!' : 'You are invited!';
+    $('lobbyTitle').textContent = 'Players (' + room.players.length + ' / 6) · ' + room.count + ' riddles';
+    var box = $('lobbyPlayers');
+    box.innerHTML = '';
+    room.players.forEach(function (p) {
+      var row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML = avatarHTML(p.tag) + '<span class="who"></span>' + (p.host ? '<span class="host">👑 Host</span>' : '');
+      row.querySelector('.who').textContent = p.name + (p.tag === room.you ? ' (You)' : '');
+      row.querySelector('.who').insertAdjacentHTML('beforeend', '<small>#' + p.tag + '</small>');
+      box.appendChild(row);
+    });
+    room.invited.forEach(function (p) {
+      var row = document.createElement('div');
+      row.className = 'row';
+      row.style.opacity = '0.6';
+      row.innerHTML = avatarHTML(p.tag) + '<span class="who"></span><span class="note">Invited…</span>';
+      row.querySelector('.who').textContent = p.name;
+      box.appendChild(row);
+    });
+    var sb = $('startBtn'), wait = $('lobbyWait');
+    if (!room.joined) {
+      sb.style.display = ''; sb.disabled = false; sb.textContent = 'Join this Room ▶';
+      wait.textContent = '';
+    } else if (room.isHost) {
+      sb.style.display = ''; sb.disabled = room.players.length < 2; sb.textContent = 'Start the Race ▶';
+      wait.textContent = room.players.length < 2 ? 'Waiting for a friend to join…' : 'Everyone here? Start when you are ready!';
+    } else {
+      sb.style.display = 'none';
+      wait.textContent = 'Waiting for the host to start…';
+    }
+    $('leaveBtn').textContent = room.joined ? 'Leave Room' : 'No Thanks';
+    // Invite Friends(ホスト以外のプレイヤーも招待できる)
+    $('invitePanel').style.display = room.joined ? '' : 'none';
+    var inv = $('inviteList');
+    var inRoom = {};
+    room.players.concat(room.invited).forEach(function (p) { inRoom[p.tag] = p; });
+    // GET /players の行: { displayName, tag, online, you, card }
+    var friends = list ? list.players.filter(function (p) { return !p.you && p.tag !== room.you && !room.players.some(function (x) { return x.tag === p.tag; }); }) : [];
+    friends.sort(function (a, b) { return (b.online ? 1 : 0) - (a.online ? 1 : 0); });
+    inv.innerHTML = friends.length ? '' : '<div class="note">' + (list ? 'No friends to invite yet. Share the code!' : 'Loading friends…') + '</div>';
+    friends.slice(0, 20).forEach(function (p) {
+      var row = document.createElement('div');
+      row.className = 'row';
+      var invited = !!inRoom[p.tag];
+      row.innerHTML = avatarHTML(p.tag) + '<span class="who"></span><button class="smallBtn"' + (invited ? ' disabled' : '') + '>' + (invited ? 'Invited ✓' : 'Invite') + '</button>';
+      row.querySelector('.who').textContent = p.displayName;
+      row.querySelector('.who').insertAdjacentHTML('beforeend', '<small>' + (p.online ? '<span class="online"></span>Online' : '#' + p.tag) + '</small>');
+      row.querySelector('button').addEventListener('click', function (e) {
+        sfx.tap();
+        e.target.disabled = true;
+        api('POST', '/rooms/' + room.id + '/invite', { tag: p.tag }).then(function (res) { setRoom(res.room); toast('Invited ' + p.displayName + '!'); }, function (err) {
+          e.target.disabled = false; toast(errText(err));
+        });
+      });
+      inv.appendChild(row);
+    });
+  }
+
+  function renderChips() {
+    var room = race.room;
+    var sig = room.version + ':' + room.players.length;
+    if (race.chipSig === sig) return;
+    race.chipSig = sig;
+    $('scoreChips').innerHTML = room.players.map(function (p) {
+      var bump = race.bumped && race.bumped.indexOf(p.tag) >= 0;
+      return '<span class="chip' + (p.tag === room.you ? ' me' : '') + (bump ? ' pop' : '') + '">' + avatarHTML(p.tag) +
+        '<span class="nm">' + esc(p.name) + '</span><b>' + p.score + '</b></span>';
+    }).join('');
+  }
+
+  function showRaceRiddle(q) {
+    var room = race.room, r = MokuRiddles.get(room.riddles[q]);
+    race.shownQ = q;
+    cur = { r: r, q: q, hint: 0, wrong: 0, locked: false };
+    $('revealOverlay').classList.remove('show');
+    renderArt(r, true);
+    $('hudCount').textContent = 'Riddle ' + (q + 1) + ' / ' + room.count;
+    $('hintBox').classList.remove('show');
+    $('choices').classList.remove('show');
+    $('answer').value = '';
+    $('answer').disabled = false;
+    say(q === 0 ? 'Go! Who will be first?' : 'Next one! Quick!', true);
+    renderMoints();
+    tone(988, 0, 0.12, 'triangle', 0.1);
+    var card = $('riddleCard');
+    card.classList.remove('pop'); void card.offsetWidth; card.classList.add('pop');
+  }
+  function showFreeHint(letters) {
+    var r = cur.r;
+    $('hintText').textContent = '💡 ' + r.clue;
+    $('slots').innerHTML = letters ? tilesHTML(r.answer, { size: 24, maxW: 280, mask: function (ch, i) { return i === 0 || r.answer[i - 1] === ' ' ? ch : ''; } }) : '';
+    $('hintBox').classList.add('show');
+    say(letters ? 'Here are the first letters!' : 'Here is a free hint for everyone!', true);
+    sfx.hint();
+  }
+
+  function raceAnswer(value) {
+    if (!cur || cur.locked) return;
+    if (!norm(value)) { say('Type your answer first!', true); $('answer').focus(); return; }
+    if (!MokuRiddles.isCorrect(cur.r.id, value)) {
+      cur.wrong += 1;
+      var card = $('riddleCard');
+      card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake');
+      var close = accepted(cur.r).some(function (a) { return a.length > 3 && editDistance(a, norm(value)) <= 1; });
+      if (close) { sfx.close(); say('So close! Check your spelling.', true); }
+      else { sfx.wrong(); say(cur.wrong > 1 ? 'Keep trying! You can do it!' : 'Not quite. Try again!', true); }
+      return;
+    }
+    var q = cur.q, r = race;
+    cur.locked = true;
+    say('Checking…');
+    api('POST', '/rooms/' + r.id + '/answer', { q: q, answer: value }).then(function (res) {
+      if (race !== r) return;
+      if (res.first) { sfx.correct(); confetti(); say('Hoot hoot! You were first!', true); }
+      else { sfx.close(); say('Right! But someone was faster…', true); }
+      setRoom(res.room);
+    }, function (err) {
+      if (race !== r || !cur || cur.q !== q) return;
+      cur.locked = false;
+      toast(errText(err));
+    });
+  }
+
+  function showReveal(tl) {
+    race.revealQ = tl.q;
+    if (cur) cur.locked = true;
+    $('answer').blur();
+    var room = race.room, r = MokuRiddles.get(room.riddles[tl.q]), w = tl.win;
+    var who = w && playerByTag(w.tag);
+    if (w && w.tag === room.you) { $('revealTitle').textContent = '🎉 You were first!'; }
+    else if (who) { $('revealTitle').textContent = '⭐ ' + who.name + ' was first!'; tone(659, 0, 0.2, 'triangle', 0.1); tone(523, 0.15, 0.3, 'triangle', 0.1); }
+    else { $('revealTitle').textContent = '⏰ Time’s up!'; sfx.skip(); }
+    $('revealSub').textContent = 'The answer is…';
+    $('revealTiles').innerHTML = tilesHTML(r.answer, { size: 30, maxW: 310, stagger: true });
+    $('revealWhy').textContent = r.why;
+    $('revealOverlay').classList.add('show');
+  }
+
+  function ranking() {
+    var players = race.room.players.slice().sort(function (a, b) { return b.score - a.score; });
+    var rank = 0, last = null;
+    return players.map(function (p, i) {
+      if (p.score !== last) { rank = i + 1; last = p.score; }
+      return { p: p, rank: rank };
+    });
+  }
+  function showFinal() {
+    race.finalShown = true;
+    $('answer').blur();
+    var room = race.room, rows = ranking();
+    var me = rows.filter(function (x) { return x.p.tag === room.you; })[0];
+    var top = rows[0] ? rows[0].p.score : 0;
+    var iWon = !!me && me.p.score > 0 && me.p.score === top;
+    var tied = rows.filter(function (x) { return x.rank === 1; }).length > 1;
+    $('finalTitle').textContent = iWon ? (tied ? '🤝 You tied for 1st!' : '👑 You won!') : top > 0 ? 'Race Over!' : 'Race Over!';
+    var winners = rows.filter(function (x) { return x.rank === 1 && x.p.score > 0; }).map(function (x) { return x.p.name; });
+    $('finalSub').textContent = top === 0 ? 'Nobody got one this time. Try again!' : iWon ? 'You solved the most riddles first!' : winners.join(' & ') + ' wins!';
+    var medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
+    $('finalList').innerHTML = rows.map(function (x) {
+      return '<div class="row' + (x.p.tag === room.you ? ' me' : '') + '"><span class="rank">' + (x.p.score > 0 && medals[x.rank] || x.rank) + '</span>' + avatarHTML(x.p.tag) +
+        '<span class="who">' + esc(x.p.name) + (x.p.tag === room.you ? ' (You)' : '') + '<small>' + x.p.score + ' riddle' + (x.p.score === 1 ? '' : 's') + ' first</small></span><b>' + x.p.score + '</b></div>';
+    }).join('');
+    var got = payRace(me ? me.p.score : 0, iWon);
+    $('finalRewards').innerHTML = got === null ? '' : '<span class="reward mo"><span class="mcoin">M</span>+' + got + '</span>';
+    $('finalNote').textContent = got === null ? '' : 'Today ' + earnedToday() + ' / ' + dailyCap() + ' Moints';
+    var again = $('finalAgain');
+    again.disabled = !room.isHost;
+    again.textContent = room.isHost ? 'Play Again ▶' : 'Waiting for the host…';
+    if (iWon) { sfx.fanfare(); confetti(); } else sfx.correct();
+    $('finalOverlay').classList.add('show');
+  }
+  // 1レース1回だけ(部屋の key で覚える)。勝った問題 ×5 + 最後まで +10 + 1位 +30。
+  function payRace(score, iWon) {
+    var key = race.room.key, t = Date.now(), paid = progress.race.paid;
+    Object.keys(paid).forEach(function (k) { if (!(paid[k] > t)) delete paid[k]; });
+    if (paid[key]) { save(); return null; }
+    var got = earn(score * RACE_WIN_RIDDLE + RACE_FINISH + (iWon ? RACE_FIRST : 0));
+    paid[key] = t + PAID_KEEP_MS;
+    progress.race.played += 1;
+    if (iWon) progress.race.won += 1;
+    save();
+    renderMoints();
+    if (got) setTimeout(sfx.coin, 500);
+    return got;
+  }
+  function playAgain() {
+    var btn = $('finalAgain');
+    btn.disabled = true;
+    api('POST', '/rooms/' + race.id + '/again', {}).then(function (res) { enterRoom(res.room); }, function (err) { btn.disabled = false; toast(errText(err)); });
+  }
+  // ホストが「もう一回」を押したら、ほかの人も新しい部屋へ
+  function moveToNext() {
+    race.movingNext = true;
+    var code = race.room.next;
+    api('GET', '/rooms/' + code).then(function (res) {
+      if (res.room) { toast('New race! Let’s go!'); enterRoom(res.room); }
+    }, function () { if (race) race.movingNext = false; });
+  }
+
+  // ---------- race events ----------
+  $('raceBtn').addEventListener('click', function () { sfx.tap(); openRaceMenu(); });
+  $('raceBack').addEventListener('click', function () {
+    sfx.tap();
+    if (race) openRaceMenu();   // ロビーから戻っても部屋には残る(Invites から戻れる)
+    else toTitle();
+  });
+  $('countSeg').addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    raceCount = Number(b.getAttribute('data-n'));
+    Array.prototype.forEach.call($('countSeg').children, function (x) { x.classList.toggle('on', x === b); });
+  });
+  $('makeRoomBtn').addEventListener('click', function () { sfx.tap(); makeRoom(); });
+  $('joinForm').addEventListener('submit', function (e) { e.preventDefault(); sfx.tap(); $('codeInput').blur(); joinRoom($('codeInput').value); });
+  $('codeInput').addEventListener('input', function () {
+    var v = this.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
+    if (v !== this.value) this.value = v;
+  });
+  $('startBtn').addEventListener('click', function () {
+    if (!race) return;
+    sfx.tap();
+    var room = race.room, btn = this;
+    btn.disabled = true;
+    var path = room.joined ? '/start' : '/join';
+    api('POST', '/rooms/' + room.id + path, {}).then(function (res) { race.lobbySig = null; setRoom(res.room); }, function (err) {
+      btn.disabled = false; toast(errText(err));
+    });
+  });
+  $('leaveBtn').addEventListener('click', function () {
+    if (!race) return;
+    sfx.tap();
+    var id = race.id;
+    api('POST', '/rooms/' + id + '/leave', {}).then(function () {}, function () {});
+    openRaceMenu();
+  });
+  $('finalAgain').addEventListener('click', function () { sfx.tap(); playAgain(); });
+  $('finalMenu').addEventListener('click', function () { sfx.tap(); openRaceMenu(); });
+  window.addEventListener('moku:players', function () { if (race) { race.lobbySig = null; race.chipSig = null; } });
+
   // ---------- events ----------
   $('playBtn').addEventListener('click', function () { sfx.tap(); startRound(); });
   $('howBtn').addEventListener('click', function () { sfx.tap(); $('howOverlay').classList.add('show'); });
   $('howClose').addEventListener('click', function () { sfx.tap(); $('howOverlay').classList.remove('show'); });
-  $('menuBtn').addEventListener('click', function () { sfx.tap(); toTitle(); });
-  $('answerRow').addEventListener('submit', function (e) { e.preventDefault(); check($('answer').value); });
+  $('menuBtn').addEventListener('click', function () { sfx.tap(); if (race) openRaceMenu(); else toTitle(); });
+  $('answerRow').addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (race) raceAnswer($('answer').value); else check($('answer').value);
+  });
   $('hintBtn').addEventListener('click', useHint);
   $('skipBtn').addEventListener('click', skip);
   $('nextBtn').addEventListener('click', function () { sfx.tap(); next(); });
@@ -1157,7 +1658,7 @@ var RIDDLES = [
     if ($('solvedOverlay').classList.contains('show')) { e.preventDefault(); next(); }
   });
   document.addEventListener('visibilitychange', function () {
-    if (!document.hidden) { renderMoints(); renderOutfit(); if (cur) renderHelp(); }
+    if (!document.hidden) { renderMoints(); renderOutfit(); if (cur && !race) renderHelp(); if (race) pollRoom(); }
   });
 
   renderTitle();

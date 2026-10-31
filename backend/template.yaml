@@ -123,6 +123,14 @@ Resources:
         "POST /matches":
           ThrottlingBurstLimit: 10
           ThrottlingRateLimit: 5
+        # Riddle Race: every page in a room polls GET /rooms/{id} each second
+        # during the race (6 players ≈ 6/s per room), and answers come in bursts.
+        "GET /rooms/{id}":
+          ThrottlingBurstLimit: 80
+          ThrottlingRateLimit: 40
+        "POST /rooms/{id}/answer":
+          ThrottlingBurstLimit: 40
+          ThrottlingRateLimit: 20
       CorsConfiguration:
         AllowOrigins:
           - !Ref AllowedOrigin
@@ -357,6 +365,61 @@ Resources:
           Properties:
             ApiId: !Ref MokuScoresApi
             Path: /challenges/{id}/result
+            Method: POST
+        # Riddle Race rooms (src/roomApi.js, API_SPEC.md "Rooms").
+        CreateRoom:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /rooms
+            Method: POST
+        ListRooms:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /rooms
+            Method: GET
+        GetRoom:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /rooms/{id}
+            Method: GET
+        JoinRoom:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /rooms/{id}/join
+            Method: POST
+        InviteToRoom:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /rooms/{id}/invite
+            Method: POST
+        LeaveRoom:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /rooms/{id}/leave
+            Method: POST
+        StartRoom:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /rooms/{id}/start
+            Method: POST
+        RoomAnswer:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /rooms/{id}/answer
+            Method: POST
+        RoomAgain:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /rooms/{id}/again
             Method: POST
 
 Outputs:
