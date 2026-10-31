@@ -127,6 +127,7 @@ sam local start-api
 - `src/accountApi.js` — `/auth/*` `/save` ハンドラ(ストア非依存。`createAccountApi(store, config)`)。
 - `src/accountStore.js` / `src/memoryStore.js` — DynamoDB(`moku-accounts` テーブル) / メモリ版のストア。
 - `src/token.js` / `src/pin.js` — ログイントークン(HMAC署名) / PINハッシュ(scrypt)。
+- `src/roomApi.js` — `/rooms` ハンドラ(Riddle Race。Lambda は `MatchFunction` を共用)。問題と答えの判定は `src/vendor/moku-riddles.js`(`shared/` のコピー。**直接直さない**。`shared/` を直して `cp shared/moku-riddles.js backend/src/vendor/`)。
 - `src/matchApi.js` — `/matches` ハンドラ(オンライン対戦。Lambda は `MatchFunction`)。チェスのルールは `src/vendor/moku-chess-rules.js`(`shared/` のコピー。**直接直さない**。`shared/` を直して `cp shared/moku-chess-rules.js backend/src/vendor/`。違うと `npm test` が失敗する)。
 - `scripts/accounts.js` — 管理用CLI。`dev/mount.js` — `server.js` 用のモック。
 

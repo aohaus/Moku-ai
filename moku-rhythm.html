@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <script src="shared/moku-errors.js?v=20261026"></script>
 <script src="shared/moku-gate.js?v=20261026"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>MOKU RHYTHM CAFE - Lo-Fi Beat Rush | Moku Series</title>
+<title>Moku Rhythm Cafe | Moku Series</title>
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -311,9 +311,100 @@ canvas#rhythmCanvas {
     margin-top: 1px;
   }
 }
+/* Song select (title screen) */
+#titleScreen {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px 16px;
+  text-align: center;
+  background: radial-gradient(circle at 50% 30%, rgba(92, 44, 60, 0.92), rgba(31, 13, 22, 0.96));
+  overflow-y: auto;
+}
+#titleScreen.active { display: flex; }
+.title-owl { font-size: 46px; line-height: 1; animation: owlBob 1.2s ease-in-out infinite; }
+@keyframes owlBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+.title-logo {
+  font-family: 'Fredoka', cursive, sans-serif;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--accent-gold);
+  text-shadow: 0 3px 0 #7A4214, 0 8px 20px rgba(0, 0, 0, 0.5);
+}
+.title-sub { font-size: 13px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; }
+#songList { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 360px; }
+.song-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 2px solid rgba(255, 201, 74, 0.45);
+  background: linear-gradient(180deg, rgba(255, 244, 225, 0.12), rgba(255, 244, 225, 0.05));
+  color: var(--text-main);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.1s, border-color 0.1s;
+}
+.song-card:hover { border-color: var(--accent-gold); }
+.song-card:active { transform: scale(0.97); }
+.song-icon { font-size: 30px; line-height: 1; }
+.song-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.song-name { font-family: 'Fredoka', cursive, sans-serif; font-size: 17px; font-weight: 700; }
+.song-meta { font-size: 11px; font-weight: 700; color: var(--text-muted); }
+.song-play {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #FF6B97, #C084FC);
+  font-size: 13px; color: #FFF;
+}
+.title-hint { font-size: 11.5px; line-height: 1.5; color: var(--text-muted); margin-top: 8px; }
+
+.btn-secondary {
+  margin-top: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--text-main);
+  font-size: 14px;
+  font-weight: 800;
+  padding: 10px 26px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.btn-primary { font-family: inherit; }
+.result-stars { font-size: 34px; letter-spacing: 4px; margin-bottom: 10px; }
+.result-stars .on { color: var(--accent-gold); text-shadow: 0 0 12px rgba(255, 201, 74, 0.6); }
+.result-stars .off { color: rgba(255, 255, 255, 0.18); }
+.result-counts { display: flex; justify-content: center; gap: 10px; margin-top: 8px; font-size: 11.5px; font-weight: 800; }
+.c-perfect { color: #FFC94A; }
+.c-great { color: #6EE7A8; }
+.c-miss { color: #FF6B97; }
+.result-best { margin-top: 6px; font-size: 12px; font-weight: 800; color: var(--text-main); }
+
+#buildInfo {
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 4px);
+  left: calc(env(safe-area-inset-left, 0px) + 10px);
+  z-index: 41;
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.28);
+  pointer-events: none;
+}
+body:not(.on-title) #buildInfo { display: none; }
 </style>
+<script src="shared/moku-account.js?v=20261031" data-mode="background"></script>
 </head>
-<body>
+<body class="on-title">
 
 <div id="game-wrapper">
   <!-- Header -->
@@ -321,7 +412,7 @@ canvas#rhythmCanvas {
     <a href="hub.html" class="hub-link" id="backToHubBtn" aria-label="Return to Moku Series Hub">
       <span>◀ Hub</span>
     </a>
-    
+
     <div class="stats-pill">
       <div class="stats-label">Score</div>
       <div class="stats-value" id="scoreDisplay">0</div>
@@ -339,89 +430,312 @@ canvas#rhythmCanvas {
   <div class="cafe-stage">
     <div class="judge-banner" id="judgeBanner">PERFECT!</div>
     <canvas id="rhythmCanvas"></canvas>
+
+    <!-- Song select (title screen) -->
+    <div id="titleScreen">
+      <div class="title-owl">🦉☕</div>
+      <div class="title-logo">Moku Rhythm Cafe</div>
+      <div class="title-sub">Pick a song and tap along with the music!</div>
+      <div id="songList"></div>
+      <div class="title-hint">Tap ☕ 🍰 🍓 when a note reaches the pink line.<br>Low notes ☕ · middle notes 🍰 · high notes 🍓</div>
+    </div>
   </div>
 
   <!-- 3 Rhythm Lanes -->
   <div class="tap-lanes-bar">
     <button class="lane-btn" data-lane="0" id="laneBtn0">
       <span class="lane-icon">☕</span>
-      <span class="lane-name">Coffee</span>
+      <span class="lane-name">Low</span>
     </button>
     <button class="lane-btn" data-lane="1" id="laneBtn1">
       <span class="lane-icon">🍰</span>
-      <span class="lane-name">Cake</span>
+      <span class="lane-name">Middle</span>
     </button>
     <button class="lane-btn" data-lane="2" id="laneBtn2">
       <span class="lane-icon">🍓</span>
-      <span class="lane-name">Berry</span>
+      <span class="lane-name">High</span>
     </button>
   </div>
 
   <!-- Results Modal -->
   <div id="resultsModal" class="modal-overlay">
-    <div class="modal-title">☕ CAFE CONCERT CLEARED!</div>
-    <div style="font-size: 14px; color: var(--text-muted); margin-bottom: 16px;">Forest guests loved your rhythmic brew!</div>
+    <div class="modal-title" id="resultTitle">☕ SONG CLEARED!</div>
+    <div id="resultSong" style="font-size: 14px; color: var(--text-muted); margin-bottom: 8px;">Forest guests loved your rhythmic brew!</div>
+    <div class="result-stars" id="resultStars">★★★</div>
     <div class="modal-card">
       <div class="stats-label">Final Cafe Score</div>
       <div class="stats-value" id="finalScoreDisplay" style="font-size: 32px; color: var(--accent-mint);">0</div>
       <div class="stats-label" id="maxComboLabel" style="color: var(--accent-gold); margin-top: 6px;">Max Combo: 0</div>
+      <div class="result-counts" id="resultCounts"></div>
+      <div class="result-best" id="resultBest"></div>
     </div>
-    <button class="btn-primary" id="replayBtn">▶ Play Song Again</button>
+    <button class="btn-primary" id="replayBtn">▶ Play Again</button>
+    <button class="btn-secondary" id="songsBtn">🎵 Choose a Song</button>
   </div>
 </div>
+
+<div id="buildInfo">v1.1.0 · Updated Oct 30, 2026</div>
 
 <script>
 (function() {
   'use strict';
 
-  // --- AUDIO & MUSIC SYNTHESIZER ---
+  // ============================================================
+  // 曲データ(パブリックドメインの有名曲)
+  // melody: "音名オクターブ:拍数"。R は休符。
+  // chords: 2拍ごとのコード(melody と同じ長さ)。
+  // lanes: 音の高さ → レーン(0 = 低い ☕ / 1 = 真ん中 🍰 / 2 = 高い 🍓)。
+  // ============================================================
+  var SONGS = [
+    {
+      id: 'twinkle',
+      title: 'Twinkle Twinkle Little Star',
+      icon: '⭐',
+      level: 'Easy',
+      bpm: 100,
+      rounds: 2,
+      lanes: { C4: 0, D4: 0, E4: 1, F4: 1, G4: 2, A4: 2 },
+      melody:
+        'C4:1 C4:1 G4:1 G4:1 A4:1 A4:1 G4:2 F4:1 F4:1 E4:1 E4:1 D4:1 D4:1 C4:2 ' +
+        'G4:1 G4:1 F4:1 F4:1 E4:1 E4:1 D4:2 G4:1 G4:1 F4:1 F4:1 E4:1 E4:1 D4:2 ' +
+        'C4:1 C4:1 G4:1 G4:1 A4:1 A4:1 G4:2 F4:1 F4:1 E4:1 E4:1 D4:1 D4:1 C4:2',
+      chords:
+        'C C F C F C G C ' +
+        'C F C G C F C G ' +
+        'C C F C F C G C'
+    },
+    {
+      // かえるのうた(ドイツ民謡)。輪唱の曲なので、2周目から2小節遅れでもう1人が追いかける(canon)
+      id: 'frog',
+      title: 'The Frog Song',
+      icon: '🐸',
+      level: 'Easy',
+      bpm: 100,
+      rounds: 3,
+      canon: 8,
+      lanes: { C4: 0, D4: 0, E4: 1, F4: 1, G4: 2, A4: 2 },
+      melody:
+        'C4:1 D4:1 E4:1 F4:1 E4:1 D4:1 C4:2 ' +
+        'E4:1 F4:1 G4:1 A4:1 G4:1 F4:1 E4:2 ' +
+        'C4:1 R:1 C4:1 R:1 C4:1 R:1 C4:1 R:1 ' +
+        'C4:0.5 C4:0.5 D4:0.5 D4:0.5 E4:0.5 E4:0.5 F4:0.5 F4:0.5 E4:1 D4:1 C4:2',
+      chords:
+        'C C G C C F C C ' +
+        'C C C C C F G C'
+    },
+    {
+      id: 'ode',
+      title: 'Ode to Joy',
+      icon: '🎻',
+      level: 'Normal',
+      bpm: 112,
+      rounds: 2,
+      lanes: { G3: 0, C4: 0, D4: 0, E4: 1, F4: 1, G4: 2 },
+      melody:
+        'E4:1 E4:1 F4:1 G4:1 G4:1 F4:1 E4:1 D4:1 C4:1 C4:1 D4:1 E4:1 E4:1.5 D4:0.5 D4:2 ' +
+        'E4:1 E4:1 F4:1 G4:1 G4:1 F4:1 E4:1 D4:1 C4:1 C4:1 D4:1 E4:1 D4:1.5 C4:0.5 C4:2 ' +
+        'D4:1 D4:1 E4:1 C4:1 D4:1 E4:0.5 F4:0.5 E4:1 C4:1 D4:1 E4:0.5 F4:0.5 E4:1 D4:1 C4:1 D4:1 G3:2 ' +
+        'E4:1 E4:1 F4:1 G4:1 G4:1 F4:1 E4:1 D4:1 C4:1 C4:1 D4:1 E4:1 D4:1.5 C4:0.5 C4:2',
+      chords:
+        'C C G G C C G G ' +
+        'C C G G C C G C ' +
+        'G C G C G C C G ' +
+        'C C G G C C G C'
+    }
+  ];
+
+  // pad = やわらかい和音、bass = 1拍目と2拍目のベース
+  var CHORD_TONES = {
+    C: { pad: ['E3', 'G3', 'C4'], bass: ['C2', 'G2'] },
+    F: { pad: ['F3', 'A3', 'C4'], bass: ['F2', 'C3'] },
+    G: { pad: ['D3', 'G3', 'B3'], bass: ['G2', 'D2'] }
+  };
+  var NOTE_INDEX = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+
+  function noteFreq(name) {
+    var m = /^([A-G])(#?)(\d)$/.exec(name);
+    if (!m) return 440;
+    var midi = (parseInt(m[3], 10) + 1) * 12 + NOTE_INDEX[m[1]] + (m[2] ? 1 : 0);
+    return 440 * Math.pow(2, (midi - 69) / 12);
+  }
+
+  // --- セーブ(ハブは moku_rhythm_best を読む。曲ごとのベストは moku_rhythm_bests)---
+  function loadBests() {
+    try { return JSON.parse(localStorage.getItem('moku_rhythm_bests') || '{}') || {}; } catch (e) { return {}; }
+  }
+  function saveBest(songId, score) {
+    var bests = loadBests();
+    var isNew = score > (bests[songId] || 0);
+    try {
+      if (isNew) {
+        bests[songId] = score;
+        localStorage.setItem('moku_rhythm_bests', JSON.stringify(bests));
+      }
+      var overall = parseInt(localStorage.getItem('moku_rhythm_best') || '0', 10) || 0;
+      if (score > overall) localStorage.setItem('moku_rhythm_best', String(score));
+    } catch (e) {}
+    return isNew;
+  }
+
+  // ============================================================
+  // AUDIO(Web Audio API で合成。音源ファイルなし)
+  // 曲の時計は audioCtx.currentTime。ノーツの位置も判定もこの時計で決めるので、音とずれない。
+  // ============================================================
   var audioCtx = null;
+  var masterGain = null;
+  var songBus = null;
+  var noiseBuffer = null;
   var soundEnabled = true;
 
   function getAudioContext() {
     if (!audioCtx) {
       var AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      if (AudioContextClass) audioCtx = new AudioContextClass();
+      if (!AudioContextClass) return null;
+      try {
+        audioCtx = new AudioContextClass();
+        masterGain = audioCtx.createGain();
+        masterGain.gain.value = soundEnabled ? 1 : 0;
+        masterGain.connect(audioCtx.destination);
+      } catch (e) { audioCtx = null; return null; }
     }
-    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
     return audioCtx;
   }
 
-  // Pentatonic melodies & beats
-  var BEAT_FREQS = [
-    [261.63, 329.63, 392.00], // C major triad (Coffee)
-    [329.63, 392.00, 523.25], // E minor / G (Cake)
-    [392.00, 523.25, 659.25]  // High G / C (Berry)
-  ];
-
-  function playNoteSound(laneIdx, grade) {
-    if (!soundEnabled) return;
+  // タップ(ユーザー操作)の中で呼ぶ。iOS は無音のバッファを1つ鳴らすと音が出るようになる。
+  function unlockAudio() {
+    // iOS 17+: マナーモード(消音スイッチ)でも鳴らす
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+    var c = getAudioContext();
+    if (!c) return;
     try {
-      var ctx = getAudioContext();
-      if (!ctx) return;
-      var osc = ctx.createOscillator();
-      var gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      var now = ctx.currentTime;
-
-      var fList = BEAT_FREQS[laneIdx] || [440];
-      var baseF = fList[Math.floor(Math.random() * fList.length)];
-      if (grade === 'miss') baseF = 110;
-
-      osc.type = grade === 'miss' ? 'sawtooth' : 'triangle';
-      osc.frequency.setValueAtTime(baseF, now);
-      osc.frequency.exponentialRampToValueAtTime(baseF * 1.5, now + 0.12);
-
-      gain.gain.setValueAtTime(grade === 'perfect' ? 0.3 : 0.18, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
-
-      osc.start(now);
-      osc.stop(now + 0.18);
-    } catch(e) {}
+      var buf = c.createBuffer(1, 1, 22050);
+      var src = c.createBufferSource();
+      src.buffer = buf;
+      src.connect(c.destination);
+      src.start(0);
+    } catch (e) {}
+    if (c.state !== 'running' && c.resume) {
+      try { c.resume(); } catch (e) {}
+    }
   }
 
-  // --- CANVAS & STAGE ---
+  function whenAudioReady(cb) {
+    var done = false;
+    function go() { if (!done) { done = true; cb(); } }
+    var c = audioCtx;
+    if (!c || c.state === 'running') { go(); return; }
+    try {
+      var p = c.resume();
+      if (p && p.then) p.then(go, go);
+    } catch (e) {}
+    setTimeout(go, 600); // resume が返ってこない端末でも止めない
+  }
+
+  function tone(dest, t, freq, dur, type, vol, attack) {
+    var c = audioCtx;
+    var osc = c.createOscillator();
+    var g = c.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t);
+    var a = attack || 0.01;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(vol, t + a);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(a + 0.02, dur));
+    osc.connect(g);
+    g.connect(dest);
+    osc.start(t);
+    osc.stop(t + dur + 0.05);
+  }
+
+  function getNoise() {
+    if (noiseBuffer) return noiseBuffer;
+    var c = audioCtx;
+    noiseBuffer = c.createBuffer(1, Math.floor(c.sampleRate * 0.2), c.sampleRate);
+    var d = noiseBuffer.getChannelData(0);
+    for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    return noiseBuffer;
+  }
+
+  function hat(dest, t, vol) {
+    var c = audioCtx;
+    var src = c.createBufferSource();
+    src.buffer = getNoise();
+    var hp = c.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 7000;
+    var g = c.createGain();
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+    src.connect(hp); hp.connect(g); g.connect(dest);
+    src.start(t);
+    src.stop(t + 0.08);
+  }
+
+  function kick(dest, t) {
+    var c = audioCtx;
+    var osc = c.createOscillator();
+    var g = c.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(130, t);
+    osc.frequency.exponentialRampToValueAtTime(48, t + 0.14);
+    g.gain.setValueAtTime(0.32, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+    osc.connect(g); g.connect(dest);
+    osc.start(t);
+    osc.stop(t + 0.2);
+  }
+
+  // 曲の1イベントを鳴らす(t は audioCtx の時刻)
+  function playEvent(ev, t) {
+    var dest = songBus;
+    var spb = 60 / currentSong.bpm;
+    switch (ev.type) {
+      case 'click':
+        tone(dest, t, ev.accent ? 1568 : 1046.5, 0.08, 'square', 0.05, 0.003);
+        break;
+      case 'guide': // メロディのガイド(小さめのオルゴール)。タップしなくても曲が分かるように
+        tone(dest, t, ev.freq, Math.min(ev.beats * spb * 0.9, 0.9), 'triangle', 0.075, 0.01);
+        break;
+      case 'canon': // 輪唱で追いかけるもう1人(1オクターブ上の小さな笛)
+        tone(dest, t, ev.freq * 2, Math.min(ev.beats * spb * 0.85, 0.8), 'sine', 0.045, 0.02);
+        break;
+      case 'chord':
+        for (var i = 0; i < ev.tones.pad.length; i++) {
+          tone(dest, t, noteFreq(ev.tones.pad[i]), spb * 1.9, 'triangle', 0.035, 0.04);
+        }
+        tone(dest, t, noteFreq(ev.tones.bass[0]), spb * 0.95, 'sine', 0.2, 0.01);
+        tone(dest, t + spb, noteFreq(ev.tones.bass[1]), spb * 0.9, 'sine', 0.14, 0.01);
+        break;
+      case 'kick':
+        kick(dest, t);
+        break;
+      case 'hat':
+        hat(dest, t, ev.vol);
+        break;
+    }
+  }
+
+  // タップが当たった時の音: その音符の高さのベル。メロディを「自分で弾いている」感じにする
+  function playHitBell(freq, grade) {
+    if (!audioCtx || !soundEnabled) return;
+    try {
+      var t = audioCtx.currentTime;
+      var v = grade === 'perfect' ? 0.2 : 0.14;
+      tone(masterGain, t, freq * 2, 0.7, 'sine', v, 0.004);
+      tone(masterGain, t, freq * 4, 0.3, 'sine', v * 0.35, 0.004);
+      tone(masterGain, t, freq * 6, 0.12, 'sine', v * 0.15, 0.002);
+    } catch (e) {}
+  }
+
+  // 何もない所を押した時: 小さくて柔らかい音
+  function playEmptyTap() {
+    if (!audioCtx || !soundEnabled) return;
+    try { tone(masterGain, audioCtx.currentTime, 220, 0.08, 'sine', 0.06, 0.003); } catch (e) {}
+  }
+
+  // ============================================================
+  // CANVAS & STAGE
+  // ============================================================
   var canvas = document.getElementById('rhythmCanvas');
   var ctx = canvas.getContext('2d');
   var width = 360, height = 480, dpr = window.devicePixelRatio || 1;
@@ -434,63 +748,200 @@ canvas#rhythmCanvas {
     dpr = window.devicePixelRatio || 1;
     canvas.width = width * dpr;
     canvas.height = height * dpr;
-    ctx.scale(dpr, dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
   window.addEventListener('resize', resize);
   resize();
 
-  // --- RHYTHM GAME ENGINE ---
-  var bpm = 118;
-  var speedPxPerSec = 260;
-  var judgmentLineY = 0;
-
-  var currentScore = 0;
-  var combo = 0;
-  var maxCombo = 0;
-  var isSongEnded = false;
-  var songStartTime = 0;
-
-  var notes = [];
-  var sparks = [];
+  // ============================================================
+  // RHYTHM GAME ENGINE
+  // ============================================================
+  var COUNT_IN = 4;          // 始まる前の「3, 2, 1, Go」の拍数
+  var APPROACH = 1.8;        // ノーツが上から判定ラインまで落ちる秒数
+  var PERFECT_WIN = 0.075;
+  var GREAT_WIN = 0.15;
+  var MISS_WIN = 0.2;
 
   var LANE_ICONS = ['☕', '🍰', '🍓'];
   var LANE_COLORS = ['#FFC94A', '#FF6B97', '#38BDF8'];
 
-  // Generate 45-second fun rhythm chart
-  function generateChart() {
+  var currentSong = SONGS[0];
+  var state = 'title';       // 'title' | 'playing' | 'results'
+  var currentScore = 0, combo = 0, maxCombo = 0;
+  var counts = { perfect: 0, great: 0, miss: 0 };
+  var notes = [];
+  var events = [];
+  var evIdx = 0;
+  var sparks = [];
+  var laneFlash = [0, 0, 0];
+  var startAt = 0;           // 曲の 0 拍目の時刻(audioCtx か performance の秒)
+  var endTime = 0;           // 曲の秒数(0 拍目から)
+  var judgmentLineY = 0;
+  var hiddenAt = 0;
+
+  function clockNow() {
+    return audioCtx ? audioCtx.currentTime : performance.now() / 1000;
+  }
+  function outputLatency() {
+    if (!audioCtx) return 0;
+    var l = audioCtx.outputLatency || audioCtx.baseLatency || 0;
+    return Math.min(Math.max(l, 0), 0.25);
+  }
+  // 今、耳に聞こえている曲の位置(秒)。描画と判定に使う
+  function songTime() {
+    return clockNow() - startAt - outputLatency();
+  }
+
+  function parseMelody(str) {
+    var out = [];
+    var beat = 0;
+    str.trim().split(/\s+/).forEach(function(tok) {
+      var parts = tok.split(':');
+      var len = parseFloat(parts[1]);
+      if (parts[0] !== 'R') out.push({ name: parts[0], beat: beat, beats: len });
+      beat += len;
+    });
+    return { notes: out, beats: beat };
+  }
+
+  function buildSong(song) {
+    var spb = 60 / song.bpm;
+    var mel = parseMelody(song.melody);
+    var chords = song.chords.trim().split(/\s+/);
     notes = [];
-    var totalBeats = 64;
-    var beatInterval = 60 / bpm; // ~0.508s
+    events = [];
 
-    for (var b = 4; b < totalBeats; b++) {
-      var lane = Math.floor(Math.random() * 3);
-      notes.push({
-        time: b * beatInterval,
-        lane: lane,
-        hit: false,
-        y: 0
+    for (var c = 0; c < COUNT_IN; c++) {
+      events.push({ type: 'click', t: (c - COUNT_IN) * spb, accent: c === 0 });
+    }
+
+    for (var r = 0; r < song.rounds; r++) {
+      var off = r * mel.beats;
+      mel.notes.forEach(function(n) {
+        var t = (off + n.beat) * spb;
+        var freq = noteFreq(n.name);
+        var lane = song.lanes[n.name];
+        notes.push({ time: t, lane: lane == null ? 1 : lane, freq: freq, hit: false, judged: false });
+        events.push({ type: 'guide', t: t, freq: freq, beats: n.beats });
+        if (song.canon && r > 0) {
+          events.push({ type: 'canon', t: t + song.canon * spb, freq: freq, beats: n.beats });
+        }
       });
-
-      // Occasional double notes
-      if (b > 12 && b % 4 === 0) {
-        var otherLane = (lane + 1) % 3;
-        notes.push({
-          time: b * beatInterval + (beatInterval * 0.5),
-          lane: otherLane,
-          hit: false,
-          y: 0
-        });
+      chords.forEach(function(ch, i) {
+        events.push({ type: 'chord', t: (off + i * 2) * spb, tones: CHORD_TONES[ch] || CHORD_TONES.C });
+      });
+      for (var b = 0; b < mel.beats; b++) {
+        var bt = (off + b) * spb;
+        if (b % 2 === 0) events.push({ type: 'kick', t: bt });
+        events.push({ type: 'hat', t: bt + spb * 0.5, vol: 0.035 });
+        // 2周目は少しにぎやかに
+        if (r > 0) events.push({ type: 'hat', t: bt, vol: 0.02 });
       }
+    }
+    // 輪唱の曲は、追いかける人が歌い終わるまで伴奏を続ける(最後の canon 拍ぶんのコードをもう一度)
+    var lastBeat = song.rounds * mel.beats;
+    if (song.canon) {
+      var tail = chords.slice(chords.length - song.canon / 2);
+      tail.forEach(function(ch, i) {
+        events.push({ type: 'chord', t: (lastBeat + i * 2) * spb, tones: CHORD_TONES[ch] || CHORD_TONES.C });
+      });
+      lastBeat += song.canon;
+    }
+    // 最後にジャーン
+    var last = lastBeat * spb;
+    events.push({ type: 'chord', t: last, tones: CHORD_TONES.C });
+    events.push({ type: 'kick', t: last });
+
+    events.sort(function(a, b) { return a.t - b.t; });
+    endTime = last + spb * 3;
+  }
+
+  // 先読みスケジューラ: 少し先(0.3秒)までのイベントを audioCtx に予約する
+  function pumpAudio() {
+    if (state !== 'playing' || !audioCtx || !songBus) return;
+    if (audioCtx.state !== 'running') return;
+    var raw = audioCtx.currentTime - startAt;
+    var limit = raw + 0.3;
+    while (evIdx < events.length && events[evIdx].t < limit) {
+      var ev = events[evIdx++];
+      if (ev.t < raw - 0.05) continue; // 間に合わなかったものは飛ばす
+      try { playEvent(ev, Math.max(startAt + ev.t, audioCtx.currentTime)); } catch (e) {}
+    }
+  }
+  setInterval(pumpAudio, 40);
+
+  function stopSongAudio() {
+    if (songBus) {
+      try { songBus.gain.setValueAtTime(0, audioCtx.currentTime); songBus.disconnect(); } catch (e) {}
+      songBus = null;
     }
   }
 
-  function startSong() {
+  function updateHud() {
+    document.getElementById('scoreDisplay').textContent = currentScore.toLocaleString();
+    document.getElementById('comboDisplay').textContent = combo + '🔥';
+  }
+
+  function startSong(song) {
+    currentSong = song;
     currentScore = 0;
     combo = 0;
     maxCombo = 0;
-    isSongEnded = false;
-    generateChart();
-    songStartTime = Date.now();
+    counts = { perfect: 0, great: 0, miss: 0 };
+    sparks = [];
+    updateHud();
+    buildSong(song);
+    evIdx = 0;
+    stopSongAudio();
+    if (audioCtx) {
+      songBus = audioCtx.createGain();
+      songBus.gain.value = 1;
+      songBus.connect(masterGain);
+    }
+    startAt = clockNow() + 0.25 + COUNT_IN * (60 / song.bpm);
+    state = 'playing';
+    document.body.classList.remove('on-title');
+    document.getElementById('titleScreen').classList.remove('active');
+    document.getElementById('resultsModal').classList.remove('active');
+    pumpAudio();
+  }
+
+  function chooseSong(song) {
+    unlockAudio();
+    whenAudioReady(function() { startSong(song); });
+  }
+
+  function showTitle() {
+    state = 'title';
+    stopSongAudio();
+    notes = [];
+    currentScore = 0;
+    combo = 0;
+    updateHud();
+    renderSongList();
+    document.body.classList.add('on-title');
+    document.getElementById('resultsModal').classList.remove('active');
+    document.getElementById('titleScreen').classList.add('active');
+  }
+
+  function renderSongList() {
+    var bests = loadBests();
+    var list = document.getElementById('songList');
+    list.innerHTML = '';
+    SONGS.forEach(function(song) {
+      var btn = document.createElement('button');
+      btn.className = 'song-card';
+      var best = bests[song.id] || 0;
+      btn.innerHTML =
+        '<span class="song-icon">' + song.icon + '</span>' +
+        '<span class="song-info"><span class="song-name"></span>' +
+        '<span class="song-meta">' + song.level + ' · ' + song.bpm + ' BPM' +
+        (best > 0 ? ' · Best ' + best.toLocaleString() : '') + '</span></span>' +
+        '<span class="song-play">▶</span>';
+      btn.querySelector('.song-name').textContent = song.title;
+      btn.addEventListener('click', function() { chooseSong(song); });
+      list.appendChild(btn);
+    });
   }
 
   // Judgment
@@ -507,46 +958,54 @@ canvas#rhythmCanvas {
   }
 
   function hitLane(laneIdx) {
-    if (isSongEnded) return;
-    var songTime = (Date.now() - songStartTime) / 1000;
+    laneFlash[laneIdx] = 1;
+    if (state !== 'playing') return;
+    var t = songTime();
     var hitTarget = null;
     var minDiff = 999;
 
     for (var i = 0; i < notes.length; i++) {
       var n = notes[i];
-      if (n.lane === laneIdx && !n.hit) {
-        var diff = Math.abs(n.time - songTime);
-        if (diff < 0.22 && diff < minDiff) {
+      if (n.lane === laneIdx && !n.judged) {
+        var diff = Math.abs(n.time - t);
+        if (diff < MISS_WIN && diff < minDiff) {
           minDiff = diff;
           hitTarget = n;
         }
       }
     }
 
-    if (hitTarget) {
+    if (hitTarget && minDiff <= GREAT_WIN) {
       hitTarget.hit = true;
-      var grade = minDiff < 0.08 ? 'perfect' : 'great';
+      hitTarget.judged = true;
+      var grade = minDiff <= PERFECT_WIN ? 'perfect' : 'great';
+      counts[grade]++;
       var pts = grade === 'perfect' ? 100 : 60;
 
       combo++;
       if (combo > maxCombo) maxCombo = combo;
       currentScore += pts * (combo > 5 ? 2 : 1);
+      updateHud();
 
-      document.getElementById('scoreDisplay').textContent = currentScore;
-      document.getElementById('comboDisplay').textContent = combo + '🔥';
-
-      playNoteSound(laneIdx, grade);
+      playHitBell(hitTarget.freq, grade);
       showJudgment(grade.toUpperCase() + '!', grade);
 
-      // Sparks
       var laneW = width / 3;
-      var lx = laneIdx * laneW + laneW * 0.5;
-      spawnHitSparks(lx, judgmentLineY, LANE_COLORS[laneIdx]);
+      spawnHitSparks(laneIdx * laneW + laneW * 0.5, judgmentLineY, LANE_COLORS[laneIdx]);
+    } else if (hitTarget) {
+      // 早すぎ/遅すぎ
+      hitTarget.judged = true;
+      registerMiss();
     } else {
-      // Miss tap
-      combo = 0;
-      document.getElementById('comboDisplay').textContent = '0🔥';
+      playEmptyTap();
     }
+  }
+
+  function registerMiss() {
+    counts.miss++;
+    combo = 0;
+    updateHud();
+    showJudgment('MISS', 'miss');
   }
 
   function spawnHitSparks(x, y, color) {
@@ -561,19 +1020,71 @@ canvas#rhythmCanvas {
     }
   }
 
-  // --- MAIN LOOP ---
+  function finishSong() {
+    state = 'results';
+    var total = notes.length || 1;
+    var acc = (counts.perfect + counts.great * 0.6) / total;
+    var stars = acc >= 0.9 ? 3 : acc >= 0.7 ? 2 : acc >= 0.4 ? 1 : 0;
+    var fullCombo = counts.miss === 0 && counts.perfect + counts.great === notes.length;
+    var isNew = saveBest(currentSong.id, currentScore);
+
+    document.getElementById('resultTitle').textContent = fullCombo ? '🎉 FULL COMBO!' : stars > 0 ? '☕ SONG CLEARED!' : '☕ Nice Try!';
+    document.getElementById('resultSong').textContent = currentSong.icon + ' ' + currentSong.title;
+    document.getElementById('resultStars').innerHTML =
+      '<span class="on">' + '★'.repeat(stars) + '</span><span class="off">' + '★'.repeat(3 - stars) + '</span>';
+    document.getElementById('finalScoreDisplay').textContent = currentScore.toLocaleString();
+    document.getElementById('maxComboLabel').textContent = 'Max Combo: ' + maxCombo + '🔥';
+    document.getElementById('resultCounts').innerHTML =
+      '<span class="c-perfect">Perfect ' + counts.perfect + '</span>' +
+      '<span class="c-great">Great ' + counts.great + '</span>' +
+      '<span class="c-miss">Miss ' + counts.miss + '</span>';
+    document.getElementById('resultBest').textContent = isNew && currentScore > 0
+      ? '🏆 New Best!'
+      : 'Best: ' + (loadBests()[currentSong.id] || 0).toLocaleString();
+    document.getElementById('resultsModal').classList.add('active');
+    stopSongAudio();
+  }
+
+  // ============================================================
+  // MAIN LOOP
+  // ============================================================
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
   function loop() {
+    requestAnimationFrame(loop);
+    pumpAudio();
+
     ctx.clearRect(0, 0, width, height);
     judgmentLineY = height - 40;
-
-    var songTime = (Date.now() - songStartTime) / 1000;
+    var topY = 70;
     var laneW = width / 3;
+    var playing = state === 'playing';
+    var t = playing ? songTime() : performance.now() / 1000;
+    var spb = 60 / currentSong.bpm;
+    var beatPhase = ((t / spb) % 1 + 1) % 1;
+    var pulse = playing && t > -COUNT_IN * spb ? Math.pow(1 - beatPhase, 3) : 0;
 
-    // 1. Draw 3 vertical Cafe Lanes
+    // 1. 3本のレーン
     for (var l = 0; l < 3; l++) {
       var lx = l * laneW;
       ctx.fillStyle = l % 2 === 0 ? 'rgba(255, 255, 255, 0.02)' : 'rgba(255, 255, 255, 0.04)';
       ctx.fillRect(lx, 0, laneW, height);
+      if (laneFlash[l] > 0) {
+        var grad = ctx.createLinearGradient(0, judgmentLineY, 0, judgmentLineY - 160);
+        grad.addColorStop(0, hexA(LANE_COLORS[l], 0.28 * laneFlash[l]));
+        grad.addColorStop(1, hexA(LANE_COLORS[l], 0));
+        ctx.fillStyle = grad;
+        ctx.fillRect(lx, judgmentLineY - 160, laneW, 160);
+        laneFlash[l] = Math.max(0, laneFlash[l] - 0.08);
+      }
 
       ctx.strokeStyle = 'rgba(255, 107, 151, 0.18)';
       ctx.lineWidth = 1;
@@ -581,78 +1092,93 @@ canvas#rhythmCanvas {
       ctx.moveTo(lx, 0);
       ctx.lineTo(lx, height);
       ctx.stroke();
+
+      // 判定ラインの受け皿
+      ctx.strokeStyle = hexA(LANE_COLORS[l], 0.45);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(lx + laneW * 0.5, judgmentLineY, 22, 0, Math.PI * 2);
+      ctx.stroke();
     }
 
-    // 2. Judgment Line
+    // 2. 判定ライン(拍に合わせて光る)
     ctx.strokeStyle = '#FF6B97';
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = 2.5 + pulse * 2.5;
+    ctx.shadowColor = '#FF6B97';
+    ctx.shadowBlur = 6 + pulse * 14;
     ctx.beginPath();
     ctx.moveTo(0, judgmentLineY);
     ctx.lineTo(width, judgmentLineY);
     ctx.stroke();
+    ctx.shadowBlur = 0;
 
-    // 3. Cafe Host Mascot at Top
+    // 3. 上のマスコットと曲名・進み具合
     var owlX = width * 0.5;
-    var owlY = 32;
-    var bounce = Math.sin(songTime * Math.PI * (bpm / 60)) * 4;
-
+    var bounce = playing ? -pulse * 6 : Math.sin(t * 2) * 3;
     ctx.font = '24px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('🦉☕', owlX, owlY + bounce);
+    ctx.fillStyle = '#FFF'; // 絵文字は fillStyle の透明度を受けるので不透明にしておく
+    ctx.fillText('🦉☕', owlX, 28 + bounce);
 
-    // 4. Draw Falling Notes
-    var unhitCount = 0;
-    for (var i = 0; i < notes.length; i++) {
-      var note = notes[i];
-      if (note.hit) continue;
+    if (state !== 'title') {
+      ctx.font = '700 12px "Plus Jakarta Sans", sans-serif';
+      ctx.fillStyle = 'rgba(237, 238, 246, 0.75)';
+      ctx.fillText('♪ ' + currentSong.title, owlX, 52);
+      var prog = Math.min(1, Math.max(0, t / endTime));
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+      roundRect(width * 0.2, 61, width * 0.6, 4, 2);
+      ctx.fill();
+      ctx.fillStyle = '#FFC94A';
+      roundRect(width * 0.2, 61, width * 0.6 * prog, 4, 2);
+      ctx.fill();
+    }
 
-      var dt = note.time - songTime;
-      var ny = judgmentLineY - (dt * speedPxPerSec);
-      note.y = ny;
+    if (playing) {
+      // 4. 落ちてくるノーツ
+      for (var i = 0; i < notes.length; i++) {
+        var note = notes[i];
+        if (note.judged) continue;
 
-      // Missed note
-      if (dt < -0.22) {
-        note.hit = true;
-        combo = 0;
-        document.getElementById('comboDisplay').textContent = '0🔥';
-        showJudgment('MISS!', 'miss');
-        playNoteSound(note.lane, 'miss');
-        continue;
-      }
-
-      if (ny >= -30 && ny <= height + 30) {
-        unhitCount++;
+        var dt = note.time - t;
+        if (dt < -MISS_WIN) {
+          note.judged = true;
+          registerMiss();
+          continue;
+        }
+        if (dt > APPROACH) continue;
+        var ny = judgmentLineY - (dt / APPROACH) * (judgmentLineY - topY);
         var nx = note.lane * laneW + laneW * 0.5;
+        var r = 20;
 
-        // Note circle
         ctx.fillStyle = LANE_COLORS[note.lane];
         ctx.beginPath();
-        ctx.arc(nx, ny, 20, 0, Math.PI * 2);
+        ctx.arc(nx, ny, r, 0, Math.PI * 2);
         ctx.fill();
         ctx.strokeStyle = '#FFF';
         ctx.lineWidth = 2;
         ctx.stroke();
 
-        // Note Emoji
         ctx.font = '16px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(LANE_ICONS[note.lane], nx, ny);
       }
-    }
 
-    // Check song finish
-    if (songTime > (60 / bpm * 64 + 2) && !isSongEnded) {
-      isSongEnded = true;
-      document.getElementById('finalScoreDisplay').textContent = currentScore;
-      document.getElementById('maxComboLabel').textContent = 'Max Combo: ' + maxCombo + '🔥';
-      document.getElementById('resultsModal').classList.add('active');
-
-      var best = parseInt(localStorage.getItem('moku_rhythm_best') || '0', 10);
-      if (currentScore > best) {
-        localStorage.setItem('moku_rhythm_best', currentScore);
+      // カウントイン 3, 2, 1, Go!
+      if (t < 0.4) {
+        var beatsLeft = Math.ceil(-t / spb);
+        var label = beatsLeft >= 4 ? 'Ready…' : beatsLeft > 0 ? String(beatsLeft) : 'Go!';
+        var frac = ((-t / spb) % 1 + 1) % 1;
+        ctx.save();
+        ctx.globalAlpha = beatsLeft > 0 ? 0.4 + frac * 0.6 : 1;
+        ctx.font = '800 ' + (beatsLeft >= 4 ? 30 : 54) + 'px Fredoka, sans-serif';
+        ctx.fillStyle = beatsLeft > 0 ? '#FFF' : '#FFC94A';
+        ctx.fillText(label, owlX, height * 0.42);
+        ctx.restore();
       }
+
+      if (t > endTime) finishSong();
     }
 
     // 5. Sparks
@@ -670,37 +1196,71 @@ canvas#rhythmCanvas {
       ctx.fill();
       ctx.restore();
     }
-
-    requestAnimationFrame(loop);
   }
 
-  // --- CONTROLS ---
+  function hexA(hex, a) {
+    var n = parseInt(hex.slice(1), 16);
+    return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+  }
+
+  // ============================================================
+  // CONTROLS
+  // ============================================================
   for (var l = 0; l < 3; l++) {
     (function(idx) {
       var btn = document.getElementById('laneBtn' + idx);
       btn.addEventListener('pointerdown', function(e) {
         e.preventDefault();
+        unlockAudio();
         btn.classList.add('active');
         hitLane(idx);
       });
       btn.addEventListener('pointerup', function() { btn.classList.remove('active'); });
+      btn.addEventListener('pointerleave', function() { btn.classList.remove('active'); });
       btn.addEventListener('pointercancel', function() { btn.classList.remove('active'); });
     })(l);
   }
 
-  document.getElementById('replayBtn').addEventListener('click', function() {
-    document.getElementById('resultsModal').classList.remove('active');
-    startSong();
+  var KEY_LANES = { a: 0, s: 1, d: 2, j: 0, k: 1, l: 2, '1': 0, '2': 1, '3': 2, arrowleft: 0, arrowdown: 1, arrowup: 1, arrowright: 2 };
+  window.addEventListener('keydown', function(e) {
+    if (e.repeat) return;
+    var lane = KEY_LANES[(e.key || '').toLowerCase()];
+    if (lane == null) return;
+    e.preventDefault();
+    var btn = document.getElementById('laneBtn' + lane);
+    btn.classList.add('active');
+    hitLane(lane);
   });
+  window.addEventListener('keyup', function(e) {
+    var lane = KEY_LANES[(e.key || '').toLowerCase()];
+    if (lane != null) document.getElementById('laneBtn' + lane).classList.remove('active');
+  });
+
+  document.getElementById('replayBtn').addEventListener('click', function() { chooseSong(currentSong); });
+  document.getElementById('songsBtn').addEventListener('click', showTitle);
 
   var soundBtn = document.getElementById('soundToggleBtn');
   soundBtn.addEventListener('click', function() {
     soundEnabled = !soundEnabled;
     soundBtn.textContent = soundEnabled ? '🔊' : '🔇';
+    unlockAudio();
+    if (masterGain) masterGain.gain.value = soundEnabled ? 1 : 0;
+  });
+
+  // 別のタブ・アプリへ移ったら曲ごと止める(戻ったら続きから。音とノーツはずれない)
+  document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+      hiddenAt = performance.now() / 1000;
+      if (audioCtx && audioCtx.state === 'running') { try { audioCtx.suspend(); } catch (e) {} }
+    } else {
+      if (audioCtx) { try { audioCtx.resume(); } catch (e) {} }
+      else if (state === 'playing' && hiddenAt) startAt += performance.now() / 1000 - hiddenAt;
+      hiddenAt = 0;
+    }
   });
 
   // Start
-  startSong();
+  showTitle();
   loop();
 })();
 </script>

@@ -199,6 +199,27 @@ IDが存在しない場合と PIN 違いは同じ応答(`401 bad_credentials`)�
 - Player ID(`loginId`)は含めない(ログイン情報の半分のため)。
 - `lastSeenAt` は、認証付きのリクエスト(`/auth/me` `/save` `/players` など)とログイン・新規登録のたびに更新される。書き込みは1人1分に1回まで。
 
+## `GET /players/kin`(2026-10-30〜)
+
+ログイン中のプレイヤーだけが呼べる。The Hollow(`hollow.html`)の「Birds Like You」用。全員の公開カード(`GET /players` の `card`)を `shared/moku-ontology.js`(サーバーは `src/vendor/` のコピー)で自分のカードと比べ、似ている人と「意外な共通点」の人を返す。入力は公開カードだけなので、`GET /players` で見える以上のことは分からない。
+
+**200**
+```json
+{
+  "me": { "spirit": "thinker", "text": "One of the Quiet Thinkers 🦉 — loves Strategy and Patience." },
+  "kin": [
+    { "displayName": "Sora", "tag": "u1a2b3", "online": false, "score": 0.87, "sharedGames": ["moku-chess"],
+      "link": { "type": "spirit", "emoji": "🦉", "text": "Two Quiet Thinkers 🦉 — …" } }
+  ],
+  "surprise": { "displayName": "Aoi", "tag": "u6ffd2", "online": true, "score": 0.36, "sharedGames": [],
+    "link": { "type": "same", "emoji": "⏳", "text": "Who knew? You (Moku Chess) and Aoi (Moku Fishing Pond) are both Patient Souls." } }
+}
+```
+- `kin`: 共通点が見つかった人を `score`(0〜1、似ている度合い)の高い順に最大3人。
+- `surprise`: 同じゲームの記録を1つも持っていないのに共通点がある人の中で、一番意外な1人(なければ `null`)。`kin` とは重ならない。
+- 自分のカードがまだない(ハブで保存したことがない)時は `kin: []`・`surprise: null`・`me.spirit: ""`。カードのない人・管理者は出ない。
+- 文の中の自分は「You」、相手は表示名。服の名前はサーバーに `MokuMoint` がないので ID から作る(`mood-cookie-eyes` → `Cookie Eyes`)。
+
 ---
 
 # Admin(SPEC.md §12)
@@ -407,3 +428,84 @@ PINはどこにも記録しない。DynamoDB の `ttl` で90日後に自動削�
 - `400 invalid_result`
 - `409 already_played`(もう送った。今の `challenge` を添える)
 - `404 challenge_not_found`
+
+# Rooms(Riddle Race、2026-10-31〜)
+
+ログインした2〜6人が**同時に**同じ Moku Word Riddles を解く早押しレース(`src/roomApi.js`、Lambda は `MatchFunction` を `/matches` `/challenges` と共用)。ホストが部屋を作り、友達は4文字のコードを入れるか招待から入る。みんなで1問ずつ進み、**サーバーに最初に届いた正解**がその問題の勝ち。勝った問題の数が多い人が優勝。
+
+- **問題と判定**: 問題のデータと答えの判定(`isCorrect`)は `shared/moku-riddles.js`(Lambda には `src/vendor/` のコピー。違うと `npm test` が失敗)。サーバーは開始時に全100問からランダムに `count` 問(5 か 10)を選ぶ。
+- **進み方(タイムライン)**: `startAt` と `wins` だけから、ページとサーバーが同じ関数 `MokuRiddles.raceTimeline(room, now)` で今の場面を出す。サーバーが部屋を進める処理はない(書き込みは参加・開始・最初の正解の時だけ)。
+  - 開始の4秒後(`COUNTDOWN_MS`)に1問目。1問は最大45秒(`LIMIT_MS`)。誰かが正解するか時間切れで、5秒(`GAP_MS`)答えを見せてから次の問題。値は部屋の `race` にも入っている。
+  - 答えを受け付けるのは、今出ている問題(`question` の場面の `q`)だけ。カウントダウン中・答えを見せている間・先の問題は `first: false, late: true`。
+- **時計**: 返事の `now`(サーバーの時刻、ミリ秒)で、ページは自分の時計とのずれを直して残り時間を出す。
+- **ポーリング**: レース中、ページは `GET /rooms/{id}?v=<version>` を1秒おき(ロビーは2秒おき)に呼ぶ。変化がなければ `{ changed: false, now }` だけ。スロットリングは `GET /rooms/{id}` 40/秒・瞬間80、`POST /rooms/{id}/answer` 20/秒・瞬間40。
+- **見せるもの**: 表示名と `#u` タグだけ。Player ID・uid は返さない。部屋はそのプレイヤーと招待された人だけが見られる(ほかの人には `404`)。問題の列(`riddles`)は開始してから返す。
+- **データ**: `pk ROOM#<コード> / sk STATE`(部屋)と、プレイヤー・招待された人それぞれの一覧用 `pk PLAYER#<uid> / sk ROOM#<コード>`(`roomId` と部屋の `key` だけ)。書く時は `version` が読んだ時と同じ時だけ書き、ぶつかったら読み直してやり直す(同時の正解は先に書けた方の勝ち、もう1人は `first: false`)。
+- **コード**: `ABCDEFGHJKMNPQRSTUVWXYZ`(I・L・O なし)の4文字。大文字小文字は区別しない。使用中なら別のコード。期限が切れた部屋のコードは使い回すので、一覧の行は部屋の `key` が同じ時だけ有効。
+- **期限**: 最後の変化から1日で消える(TTL。期限を過ぎたものは消える前でも `404`)。
+- **上限**: 1部屋6人(`room_full`)、招待は10人まで。1人が同時に入っている(ロビー・レース中の)部屋は10まで。
+
+## 部屋の形(`room`)
+
+```json
+{ "id": "KQRT", "key": "6f44822846471414", "status": "playing", "you": "u1a2b3", "joined": true, "isHost": true,
+  "count": 5, "players": [ { "name": "Aoi", "tag": "u1a2b3", "host": true, "score": 1 }, { "name": "Ren", "tag": "u4c5d6", "host": false, "score": 0 } ],
+  "invited": [ { "name": "Sora", "tag": "u7e8f9" } ],
+  "riddles": ["bicycle", "sunglasses", "i-understand", "rainbow", "tennis"], "startAt": 1793420000000,
+  "wins": [ { "q": 0, "tag": "u1a2b3", "at": 1793420006500 } ],
+  "race": { "COUNTDOWN_MS": 4000, "LIMIT_MS": 45000, "GAP_MS": 5000 },
+  "next": null, "version": 4, "createdAt": "…", "updatedAt": "…", "now": 1793420007000 }
+```
+
+- `status`: `lobby` / `playing` / `done`(最後の問題が終わった)/ `closed`(ホストがロビーで抜けた)。
+- `invited`: 招待されてまだ入っていない人。`joined: false` なら自分は招待されただけ(`POST …/join` で入る)。
+- `next`: 終わった後にホストが「もう一回」で作った新しい部屋のコード(ほかの人のページはそこへ移る)。
+
+## `POST /rooms`
+
+`{ "count": 5 | 10 }`(省略すると 5)→ **201** `{ "room": … }`(作った人がホストで、もう入っている)。
+
+- `400 invalid_count`
+- `409 too_many_rooms`
+
+## `GET /rooms`
+
+**200** `{ "rooms": [ room ], "invites": 1, "now": … }`。ロビーかレース中の、自分が入っている・招待された部屋(終わった・閉じた部屋は出ない)。招待されただけの部屋が先。`invites` はロビーの招待の数(ボタンのバッジ用)。
+
+## `GET /rooms/{code}?v=<version>`
+
+- `v` が今の `version` と同じ → **200** `{ "changed": false, "now": … }`
+- それ以外 → **200** `{ "changed": true, "room": … }`
+- `404 room_not_found`(ない・期限切れ・プレイヤーでも招待された人でもない)
+
+## `POST /rooms/{code}/join`
+
+本文なし。コードを知っていれば誰でも入れる(招待はいらない)。もう入っていれば今の部屋を返すだけ。
+→ **200** `{ "room": … }` / `409 already_started` / `room_full` / `404 room_not_found`
+
+## `POST /rooms/{code}/invite`
+
+`{ "tag": "u7e8f9" }` → **200** `{ "room": … }`。部屋のプレイヤーなら誰でも、ロビーの間だけ。招待された人の `GET /rooms` に出る。
+`400 invalid_opponent` / `404 opponent_not_found`(管理者も選べない)/ `409 already_started` / `too_many_invites`
+
+## `POST /rooms/{code}/leave`
+
+本文なし。ロビーの間だけ抜けられる(ホストが抜けると部屋は `closed`)。始まった後は何もしない(ページを閉じるだけでよい)。→ **200** `{ "ok": true }`
+
+## `POST /rooms/{code}/start`
+
+本文なし。ホストだけ、2人以上いる時。問題を選び、`startAt = 今 + COUNTDOWN_MS` にする。
+→ **200** `{ "room": … }` / `403 not_host` / `409 need_players`
+
+## `POST /rooms/{code}/answer`
+
+`{ "q": 0, "answer": "bicycle" }`(`answer` は60文字まで)→ **200** `{ "correct", "first", "late"?, "room" }`
+
+- `correct`: 答えが合っているか。`first`: この答えでその問題を勝ち取ったか(最初の正解)。
+- `late: true`: その問題はもう受け付けていない(カウントダウン中・ほかの人が先に正解・時間切れ・先の問題)。
+- まちがいは何も記録しない(何回でも答えられる)。
+
+## `POST /rooms/{code}/again`
+
+本文なし。ホストだけ、レースが終わった後。同じプレイヤーが入った新しいロビーを作り、元の部屋の `next` にそのコードを入れる。2回押しても同じ部屋を返す。
+→ **201** `{ "room": … }`(新しい部屋)/ `403 not_host` / `409 not_done`

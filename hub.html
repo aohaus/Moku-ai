@@ -601,7 +601,7 @@ body[data-band="morning"] #starsLayer { --star-opacity: 0.15; }
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 26%;
+  border-radius: 18%;
   background: linear-gradient(150deg, var(--hi), var(--lo));
   box-shadow: 0 10px 22px rgba(0,0,0,0.38), inset 0 0 0 1px rgba(255,255,255,0.18);
   overflow: hidden;
@@ -905,6 +905,32 @@ body[data-band="morning"] #starsLayer { --star-opacity: 0.15; }
 }
 .sheet-moint[hidden] { display: none; }
 .sheet-moint .tile-moint { position: static; flex: none; margin-top: 1px; }
+/* Multiplayer games (SPEC.md §14): a small blue "friends" badge next to the
+   Moint coin (or in its place when the game has no Moints). */
+.tile-multi {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 35% 30%, #CDEBFF, #6FB6F2 60%, #3D84C9);
+  box-shadow: inset 0 -1.5px 0 rgba(22,70,120,0.55), 0 2px 6px rgba(0,0,0,0.35);
+  color: #123E66;
+}
+.tile-moint + .tile-multi { left: 34px; }
+.sheet-multi {
+  background: rgba(111,182,242,0.08);
+  border-color: rgba(111,182,242,0.3);
+}
+.sheet-multi .tile-multi { position: static; flex: none; margin-top: 1px; }
+.sheet-moint.sheet-multi span.tile-multi { color: #123E66; }
+.sheet-moint.sheet-multi b { color: #9FD2FF; }
+.sheet-multi span:not(.tile-multi) { font-size: 12.5px; line-height: 1.5; color: rgba(237,238,246,0.75); }
 .sheet-moint b { display: block; font-size: 13px; font-weight: 800; color: #FFD27A; margin-bottom: 2px; }
 .sheet-moint span:not(.tile-moint) { font-size: 12.5px; line-height: 1.5; color: rgba(237,238,246,0.75); }
 .tile-name {
@@ -1349,7 +1375,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
   flex: none;
   width: 40px;
   height: 40px;
-  border-radius: 26%;
+  border-radius: 18%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1564,6 +1590,8 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
 .hollow-pop .hollow-foot { margin: 6px 0 0; font-size: 11px; font-weight: 700; color: #A88B6A; }
 .hollow-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
 .hollow-note { margin: 0; font-size: 12.5px; font-weight: 600; color: rgba(237,238,246,0.6); }
+.hollow-bar-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.hollow-bar-btns a.me-open { text-decoration: none; }
 /* picker (6+ players) */
 .hollow-picker { position: fixed; inset: 0; z-index: 35; display: flex; align-items: center; justify-content: center; padding: 16px;
   background: rgba(5,6,12,0.62); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
@@ -1622,7 +1650,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
 .award-card { --hi: #888; --lo: #444; padding: 14px; border-radius: 18px; background: rgba(255,255,255,0.045);
   border: 1px solid rgba(255,255,255,0.09); box-shadow: inset 0 3px 0 -1px var(--hi); }
 .award-head { display: flex; align-items: center; gap: 11px; margin-bottom: 10px; }
-.award-head .game-icon { width: 44px; height: 44px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.18); }
+.award-head .game-icon { width: 44px; height: 44px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.18); }
 .award-head b { display: block; font-size: 15px; font-weight: 800; }
 .award-head small { display: block; font-size: 12px; font-weight: 800; letter-spacing: 0.03em; color: var(--hi); }
 .award-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
@@ -1867,7 +1895,11 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     </div>
     <div class="hollow-bar">
       <p class="hollow-note" id="hollowNote"></p>
-      <button class="me-open" id="hollowChoose" type="button" hidden>Choose Mokus</button>
+      <span class="hollow-bar-btns">
+        <!-- hollow.html: the same room, grown from what everyone loves (shared/moku-ontology.js) -->
+        <a class="me-open" href="hollow.html">✨ Hidden Links</a>
+        <button class="me-open" id="hollowChoose" type="button" hidden>Choose Mokus</button>
+      </span>
     </div>
   </div>
   <div class="hollow-picker" id="hollowPicker" hidden>
@@ -1948,6 +1980,10 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
       <div class="sheet-moint" id="sheetMoint" hidden>
         <span class="tile-moint" aria-hidden="true">M</span>
         <div><b>Earn Moints</b><span id="sheetMointText"></span></div>
+      </div>
+      <div class="sheet-moint sheet-multi" id="sheetMulti" hidden>
+        <span class="tile-multi" id="sheetMultiIcon" aria-hidden="true"></span>
+        <div><b>Play with Friends</b><span id="sheetMultiText"></span></div>
       </div>
       <div class="sheet-progress" id="sheetProgress">
         <div class="sheet-progress-label" id="sheetProgressLabel"></div>
@@ -2145,6 +2181,11 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
            localStorage.getItem('moku:' + prefix + ':' + card) !== null;
   }
 
+  var RIDDLE_TOTAL = 100;
+  function riddlesSolved() {
+    var p = readJSON('moku:moku-word-riddles:progress');
+    return p && p.solved && typeof p.solved === 'object' ? Object.keys(p.solved).length : 0;
+  }
   var GAMES = [
     {
       name: 'Angry Mokumoku',
@@ -2699,6 +2740,31 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
       }
     },
     {
+      name: 'Moku Word Riddles',
+      card: 'mwr',
+      gameId: 'moku-word-riddles',
+      // RIDDLE_TOTAL = shared/moku-riddles.js の RIDDLES の数(問題を足したらここも)
+      isCompleted: function () {
+        if (isExplicitlyMarked('completed', 'mwr')) return true;
+        return riddlesSolved() >= RIDDLE_TOTAL;
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'mwr')) return true;
+        var p = readJSON('moku:moku-word-riddles:progress');
+        return Boolean(p && p.played > 0);
+      },
+      progress: function () {
+        if (this.isCompleted()) return 1;
+        return Math.min(1, riddlesSolved() / RIDDLE_TOTAL);
+      },
+      badge: function () {
+        var p = readJSON('moku:moku-word-riddles:progress');
+        if (!p || !this.isPlayed()) return null;
+        var solved = riddlesSolved() + ' / ' + RIDDLE_TOTAL + ' Solved';
+        return p.bestRound > 0 ? solved + ' · Best ' + p.bestRound + ' pts' : solved;
+      }
+    },
+    {
       name: 'Mokuball',
       card: null,
       gameId: 'mokuball',
@@ -2750,7 +2816,8 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     mfr: { title: 'High Score', read: function () { var p = readJSON('moku:moku-future-run:progress'); return p && p.highScore; }, fmt: function (n) { return num(n) + ' pts'; } },
     mw6: { title: 'Laziest Watch', read: function () { var p = readJSON('moku:moku-watch-6-lazy:progress'); return p && p.lazy; }, fmt: function (n) { return num(n) + '% lazy'; } },
     mbr: { title: 'Luckiest Steps', read: function () { var p = readJSON('moku:moku-bridge:progress'); return p && p.bestLucky; }, fmt: function (n) { return n + ' in a row 🍀'; } },
-    mch: { title: 'Strongest CPU Beaten', read: function () { var p = readJSON('moku:moku-chess:progress'); return p && p.best; }, fmt: function (n) { return 'Lv.' + n + ' / 10'; } }
+    mch: { title: 'Strongest CPU Beaten', read: function () { var p = readJSON('moku:moku-chess:progress'); return p && p.best; }, fmt: function (n) { return 'Lv.' + n + ' / 10'; } },
+    mwr: { title: 'Riddles Solved', read: riddlesSolved, fmt: function (n) { return n + ' / ' + RIDDLE_TOTAL + ' 🧩'; } }
   };
   function myRecords() {
     var out = {};
@@ -2833,6 +2900,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
   // by the same `card`. To add a title: add its GAMES entry, a CATALOG entry,
   // put its key in one of SHELVES, and add icons/games/<gameId>.svg and
   // screenshots/<gameId>.jpg. `newUntil` shows a NEW pill until that date.
+  // `multi` marks games you can play with friends online (SPEC.md §14).
   // `moint` = the game hands out Moints (SPEC.md §13): a small coin on its
   // tile, and `how` (+ today's total when `cap` is set) in the detail sheet.
   var CATALOG = {
@@ -2874,8 +2942,8 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
            tag: 'Cast into the calm night lake.',
            desc: 'Cast your line into the calm night lake and catch mysterious species!' },
     mrc: { name: 'Moku Rhythm Cafe', gameId: 'moku-rhythm', genre: 'Rhythm', cta: 'Play', hi: '#C9A0F5', lo: '#4A2A73',
-           tag: 'Tap and brew to the lo-fi beat.',
-           desc: 'Tap and brew to the lo-fi beat in a cozy forest musical cafe!' },
+           tag: 'Tap along to songs you know.',
+           desc: 'Play Twinkle Twinkle Little Star, The Frog Song and Ode to Joy in a cozy forest cafe! Tap low, middle and high notes right on the beat.' },
     mb:  { name: 'Moku Bento', gameId: 'moku-bento', genre: 'Kitchen Rush', cta: 'Cook', hi: '#D9925B', lo: '#6A3A16',
            tag: 'Pack bentos for hungry friends.',
            desc: 'Quick-fire bento assembly rush! Fill orders for hungry forest customers.' },
@@ -2894,15 +2962,22 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     mbr: { name: 'Moku Bridge', gameId: 'moku-bridge', genre: 'Glass Bridge', cta: 'Cross', hi: '#5ED6E8', lo: '#16596A', newUntil: '2026-11-25',
            tag: 'Pick the right glass. Cross the sky!',
            desc: 'Left or right? Hop across the glass bridge in the sunset sky. Earn Moints and use Hints or a Magic Carpet to help Moku!',
-           moint: { cap: true, how: 'Cross a bridge: +100 or more. Lucky steps: +10 each. First try: +50.' } },
+           moint: { cap: true, how: 'Cross a bridge: +100 or more. Lucky steps: +10 each. First try: +50.' },
+           multi: { how: 'Challenge a Friend: you both cross the same new bridge. Fewer falls wins!' } },
     mch: { name: 'Moku Chess', gameId: 'moku-chess', genre: '3D Chess', cta: 'Play', hi: '#8FB3E8', lo: '#2C4A7A', newUntil: '2026-11-27',
            tag: 'Checkmate the Moku Fight rivals!',
            desc: 'Real chess on a 3D board! Team Moku (the knight is Moku himself) takes on 10 CPU rivals from Moku Fight, from bouncy Moyo to Thunder King Goro.',
-           moint: { cap: true, how: 'Win a game: +30 to +120 (stronger rivals pay more). Draw: +8 to +35. First win over each rival: +50 to +500. Spend Moints on new boards in the Board Shop.' } }
+           moint: { cap: true, how: 'Win a game: +30 to +120 (stronger rivals pay more). Draw: +8 to +35. First win over each rival: +50 to +500. Spend Moints on new boards in the Board Shop.' },
+           multi: { how: 'Play a Friend: play chess online with a friend, one move at a time.' } },
+    mwr: { name: 'Moku Word Riddles', gameId: 'moku-word-riddles', genre: 'Word Puzzle', cta: 'Solve', hi: '#C4D04A', lo: '#56601A', newUntil: '2026-12-01',
+           tag: 'CYCLE CYCLE = BICYCLE!',
+           desc: 'Picture word riddles! Look where the words are, how big they are, and how many there are, then find the hidden English word. 100 riddles from Easy to Tricky.',
+           moint: { cap: true, how: 'Solve a riddle: +10 (+5 more with no hints on the first try). Solve all 5 in a round: +20. Riddle Race: +5 for each riddle you win, +10 for finishing, +30 for 1st place. Spend Moints on Hints, Choices and Skips.' },
+           multi: { how: 'Riddle Race: up to 6 friends get the same riddles at the same time. The first right answer wins each one!' } }
   };
   var SHELVES = [
     { title: 'Action & Sports', sub: 'Fling, kick, fight, race', cards: ['mfg', 'mfr', 'mkt', 'br', 'mk', 'am'] },
-    { title: 'Puzzle & Brain',  sub: 'Think, match, merge',      cards: ['mch', 'md', 'so', 'mm'] },
+    { title: 'Puzzle & Brain',  sub: 'Think, match, merge',      cards: ['mwr', 'mch', 'md', 'so', 'mm'] },
     { title: 'Cozy & Create',   sub: 'Take it slow',             cards: ['mw6', 'mrc', 'fm', 'mf', 'mb', 'mc'] },
     { title: 'Party & Arcade',  sub: 'Play with friends',        cards: ['mbr', 'mw', 'mr'] }
   ];
@@ -3018,6 +3093,14 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     } catch (e) { return null; }
   }
 
+  // Two friends (stroke icon) for the multiplayer badge on tiles and the sheet.
+  var MULTI_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.4 2.7-6 6-6s6 2.6 6 6"/><path d="M16 4.8a3.2 3.2 0 0 1 0 6.4"/><path d="M18 14.3c2 .7 3.2 2.9 3.2 5.7"/></svg>';
+  function tileLabel(c, completed) {
+    return c.name + ': ' + c.tag + (c.moint ? ' (Earn Moints)' : '') +
+      (c.multi ? ' (Play with friends)' : '') + (completed ? ' (Completed)' : '');
+  }
+
   function buildShelves() {
     var host = document.getElementById('shelves');
     if (!host) return;
@@ -3038,7 +3121,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
         var tile = el('button', 'tile');
         tile.type = 'button';
         tile.setAttribute('data-game', key);
-        tile.setAttribute('aria-label', c.name + ': ' + c.tag + (c.moint ? ' (Earn Moints)' : ''));
+        tile.setAttribute('aria-label', tileLabel(c, false));
         var icon = makeIcon(c);
         if (isNewTitle(c)) icon.appendChild(el('span', 'new-pill', 'NEW'));
         if (c.moint) {
@@ -3046,6 +3129,13 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
           coin.title = 'Earn Moints';
           coin.setAttribute('aria-hidden', 'true');
           icon.appendChild(coin);
+        }
+        if (c.multi) {
+          var multi = el('span', 'tile-multi');
+          multi.innerHTML = MULTI_SVG;
+          multi.title = 'Play with friends';
+          multi.setAttribute('aria-hidden', 'true');
+          icon.appendChild(multi);
         }
         var check = el('span', 'tile-check', '✓');
         check.setAttribute('aria-hidden', 'true');
@@ -3147,6 +3237,13 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
         ? ' Today: ' + MokuMoint.earnedToday(c.gameId) + ' / ' + MokuMoint.DAILY_GAME_CAP + '.' : '';
       document.getElementById('sheetMointText').textContent = c.moint.how + today;
     }
+    var mu = document.getElementById('sheetMulti');
+    mu.hidden = !c.multi;
+    if (c.multi) {
+      var muIcon = document.getElementById('sheetMultiIcon');
+      if (!muIcon.firstChild) muIcon.innerHTML = MULTI_SVG;
+      document.getElementById('sheetMultiText').textContent = c.multi.how;
+    }
 
     var prog = document.getElementById('sheetProgress');
     var hasProgress = Boolean(st.played || st.completed);
@@ -3197,7 +3294,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
       var st = lastGameState[key] || {};
       var c = CATALOG[key];
       tileNodes[key].classList.toggle('is-completed', Boolean(st.completed));
-      tileNodes[key].setAttribute('aria-label', c.name + ': ' + c.tag + (st.completed ? ' (Completed)' : ''));
+      tileNodes[key].setAttribute('aria-label', tileLabel(c, Boolean(st.completed)));
     });
     renderContinue();
     if (sheetOpenKey) fillSheet(sheetOpenKey);

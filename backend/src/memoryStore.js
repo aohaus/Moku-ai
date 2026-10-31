@@ -16,6 +16,15 @@ function createMemoryStore() {
   const challenges = new Map();
   const playerChallenges = new Map(); // uid -> Map(challengeId -> row)
   const playerMatches = new Map(); // uid -> Map(matchId -> row)
+  const rooms = new Map();
+  const playerRooms = new Map(); // uid -> Map(roomId -> row)
+
+  function putRoomRows(rows) {
+    for (const { uid, ...row } of rows) {
+      if (!playerRooms.has(uid)) playerRooms.set(uid, new Map());
+      playerRooms.get(uid).set(row.roomId, { ...row });
+    }
+  }
 
   function putChalRows(rows) {
     for (const { uid, ...row } of rows) {
@@ -125,6 +134,25 @@ function createMemoryStore() {
     },
     async listPlayerChallenges(uid) {
       return [...(playerChallenges.get(uid) || new Map()).values()].map((row) => ({ uid, ...JSON.parse(JSON.stringify(row)) }));
+    },
+    async createRoom(room, rows, nowSec) {
+      const current = rooms.get(room.id);
+      if (current && !(current.ttl <= nowSec)) throw codedError("conflict");
+      rooms.set(room.id, JSON.parse(JSON.stringify(room)));
+      putRoomRows(rows);
+    },
+    async getRoom(id) {
+      const r = rooms.get(id);
+      return r ? JSON.parse(JSON.stringify(r)) : null;
+    },
+    async saveRoom(room, baseVersion, rows = []) {
+      const current = rooms.get(room.id);
+      if (!current || current.version !== baseVersion) throw codedError("conflict");
+      rooms.set(room.id, JSON.parse(JSON.stringify(room)));
+      putRoomRows(rows);
+    },
+    async listPlayerRooms(uid) {
+      return [...(playerRooms.get(uid) || new Map()).values()].map((row) => ({ uid, ...row }));
     },
     async renameUser(oldId, newId, fields) {
       const u = users.get(oldId);

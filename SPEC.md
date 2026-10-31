@@ -67,11 +67,13 @@ Mokuball は実装済みだがハブ未公開(準備中)。
     - Moku Watch 6 Lazy: `#FFA552` / `#7A4214`(タンジェリン。夕焼けの色)
     - Moku Bridge: `#5ED6E8` / `#16596A`(グラスアクア。ガラスの橋の色)
     - Moku Chess: `#8FB3E8` / `#2C4A7A`(スレートブルー。夕暮れの空と盤の落ち着いた色)
+    - Moku Word Riddles: `#C4D04A` / `#56601A`(オリーブ。鉛筆と葉っぱのノートの色)
     - 追加タイトルは新規ペアを定義(既存と被らない色相を選ぶ)
 - **タイポグラフィ**: `-apple-system, "Segoe UI", Roboto, sans-serif`。見出しは `font-weight: 800`、字間 `0.01〜0.04em`。
 - **タイトル画面メニューの統一(2026-08-14〜)**: フォント**ファミリー**はゲームごとの世界観を尊重して統一しない(Angry MokumokuはCourier New、他はArial/システムフォントのままでよい)。ただし**サイズ・太さ・揃え方・行間**は統一する。
   - HTML実装(Battle Royal / Shiri of Moku / Mokuball): `.titleMenuItem`(または相当クラス)は `font-size: 19px; font-weight: 800;` 固定値(`clamp()`にしない)、`padding: 8px 18px;`。コンテナは `margin-top: 10px; gap: 6px;` で中央揃え。
-  - canvas実装(Angry Mokumoku / Moyomoyo): タイトルロゴを基準にメニュー文字サイズを概ね0.38〜0.40倍にする(Angry Mokumoku: 50px→20px。Moyomoyo: 110px→43px)。太字・中央揃え・選択中はグロー+`▶ `プレフィックス、非選択は低コントラストという表現もこの2タイトルで共通。
+  - canvas実装(Angry Mokumoku): タイトルロゴを基準にメニュー文字サイズを概ね0.38〜0.40倍にする(50px→20px)。太字・中央揃え・選択中はグロー+`▶ `プレフィックス、非選択は低コントラスト。
+  - Moyomoyo(2026-10-30〜): タイトル画面をHTMLで作り直した(`#title-screen`。枠いっぱいに、横長は「ロゴ+Moku+進化の列|メニュー」の2列、縦長は1列)。メニューは上の HTML 実装と同じ 19px/800 で、Marathon / ⚔️ Moyo Quest の2つ(各ベストスコアつき)+Moint 残高と今日の分。グミの絵だけ canvas(`#title-art` / 背景の `#title-bg`)で、プレイ中と同じ `drawGummyShape()` を使う。ゲーム内の端末ローカルのランキング(Top 10・名前登録)は廃止(Marathon のベストはハブの Achievements に出る)。古い `moyomoyo-leaderboard` キーは起動時に消す。
   - **MK Mobileは対象外**: 現状メニューがテキストリストではなくピルボタン(`▶ START`)のまま(§9の積み残しタスク)。テキストリスト化してから本項のサイズ統一を適用する。
 - **共通コンポーネント**
   - カード(`.card`): 角丸16px、2pxボーダー(アクセントカラー)、内側に1pxの縁取り、hoverで浮き上がる。
@@ -142,6 +144,8 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
 - **NEW表示**は `CATALOG[].newUntil` の日付まで自動で出る(付けっぱなしにしない)。
 - 表示用データは `hub.html` の `CATALOG`、進捗ロジックは従来どおり `GAMES`(同じ `card` キー)。新規タイトル追加時は両方+`SHELVES`+アイコンSVG+スクリーンショットを追加する。
 - **Moint の印**: `CATALOG[].moint` があるゲームはタイルの左上に金色のMコイン、詳細シートに「Earn Moints」(§13)。
+- **マルチプレイの印**(2026-10-30〜): `CATALOG[].multi = { how }` があるゲーム(友達とオンラインで遊べる。§14)はタイルの左上に青い「2人」バッジ(Mコインがあればその右)、詳細シートに「Play with Friends」。今は Moku Chess(Play a Friend)/ Moku Bridge(Challenge a Friend)/ Moku Word Riddles(Riddle Race)。
+- **アイコンの角丸**(2026-10-30〜): ゲームアイコンのタイルは `border-radius: 18%`(以前は 26%。少し四角に寄せた)。My Games の行のアイコンも同じ、Achievements のカードの小さいアイコンは 8px。
 
 **ハブ背景の写真化(完了、2026-08-14)**: 手描きSVGシルエットは廃止し、`backgrounds/<city>.jpg`(都市ごとに1枚、JPEG・軽量化済み)を実背景として採用。時間帯ごとの見た目は画像を差し替えず、CSSの `filter`(brightness/saturate/hue-rotate)+ `mix-blend-mode: multiply` の色調オーバーレイのみで作る。太陽/月の可動域は狭い帯に収めてある(`hub.html` は上部バーの高さ(28〜40px)でプロフィールカードに重ならない、`index.html` は上部バーのすぐ下(画面の高さの6〜9%))。新しい都市を追加する場合は `backgrounds/<key>.jpg` を追加し、`hub.html`/`index.html` 両方の `PLACES` 配列にエントリを足すだけでよい。
 
@@ -217,8 +221,15 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
   - **データ**: ほかの人は `GET /players`(`MokuAccount.loadPlayers()` / `getPlayers()`、取れたら window に `moku:players` イベント)。各プレイヤーの公開カード `card = { level, outfit, highlights, updatedAt }` は、その人のハブがクラウドへ保存するたびに `window.MOKU_PUBLIC_CARD()` で作って `PUT /save` に添える(`backend/API_SPEC.md`)。サーバーは短い文字列とIDだけ残す。セーブの中身はほかの人に見せない。カードはその人が次にハブで保存した時から出る(それまでは素の Moku と「No highlights yet」)。自分の Moku はこの端末から直接描く。
   - Player ID は出さない。オンラインの判定は従来どおり(5分以内のアクセス。開いているページが2分おきに `GET /auth/me`)。ログインしていない時は自分だけ+「Log in to see your friends' Mokus here.」。
   - ✕ Close・戻る・Esc で前の画面へ(ハブ、または My Moku から来たら My Moku)。
+- **Hollow のオントロジー拡張 `hollow.html`**(2026-10-30〜、初期版。ハブの Hollow の「✨ Hidden Links」から開く): 部屋・Moku・吹き出し・Choose Mokus はハブの `#hollow` と同じ(CSS と `buildHollowScene()` / `hollowLayout()` はハブからコピー。**片方を直したらもう片方も**)。その上に次を足した。
+  - **意味ネットワーク** [`shared/moku-ontology.js`](shared/moku-ontology.js)(`MokuOntology`、UMD。ブラウザでも Lambda でも同じ結果。テストは `backend/test/sharedModules.test.js`): 3層の小さなグラフ。もの(ゲーム `GAMES` と Closet の服 `ITEM_RULES`)→ 特徴(`TRAITS` 22個。Strategy / Patience / Sweets …)→ 6つの鳥の家族(`SPIRITS`: Brave Hearts / Quiet Thinkers / Forest Friends / Treasure Hunters / Party Birds / Cozy Cooks)。特徴どうしの「相性がいい」辺(`RELATED`。Strategy〜Puzzles など)もある。入力は**サーバーが今も配っている公開カードだけ**(`records` のゲーム・`highlights` のゲーム・`outfit`・`level`)なので、バックエンドの変更はない。自分だけはこの端末から、遊んだゲーム(`moku:played:*`・`moku:<gameId>:*`)・Moint 残高・Closet の数も足す。服の値段の合計が高い = Style、Moint を貯めている = Collecting(Moint の使い方)。
+  - **世界観の自動醸成**: `ambience()` が部屋にいる Moku(自分は2倍)から、光の色・木の色味・苔の量・ホタルの数・飾り(`DECOR`。チェスのナイト・釣りざお・クッキーの皿・楽譜など17種、`hollow.html` の `DECOR_ART` が SVG で描く)を決める。部屋は記憶を持つ(`moku:hollow:world`、1日1回 `remember()`。前日までを8割残して今日を2割足す)。訪れた日が増えるほど過去が強く残り、飾りの数が増える(最初2個、3日ごとに1個、最大5個)。記憶は友達のカードが届いてから付ける(読み込み途中の自分だけの部屋を覚えない)。新しく増えた飾りに NEW(`moku:hollow:decor-seen`)。`moku:hollow:` は同期で両方変わってもこの端末の値を使う(§10)。
+  - **意外な共通点**: `compare()` が「同じ特徴を違うもの(Chess と Fishing、ゲームと帽子)から持っている」ほど高く評価し、一番の発見を英語の一言にする(例「Who knew? You (Moku Drop) and Aoi (Moku Fishing Pond) are both Patient Souls.」)。同じ入力なら同じ文(乱数を使わない)。Moku を押した吹き出しに「You & ○○」と似ている度合い(%)、画面下の **Hollow Notes**(部屋の日記)に今日の部屋の雰囲気・育ち具合・自分の一言・友達ごとの Hidden Links を出す。Moku はときどき好きな物の絵文字(♟️ 🍪 🎵 …)を頭の上に浮かべる。
+  - **Birds Like You**(2026-10-30〜): Hollow Notes の「You」の下。サーバー(`GET /players/kin`、`AccountFunction`。`backend/API_SPEC.md`)が同じ `moku-ontology.js` で**全員**の公開カードと自分のカードを比べ、似ている人を最大3人(`% alike`)と「✨ Surprise」(同じゲームを1つも持っていないのに共通点がある一番意外な1人)を返す。部屋にいない人には「not in the room」と出し、押すと Choose Mokus の選択の最後の1人と入れ替えて部屋に呼び、吹き出しを開く。ログインしていない・オフライン・古いサーバー(404)の時はこの欄ごと出さない。サーバーは自分のカードを使う(この端末だけの遊んだゲーム・Moint は入らない)ので、部屋の Hidden Links と % が少し違うことがある。
+    - Lambda には `backend/` しか入らないので `backend/src/vendor/moku-ontology.js` にコピーを置いている。**`shared/` の方を直して `cp shared/moku-ontology.js backend/src/vendor/`**(違うと `npm test` が失敗する)。
+  - 次の候補: ハブの `#hollow` と1つにまとめる / マッチ・チャレンジの対戦履歴を辺に足す。
 - **Achievements**(`hub.html#awards`、2026-10-26〜。下部ナビの左から2番目「🏆 Achievements」。それまでは Coming soon で押せなかった): ゲームごとに「難関の記録」を1つ決め、全プレイヤーの Top 3 を出す画面。
-  - **記録**(大きいほど上。`hub.html` の `RECORDS`、`GAMES` と同じ card キー): Angry Mokumoku / Moku Drop / Moku Bento / Moku Rhythm Cafe / Moku Future Run = High Score、Moyomoyo = Marathon High Score、MK Mobile = Strongest Player(持っている選手の Sp+Sh+Def の最大)、Battle Royal = Battle Level、Shiri of Moku = Stages Cleared、Moku City = City Level、Moku-rane = Prizes Won、Moku Fishing Pond = Fish Caught、Moku Kart = Grand Prix Trophies、Flying Moku = Acorns Found、Moku Wolf = Rounds Played、Moku Fight = Wins、Moku Watch 6 Lazy = Laziest Watch、Moku Bridge = Luckiest Steps、Moku Chess = Strongest CPU Beaten(勝ったCPUの最高レベル)。新しいタイトルは `RECORDS` に1つ足す。
+  - **記録**(大きいほど上。`hub.html` の `RECORDS`、`GAMES` と同じ card キー): Angry Mokumoku / Moku Drop / Moku Bento / Moku Rhythm Cafe / Moku Future Run = High Score、Moyomoyo = Marathon High Score、MK Mobile = Strongest Player(持っている選手の Sp+Sh+Def の最大)、Battle Royal = Battle Level、Shiri of Moku = Stages Cleared、Moku City = City Level、Moku-rane = Prizes Won、Moku Fishing Pond = Fish Caught、Moku Kart = Grand Prix Trophies、Flying Moku = Acorns Found、Moku Wolf = Rounds Played、Moku Fight = Wins、Moku Watch 6 Lazy = Laziest Watch、Moku Bridge = Luckiest Steps、Moku Chess = Strongest CPU Beaten(勝ったCPUの最高レベル)、Moku Word Riddles = Riddles Solved(自力で解いた問題の数)。新しいタイトルは `RECORDS` に1つ足す。
   - **表示**: ゲームごとのカード(アイコン・名前・記録の名前)に 🥇🥈🥉 の3人(着せ替えた Moku の顔・表示名・`#u` タグ・記録)。同じ記録は同じ順位。自分が4位以下なら「⋮」の下に自分の行と「Beat ○○ to move up!」。1位なら「You are No. 1! 👑」。記録がまだないゲームは1行(「No records yet. Be the first!」)で、記録のあるゲームを上に並べる。「All Games / Games I Play」で、自分が記録を持っているゲームだけに絞れる。幅 700px 以上は2列。
   - **データ**: Hollow と同じ公開カードに `records = { gameId: 数 }` を足した(`window.MOKU_PUBLIC_CARD()`。サーバーは正の数だけ整数で残す。`backend/API_SPEC.md`)。ほかの人の記録はその人が次にハブで保存した時から出る。自分の記録はこの端末から直接読む。管理者アカウントは Players と同じく出ない。
   - ✕ Close・戻る・Esc でハブへ。
@@ -271,11 +282,12 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
   - **Backgrounds**(2026-10-25〜): My Moku 画面の左の Moku の後ろに敷く背景カード(Closet のプレビューにも出る)。各 300 Moint。Japan / Kuala Lumpur / Singapore / Vietnam / Indonesia / Thailand / Cambodia。シンプルな色数のポップアート調(平らな空+サンバースト+網点+太い輪郭線のランドマーク)。Moku が真ん中に立つので、ランドマークは上と左右に置く。絵は `moku-moint.js` の `BACKGROUNDS`(自分の 100×100 グリッド)。`[data-moku-doll data-moku-scene]` のスロットが背景つきで描く(ハブの帯・下部ナビ・ゲームのタイトル画面は背景なし)。
   - 服の絵は `brand/mokumoku-hero.png` にぴったり重なる 100×100 グリッドの SVG(頭のてっぺん ≈ y 8、目 ≈ (35, 41.5) / (65, 41.5)、葉の蝶ネクタイ ≈ y 44〜58)。どの大きさの Moku にも同じ絵を重ねられる。新しい服は `moku-moint.js` の `ITEMS` に足す。
   - Moku Bridge はタイトル画面のヒーロー画像に全部の服を、プレイ中の後ろ姿の Moku には帽子だけを描く。他のタイトルでも `MokuMoint.outfitSVG()` / `layerImage()` で同じ服を着せられる。
+  - Moku Future Run(2026-10-30〜)も後ろ姿の 3D Moku に帽子だけを載せる(帽子の SVG を Canvas に描いて板ポリゴンのテクスチャにし、頭の上・少しカメラ側に置く。Moku の体の幅 = 76 マス)。それまでのベリーで買う独自の Outfits は廃止した(古いセーブの `outfit` / `unlockedOutfits` は読まないだけで残っていても害はない)。
 - 最初に導入したのは Moku Bridge。財布は `localStorage` の `moku:moint:wallet` = `{ version: 1, balance, updatedAt }`(ゲームIDを付けないシリーズ共通キー。`moku:` 接頭辞なのでクラウドセーブ・引き継ぎコードの対象)。
 - 他のタイトルで Moint を配る・使う場合も同じキーを読み書きする。`balance` は 0 未満にしない。
 - **他のゲームへの展開**(2026-10-25〜、1本ずつ): 相場は「1回遊ぶ(2〜3分)と 50〜150、毎日遊べば 300 Moint の物が1日1個買える」。
   - 配る時は `MokuMoint.earn(gameId, amount)`。毎回もらえる分(勝ち・クリアなど)は**1ゲーム1日 500 まで**(`DAILY_GAME_CAP`)。1回きりの実績は `{ capped: false }` で上限の外。今日の分は `moku:moint:earned` = `{ version: 1, day, games: { gameId: n }, updatedAt }`(クラウドセーブではこの端末の値を使う)。実績を受け取ったかどうかはそのゲーム自身のセーブに記録する(2台で食い違った時、ゲームごとに選ばせるため)。
-  - **ハブの印**: `hub.html` の `CATALOG` に `moint: { how, cap }` を書いたゲームは、タイルの左上に小さい金色のMコインが付き、詳細シートに「Earn Moints」(もらい方の説明。`cap` があれば今日の分 n / 500)が出る。今は Moku Fight / Moku Bridge / Moku Drop / Moyomoyo / MK Mobile / Moku Chess。
+  - **ハブの印**: `hub.html` の `CATALOG` に `moint: { how, cap }` を書いたゲームは、タイルの左上に小さい金色のMコインが付き、詳細シートに「Earn Moints」(もらい方の説明。`cap` があれば今日の分 n / 500)が出る。今は Moku Fight / Moku Bridge / Moku Drop / Moyomoyo / MK Mobile / Moku Chess / Moku Word Riddles。
   - 次の候補: Moku Kart(独自コインがあるので実績だけにするか要相談)など。
 - **Moku Drop**(2026-10-26〜): ビンがいっぱいになった(JAR FULL)時の画面に内訳と今日の分 n / 500。途中で 🔄 でやり直した回は払わない。
   - 毎回(上限 500/日): スコア 100 点ごとに 1(1回で最大 150。コンボで点が大きく伸びるので Moyomoyo より割る数を大きくした)。自己ベスト更新 +30(ベストが 0 の初回は除く)。
@@ -293,6 +305,13 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
   - 使い道: タイトル画面の Board Shop で盤の着せ替え(Forest Oak は無料、Spring Meadow 200 / Cherry Blossom 250 / Sunset Sky 300 / Snowy Birch 350 / Candy Shop 450)。持っている盤と選んだ盤は同じ progress の `boards` / `board`。
   - CPU は10段階(Lv.1 Moyo / 2 Chef Rat / 3 Ponta / 4 Ninja Rat / 5 Kon / 6 Nox / 7 Goro / 8 Sage Kon / 9 King Nox / 10 Thunder King Goro。8〜10 は Moku Fight のキャラの「師範」版で、顔に王冠と後光)。最初は Lv.1〜3 が遊べ、Lv.n に勝つと Lv.n+1 が開く(`progress.best` = 勝った最高レベル)。Lv.1〜4 だけ 💡 Hint と ↩ Undo が使える(初心者の練習用。高いレベルの初勝利ボーナスを Undo で取れないように)。
   - 対局中の盤面は `moku:moku-chess:game`(初期局面からの手順 UCI の配列)に毎手保存し、タイトル画面の「Continue」で再開できる。終局で消す。
+- **Moku Word Riddles**(2026-10-31〜、v0.2.0): 英語のレバス・パズル100問(Easy 41 / Medium 38 / Tricky 21)。1ラウンド5問、正解画面と結果画面に内訳、結果画面とタイトル画面に今日の分 n / 500。
+  - 毎回(上限 500/日): 正解 +10、ヒントなし・1回目で正解 +5、5問すべて自力で解いたラウンド +20。リプレイ(全問解いた後)の正解も同じ。
+  - Riddle Race(§14、同じ上限の中): 勝った問題 ×5 + 最後まで +10 + 1位(同点も)+30。1レース1回だけ(`progress.race.paid` = 部屋の `key` → 忘れてよい時刻、3日)。
+  - 1回きり: 初回のお試し用に 30(`welcomeGift`、上限の外)。
+  - 使い道(上限と関係ない): 💡 Hint 10(意味のヒント+文字数のタイル+各単語の頭文字)→ 🔤 Choices 15(4択)→ ⏭ Skip 30(答えを見て次へ。その問題は後でもう一度出る)。
+  - 記録は `moku:moku-word-riddles:progress` = `{ version: 1, solved: { id: 1 }, skipped: { id: 1 }, totalScore, bestRound, rounds, played, welcomeGift, race: { paid, played, won } }`。問題データと答えの判定は [`shared/moku-riddles.js`](shared/moku-riddles.js)(`MokuRiddles`、UMD。サーバーも同じ判定を使う。`id` はセーブのキーなので変えない)。問題を足したら `hub.html` の `RIDDLE_TOTAL` も直し、`cp shared/moku-riddles.js backend/src/vendor/`。
+  - 出題の順(2026-10-31〜 ランダム): まだ見ていない問題 → スキップした問題 → 全部解いたら解いた問題。それぞれの中はシャッフル。
 - **Moku Fight**(2026-10-25〜): 結果画面に内訳(コインが数え上がる)。タイトル画面に残高と今日の分。負けても減らない。
   - 毎回(上限 500/日): 勝ち Easy 30 / Normal 60 / Hard 120。ノーダメージで取ったラウンドがあれば +20。連勝ボーナスは2連勝目から1つごとに +10(最大 +50)。
   - 1回きり: ライバルごと・CPUの難易度ごとの初勝利 100 / 200 / 300(ゲストのライバルも)。Goro への初勝利は 500(その時の難易度の初勝利も済みにする)。新しい技を覚えた 50。技の練習を初めて終えた 10。
@@ -325,6 +344,12 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
   - Lambda は `MatchFunction`(ログインの scrypt で遅くなる `AccountFunction` と分けた)。スロットリングはルートごとに `RouteSettings` で設定(ポーリングの `GET /matches/{id}` は 40/秒・瞬間80。既定の 10/秒 はルートごとの値)。
   - `POST /matches/{id}/resign`(投了。自分の番でなくてもよい。相手の勝ち)も足した。
 - **同じ問題で勝負する API**(`/challenges`、2026-10-30〜。仕様は `backend/API_SPEC.md` の「Challenges」): 2人が同時にいなくても遊べる非同期の勝負。サーバーがシードと条件を配り、2人がそれぞれ遊んで結果を1回ずつ送り、そろったらサーバーが勝ち負けを決める。自分が送るまで相手の結果は見えない。最初は Moku Bridge(§13)。新しいゲームは `backend/src/challengeApi.js` の `GAMES` に `params` / `result` / `compare` を足す。Lambda は `MatchFunction` を共用、データは同じテーブルの `CHAL#<id>` と `PLAYER#<uid> / CHAL#<id>`、14日で消える。共通の処理(ログイン確認・相手探し)は `backend/src/playCommon.js`。
+- **みんなで同時に遊ぶ部屋 API**(`/rooms`、2026-10-31〜。仕様は `backend/API_SPEC.md` の「Rooms」): 2〜6人が同時に同じ問題を解く早押し。最初は Moku Word Riddles の **Riddle Race**。`src/roomApi.js`、Lambda は `MatchFunction` を共用。データは同じテーブルの `ROOM#<コード>` と `PLAYER#<uid> / ROOM#<コード>`、最後の変化から1日で消える。
+  - ホストが部屋を作る(5問か10問)。友達は4文字のコード(I・L・O なし)を入れるか、ロビーの「Invite Friends」から招待されて(タイトルの 👥 Riddle Race に赤い数字)入る。ホストが Start(2人以上)。
+  - 開始の4秒後に1問目。みんな同じ問題が同時に出て、**サーバーに最初に届いた正解**がその問題の勝ち。1問最大45秒、正解か時間切れのあと5秒答えを見せて次へ。15秒で意味のヒント、30秒で頭文字が全員に出る(無料)。ヒント・スキップは使えない。まちがいは何回でもよい(ページの中だけで判定し、合っている時だけ送る)。
+  - どこまで進んだかは `startAt` と `wins` から `MokuRiddles.raceTimeline()` で出す(ページとサーバーが同じ関数)。サーバーの時刻との差は返事の `now` で直す。ページは `GET /rooms/{id}?v=` を1秒おき(ロビーは2秒、終わった後は3秒)に見る。
+  - 終わったら順位(同点は同じ順位)と Moint。ホストの「Play Again」で同じメンバーの新しい部屋ができ、ほかの人の画面も自動でそこへ移る(元の部屋の `next`)。
+  - 途中で ◀ Menu で抜けても、Riddle Race の画面の一覧から戻れる。
 - **Moku Chess の「Play a Friend」**(2026-10-30〜、v0.2.0): タイトル画面のボタン(ログイン中だけ出る。自分の番の対局があれば赤い数字)→ 「Your games」(自分の番が先頭。相手の着せ替えた Moku・`#u` タグ・状態)と「Start a new game」(Players の一覧。先手後手はランダム)。
   - 対局画面は CPU 戦と同じ。上の段は友達(Moku の顔・「Friend」)。黒番の時は盤を逆さにする(マスを h1→a8 の順に作り直し、駒はマスの位置に付いてくる)。Hint / Undo はなし。Give Up はサーバーに投了を送る。Menu は「Your games」へ戻る(対局はサーバーに残っている)。
   - 指すとすぐ盤に反映して送る。サーバーが受け付けなかった時(先に別の手が入った等)は、返ってきた対局に合わせて盤を描き直す。オフラインの間は3秒おきに送り直す。
@@ -339,7 +364,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
 - [ ] 残り6タイトルのアクセントカラー割り当てルール
 - [ ] ハブ背景を都市写真ベースに差し替え(§7参照、素材生成待ち)
 - [ ] 各ゲームのスタート画面リデザイン(写真背景刷新の後続タスクとして想定)
-- [ ] ゲーム内の日本語UIを英語化(§3、2026-10-24 時点): Moku Wolf(お題の単語が中心。英語化すると遊び方が変わるので要相談)、Shiri of Moku、Moyomoyo、MK Mobile、Angry Mokumoku、Mokuball
+- [ ] ゲーム内の日本語UIを英語化(§3、2026-10-24 時点): Moku Wolf(お題の単語が中心。英語化すると遊び方が変わるので要相談)、Shiri of Moku、MK Mobile、Angry Mokumoku、Mokuball
 - [ ] Moku Future Run への子どもたちの要望(2026-10 AI Studio から引き継ぎ): ①危険な障害物を黒やハザードストライプでひと目で分かるようにする ②ジャンプするとベリーの列も一緒に動くバグ ③クリアはお祝い・失敗は残念な演出で差をはっきりさせる ④しゃがんでくぐる障害物を増やす
 
 ## 開発履歴について

@@ -208,6 +208,53 @@ test("players list: Hollow cards from PUT /save, cleaned", async () => {
   assert.equal(kept.outfit.head, "wizard-hat");
 });
 
+test("the server keeps an exact copy of the shared meaning network", () => {
+  const fs = require("fs");
+  const path = require("path");
+  const shared = fs.readFileSync(path.join(__dirname, "../../shared/moku-ontology.js"), "utf8");
+  const vendor = fs.readFileSync(path.join(__dirname, "../src/vendor/moku-ontology.js"), "utf8");
+  assert.ok(shared === vendor, "backend/src/vendor/moku-ontology.js differs: cp shared/moku-ontology.js backend/src/vendor/");
+});
+
+test("players/kin: Birds Like You and one surprise, from public cards only", async () => {
+  const { call, register, makeAdmin } = setup();
+  const save = (tok, card) => call("PUT", "/save", { data: { "moku:x": "1" }, baseRev: 0, card }, tok);
+  const me = (await register("ren", "4826", { displayName: "Ren" })).body.token;
+  assert.equal((await call("GET", "/players/kin")).status, 401);
+
+  // no card yet: nothing to compare
+  const empty = await call("GET", "/players/kin", null, me);
+  assert.equal(empty.status, 200);
+  assert.deepEqual(empty.body.kin, []);
+  assert.equal(empty.body.surprise, null);
+  assert.equal(empty.body.me.spirit, "");
+
+  await save(me, { records: { "moku-chess": 5 } });
+  const sora = (await register("sora", "4826", { displayName: "Sora" })).body.token;
+  await save(sora, { records: { "moku-chess": 2, "moku-drop": 900 } });           // same game
+  const aoi = (await register("aoi", "4826", { displayName: "Aoi" })).body.token;
+  await save(aoi, { records: { "moku-fishing": 40 } });                           // different game, same patience
+  const kai = (await register("kai", "4826", { displayName: "Kai" })).body.token;
+  await save(kai, { records: { "moku-kart": 6 } });                               // nothing in common
+  await register("mio", "4826", { displayName: "Mio" });                          // no card
+  await save(await makeAdmin(), { records: { "moku-chess": 9 } });                // admins never show up
+
+  const r = (await call("GET", "/players/kin", null, me)).body;
+  assert.equal(r.me.spirit, "thinker");
+  assert.match(r.me.text, /Quiet Thinkers/);
+  assert.equal(r.surprise.displayName, "Aoi");
+  assert.deepEqual(r.surprise.sharedGames, []);
+  assert.match(r.surprise.link.text, /Patien/);
+  assert.deepEqual(r.kin.map((p) => p.displayName), ["Sora"]);
+  assert.deepEqual(r.kin[0].sharedGames, ["moku-chess"]);
+  assert.ok(r.kin[0].score > r.surprise.score);
+  for (const p of [...r.kin, r.surprise]) {
+    assert.deepEqual(Object.keys(p).sort(), ["displayName", "link", "online", "score", "sharedGames", "tag"]);
+    assert.match(p.tag, /^u[0-9a-f]{5}$/);
+  }
+  assert.ok(!JSON.stringify(r).includes("aoi\""), "never a Player ID");
+});
+
 test("admin: only the admin role gets in; kids can't take reserved IDs", async () => {
   const { call, register, makeAdmin } = setup({ maxUsers: 1 });
   const admin = await makeAdmin("admin", "8810");

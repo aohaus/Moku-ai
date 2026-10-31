@@ -17,6 +17,8 @@ const { doc } = require("./db");
 //   pk "PLAYER#<uid>",    sk "MATCH#<id>"  that player's row in their match list
 //   pk "CHAL#<id>",       sk "STATE"    a "same puzzle" challenge (challengeApi.js)
 //   pk "PLAYER#<uid>",    sk "CHAL#<id>"   that player's row in their challenge list
+//   pk "ROOM#<code>",     sk "STATE"    a Riddle Race room (roomApi.js)
+//   pk "PLAYER#<uid>",    sk "ROOM#<code>"   a room that player is in or was invited to
 // (plus the log and error items further down). Match items carry `ttl`.
 
 const TABLE = process.env.ACCOUNTS_TABLE_NAME;
@@ -529,9 +531,87 @@ async function listPlayerChallenges(uid) {
   return items.filter((i) => !i.ttl || i.ttl > t).map(({ pk, sk, ...row }) => ({ uid, ...row }));
 }
 
+// ---------- Riddle Race rooms (roomApi.js) ----------
+// A room code is reused once its room has expired, so a create may replace an
+// expired room that DynamoDB's lazy TTL hasn't deleted yet.
+
+const roomKey = (id) => ({ pk: `ROOM#${id}`, sk: "STATE" });
+const playerRoomKey = (uid, id) => ({ pk: `PLAYER#${uid}`, sk: `ROOM#${id}` });
+
+function roomRowPuts(rows) {
+  return rows.map(({ uid, ...row }) => ({ Put: { TableName: TABLE, Item: { ...playerRoomKey(uid, row.roomId), ...row } } }));
+}
+
+async function createRoom(room, rows, nowSec) {
+  try {
+    await doc.send(
+      new TransactWriteCommand({
+        TransactItems: [
+          {
+            Put: {
+              TableName: TABLE,
+              Item: { ...roomKey(room.id), ...room },
+              ConditionExpression: "attribute_not_exists(pk) OR #ttl <= :now",
+              ExpressionAttributeNames: { "#ttl": "ttl" },
+              ExpressionAttributeValues: { ":now": nowSec },
+            },
+          },
+          ...roomRowPuts(rows),
+        ],
+      })
+    );
+  } catch (e) {
+    if (e.name === "TransactionCanceledException") throw codedError("conflict");
+    throw e;
+  }
+}
+
+async function getRoom(id) {
+  const res = await doc.send(new GetCommand({ TableName: TABLE, Key: roomKey(id) }));
+  if (!res.Item) return null;
+  const { pk, sk, ...room } = res.Item;
+  return room;
+}
+
+async function saveRoom(room, baseVersion, rows = []) {
+  try {
+    await doc.send(
+      new TransactWriteCommand({
+        TransactItems: [
+          {
+            Put: {
+              TableName: TABLE,
+              Item: { ...roomKey(room.id), ...room },
+              ConditionExpression: "version = :v",
+              ExpressionAttributeValues: { ":v": baseVersion },
+            },
+          },
+          ...roomRowPuts(rows),
+        ],
+      })
+    );
+  } catch (e) {
+    if (e.name === "TransactionCanceledException") throw codedError("conflict");
+    throw e;
+  }
+}
+
+async function listPlayerRooms(uid) {
+  const res = await doc.send(
+    new QueryCommand({
+      TableName: TABLE,
+      KeyConditionExpression: "pk = :pk AND begins_with(sk, :r)",
+      ExpressionAttributeValues: { ":pk": `PLAYER#${uid}`, ":r": "ROOM#" },
+    })
+  );
+  const t = Math.floor(Date.now() / 1000);
+  return (res.Items || []).filter((i) => !i.ttl || i.ttl > t).map(({ pk, sk, ...row }) => ({ uid, ...row }));
+}
+
 module.exports = {
   getUser, createUser, updateUser, getSave, putSave, listUsers, listSaves, deleteUser, renameUser,
   addLog, listLogs, recordError, listErrors, updateError, deleteError,
   createMatch, getMatch, saveMatch, listPlayerMatches,
   createChallenge, getChallenge, saveChallenge, listPlayerChallenges,
+  createRoom, getRoom, saveRoom, listPlayerRooms,
 };

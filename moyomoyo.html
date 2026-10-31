@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <script src="shared/moku-errors.js?v=20261026"></script>
@@ -7,12 +7,17 @@
 <script src="shared/moku-account.js?v=20261031" data-mode="background"></script>
 <script src="shared/moku-moint.js?v=20261026" data-mode="none"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-<title>モヨモヨ - Moyomoyo</title>
+<title>Moyomoyo</title>
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
+/* Explicit height + fallback color: on the title screen the game
+   canvas is hidden, and a zero-height body would otherwise lose its
+   gradient (the page turned white). */
+html { height: 100%; background: #2A1840; }
 body {
+  min-height: 100%;
   /* Soft candy bokeh dots tiled across the full viewport, so on wide
      screens (e.g. iPad landscape) the margins beside the portrait game
      read as intentional decoration instead of empty dead space. */
@@ -118,7 +123,7 @@ body.vs-active .ctrl-btn:active { background: rgba(255,143,188,0.55); }
    from the frame border, so tall desktop windows get a genuinely
    bigger board instead of one arbitrarily capped short of the room
    actually available. */
-canvas {
+#c {
   display: block;
   cursor: pointer;
   aspect-ratio: 828 / 852; /* must match the canvas's internal W:H below */
@@ -204,21 +209,6 @@ canvas {
 #ov-moints p { margin: 2px 0 0; font-size: 11.5px; font-weight: 700; color: #FFD86A; text-align: center; }
 #ov-moints .coin { display: inline-flex; align-items: center; justify-content: center; width: 1.25em; height: 1.25em; margin-right: 5px; border-radius: 50%;
   background: radial-gradient(circle at 35% 30%, #FFF3B0, #FFC94A 55%, #C98A1B); color: #6A4300; font-size: 0.72em; font-weight: 900; }
-#ov-name-row {
-  display: flex; gap: 8px; margin-bottom: 18px;
-}
-#ov-name-row.hidden { display: none; }
-#ov-name-input {
-  width: 190px;
-  background: rgba(255,255,255,0.12);
-  border: 1.5px solid rgba(255,255,255,0.35);
-  border-radius: 20px;
-  padding: 10px 14px;
-  font-size: 14px;
-  color: #fff;
-  text-align: center;
-}
-#ov-name-input::placeholder { color: rgba(255,255,255,0.5); }
 .btn-row { display: flex; gap: 10px; }
 #overlay button.secondary {
   background: rgba(255,255,255,0.15);
@@ -228,41 +218,6 @@ canvas {
   padding: 12px 22px;
 }
 #overlay button.secondary:hover { background: rgba(255,255,255,0.25); }
-#board-overlay {
-  position: absolute; inset: 0;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  background: rgba(20,5,30,0.78);
-  backdrop-filter: blur(4px);
-  pointer-events: all;
-  z-index: 10;
-}
-#board-overlay.hidden { display: none; }
-#board-overlay h1 { color: #fff; font-size: 26px; margin-bottom: 16px; text-shadow: 0 2px 12px rgba(0,0,0,0.5); }
-#board-list {
-  width: min(86%, 340px);
-  max-height: 55%;
-  overflow-y: auto;
-  margin-bottom: 20px;
-}
-.board-row {
-  display: flex; align-items: center; gap: 10px;
-  background: rgba(255,255,255,0.08);
-  border-radius: 12px;
-  padding: 9px 14px;
-  margin-bottom: 6px;
-  color: #fff;
-}
-.board-row .rank { width: 26px; font-weight: 900; color: #FFE066; text-align: center; }
-.board-row .name { flex: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.board-row .score { font-variant-numeric: tabular-nums; color: #FFE066; font-weight: 700; }
-.board-row.empty { color: rgba(255,255,255,0.5); justify-content: center; font-size: 14px; }
-#board-close-btn {
-  background: #FF6FA8; color: #fff;
-  border: none; border-radius: 30px;
-  padding: 12px 32px; font-size: 16px; font-weight: 700;
-  cursor: pointer; box-shadow: 0 4px 16px rgba(255,111,168,0.4);
-}
 #rotate-hint {
   display: none;
   position: fixed; inset: 0; z-index: 999;
@@ -318,56 +273,196 @@ canvas {
   color: rgba(255,255,255,0.28);
   pointer-events: none;
 }
+/* ─── Title screen (rebuilt 2026-10-30) ───
+   An HTML layer that fills the whole #title-frame instead of drawing
+   inside the narrow game canvas, which left a visible column with dead
+   margins on wide screens. The canvas (#game-layout) is hidden while it
+   is up. Two columns on wide screens (hero | menu), one column on
+   tall ones. */
+body.on-title #game-layout { display: none; }
+#title-bg { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; display: none; }
+#title-screen {
+  position: fixed; inset: 0; z-index: 4;
+  display: none; align-items: center; justify-content: center;
+  padding: calc(44px + env(safe-area-inset-top)) calc(40px + env(safe-area-inset-right))
+           calc(40px + env(safe-area-inset-bottom)) calc(40px + env(safe-area-inset-left));
+  color: #FFE9F5;
+  font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+body.on-title #title-screen { display: flex; }
+body.on-title #title-bg { display: block; }
+.title-inner {
+  display: flex; align-items: center; justify-content: center;
+  gap: clamp(24px, 6vw, 88px);
+  width: 100%; max-width: 980px;
+}
+.title-hero { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.title-side { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+/* Wordmark: each letter is one of the gummy stage colors, with a plum
+   "candy edge" under it, and bounces in turn like a jelly. */
+#title-logo {
+  display: flex; gap: 0.02em;
+  font: 900 clamp(38px, min(8.4vw, 13vh), 96px)/1 "Arial Rounded MT Bold", "Hiragino Maru Gothic ProN", "Varela Round", -apple-system, "Segoe UI", Arial, sans-serif;
+  letter-spacing: 0.01em;
+}
+#title-logo span {
+  display: inline-block;
+  color: var(--c);
+  text-shadow: 0 0.05em 0 #7A3D63, 0 0.09em 0 #4A2048, 0 0.16em 0.3em rgba(20,5,30,0.45);
+  animation: logoJelly 3.2s ease-in-out infinite;
+  animation-delay: calc(var(--i) * 0.12s);
+  transform-origin: 50% 100%;
+}
+@keyframes logoJelly {
+  0%, 62%, 100% { transform: translateY(0) scale(1, 1); }
+  70% { transform: translateY(-0.12em) scale(0.94, 1.08); }
+  78% { transform: translateY(0) scale(1.08, 0.9); }
+  86% { transform: translateY(0) scale(0.98, 1.02); }
+}
+#title-tagline {
+  margin-top: clamp(6px, 1.4vh, 12px);
+  font-size: clamp(11px, 1.9vh, 15px); font-weight: 800; letter-spacing: 0.32em;
+  color: #FFB0DC; text-transform: uppercase; padding-left: 0.32em;
+}
+#title-art {
+  display: block;
+  width: min(40vw, 46vh, 420px);
+  aspect-ratio: 420 / 330;
+  margin-top: clamp(4px, 1.5vh, 14px);
+}
+#title-howto {
+  font-size: clamp(11.5px, 1.9vh, 14px); font-weight: 700;
+  color: rgba(255,233,245,0.72); text-align: center; line-height: 1.5;
+}
+#title-howto b { color: #FFE9F5; }
+#title-howto .keys { color: rgba(255,233,245,0.5); font-weight: 600; }
+/* Menu: the series' shared HTML title menu (SPEC.md §3 — 19px/800,
+   ▶ prefix + glow on the selected item, low contrast otherwise), with a
+   one-line description and the best score under each item. */
+.titleMenu { display: flex; flex-direction: column; align-items: stretch; gap: 6px; margin-top: 10px; width: min(300px, 38vw); }
+.titleMenuItem {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 8px 18px;
+  background: none; border: 0; border-radius: 16px;
+  color: rgba(255,255,255,0.5);
+  font: inherit; cursor: pointer;
+  transition: color 0.15s, background 0.15s, transform 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.titleMenuItem .label { font-size: 19px; font-weight: 800; letter-spacing: 0.01em; white-space: nowrap; }
+.titleMenuItem .label::before { content: '▶ '; visibility: hidden; }
+.titleMenuItem .desc { font-size: 12px; font-weight: 600; opacity: 0.8; }
+.titleMenuItem .best {
+  font-size: 11.5px; font-weight: 800; letter-spacing: 0.02em;
+  padding: 2px 10px; border-radius: 99px; background: rgba(255,255,255,0.06);
+}
+.titleMenuItem .best:empty { display: none; }
+.titleMenuItem.sel {
+  color: #FFE9F5;
+  background: linear-gradient(180deg, rgba(255,111,168,0.22), rgba(217,111,176,0.10));
+  box-shadow: inset 0 0 0 1.5px rgba(255,143,196,0.45), 0 6px 22px rgba(255,111,168,0.18);
+  text-shadow: 0 0 14px rgba(255,111,168,0.9);
+}
+.titleMenuItem.sel .label::before { visibility: visible; }
+.titleMenuItem.sel .best { background: rgba(255,224,102,0.16); color: #FFE066; text-shadow: none; }
+.titleMenuItem:active { transform: scale(0.97); }
+#title-moints {
+  display: flex; align-items: center; gap: 8px; margin-top: 16px;
+  padding: 6px 14px; border-radius: 99px;
+  background: rgba(255,201,74,0.10); border: 1px solid rgba(255,201,74,0.32);
+  font-size: 13px; font-weight: 800; color: #FFD86A; white-space: nowrap;
+}
+#title-moints.hidden { display: none; }
+#title-moints .today { font-weight: 700; color: rgba(255,255,255,0.55); }
+#title-moints .coin { display: inline-flex; align-items: center; justify-content: center; width: 1.35em; height: 1.35em; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #FFF3B0, #FFC94A 55%, #C98A1B); color: #6A4300; font-size: 0.8em; font-weight: 900; }
+#title-hint { margin-top: 14px; font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.32); letter-spacing: 0.03em; }
+/* Tall screens (iPad portrait, narrow desktop windows): one column. */
+@media (max-aspect-ratio: 1/1) {
+  .title-inner { flex-direction: column; gap: clamp(8px, 2vh, 24px); }
+  #title-art { width: min(72vw, 34vh, 420px); }
+  .titleMenu { width: min(320px, 70vw); }
+}
+/* Short landscape phones: trim the extras so everything fits. */
+@media (max-height: 430px) and (min-aspect-ratio: 1/1) {
+  #title-screen { padding-top: calc(30px + env(safe-area-inset-top)); padding-bottom: calc(26px + env(safe-area-inset-bottom)); }
+  #title-hint { display: none; }
+  #title-moints { margin-top: 10px; }
+  .titleMenuItem .desc { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #title-logo span { animation: none; }
+}
 @media (max-width: 600px) and (orientation: portrait) {
   #rotate-hint { display: flex; }
   #game-layout { display: none; }
+  #title-screen, #title-bg { display: none !important; }
   #title-frame { display: none; }
   #hub-link { display: none !important; }
   #buildInfo { display: none !important; }
 }
 </style>
 </head>
-<body>
+<body class="on-title">
+<canvas id="title-bg" aria-hidden="true"></canvas>
+<div id="title-screen">
+  <div class="title-inner">
+    <div class="title-hero">
+      <h1 id="title-logo" aria-label="Moyomoyo"></h1>
+      <div id="title-tagline">Mokumoku Chain</div>
+      <canvas id="title-art" aria-hidden="true"></canvas>
+      <div id="title-howto">Match <b>4+</b> of the same gummy to make it grow!<br><span class="keys">◀ ▶ Move · 🔄 Rotate · ▼ Drop</span></div>
+    </div>
+    <div class="title-side">
+      <div class="titleMenu" role="menu">
+        <button class="titleMenuItem sel" data-i="0" role="menuitem">
+          <span class="label">Marathon</span>
+          <span class="desc">Grow your gummies up to Lv.10</span>
+          <span class="best" id="title-best-0"></span>
+        </button>
+        <button class="titleMenuItem" data-i="1" role="menuitem">
+          <span class="label">⚔️ Moyo Quest</span>
+          <span class="desc">Beat 5 rats in a row</span>
+          <span class="best" id="title-best-1"></span>
+        </button>
+      </div>
+      <div id="title-moints" class="hidden"></div>
+      <div id="title-hint">Tap to play · ↑↓ and Enter</div>
+    </div>
+  </div>
+</div>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v1.2.0 · Updated Oct 26, 2026</div>
+<div id="buildInfo">v1.4.0 · Updated Oct 30, 2026</div>
 <div id="game-layout">
   <div id="wrapper">
     <canvas id="c"></canvas>
     <div id="hud" style="visibility:hidden">
       <div id="hud-marathon-info">
-        <div id="score-display">Lv.1  スコア: 0</div>
-        <div id="best-display">ベスト: 0</div>
-        <div id="next-lv-display">つぎのLvまで: 0pt</div>
+        <div id="score-display">Lv.1  Score: 0</div>
+        <div id="best-display">Best: 0</div>
+        <div id="next-lv-display">Next Lv: 0 pt to go</div>
         <div id="time-display">⏱ 0:00</div>
       </div>
-      <button id="pause-btn" title="一時停止">⏸</button>
+      <button id="pause-btn" title="Pause" aria-label="Pause">⏸</button>
     </div>
     <div class="side-col" id="left-col">
-      <button class="ctrl-btn" data-action="left" aria-label="左へ">◀</button>
-      <button class="ctrl-btn" data-action="down" aria-label="下へ">▼</button>
+      <button class="ctrl-btn" data-action="left" aria-label="Move left">◀</button>
+      <button class="ctrl-btn" data-action="down" aria-label="Drop">▼</button>
     </div>
     <div class="side-col" id="right-col">
-      <button class="ctrl-btn" data-action="right" aria-label="右へ">▶</button>
-      <button class="ctrl-btn" data-action="rotate" aria-label="回転">🔄</button>
+      <button class="ctrl-btn" data-action="right" aria-label="Move right">▶</button>
+      <button class="ctrl-btn" data-action="rotate" aria-label="Rotate">🔄</button>
     </div>
     <div id="overlay" class="hidden">
       <h1 id="ov-title"></h1>
       <p id="ov-sub"></p>
       <div id="ov-moints" class="hidden"></div>
-      <div id="ov-name-row" class="hidden">
-        <input id="ov-name-input" maxlength="8" placeholder="なまえ（8文字まで）">
-        <button id="ov-register-btn">登録</button>
-      </div>
       <div class="btn-row">
-        <button id="ov-board-btn" class="secondary">🏆 ランキング</button>
-        <button id="ov-btn">もう一度！</button>
+        <button id="ov-title-btn" class="secondary">🏠 Title</button>
+        <button id="ov-btn">Play Again!</button>
       </div>
-    </div>
-    <div id="board-overlay" class="hidden">
-      <h1>🏆 ランキング</h1>
-      <div id="board-list"></div>
-      <button id="board-close-btn">とじる</button>
     </div>
   </div>
 </div>
@@ -379,7 +474,10 @@ canvas {
 <script>
 // ─── CANVAS ───────────────────────────────────────────────────
 const canvas = document.getElementById('c');
-const ctx    = canvas.getContext('2d');
+// `let`, not `const`: the title screen points ctx at its own canvases
+// for a moment so it can reuse drawGummyShape (see drawTitleScreen).
+let ctx      = canvas.getContext('2d');
+const mainCtx = ctx;
 
 // ─── CONFIG ───────────────────────────────────────────────────
 // Board reshaped from a tall 9x12 grid to a more compact 10x9 one so the
@@ -420,8 +518,6 @@ const LEVEL_STEP = 120;
 const MAX_LEVEL  = 10; // reaching this triggers 全面クリア instead of another preset
 const MAGIC_CHANCE = 0.025; // ~2.5% of spawned pieces are レインボーモクモク instead of a normal stage
 const RAINBOW = -1; // sentinel grid value — not a STAGES index, never merges/matches on its own
-const LEADERBOARD_KEY = 'moyomoyo-leaderboard';
-const LEADERBOARD_MAX = 10;
 
 // ─── CPU対戦 (VS MODE) config ────────────────────────────────
 // Same 10x9 grid shape as marathon mode. Two boards side by side don't
@@ -467,11 +563,11 @@ const VS_GARBAGE_PER_DROP = GRID_COLS;
 // tune CPU difficulty primarily through its fall speed rather than
 // through AI skill or board rules.
 const CPU_ENEMIES = [
-  { type: 'baby',  name: 'あかちゃんネズミ', fallInterval: 50 },
-  { type: 'ninja', name: 'にんじゃネズミ',   fallInterval: 40 },
-  { type: 'chef',  name: 'コックネズミ',     fallInterval: 32 },
-  { type: 'suit',  name: 'スーツネズミ',     fallInterval: 24 },
-  { type: 'boss',  name: 'ボスネズミ',       fallInterval: 16 },
+  { type: 'baby',  name: 'Baby Rat',  fallInterval: 50 },
+  { type: 'ninja', name: 'Ninja Rat', fallInterval: 40 },
+  { type: 'chef',  name: 'Chef Rat',  fallInterval: 32 },
+  { type: 'suit',  name: 'Suit Rat',  fallInterval: 24 },
+  { type: 'boss',  name: 'Boss Rat',  fallInterval: 16 },
 ];
 function currentCpuEnemy() { return CPU_ENEMIES[cpuLevel - 1]; }
 
@@ -505,11 +601,11 @@ function garbageCellsForChain(chainCount) {
 // Radii scaled up with CELL (78/64 ≈ 1.22x) so each stage still fills its
 // cell the same way it did before, just bigger.
 const STAGES = [
-  { name: 'たまごモク', r: 32, color: '#CFF2C2', face: '#8A6A40', pts: 1 },  // mint
-  { name: 'ひよこモク', r: 46, color: '#2DD4A8', face: '#0A4A3E', pts: 2 },  // teal
-  { name: 'ひなモク',   r: 61, color: '#9B5DE5', face: '#3A1060', pts: 4 },  // violet
-  { name: 'モクモク',   r: 78, color: '#FF5C7A', face: '#4A2800', pts: 8 },  // pink
-  { name: 'デカモク',   r: 98, color: '#4F9DFF', face: '#3A1800', pts: 16, legendary: true }, // blue, final tier
+  { name: 'Egg Moku',   r: 32, color: '#CFF2C2', face: '#8A6A40', pts: 1 },  // mint
+  { name: 'Chick Moku', r: 46, color: '#2DD4A8', face: '#0A4A3E', pts: 2 },  // teal
+  { name: 'Young Moku', r: 61, color: '#9B5DE5', face: '#3A1060', pts: 4 },  // violet
+  { name: 'Mokumoku',   r: 78, color: '#FF5C7A', face: '#4A2800', pts: 8 },  // pink
+  { name: 'Big Moku',   r: 98, color: '#4F9DFF', face: '#3A1800', pts: 16, legendary: true }, // blue, final tier
 ];
 // Which stages can drop directly, gated by level — colors climb in as the
 // board gets harder (Lv1-2: 3 colors, Lv3-4: +pink, Lv5+: +デカモク) so
@@ -565,7 +661,7 @@ let popStage = 0;
 let level = 1;
 let pendingLevelPreset = false;
 let titleFrame = 0;
-let titleMenuSel = 0; // 0 = スタート, 1 = CPU対戦, 2 = ランキング
+let titleMenuSel = 0; // 0 = Marathon, 1 = Moyo Quest
 let shakeX = 0, shakeY = 0;
 let flashAlpha = 0;
 let playFrames = 0;
@@ -798,14 +894,14 @@ function resolveStep() {
       topStageThisStep = Math.max(topStageThisStep, newStage);
       if (STAGES[newStage].legendary) {
         score += 100;
-        legendText = `🎉 ${STAGES[newStage].name}進化！ +100`;
+        legendText = `🎉 ${STAGES[newStage].name} is born! +100`;
         legendTimer = 130;
         addParticles(mx, my, STAGES[newStage].color, 26, 6);
       }
     } else {
       score += Math.round(150 * mult);
       topStageThisStep = Math.max(topStageThisStep, g.stage);
-      legendText = `🎉 ${STAGES[g.stage].name}大連鎖！ +150`;
+      legendText = `🎉 ${STAGES[g.stage].name} Mega Pop! +150`;
       legendTimer = 130;
       addParticles(mx, my, STAGES[g.stage].color, 30, 7);
     }
@@ -815,7 +911,7 @@ function resolveStep() {
   const rainbowFired = triggerRainbows(clearedCells, affectedCols);
 
   if (rainbowFired) {
-    legendText = '🌈 レインボーモクモク発動！';
+    legendText = '🌈 Rainbow Moku Power!';
     legendTimer = 130;
     addShake(14);
     playSfx('magic');
@@ -825,7 +921,7 @@ function resolveStep() {
 
   addShake(4 + chainCount * 2);
   if (chainCount > 1) {
-    comboText = `${chainCount}れんさ！ ×${mult.toFixed(1)}`;
+    comboText = `${chainCount} Chain! ×${mult.toFixed(1)}`;
     comboTimer = 90;
   }
   if (chainCount >= 2) {
@@ -834,7 +930,7 @@ function resolveStep() {
   }
   if (chainCount >= 3) {
     const isBig = chainCount >= 5;
-    celebrateText = isBig ? '🎉🎉 大連鎖！！ 🎉🎉' : '🎉 3連鎖ボーナス！';
+    celebrateText = isBig ? '🎉🎉 MEGA CHAIN!! 🎉🎉' : '🎉 3-Chain Bonus!';
     celebrateTimer = 110;
     flashAlpha = isBig ? 0.7 : 0.5;
     const burstCols = [...STAGES.map(s => s.color), '#FFD700', '#FF6FA8'];
@@ -864,8 +960,8 @@ function checkLevelUp() {
   level = newLevel;
   pendingLevelPreset = true;
   celebrateText = level >= MAX_LEVEL
-    ? `⬆️ Lv.${level} UP！ラスト！`
-    : `⬆️ Lv.${level} UP！盤面リセット！`;
+    ? `⬆️ Lv.${level} UP! Final level!`
+    : `⬆️ Lv.${level} UP! New board!`;
   celebrateTimer = 100;
   flashAlpha = 0.5;
   addShake(10);
@@ -890,8 +986,8 @@ function applyLevelPreset() {
 }
 
 function updateHUD() {
-  document.getElementById('score-display').textContent = `Lv.${level}  スコア: ${score}`;
-  document.getElementById('best-display').textContent = `ベスト: ${Math.max(score, bestScore)}`;
+  document.getElementById('score-display').textContent = `Lv.${level}  Score: ${score}`;
+  document.getElementById('best-display').textContent = `Best: ${Math.max(score, bestScore)}`;
   const nextLvEl = document.getElementById('next-lv-display');
   if (level >= MAX_LEVEL) {
     nextLvEl.style.display = 'none';
@@ -901,7 +997,7 @@ function updateHUD() {
     // LEVEL_STEP*(1+2+...+level).
     const threshold = LEVEL_STEP * level * (level + 1) / 2;
     nextLvEl.style.display = '';
-    nextLvEl.textContent = `つぎのLvまで: ${Math.max(0, threshold - score)}pt`;
+    nextLvEl.textContent = `Next Lv: ${Math.max(0, threshold - score)} pt to go`;
   }
 }
 
@@ -1048,7 +1144,7 @@ function drawNextPreview() {
   ctx.beginPath(); ctx.roundRect(bx, by, 112, 150, 20); ctx.fill();
   ctx.fillStyle = 'rgba(255,255,255,0.7)';
   ctx.font = '16px Arial'; ctx.textAlign = 'center';
-  ctx.fillText('つぎ', bx + 56, by + 24);
+  ctx.fillText('NEXT', bx + 56, by + 24);
   ctx.restore();
   if (nextPair) {
     const r = 24;
@@ -1129,192 +1225,174 @@ function drawComboAnnouncement() {
   }
 }
 
-// item1→item2 gap is the "normal" spacing; item0→item1 gets extra
-// clearance on top of that because the best-score line hangs under item0
-// (スタート) alone, and a plain uniform gap let it collide with item1.
-const TITLE_MENU_Y = 566, TITLE_MENU_GAP = 56, TITLE_MENU_GAP_EXTRA_AFTER_FIRST = 26;
-// English exception: per SPEC.md §3 ("Language"), individual game bodies
-// stay Japanese and only the hub (hub.html) is English-first — moyomoyo's
-// title screen is a deliberate, explicitly-approved carve-out on top of
-// that rule. Everything past the title screen (gameplay, HUD, VS battle
-// screen, overlays) is intentionally still Japanese.
-const TITLE_MENU_ITEMS = ['Start', '⚔️ Moyo Quest', '🏆 Ranking'];
+// ─── TITLE SCREEN ─────────────────────────────────────────────
+// Rebuilt from scratch on 2026-10-30 as an HTML layer (#title-screen)
+// that fills the whole #title-frame. Only the gummies are still drawn
+// with canvas — the hero mascot + evolution chain on #title-art, and
+// slowly drifting gummies behind everything on #title-bg — so they stay
+// the exact same characters as in play. The in-game ranking (a
+// device-local Top 10) was removed at the same time; the series-wide
+// Achievements screen in the hub already ranks Marathon high scores.
+const TITLE_MENU_COUNT = 2;
+const LOGO_COLORS = ['#FF5C7A', '#2DD4A8', '#9B5DE5', '#4F9DFF', '#FF5C7A', '#FFC94A', '#9B5DE5', '#2DD4A8'];
+const titleArt = document.getElementById('title-art');
+const titleArtCtx = titleArt.getContext('2d');
+const titleBg = document.getElementById('title-bg');
+const titleBgCtx = titleBg.getContext('2d');
+const TITLE_ART_W = 420, TITLE_ART_H = 330;
+let titleBgW = 0, titleBgH = 0;
+let titleFloaters = [];
 
-// Both Start and Moyo Quest can show a "Best ###pt" subtext line below
-// their label (see drawTitleScreen), so every item from index 2 onward
-// needs the extra gap reserved twice over — once per subtext line above
-// it — or Ranking collides with Moyo Quest's best score.
-function titleMenuItemY(i) {
-  return TITLE_MENU_Y + i * TITLE_MENU_GAP + Math.min(i, 2) * TITLE_MENU_GAP_EXTRA_AFTER_FIRST;
+(function buildTitleLogo() {
+  const el = document.getElementById('title-logo');
+  el.innerHTML = 'MOYOMOYO'.split('').map((ch, i) =>
+    `<span style="--c:${LOGO_COLORS[i]};--i:${i}" aria-hidden="true">${ch}</span>`).join('');
+})();
+
+// Canvas backing stores follow their CSS size × DPR so the gummies stay
+// crisp; checked every frame (cheap) instead of only on resize, because
+// the title can be (re)shown after the window changed size during play.
+function fitTitleCanvases() {
+  const aw = Math.round(titleArt.clientWidth * DPR), ah = Math.round(titleArt.clientHeight * DPR);
+  if (aw && ah && (titleArt.width !== aw || titleArt.height !== ah)) { titleArt.width = aw; titleArt.height = ah; }
+  const bw = window.innerWidth, bh = window.innerHeight;
+  if (bw !== titleBgW || bh !== titleBgH) {
+    titleBgW = bw; titleBgH = bh;
+    titleBg.width = Math.round(bw * DPR); titleBg.height = Math.round(bh * DPR);
+    const n = Math.round(Math.min(16, Math.max(8, bw * bh / 70000)));
+    titleFloaters = Array.from({ length: n }, (_, i) => newFloater(true, i));
+  }
+}
+function newFloater(anywhere, i) {
+  return {
+    x: Math.random() * titleBgW,
+    y: anywhere ? Math.random() * titleBgH : titleBgH + 40,
+    r: 9 + Math.random() * 15,
+    stage: (i !== undefined ? i : Math.floor(Math.random() * 5)) % STAGES.length,
+    vy: 0.12 + Math.random() * 0.22,
+    sway: Math.random() * Math.PI * 2,
+    spin: (Math.random() - 0.5) * 0.004,
+    angle: (Math.random() - 0.5) * 0.6,
+    alpha: 0.10 + Math.random() * 0.12,
+  };
+}
+
+function refreshTitleMenu() {
+  document.querySelectorAll('.titleMenuItem').forEach(btn =>
+    btn.classList.toggle('sel', Number(btn.dataset.i) === titleMenuSel));
+}
+function refreshTitleInfo() {
+  document.getElementById('title-best-0').textContent = bestScore > 0 ? `Best ${bestScore.toLocaleString('en-US')} pt` : '';
+  document.getElementById('title-best-1').textContent = questBestScore > 0 ? `Best ${questBestScore.toLocaleString('en-US')} pt` : '';
+  const m = document.getElementById('title-moints');
+  if (window.MokuMoint) {
+    m.innerHTML = `<i class="coin">M</i>${MokuMoint.balance().toLocaleString('en-US')}` +
+      `<span class="today">· Today ${MokuMoint.earnedToday(GAME_ID)} / ${MokuMoint.DAILY_GAME_CAP}</span>`;
+    m.classList.remove('hidden');
+  } else {
+    m.classList.add('hidden');
+  }
+  refreshTitleMenu();
+}
+// Shows/hides everything that only belongs on the title screen (SPEC.md
+// §4: #title-frame / #hub-link / #buildInfo are title-only).
+function setTitleVisible(on) {
+  document.body.classList.toggle('on-title', on);
+  document.getElementById('title-frame').style.display = on ? 'block' : 'none';
+  document.getElementById('hub-link').style.display = on ? 'block' : 'none';
+  document.getElementById('buildInfo').style.display = on ? 'block' : 'none';
+  if (on) refreshTitleInfo();
 }
 
 function activateTitleMenu(i) {
   if (i === 0) startGame();
   else if (i === 1) startVsGame();
-  else if (i === 2) openBoard();
 }
 
 function drawTitleScreen() {
   titleFrame++;
-  // Same stops as the body's CSS background gradient (and the gameplay
-  // panel's), so the canvas blends into the page instead of showing a
-  // seam where the narrow canvas card meets the body background
-  // visible in the margins.
-  const bg = ctx.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0, '#2A1840'); bg.addColorStop(0.55, '#4A2560'); bg.addColorStop(1, '#331A48');
-  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  fitTitleCanvases();
 
-  // Soft scanline texture — the same technique Angry Mokumoku uses for
-  // its CRT feel, toned way down so it reads as a texture rather than
-  // a harsh retro effect against moyomoyo's softer candy palette.
-  for (let y = 0; y < H; y += 4) {
-    ctx.fillStyle = 'rgba(255,180,220,0.035)';
-    ctx.fillRect(0, y, W, 2);
-  }
-
-  const dots = [[35,90,9],[490,70,7],[70,690,11],[470,600,8],[150,60,7],[430,330,6],[75,470,9],
-                [500,780,10],[40,780,8],[260,30,6],[490,470,9],[60,240,7],[420,140,8],[150,760,10]];
-  dots.forEach(([dx,dy,dr],i) => {
-    const a = 0.15 + 0.1 * Math.sin(titleFrame * 0.02 + i);
-    ctx.fillStyle = `rgba(255,180,220,${a})`;
-    ctx.beginPath(); ctx.arc(dx, dy, dr, 0, Math.PI*2); ctx.fill();
-  });
-
-  // (Frame border is now the full-viewport #title-frame HTML element,
-  // not drawn on the canvas — this canvas is narrow/tall for the
-  // puzzle grid, so a border drawn inside it alone read as a small
-  // floating card instead of framing the whole screen like Angry
-  // Mokumoku's own wide canvas naturally does.)
-
-  // (The hub link is now the #hub-link HTML
-  // element, fixed to the viewport's top-right corner — see its CSS
-  // for why: this canvas is a narrow centered column inside the wide
-  // frame, so canvas-relative coordinates didn't reach the frame's
-  // actual corner and shrank along with the canvas on wide screens.)
-
-  ctx.save();
-  ctx.textAlign = 'center';
-  ctx.shadowColor = '#FF7FC0'; ctx.shadowBlur = 30;
-  ctx.fillStyle = '#FFE9F5';
-  ctx.font = 'bold 110px "Hiragino Sans", "Yu Gothic", Meiryo, Arial, sans-serif';
-  ctx.fillText('モヨモヨ', W/2, 165);
-  ctx.shadowBlur = 0;
-  ctx.fillStyle = '#FFB0DC';
-  ctx.font = '22px Arial';
-  ctx.fillText('M O K U M O K U   C H A I N', W/2, 195);
-  ctx.restore();
-
-  const bob = Math.sin(titleFrame * 0.05) * 8;
-  const tilt = Math.sin(titleFrame * 0.03) * 0.1;
-  // Pinned to モクモク (pink) specifically, not "whichever stage is the
-  // current ceiling" — the game's whole brand (name, frame, buttons) is
-  // pink, and デカモク taking over as the new final tier shouldn't change
-  // the mascot's color out from under it.
-  const lastStage = STAGES[3];
-
-  // Idle sparkles orbiting the mascot — echoes the ✦ stars Angry
-  // Mokumoku floats around its owl on its own title screen.
-  const mascotY = 315 + bob;
-  const sparkT = (titleFrame * 0.04) % (Math.PI * 2);
-  [[W/2-216,mascotY-71],[W/2+228,mascotY-57],[W/2-183,mascotY+88],[W/2+195,mascotY+80]].forEach(([sx,sy],i) => {
-    const s = 0.5 + 0.5 * Math.sin(sparkT + i * 1.5);
+  // Background: a few big, faint gummies drifting up and swaying.
+  ctx = titleBgCtx;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.clearRect(0, 0, titleBgW, titleBgH);
+  titleFloaters.forEach((f, i) => {
+    f.y -= f.vy; f.sway += 0.012; f.angle += f.spin;
+    if (f.y < -40) titleFloaters[i] = newFloater(false);
+    const st = STAGES[f.stage];
     ctx.save();
-    ctx.globalAlpha = s * 0.85;
-    ctx.fillStyle = '#FFE9A0';
-    ctx.font = '29px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('✦', sx, sy);
+    ctx.globalAlpha = f.alpha;
+    drawGummyShape(f.x + Math.sin(f.sway) * 14, f.y, f.r, st.color, st.face, f.angle, 1, false, false);
     ctx.restore();
   });
 
-  drawGummyShape(W/2, mascotY, 92, lastStage.color, lastStage.face, tilt, 1, true);
+  // Hero: the pink モクモク bobbing on a soft spotlight, with sparkles,
+  // and the 5-stage evolution chain underneath.
+  ctx = titleArtCtx;
+  const sc = titleArt.width / TITLE_ART_W;
+  ctx.setTransform(sc, 0, 0, sc, 0, 0);
+  ctx.clearRect(0, 0, TITLE_ART_W, TITLE_ART_H);
+  const t = titleFrame;
+  const cx = TITLE_ART_W / 2;
+  const bob = Math.sin(t * 0.05) * 8;
+  const squash = 1 + Math.sin(t * 0.05 + Math.PI / 2) * 0.025;
+  const mascotY = 118 + bob;
 
-  const chainY = 445;
-  const startX = W/2 - 123;
-  STAGES.forEach((st, i) => {
-    const x = startX + i * 82;
-    drawGummyShape(x, chainY, Math.min(st.r, 27), st.color, st.face, 0, 1, false);
-    if (i < STAGES.length - 1) {
-      ctx.fillStyle = 'rgba(255,255,255,0.4)';
-      ctx.font = '19px Arial'; ctx.textAlign = 'center';
-      ctx.fillText('▶', x + 41, chainY + 5);
-    }
+  const glow = ctx.createRadialGradient(cx, 130, 10, cx, 130, 170);
+  glow.addColorStop(0, 'rgba(255,143,196,0.34)');
+  glow.addColorStop(1, 'rgba(255,143,196,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, TITLE_ART_W, 260);
+
+  // Ground shadow shrinks as the mascot rises.
+  ctx.fillStyle = `rgba(20,5,30,${0.30 - bob * 0.012})`;
+  ctx.beginPath(); ctx.ellipse(cx, 205, 70 - bob * 1.5, 11, 0, 0, Math.PI * 2); ctx.fill();
+
+  const sparkT = (t * 0.04) % (Math.PI * 2);
+  [[cx - 132, 52], [cx + 138, 66], [cx - 112, 172], [cx + 120, 160], [cx + 74, 18]].forEach(([sx, sy], i) => {
+    const a = 0.5 + 0.5 * Math.sin(sparkT + i * 1.3);
+    ctx.save();
+    ctx.globalAlpha = a * 0.9;
+    ctx.translate(sx, sy);
+    ctx.scale(0.6 + a * 0.5, 0.6 + a * 0.5);
+    ctx.fillStyle = '#FFE9A0';
+    ctx.font = '26px Arial';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('✦', 0, 0);
+    ctx.restore();
   });
 
+  const hero = STAGES[3]; // pink モクモク — the game's brand color
   ctx.save();
-  ctx.textAlign = 'center';
-  ctx.fillStyle = 'rgba(255,255,255,0.7)';
-  ctx.font = '20px Arial';
-  ctx.fillText('Connect 4+ of the same stage to evolve', W/2, 498);
-  ctx.fillText('◀▶ Move · 🔄 Rotate · ▼ Drop', W/2, 520);
+  ctx.translate(cx, mascotY + 70);
+  ctx.scale(1 / squash, squash);
+  ctx.translate(-cx, -(mascotY + 70));
+  drawGummyShape(cx, mascotY, 74, hero.color, hero.face, Math.sin(t * 0.03) * 0.08, 1, true, false);
   ctx.restore();
 
-  // Menu — a selectable list like Angry Mokumoku's own title menu
-  // (glowing highlight + ▶ prefix on the active item, ArrowUp/Down to
-  // move, Enter/Space to activate) instead of moyomoyo's old separate
-  // pill buttons. moyomoyo is score-attack rather than level-checkpoint
-  // based, so there's no real "つづきから" to resume — the best-score
-  // readout plays that same "show my progress right at the start
-  // option" role instead, folded inline under the スタート item the
-  // way Angry Mokumoku folds its saved level into つづきから, rather
-  // than floating as a separate line below the whole menu.
-  ctx.font = 'bold 43px Arial';
-  // 'middle' baseline (not the default 'alphabetic') so mixed emoji+text
-  // labels like "⚔️ VS CPU" stay vertically centered together — emoji
-  // glyphs are drawn centered on the given y regardless of baseline mode,
-  // while Latin text's alphabetic baseline sits well below its own visual
-  // center, so the default baseline made the sword hang visibly lower
-  // than the text next to it.
-  ctx.textBaseline = 'middle';
-  TITLE_MENU_ITEMS.forEach((label, i) => {
-    const sel = titleMenuSel === i;
-    const y = titleMenuItemY(i);
-    ctx.textAlign = 'center';
-    if (sel) {
-      ctx.fillStyle = '#FFE9F5';
-      ctx.shadowColor = '#FF6FA8'; ctx.shadowBlur = 20;
-    } else {
-      ctx.fillStyle = 'rgba(255,255,255,0.5)';
-      ctx.shadowBlur = 0;
-    }
-    ctx.fillText((sel ? '▶ ' : '   ') + label, W/2, y);
-    if (i === 0 && bestScore > 0) {
-      ctx.save();
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = sel ? 'rgba(255,233,245,0.75)' : 'rgba(255,255,255,0.45)';
-      ctx.font = '19px Arial';
-      ctx.fillText(`Best ${bestScore}pt`, W/2, y + 24);
-      ctx.restore();
-    }
-    if (i === 1 && questBestScore > 0) {
-      ctx.save();
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = sel ? 'rgba(255,233,245,0.75)' : 'rgba(255,255,255,0.45)';
-      ctx.font = '19px Arial';
-      ctx.fillText(`Best ${questBestScore}pt`, W/2, y + 24);
-      ctx.restore();
+  // Evolution chain on a little candy shelf. The gummy that is "growing"
+  // right now hops, one after another, left to right.
+  const shelfY = 274;
+  ctx.fillStyle = 'rgba(20,5,30,0.28)';
+  ctx.beginPath(); ctx.roundRect(cx - 196, shelfY - 36, 392, 72, 36); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,143,196,0.28)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.roundRect(cx - 196, shelfY - 36, 392, 72, 36); ctx.stroke();
+  const hopIdx = Math.floor(t / 40) % STAGES.length;
+  const hopT = (t % 40) / 40;
+  STAGES.forEach((st, i) => {
+    const x = cx - 160 + i * 80;
+    const hop = i === hopIdx ? Math.sin(hopT * Math.PI) * 9 : 0;
+    drawGummyShape(x, shelfY - hop, 21 + i * 1.6, st.color, st.face, 0, 1, !!st.legendary, false);
+    if (i < STAGES.length - 1) {
+      ctx.fillStyle = 'rgba(255,233,245,0.45)';
+      ctx.font = 'bold 13px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('›', x + 40, shelfY + 1);
     }
   });
   ctx.textBaseline = 'alphabetic';
-  ctx.shadowBlur = 0;
 
-  // Franchise footer tag — ties the three games together as one series.
-  const tagY = 778;
-  ctx.save();
-  ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(W/2 - 119, tagY - 24) ; ctx.lineTo(W/2 + 119, tagY - 24); ctx.stroke();
-  ctx.textAlign = 'center';
-  ctx.fillStyle = 'rgba(255,255,255,0.4)';
-  ctx.font = '17px Arial';
-  ctx.fillText('🍬 × 🦉 × ⚽  M O K U M O K U   S E R I E S', W/2, tagY);
-  ctx.restore();
-
-  // Footer instruction line, mirroring Angry Mokumoku's own utilitarian
-  // footer at the very bottom of its title screen.
-  ctx.fillStyle = 'rgba(255,255,255,0.35)';
-  ctx.font = '18px Arial';
-  ctx.textAlign = 'center';
-  ctx.fillText('Tap / Click to select  ·  ↑↓ to navigate', W/2, H - 24);
+  ctx = mainCtx;
 }
 
 function drawPausedOverlay(w, h) {
@@ -1328,7 +1406,7 @@ function drawPausedOverlay(w, h) {
   ctx.fillStyle = '#FFE9F5';
   ctx.font = 'bold 36px Arial';
   ctx.shadowColor = '#FF7FC0'; ctx.shadowBlur = 20;
-  ctx.fillText('⏸ 一時停止中', w/2, h * 0.36);
+  ctx.fillText('⏸ Paused', w/2, h * 0.36);
   ctx.shadowBlur = 0;
   ctx.restore();
 
@@ -1338,7 +1416,7 @@ function drawPausedOverlay(w, h) {
   ctx.fillStyle = 'white';
   ctx.font = 'bold 23px Arial';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('▶ 再開', w/2, resumeY);
+  ctx.fillText('▶ Resume', w/2, resumeY);
   ctx.textBaseline = 'alphabetic';
   ctx.restore();
 
@@ -1350,7 +1428,7 @@ function drawPausedOverlay(w, h) {
   ctx.fillStyle = 'rgba(255,255,255,0.85)';
   ctx.font = '19px Arial';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('🏠 タイトルへ', w/2, quitY);
+  ctx.fillText('🏠 Title', w/2, quitY);
   ctx.textBaseline = 'alphabetic';
   ctx.restore();
 }
@@ -1457,59 +1535,9 @@ function update() {
   }
 }
 
-// ─── LEADERBOARD (device-local, via localStorage) ──────────────
-
-function loadLeaderboard() {
-  try {
-    const raw = JSON.parse(localStorage.getItem(LEADERBOARD_KEY) || '[]');
-    if (Array.isArray(raw)) return raw;
-  } catch (e) {}
-  return [];
-}
-function saveLeaderboard(list) {
-  localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(list));
-}
-function qualifiesForLeaderboard(s) {
-  const list = loadLeaderboard();
-  if (list.length < LEADERBOARD_MAX) return true;
-  return s > list[list.length - 1].score;
-}
-function registerScore(name, s, lv) {
-  const list = loadLeaderboard();
-  list.push({ name: name || 'モヨラー', score: s, level: lv, date: new Date().toISOString().slice(0, 10) });
-  list.sort((a, b) => b.score - a.score);
-  list.length = Math.min(list.length, LEADERBOARD_MAX);
-  saveLeaderboard(list);
-  renderBoard();
-}
-function renderBoard() {
-  const list = loadLeaderboard();
-  const el = document.getElementById('board-list');
-  if (list.length === 0) {
-    el.innerHTML = '<div class="board-row empty">まだ記録がありません</div>';
-    return;
-  }
-  el.innerHTML = list.map((e, i) => `
-    <div class="board-row">
-      <span class="rank">${i + 1}</span>
-      <span class="name">${escapeHtml(e.name)}</span>
-      <span class="score">${e.score}pt</span>
-    </div>`).join('');
-}
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-function openBoard() {
-  renderBoard();
-  document.getElementById('board-overlay').classList.remove('hidden');
-}
-function closeBoard() {
-  document.getElementById('board-overlay').classList.add('hidden');
-}
-
 // Shared by both endings — a run stops either by overflowing (gameOver)
 // or by clearing all the way to MAX_LEVEL (winClear). Same overlay,
-// same leaderboard rules, just a different headline and sound.
+// just a different headline and sound.
 function endRun(title, sfxKind) {
   state = 'GAMEOVER';
   piece = null;
@@ -1517,7 +1545,7 @@ function endRun(title, sfxKind) {
   const moints = payMarathonMoints(sfxKind === 'magic', score > bestScore && bestScore > 0);
   if (score > bestScore) {
     bestScore = score;
-    localStorage.setItem('moyomoyo-best', String(bestScore));
+    try { localStorage.setItem('moyomoyo-best', String(bestScore)); } catch (e) {}
   }
   const secs = Math.floor(playFrames / 60);
   const mm = Math.floor(secs / 60);
@@ -1526,23 +1554,14 @@ function endRun(title, sfxKind) {
   ov.classList.remove('hidden');
   document.getElementById('ov-title').textContent = title;
   document.getElementById('ov-sub').textContent =
-    `Lv.${level}　スコア: ${score}pt　ベスト: ${bestScore}pt\n⏱ ${mm}:${String(ss).padStart(2,'0')}`;
-  const nameRow = document.getElementById('ov-name-row');
-  if (qualifiesForLeaderboard(score)) {
-    nameRow.classList.remove('hidden');
-    document.getElementById('ov-name-input').value = '';
-    document.getElementById('ov-register-btn').disabled = false;
-    document.getElementById('ov-register-btn').textContent = '登録';
-  } else {
-    nameRow.classList.add('hidden');
-  }
+    `Lv.${level} · Score: ${score} pt · Best: ${bestScore} pt\n⏱ ${mm}:${String(ss).padStart(2,'0')}`;
   renderMoints(moints);
   document.getElementById('left-col').style.visibility = 'hidden';
   document.getElementById('right-col').style.visibility = 'hidden';
 }
 
 function gameOver() {
-  endRun('😵 モヨモヨがあふれた！', 'gameover');
+  endRun('😵 The gummies overflowed!', 'gameover');
 }
 
 function winClear() {
@@ -1554,7 +1573,7 @@ function winClear() {
     const by = GRID_Y0 + Math.random() * GRID_H;
     addParticles(bx, by, burstCols[Math.floor(Math.random() * burstCols.length)], 30, 7);
   }
-  endRun('🎉 全面クリア！おめでとう！', 'magic');
+  endRun('🎉 All Clear! Congratulations!', 'magic');
 }
 
 function startGame() {
@@ -1585,10 +1604,7 @@ function startGame() {
   document.getElementById('left-col').style.visibility = 'visible';
   document.getElementById('right-col').style.visibility = 'visible';
   document.getElementById('overlay').classList.add('hidden');
-  document.getElementById('title-frame').style.display = 'none';
-  document.getElementById('hub-link').style.display = 'none';
-  document.getElementById('buildInfo').style.display = 'none';
-  document.getElementById('ov-board-btn').textContent = '🏆 ランキング';
+  setTitleVisible(false);
   updateHUD();
   updateTimeDisplay();
   trySpawnPiece();
@@ -2245,7 +2261,7 @@ function vbDrawNextPreview(b) {
   ctx.beginPath(); ctx.roundRect(bx, by, boxW, boxH, 12); ctx.fill();
   ctx.fillStyle = 'rgba(255,255,255,0.7)';
   ctx.font = '11px Arial'; ctx.textAlign = 'center';
-  ctx.fillText('つぎ', bx + boxW / 2, by + 14);
+  ctx.fillText('NEXT', bx + boxW / 2, by + 14);
   ctx.restore();
   const r = 14;
   const v1 = stageVisual(b.nextPair.s1), v2 = stageVisual(b.nextPair.s2);
@@ -2293,15 +2309,15 @@ function drawVs() {
   ctx.textAlign = 'left';
   ctx.shadowColor = '#FF7FC0'; ctx.shadowBlur = 12;
   ctx.fillStyle = '#FFE9F5';
-  ctx.font = 'bold 22px "Hiragino Sans", "Yu Gothic", Meiryo, Arial, sans-serif';
-  ctx.fillText('⚔️ モヨクエスト', VS_MARGIN_X, 28);
+  ctx.font = 'bold 22px Arial, sans-serif';
+  ctx.fillText('⚔️ Moyo Quest', VS_MARGIN_X, 28);
   ctx.shadowBlur = 0;
   ctx.fillStyle = 'rgba(255,224,102,0.85)';
   ctx.font = 'bold 13px Arial';
   ctx.fillText(`Lv.${cpuLevel}/${CPU_ENEMIES.length}`, VS_MARGIN_X, 48);
   ctx.fillStyle = 'rgba(255,255,255,0.45)';
   ctx.font = '11px Arial';
-  ctx.fillText('デカモクを消して連鎖で攻撃！', VS_MARGIN_X, 65);
+  ctx.fillText('Pop Big Moku & chain to attack!', VS_MARGIN_X, 65);
   ctx.restore();
 
   ctx.save();
@@ -2331,7 +2347,7 @@ function drawVs() {
   ctx.textAlign = 'center';
   ctx.fillStyle = 'rgba(255,255,255,0.35)';
   ctx.font = '18px Arial';
-  ctx.fillText('◀▶で移動・🔄で回転・▼で下に落とす', VS_CANVAS_W / 2, VS_CANVAS_H - VS_BOTTOM_MARGIN);
+  ctx.fillText('◀▶ Move · 🔄 Rotate · ▼ Drop', VS_CANVAS_W / 2, VS_CANVAS_H - VS_BOTTOM_MARGIN);
   ctx.restore();
 
   if (flashAlpha > 0.01) {
@@ -2368,7 +2384,7 @@ function drawVsCountdown() {
   ctx.scale(1 / pulse, 1 / pulse);
   ctx.font = 'bold 22px Arial';
   ctx.fillStyle = 'rgba(255,255,255,0.75)';
-  ctx.fillText(`Lv.${cpuLevel} ${currentCpuEnemy().name} とうじょう！`, 0, 100);
+  ctx.fillText(`Lv.${cpuLevel} ${currentCpuEnemy().name} is here!`, 0, 100);
   ctx.textBaseline = 'alphabetic';
   ctx.restore();
 }
@@ -2391,7 +2407,7 @@ function drawVsLevelClear() {
   ctx.shadowColor = '#FFD700'; ctx.shadowBlur = 20;
   ctx.fillStyle = '#FFE9F5';
   ctx.font = 'bold 30px Arial';
-  ctx.fillText(`🎉 ${beaten.name}を倒した！`, VS_CANVAS_W / 2, VS_CANVAS_H * 0.28);
+  ctx.fillText(`🎉 You beat ${beaten.name}!`, VS_CANVAS_W / 2, VS_CANVAS_H * 0.28);
   ctx.shadowBlur = 0;
   ctx.restore();
 
@@ -2411,7 +2427,7 @@ function drawVsLevelClear() {
   ctx.fillStyle = 'rgba(255,255,255,0.75)';
   ctx.font = '18px Arial';
   ctx.fillText(
-    isFinal ? '🏆 5体すべて撃破！チャンピオン確定間近…' : `つぎ: Lv.${cpuLevel + 1} ${CPU_ENEMIES[cpuLevel].name}`,
+    isFinal ? '🏆 All 5 rats beaten! Almost champion…' : `Next: Lv.${cpuLevel + 1} ${CPU_ENEMIES[cpuLevel].name}`,
     VS_CANVAS_W / 2, VS_CANVAS_H * 0.60
   );
   ctx.restore();
@@ -2422,7 +2438,7 @@ function drawVsLevelClear() {
   ctx.fillStyle = 'white';
   ctx.font = 'bold 21px Arial';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('▶ つぎへ', VS_CANVAS_W / 2, VS_LEVEL_CLEAR_BTN_Y);
+  ctx.fillText('▶ Next', VS_CANVAS_W / 2, VS_LEVEL_CLEAR_BTN_Y);
   ctx.textBaseline = 'alphabetic';
   ctx.restore();
 }
@@ -2498,9 +2514,7 @@ function startVsGame() {
   document.getElementById('left-col').style.visibility = 'visible';
   document.getElementById('right-col').style.visibility = 'visible';
   document.getElementById('overlay').classList.add('hidden');
-  document.getElementById('title-frame').style.display = 'none';
-  document.getElementById('hub-link').style.display = 'none';
-  document.getElementById('buildInfo').style.display = 'none';
+  setTitleVisible(false);
   document.body.classList.add('vs-active');
 }
 
@@ -2517,7 +2531,6 @@ const MOINT = {
   boss: [20, 30, 40, 50, 80],              // each rat beaten in a Quest run
   firstBoss: [100, 150, 200, 250, 500],    // first win ever over each rat
 };
-const BOSS_EN = ['Baby Rat', 'Ninja Rat', 'Chef Rat', 'Suit Rat', 'Boss Rat'];
 let questMoints = { lines: [], capHit: false, last: 0 };
 function loadProgress() {
   try {
@@ -2560,12 +2573,12 @@ function payBossMoints(lv) {
   questMoints.last = 0;
   if (!window.MokuMoint) return;
   const i = lv - 1;
-  questMoints.last += mointPay(questMoints, `Beat ${BOSS_EN[i]}`, MOINT.boss[i], true);
+  questMoints.last += mointPay(questMoints, `Beat ${CPU_ENEMIES[i].name}`, MOINT.boss[i], true);
   const prog = loadProgress();
   if (!prog.mointClaims['boss' + lv]) {
     prog.mointClaims['boss' + lv] = true;
     saveProgress(prog);
-    questMoints.last += mointPay(questMoints, `First win vs ${BOSS_EN[i]}!${lv === 5 ? ' 🏆' : ''}`, MOINT.firstBoss[i], false);
+    questMoints.last += mointPay(questMoints, `First win vs ${CPU_ENEMIES[i].name}!${lv === 5 ? ' 🏆' : ''}`, MOINT.firstBoss[i], false);
   }
 }
 function renderMoints(m) {
@@ -2584,17 +2597,15 @@ function endRunVs() {
   playSfx(vsWinnerIsPlayer ? 'magic' : 'gameover');
   if (vsP.score > questBestScore) {
     questBestScore = vsP.score;
-    localStorage.setItem('moyomoyo-quest-best', String(questBestScore));
+    try { localStorage.setItem('moyomoyo-quest-best', String(questBestScore)); } catch (e) {}
   }
   const ov = document.getElementById('overlay');
   ov.classList.remove('hidden');
-  document.getElementById('ov-title').textContent = vsWinnerIsPlayer ? '🏆 5体撃破！チャンピオン！' : '😵 まけ...';
+  document.getElementById('ov-title').textContent = vsWinnerIsPlayer ? '🏆 You beat all 5 rats! Champion!' : '😵 You lost...';
   document.getElementById('ov-sub').textContent = vsWinnerIsPlayer
-    ? `あなたのスコア: ${vsP.score}pt`
-    : `あなたのスコア: ${vsP.score}pt　到達: Lv.${cpuLevel} ${currentCpuEnemy().name}`;
-  document.getElementById('ov-name-row').classList.add('hidden');
+    ? `Your score: ${vsP.score} pt`
+    : `Your score: ${vsP.score} pt · Reached: Lv.${cpuLevel} ${currentCpuEnemy().name}`;
   renderMoints(questMoints);
-  document.getElementById('ov-board-btn').textContent = '🏠 タイトルへ';
   document.getElementById('left-col').style.visibility = 'hidden';
   document.getElementById('right-col').style.visibility = 'hidden';
 }
@@ -2683,25 +2694,13 @@ function quitToTitle() {
   document.getElementById('hud-marathon-info').style.visibility = 'hidden';
   document.getElementById('left-col').style.visibility = 'hidden';
   document.getElementById('right-col').style.visibility = 'hidden';
-  document.getElementById('title-frame').style.display = 'block';
-  document.getElementById('hub-link').style.display = 'block';
-  document.getElementById('buildInfo').style.display = 'block';
+  setTitleVisible(true);
 }
 
 function onDown(e) {
   e.preventDefault();
   const p = getPos(e);
-  if (state === 'TITLE') {
-    for (let i = 0; i < TITLE_MENU_ITEMS.length; i++) {
-      const y = titleMenuItemY(i);
-      if (p.x >= W/2 - 239 && p.x <= W/2 + 239 && p.y >= y - 22 && p.y <= y + 22) {
-        titleMenuSel = i; activateTitleMenu(i); return;
-      }
-    }
-    // (The hub link is now the #hub-link HTML anchor, not hit-tested
-    // here — see their CSS for why.)
-    return;
-  }
+  if (state === 'TITLE') return; // the title menu is HTML (#title-screen)
   if (state === 'PAUSED') {
     const [cw, ch] = currentCanvasSize();
     const resumeY = ch * 0.48, quitY = resumeY + 79;
@@ -2779,20 +2778,22 @@ document.getElementById('ov-btn').addEventListener('click', () => {
   if (mode === 'VS') startVsGame(); else startGame();
 });
 
-document.getElementById('ov-register-btn').addEventListener('click', () => {
-  const btn = document.getElementById('ov-register-btn');
-  if (btn.disabled) return;
-  const name = document.getElementById('ov-name-input').value.trim().slice(0, 8);
-  registerScore(name, score, level);
-  btn.disabled = true;
-  btn.textContent = '登録済み';
+document.getElementById('ov-title-btn').addEventListener('click', () => {
+  document.getElementById('overlay').classList.add('hidden');
+  quitToTitle();
 });
 
-document.getElementById('ov-board-btn').addEventListener('click', () => {
-  if (mode === 'VS') { document.getElementById('overlay').classList.add('hidden'); quitToTitle(); }
-  else openBoard();
+document.querySelectorAll('.titleMenuItem').forEach(btn => {
+  const i = Number(btn.dataset.i);
+  btn.addEventListener('pointerenter', e => {
+    if (e.pointerType === 'mouse') { titleMenuSel = i; refreshTitleMenu(); }
+  });
+  btn.addEventListener('click', () => {
+    if (state !== 'TITLE') return;
+    titleMenuSel = i; refreshTitleMenu();
+    activateTitleMenu(i);
+  });
 });
-document.getElementById('board-close-btn').addEventListener('click', closeBoard);
 
 document.getElementById('pause-btn').addEventListener('click', () => {
   if (state === 'PLAYING') pauseGame();
@@ -2810,10 +2811,13 @@ document.addEventListener('keydown', e => {
   }
   if (state === 'TITLE') {
     if (e.key === 'ArrowUp') {
-      titleMenuSel = (titleMenuSel + TITLE_MENU_ITEMS.length - 1) % TITLE_MENU_ITEMS.length;
+      titleMenuSel = (titleMenuSel + TITLE_MENU_COUNT - 1) % TITLE_MENU_COUNT;
+      refreshTitleMenu();
     } else if (e.key === 'ArrowDown') {
-      titleMenuSel = (titleMenuSel + 1) % TITLE_MENU_ITEMS.length;
+      titleMenuSel = (titleMenuSel + 1) % TITLE_MENU_COUNT;
+      refreshTitleMenu();
     } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault(); // don't also "click" a focused menu button
       activateTitleMenu(titleMenuSel);
     }
     return;
@@ -2841,6 +2845,10 @@ function init() {
   state = 'TITLE';
   titleFrame = 0;
   grid = newGrid();
+  // The old device-local Top 10 is gone (2026-10-30); drop its save so
+  // it stops riding along in cloud saves / transfer codes.
+  try { localStorage.removeItem('moyomoyo-leaderboard'); } catch (e) {}
+  setTitleVisible(true);
   loop();
 }
 

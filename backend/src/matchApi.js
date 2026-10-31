@@ -289,17 +289,23 @@ function createMatchApi(store, config) {
 
 let prodMatches = null;
 let prodChallenges = null;
+let prodRooms = null;
 
-// Lambda entry point (MatchFunction in template.yaml): /matches and /challenges
-// (challengeApi.js) share one function — both are light and play-with-friends.
+// Lambda entry point (MatchFunction in template.yaml): /matches, /challenges
+// (challengeApi.js) and /rooms (roomApi.js) share one function — all light and play-with-friends.
 exports.handler = async (event) => {
   if (!prodMatches) {
     const store = require("./accountStore");
     const { createChallengeApi } = require("./challengeApi");
     prodMatches = createMatchApi(store, { authSecret: process.env.AUTH_SECRET });
+    const { createRoomApi } = require("./roomApi");
     prodChallenges = createChallengeApi(store, { authSecret: process.env.AUTH_SECRET });
+    prodRooms = createRoomApi(store, { authSecret: process.env.AUTH_SECRET });
   }
-  return (event.rawPath || "").startsWith("/challenges") ? prodChallenges(event) : prodMatches(event);
+  const path = event.rawPath || "";
+  if (path.startsWith("/challenges")) return prodChallenges(event);
+  if (path.startsWith("/rooms")) return prodRooms(event);
+  return prodMatches(event);
 };
 
 exports.createMatchApi = createMatchApi;

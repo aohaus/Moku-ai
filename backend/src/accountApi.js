@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const { json } = require("./response");
 const token = require("./token");
+const MokuOntology = require("./vendor/moku-ontology");
 const { hashPin, verifyPin, burnPinCheck, isWeakPin } = require("./pin");
 
 // Accounts + cloud save for Moku Series (see API_SPEC.md "Accounts").
@@ -26,6 +27,7 @@ const MAX_CARD_RECORD = 1e9;
 // within ONLINE_WINDOW_MS counts as "online" in GET /players.
 const SEEN_WRITE_EVERY_MS = 60 * 1000;
 const ONLINE_WINDOW_MS = 5 * 60 * 1000;
+const KIN_MAX = 3;                     // GET /players/kin: how many "Birds Like You"
 // Access log (admin page): kept 90 days, at most 30 days per request.
 const LOG_TTL_SEC = 90 * 24 * 60 * 60;
 const MAX_LOG_DAYS = 30;
@@ -294,6 +296,47 @@ function createAccountApi(store, config) {
     }));
     players.sort((a, b) => (b.lastSeenAt || "").localeCompare(a.lastSeenAt || ""));
     return json(200, { players, onlineWindowSec: ONLINE_WINDOW_MS / 1000 });
+  }
+
+  // The Hollow's "Birds Like You" (hollow.html): the same meaning network as
+  // the page (shared/moku-ontology.js), run over every public card. Only the
+  // cards go in, so nothing new about anyone is revealed — the server just
+  // saves each device from downloading and comparing everyone.
+  //   kin      up to KIN_MAX players most like you
+  //   surprise one player with no game in common but something in common anyway
+  async function listKin(me) {
+    const t = now();
+    const users = (await store.listUsers()).filter((u) => !isAdmin(u));
+    const self = users.find((u) => u.uid === me.uid) || me;
+    const mine = MokuOntology.profile(self.card, { name: "You" });
+    const view = (u, c) => ({
+      ...publicUserView(u),
+      online: !!u.lastSeenAt && t - u.lastSeenAt < ONLINE_WINDOW_MS,
+      score: c.score,
+      sharedGames: c.sharedGames,
+      link: { type: c.best.type, emoji: c.best.emoji, text: c.best.text },
+    });
+    const found = [];
+    if (!mine.empty) {
+      for (const u of users) {
+        if (u.uid === me.uid || !u.card) continue;
+        const c = MokuOntology.compare(mine, MokuOntology.profile(u.card, { name: u.displayName }));
+        if (c.best) found.push({ u, c });
+      }
+    }
+    const byTag = (a, b) => (publicUserView(a.u).tag < publicUserView(b.u).tag ? -1 : 1);
+    const surprise = found
+      .filter((f) => !f.c.sharedGames.length && f.c.best.surprise >= 0.5)
+      .sort((a, b) => b.c.best.rank - a.c.best.rank || byTag(a, b))[0] || null;
+    const kin = found
+      .filter((f) => f !== surprise)
+      .sort((a, b) => b.c.score - a.c.score || byTag(a, b))
+      .slice(0, KIN_MAX);
+    return json(200, {
+      me: { spirit: mine.spirit, text: MokuOntology.describe(mine) },
+      kin: kin.map((f) => view(f.u, f.c)),
+      surprise: surprise ? view(surprise.u, surprise.c) : null,
+    });
   }
 
   async function register(body, device) {
@@ -585,7 +628,7 @@ function createAccountApi(store, config) {
         return route === "POST /auth/login" ? await login(body, device) : await register(body, device);
       }
 
-      const authed = ["GET /auth/me", "POST /auth/pin", "GET /save", "PUT /save", "GET /players"];
+      const authed = ["GET /auth/me", "POST /auth/pin", "GET /save", "PUT /save", "GET /players", "GET /players/kin"];
       const adminUser = /^\/admin\/users\/([^/]+)$/.exec(path);
       const adminError = /^\/admin\/errors\/([0-9a-f]{16})$/.exec(path);
       const adminRoute =
@@ -622,6 +665,7 @@ function createAccountApi(store, config) {
       }
       if (route === "GET /save") return await getSave(user);
       if (route === "GET /players") return await listPlayers(user);
+      if (route === "GET /players/kin") return await listKin(user);
 
       const body = parseBody(event);
       if (!body) return err(400, "invalid_json", "invalid JSON body");
