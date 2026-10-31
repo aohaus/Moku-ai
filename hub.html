@@ -2186,13 +2186,17 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     var p = readJSON('moku:moku-word-riddles:progress');
     return p && p.solved && typeof p.solved === 'object' ? Object.keys(p.solved).length : 0;
   }
-  // Moku Dropper の星(progress.stars = { round: ビット 1/2/4 })。9ラウンド × 3
-  var DROPPER_STAR_TOTAL = 27;
-  function dropperStars() {
-    var p = readJSON('moku:moku-dropper:progress'), n = 0;
-    if (!p || !p.stars || typeof p.stars !== 'object') return 0;
-    Object.keys(p.stars).forEach(function (k) { var b = p.stars[k] | 0; n += (b & 1 ? 1 : 0) + (b & 2 ? 1 : 0) + (b & 4 ? 1 : 0); });
-    return n;
+  // Moku Dropper の順位(progress.place = { round: いちばん良い順位 })。レースは round 2〜8 の7本。
+  // v1.0.0 のセーブは星(stars のビット4 = レースで1位)なので、それも1位として数える
+  var DROPPER_RACES = [2, 3, 4, 5, 6, 7, 8];
+  function dropperFirst(p, r) {
+    if (!p) return false;
+    if (p.place && (p.place[r] | 0) === 1) return true;
+    return Boolean(p.stars && ((p.stars[r] | 0) & 4));
+  }
+  function dropperWins() {
+    var p = readJSON('moku:moku-dropper:progress');
+    return DROPPER_RACES.filter(function (r) { return dropperFirst(p, r); }).length;
   }
   var GAMES = [
     {
@@ -2776,11 +2780,10 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
       name: 'Moku Dropper',
       card: 'mdp',
       gameId: 'moku-dropper',
-      // 完了 = Grand Race(9番目、stars['8'])で1位になった(星のビット4)
+      // 完了 = Grand Race(9番目のラウンド)で1位になった
       isCompleted: function () {
         if (isExplicitlyMarked('completed', 'mdp')) return true;
-        var p = readJSON('moku:moku-dropper:progress');
-        return Boolean(p && p.stars && ((p.stars['8'] | 0) & 4));
+        return dropperFirst(readJSON('moku:moku-dropper:progress'), 8);
       },
       isPlayed: function () {
         if (isExplicitlyMarked('played', 'mdp')) return true;
@@ -2789,14 +2792,17 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
       },
       progress: function () {
         if (this.isCompleted()) return 1;
-        return Math.min(1, dropperStars() / DROPPER_STAR_TOTAL);
+        var p = readJSON('moku:moku-dropper:progress');
+        // 開いたラウンド(最大9)とレースの1位(7本)を半分ずつ
+        var open = p ? Math.max(0, Math.min(9, p.unlocked | 0) - 1) : 0;
+        return Math.min(1, open / 9 * 0.5 + dropperWins() / DROPPER_RACES.length * 0.5);
       },
       badge: function () {
         var p = readJSON('moku:moku-dropper:progress');
         if (!p || !this.isPlayed()) return null;
-        var stars = dropperStars() + ' / ' + DROPPER_STAR_TOTAL + ' ⭐';
-        if (this.isCompleted()) return stars + ' · Great Tree Champion';
-        return stars + ' · ' + (p.wins || 0) + (p.wins === 1 ? ' race won' : ' races won');
+        var won = '🥇 ' + dropperWins() + ' / ' + DROPPER_RACES.length + ' races won';
+        if (this.isCompleted()) return won + ' · Great Tree Champion';
+        return won + ' · Round ' + Math.max(1, Math.min(9, p.unlocked | 0)) + ' open';
       }
     },
     {
@@ -2853,7 +2859,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     mbr: { title: 'Luckiest Steps', read: function () { var p = readJSON('moku:moku-bridge:progress'); return p && p.bestLucky; }, fmt: function (n) { return n + ' in a row 🍀'; } },
     mch: { title: 'Strongest CPU Beaten', read: function () { var p = readJSON('moku:moku-chess:progress'); return p && p.best; }, fmt: function (n) { return 'Lv.' + n + ' / 10'; } },
     mwr: { title: 'Riddles Solved', read: riddlesSolved, fmt: function (n) { return n + ' / ' + RIDDLE_TOTAL + ' 🧩'; } },
-    mdp: { title: 'Stars Collected', read: dropperStars, fmt: function (n) { return n + ' / ' + DROPPER_STAR_TOTAL + ' ⭐'; } }
+    mdp: { title: 'Races Won', read: dropperWins, fmt: function (n) { return n + ' / ' + DROPPER_RACES.length + ' 🥇'; } }
   };
   function myRecords() {
     var out = {};
@@ -3012,7 +3018,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
            multi: { how: 'Riddle Race: up to 6 friends get the same riddles at the same time. The first right answer wins each one!' } },
     mdp: { name: 'Moku Dropper', gameId: 'moku-dropper', genre: '3D Drop Race', cta: 'Drop', hi: '#A79BFF', lo: '#3F3590', newUntil: '2026-12-01',
            tag: 'Drop down the Great Tree!',
-           desc: 'Jump into the hole and fall down the inside of the Great Tree. Slip through the gaps, dodge flying snacks, and race the Moku Fight rivals to the purple portal. Made from an idea by one of our young game designers!',
+           desc: 'Jump into a hole and fall down the inside of the Great Tree. Every floor has two holes. Dodge flying snacks and race two Moku Fight rivals to the purple portal. Can you get 1st? Made from an idea by one of our young game designers!',
            moint: { cap: true, how: 'Clear a round: +15. Win a race: +30 to +80. No bonks: +10. First clear of each round: +20 to +300.' } }
   };
   var SHELVES = [
