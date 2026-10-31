@@ -2181,7 +2181,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
            localStorage.getItem('moku:' + prefix + ':' + card) !== null;
   }
 
-  var RIDDLE_TOTAL = 25;
+  var RIDDLE_TOTAL = 100;
   function riddlesSolved() {
     var p = readJSON('moku:moku-word-riddles:progress');
     return p && p.solved && typeof p.solved === 'object' ? Object.keys(p.solved).length : 0;
@@ -2743,7 +2743,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
       name: 'Moku Word Riddles',
       card: 'mwr',
       gameId: 'moku-word-riddles',
-      // RIDDLE_TOTAL = moku-word-riddles.html の RIDDLES の数(問題を足したらここも)
+      // RIDDLE_TOTAL = shared/moku-riddles.js の RIDDLES の数(問題を足したらここも)
       isCompleted: function () {
         if (isExplicitlyMarked('completed', 'mwr')) return true;
         return riddlesSolved() >= RIDDLE_TOTAL;
@@ -2971,8 +2971,9 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
            multi: { how: 'Play a Friend: play chess online with a friend, one move at a time.' } },
     mwr: { name: 'Moku Word Riddles', gameId: 'moku-word-riddles', genre: 'Word Puzzle', cta: 'Solve', hi: '#C4D04A', lo: '#56601A', newUntil: '2026-12-01',
            tag: 'CYCLE CYCLE = BICYCLE!',
-           desc: 'Picture word riddles! Look where the words are, how big they are, and how many there are, then find the hidden English word. 25 riddles from Easy to Tricky.',
-           moint: { cap: true, how: 'Solve a riddle: +10 (+5 more with no hints on the first try). Solve all 5 in a round: +20. Spend Moints on Hints, Choices and Skips.' } }
+           desc: 'Picture word riddles! Look where the words are, how big they are, and how many there are, then find the hidden English word. 100 riddles from Easy to Tricky.',
+           moint: { cap: true, how: 'Solve a riddle: +10 (+5 more with no hints on the first try). Solve all 5 in a round: +20. Riddle Race: +5 for each riddle you win, +10 for finishing, +30 for 1st place. Spend Moints on Hints, Choices and Skips.' },
+           multi: { how: 'Riddle Race: up to 6 friends get the same riddles at the same time. The first right answer wins each one!' } }
   };
   var SHELVES = [
     { title: 'Action & Sports', sub: 'Fling, kick, fight, race', cards: ['mfg', 'mfr', 'mkt', 'br', 'mk', 'am'] },
