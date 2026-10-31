@@ -1688,10 +1688,25 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
 }
 #awardsPage[hidden] { display: none; }
 .awards-wrap { max-width: 1000px; margin: 0 auto; padding: 4px 16px calc(32px + env(safe-area-inset-bottom, 0px)); }
-.awards-tabs { display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); }
-.awards-tab { appearance: none; border: 0; background: none; color: rgba(237,238,246,0.7); font: inherit; font-size: 13px; font-weight: 800;
-  padding: 7px 14px; border-radius: 999px; cursor: pointer; }
-.awards-tab.is-on { background: linear-gradient(180deg, #FFD86A, #F2A93B); color: #2A1A00; }
+/* Medal Count (all players, most gold first) */
+.awards-medals { margin-top: 4px; padding: 14px; border-radius: 18px; background: linear-gradient(180deg, rgba(255,216,106,0.10), rgba(255,255,255,0.035));
+  border: 1px solid rgba(255,216,106,0.25); }
+.awards-medals[hidden] { display: none; }
+.awards-medals-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.awards-medals-head h2 { margin: 0; font-size: 16px; font-weight: 800; letter-spacing: 0.02em; }
+.awards-live { flex: none; padding: 2px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 900; letter-spacing: 0.08em; color: #7CE0A8;
+  background: rgba(46,158,106,0.18); animation: awardsLive 2s ease-in-out infinite; }
+@keyframes awardsLive { 50% { opacity: 0.55; } }
+.awards-medals-sub { margin: 3px 0 10px; font-size: 12px; font-weight: 600; color: rgba(237,238,246,0.55); }
+.awards-medal-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+@media (min-width: 700px) { .awards-medal-list { grid-template-columns: 1fr 1fr; } }
+.awards-mrow { display: flex; align-items: center; gap: 10px; padding: 7px 10px 7px 7px; border-radius: 12px; background: rgba(255,255,255,0.04); }
+.awards-mrow.is-you { background: rgba(255,216,106,0.12); box-shadow: inset 0 0 0 1px rgba(255,216,106,0.45); }
+.awards-mrow .award-doll { width: 40px; height: 40px; }
+.awards-mrow .award-who b { font-size: 14px; }
+.awards-mcount { display: flex; flex-wrap: wrap; align-items: center; column-gap: 8px; row-gap: 1px; margin-top: 2px; font-size: 15px; line-height: 1.3; letter-spacing: -0.04em; }
+.awards-mcount span { word-break: break-all; }
+.awards-mcount small { font-size: 11px; font-weight: 700; letter-spacing: 0; color: rgba(237,238,246,0.5); }
 .awards-note { margin: 10px 2px 12px; font-size: 12.5px; font-weight: 600; color: rgba(237,238,246,0.55); }
 .awards-note:empty { display: none; }
 .awards-grid { display: grid; gap: 12px; margin-top: 12px; }
@@ -1718,6 +1733,22 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
 .award-val { flex: none; font-size: 14px; font-weight: 800; color: #FFD86A; white-space: nowrap; }
 .award-gap { text-align: center; font-size: 12px; line-height: 0.6; color: rgba(237,238,246,0.3); }
 .award-foot { margin: 8px 2px 0; font-size: 12px; font-weight: 700; color: rgba(237,238,246,0.5); }
+/* No. 1 stands out; 2nd and 3rd (and your own row below them) are smaller */
+.award-row.is-first { min-height: 58px; padding: 8px 12px 8px 8px; gap: 11px;
+  background: linear-gradient(90deg, rgba(255,216,106,0.16), rgba(255,216,106,0.04)); box-shadow: inset 0 0 0 1px rgba(255,216,106,0.35); }
+.award-row.is-first .award-medal { width: 30px; font-size: 26px; }
+.award-row.is-first .award-doll { width: 46px; height: 46px; }
+.award-row.is-first .award-who b { font-size: 16px; }
+.award-row.is-first .award-val { font-size: 17px; }
+.award-row.is-first.is-you { box-shadow: inset 0 0 0 2px rgba(255,216,106,0.7); }
+.award-row.is-minor { min-height: 34px; padding: 4px 10px 4px 6px; gap: 8px; }
+.award-row.is-minor .award-medal { font-size: 15px; }
+.award-row.is-minor .award-doll { width: 24px; height: 24px; }
+.award-row.is-minor .award-who { display: flex; align-items: baseline; gap: 6px; }
+.award-row.is-minor .award-who b { font-size: 12.5px; }
+.award-row.is-minor .award-who small { font-size: 10px; }
+.award-row.is-minor .award-val { font-size: 12.5px; }
+.award-row.is-empty.is-minor { min-height: 28px; font-size: 11.5px; }
 @media (max-width: 480px) {
   .hollow-plate { padding: 4px 7px 5px; max-width: 110px; }
   .hollow-plate b { font-size: 12.5px; }
@@ -1982,10 +2013,16 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     <button class="me-close" id="awardsClose" type="button">✕ Close</button>
   </header>
   <div class="awards-wrap">
-    <div class="awards-tabs" role="tablist" aria-label="Show">
-      <button type="button" class="awards-tab is-on" data-awards-filter="all" role="tab" aria-selected="true">All Games</button>
-      <button type="button" class="awards-tab" data-awards-filter="mine" role="tab" aria-selected="false">Games I Play</button>
-    </div>
+    <!-- Medal Count: everyone's medals from all the games, most 🥇 first. It changes
+         whenever someone plays, so it reads as a live board, not a finished podium. -->
+    <section class="awards-medals" id="awardsMedals" aria-labelledby="awardsMedalsTitle" hidden>
+      <div class="awards-medals-head">
+        <h2 id="awardsMedalsTitle">🏅 Medal Count</h2>
+        <span class="awards-live">● LIVE</span>
+      </div>
+      <p class="awards-medals-sub">It changes every time someone plays. Go grab a medal!</p>
+      <ol class="awards-medal-list" id="awardsMedalList"></ol>
+    </section>
     <p class="awards-note" id="awardsNote"></p>
     <div class="awards-grid" id="awardsGrid"></div>
   </div>
@@ -3732,7 +3769,6 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
   // ---------- Achievements (#awards) ----------
   // One hard record per game (RECORDS above). Top 3 of everyone: other players'
   // records come with their public card; yours are read live from this device.
-  var awardsFilter = 'all';
   function awardsPeople() {
     var data = hollowPeople();
     var mine = myRecords();
@@ -3755,6 +3791,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     var order = GAMES.filter(function (g) { return g.card && RECORDS[g.card] && CATALOG[g.card]; });
     var hasAny = function (g) { return people.some(function (p) { return p.records[g.gameId] > 0; }); };
     order = order.filter(hasAny).concat(order.filter(function (g) { return !hasAny(g); }));
+    people.forEach(function (p) { p.medals = [0, 0, 0]; });
     order.forEach(function (g) {
       var r = g.card && RECORDS[g.card];
       var c = g.card && CATALOG[g.card];
@@ -3765,9 +3802,9 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
       ranked.forEach(function (p, i) {
         // ties share a rank
         p.rank = i && ranked[i - 1].records[g.gameId] === p.records[g.gameId] ? ranked[i - 1].rank : i + 1;
+        if (p.rank <= 3) p.medals[p.rank - 1]++;
         if (p.you) { me = p; myRank = p.rank; }
       });
-      if (awardsFilter === 'mine' && !me) return;
       shown++;
       var card = el('article', 'award-card');
       setGameColors(card, c);
@@ -3780,7 +3817,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
       card.appendChild(head);
       var rows = el('ol', 'award-rows');
       function row(p, medal) {
-        var li = el('li', 'award-row' + (p.you ? ' is-you' : ''));
+        var li = el('li', 'award-row' + (p.rank === 1 ? ' is-first' : ' is-minor') + (p.you ? ' is-you' : ''));
         var m = el('span', 'award-medal' + (medal ? '' : ' is-rank'), medal || (p.rank + '.'));
         li.appendChild(m);
         var d = el('span', 'award-doll');
@@ -3799,7 +3836,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
       var top = ranked.slice(0, 3);
       top.forEach(function (p) { rows.appendChild(row(p, MEDALS[p.rank - 1] || null)); });
       if (!top.length) rows.appendChild(el('li', 'award-row is-empty', 'No records yet. Be the first!'));
-      else for (var i = top.length; i < 3; i++) rows.appendChild(el('li', 'award-row is-empty', MEDALS[i] + '  Open spot'));
+      else for (var i = top.length; i < 3; i++) rows.appendChild(el('li', 'award-row is-empty is-minor', MEDALS[i] + '  Open spot'));
       if (me && top.indexOf(me) < 0) {
         rows.appendChild(el('li', 'award-gap', '⋮'));
         rows.appendChild(row(me, null));
@@ -3815,6 +3852,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
       grid.appendChild(card);
     });
     if (!shown) grid.appendChild(el('div', 'me-empty', 'No records yet. Go play a game! 🎮'));
+    renderMedals(people);
     var note = '';
     if (!info.data.user) note = 'Log in to see everyone\'s records.';
     else if (!info.data.loaded) note = 'Getting everyone\'s records…';
@@ -3823,17 +3861,42 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     var others = people.filter(function (p) { return !p.you; }).length;
     document.getElementById('awardsSub').textContent = others ? 'The Top 3 in every game · ' + (others + 1) + ' players' : 'The Top 3 in every game.';
   }
-  Array.prototype.forEach.call(document.querySelectorAll('[data-awards-filter]'), function (b) {
-    b.addEventListener('click', function () {
-      awardsFilter = b.getAttribute('data-awards-filter');
-      Array.prototype.forEach.call(document.querySelectorAll('[data-awards-filter]'), function (x) {
-        var on = x === b;
-        x.classList.toggle('is-on', on);
-        x.setAttribute('aria-selected', on ? 'true' : 'false');
+  // Medal Count: everyone with a medal, most 🥇 first (then 🥈, then 🥉).
+  // Each medal is shown as its own emoji: 5 golds = 🥇🥇🥇🥇🥇.
+  function renderMedals(people) {
+    var box = document.getElementById('awardsMedals');
+    var list = document.getElementById('awardsMedalList');
+    var withMedals = people.filter(function (p) { return p.medals[0] + p.medals[1] + p.medals[2] > 0; })
+      .sort(function (a, b) {
+        return b.medals[0] - a.medals[0] || b.medals[1] - a.medals[1] || b.medals[2] - a.medals[2] || (a.name || '').localeCompare(b.name || '');
       });
-      renderAwards();
+    var me = people.filter(function (p) { return p.you; })[0];
+    if (me && withMedals.indexOf(me) < 0) withMedals.push(me);   // you are always on the list
+    list.textContent = '';
+    withMedals.forEach(function (p) {
+      var li = el('li', 'awards-mrow' + (p.you ? ' is-you' : ''));
+      var d = el('span', 'award-doll');
+      d.innerHTML = dollMarkup(p.you && window.MokuMoint ? MokuMoint.closet().equipped : p.outfit);
+      li.appendChild(d);
+      var who = el('span', 'award-who');
+      var b = el('b', null, p.name || 'Player');
+      if (p.you) b.appendChild(el('span', 'award-you', 'YOU'));
+      who.appendChild(b);
+      var count = el('span', 'awards-mcount');
+      var any = false;
+      ['🥇', '🥈', '🥉'].forEach(function (m, i) {
+        if (!p.medals[i]) return;
+        any = true;
+        count.appendChild(el('span', null, new Array(p.medals[i] + 1).join(m)));
+      });
+      if (!any) count.appendChild(el('small', null, 'No medals yet. Go get one!'));
+      count.setAttribute('aria-label', p.medals[0] + ' gold, ' + p.medals[1] + ' silver, ' + p.medals[2] + ' bronze');
+      who.appendChild(count);
+      li.appendChild(who);
+      list.appendChild(li);
     });
-  });
+    box.hidden = !withMedals.length;
+  }
 
   function readPicks() {
     try { var v = JSON.parse(localStorage.getItem(PICKS_KEY) || 'null'); return Array.isArray(v) ? v : null; } catch (e) { return null; }
