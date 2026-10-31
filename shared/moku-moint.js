@@ -963,8 +963,377 @@
       } }
   ];
 
+  // ---------- Blind Box items (2026-10-31, the kids' idea) ----------
+  // Not sold one by one: each Closet tab (Hats / Moods / Face / Necklaces)
+  // has a Silver Box (500) and a Gold Box (700) with 5 surprises each. A box
+  // only gives something you don't have yet. Gold ones are the fancy ones.
+  var BOX_GOLD = '<defs><linearGradient id="mmGoldB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFE68A"/><stop offset="1" stop-color="#E0A21B"/></linearGradient></defs>';
+  function sparkle(x, y, r, color) {
+    return '<path d="M' + x + ' ' + (y - r) + ' Q' + x + ' ' + y + ' ' + (x + r) + ' ' + y + ' Q' + x + ' ' + y + ' ' + x + ' ' + (y + r) +
+      ' Q' + x + ' ' + y + ' ' + (x - r) + ' ' + y + ' Q' + x + ' ' + y + ' ' + x + ' ' + (y - r) + ' Z" fill="' + (color || '#FFF6C8') + '"/>';
+  }
+  function chain(color, w) {
+    return '<path d="M32 58 Q50 72 68 58" stroke="' + color + '" stroke-width="' + (w || 0.7) + '" fill="none"/>';
+  }
+  // the bee scarf's band, between its top and bottom edges at x
+  function scarfStripe(x) {
+    var top = 58 + 6 * (1 - Math.pow((x - 50) / 26, 2)), bot = 64.4 + 6.3 * (1 - Math.pow((x - 50) / 27, 2));
+    return 'M' + x + ' ' + top.toFixed(2) + ' L' + x + ' ' + bot.toFixed(2);
+  }
+  var BOX_ITEMS = [
+    // ---- Hats ----
+    { id: 'frog-hat', slot: 'head', blind: 'silver', name: 'Frog Hat', box: [27, -2, 46, 20],
+      svg: function () {
+        return '<path d="M29 17 Q28 5 50 5 Q72 5 71 17 Z" fill="#7CC46A"/>' +
+          '<circle cx="39" cy="5" r="5" fill="#7CC46A"/><circle cx="61" cy="5" r="5" fill="#7CC46A"/>' +
+          '<circle cx="39" cy="5" r="3.2" fill="#FFFFFF"/><circle cx="61" cy="5" r="3.2" fill="#FFFFFF"/>' +
+          '<circle cx="39.4" cy="5.4" r="1.7" fill="#2A1712"/><circle cx="60.6" cy="5.4" r="1.7" fill="#2A1712"/>' +
+          '<path d="M42 12 Q50 15.5 58 12" stroke="#3E7A2E" stroke-width="1" fill="none" stroke-linecap="round"/>' +
+          '<path d="M28.4 15.4 Q50 12 71.6 15.4 L71.4 17.6 Q50 14.4 28.6 17.6 Z" fill="#5BA84A"/>';
+      } },
+    { id: 'bee-antennae', slot: 'head', blind: 'silver', name: 'Bee Antennae', box: [28, -4, 44, 21],
+      svg: function () {
+        return '<path d="M29.4 18.4 Q50 7.6 70.6 18.4" stroke="#2E2A3A" stroke-width="1.8" fill="none" stroke-linecap="round"/>' +
+          '<path d="M41 11.4 Q37 4 33 1 M59 11.4 Q63 4 67 1" stroke="#2E2A3A" stroke-width="1.2" fill="none" stroke-linecap="round"/>' +
+          '<circle cx="33" cy="1" r="3.2" fill="#FFD54A" stroke="#2E2A3A" stroke-width="0.7"/><circle cx="67" cy="1" r="3.2" fill="#FFD54A" stroke="#2E2A3A" stroke-width="0.7"/>' +
+          '<path d="M30.2 1.6 L35.8 1.6 M64.2 1.6 L69.8 1.6" stroke="#2E2A3A" stroke-width="1"/>' +
+          '<circle cx="32" cy="-0.4" r="0.8" fill="#FFFFFF"/><circle cx="66" cy="-0.4" r="0.8" fill="#FFFFFF"/>';
+      } },
+    { id: 'mushroom-cap', slot: 'head', blind: 'silver', name: 'Mushroom Cap', box: [24, -1, 52, 20],
+      svg: function () {
+        return '<path d="M26 17.4 Q24 1.4 50 1 Q76 1.4 74 17.4 Q50 13.4 26 17.4 Z" fill="#E8473C"/>' +
+          '<circle cx="38" cy="7" r="3" fill="#FFF6E8"/><circle cx="52" cy="4.6" r="3.6" fill="#FFF6E8"/><circle cx="64" cy="9" r="2.6" fill="#FFF6E8"/>' +
+          '<circle cx="45.4" cy="12" r="1.8" fill="#FFF6E8"/><circle cx="31" cy="13" r="1.6" fill="#FFF6E8"/><circle cx="69.4" cy="14.4" r="1.4" fill="#FFF6E8"/>' +
+          '<path d="M30 6 Q36 2 44 2" stroke="rgba(255,255,255,0.45)" stroke-width="1.2" fill="none" stroke-linecap="round"/>';
+      } },
+    { id: 'fox-ears', slot: 'head', blind: 'silver', name: 'Fox Ears', box: [27, -3, 46, 21],
+      svg: function () {
+        return '<path d="M29 16 L31 -1 L44 9 Z" fill="#F08A3C" stroke-linejoin="round"/><path d="M32 12.6 L33 4 L40 9.4 Z" fill="#FFE3C8"/>' +
+          '<path d="M71 16 L69 -1 L56 9 Z" fill="#F08A3C" stroke-linejoin="round"/><path d="M68 12.6 L67 4 L60 9.4 Z" fill="#FFE3C8"/>' +
+          '<path d="M31 -1 L30.6 3.4 L34.4 2 Z M69 -1 L69.4 3.4 L65.6 2 Z" fill="#FFFFFF"/>';
+      } },
+    { id: 'strawberry-hat', slot: 'head', blind: 'silver', name: 'Strawberry Hat', box: [26, -6, 48, 25],
+      svg: function () {
+        var s = '<path d="M28 17 Q27 2 50 2 Q73 2 72 17 Z" fill="#F2545B"/>';
+        [[37, 7], [44, 4.6], [52, 5.4], [60, 6.4], [33, 12], [41, 10.6], [49, 9.6], [57, 10.8], [65, 12]].forEach(function (p) {
+          s += '<ellipse cx="' + p[0] + '" cy="' + p[1] + '" rx="0.7" ry="1.1" fill="#FFE27A"/>';
+        });
+        return s + '<path d="M27 15.4 Q50 11 73 15.4 L73 18 Q50 13.6 27 18 Z" fill="#FFF3E0" stroke="#EAD6BA" stroke-width="0.5"/>' +
+          '<path d="M50 3.2 L42.6 -0.6 L47 -1.2 L50 -4 L53 -1.2 L57.4 -0.6 Z" fill="#5BA84A"/>' +
+          '<path d="M50 -1 L50.6 -5.4" stroke="#3E7A2E" stroke-width="1.4" stroke-linecap="round"/>';
+      } },
+    { id: 'unicorn-horn', slot: 'head', blind: 'gold', name: 'Unicorn Horn', box: [36, -10, 28, 27],
+      svg: function () {
+        return BOX_GOLD + '<path d="M45.4 13.4 L50 -8 L54.6 13.4 Z" fill="url(#mmGoldB)" stroke="#C98A14" stroke-width="0.6" stroke-linejoin="round"/>' +
+          '<path d="M46.2 9.6 L53.6 7.4 M47.2 5 L52.8 3.4 M48.2 0.6 L51.8 -0.6" stroke="#C98A14" stroke-width="0.7"/>' +
+          flower(43.2, 13.6, 2.6, '#FF8FB8', '#FFE27A') + flower(56.8, 13.6, 2.6, '#C9A0F5', '#FFE27A') + flower(50, 15.4, 2.2, '#8FE3FF', '#FFE27A') +
+          sparkle(58.6, -3, 2) + sparkle(41.4, 1, 1.4);
+      } },
+    { id: 'rainbow-cloud', slot: 'head', blind: 'gold', name: 'Rainbow Cloud', box: [21, -3, 58, 22],
+      svg: function () {
+        var s = '';
+        ['#FF6B6B', '#FFA94D', '#FFE066', '#69DB7C', '#4DABF7', '#9775FA'].forEach(function (c, i) {
+          s += '<path d="M' + (30 + i * 2.2) + ' 14 Q50 ' + (-5 + i * 2.8) + ' ' + (70 - i * 2.2) + ' 14" stroke="' + c + '" stroke-width="2.3" fill="none"/>';
+        });
+        function cloud(x) {
+          return '<circle cx="' + x + '" cy="14" r="3.8" fill="#FFFFFF"/><circle cx="' + (x - 3.4) + '" cy="15.6" r="2.8" fill="#FFFFFF"/>' +
+            '<circle cx="' + (x + 3.4) + '" cy="15.6" r="2.8" fill="#FFFFFF"/><path d="M' + (x - 6) + ' 17.6 L' + (x + 6) + ' 17.6" stroke="#E3EAF2" stroke-width="1" stroke-linecap="round"/>';
+        }
+        return s + cloud(31) + cloud(69) + sparkle(50, -1.6, 2.2, '#FFE27A') + sparkle(39, 3, 1.4, '#FFE27A') + sparkle(62, 2.6, 1.4, '#FFE27A');
+      } },
+    { id: 'golden-laurel', slot: 'head', blind: 'gold', name: 'Golden Laurel', box: [24, 0, 52, 19],
+      svg: function () {
+        var s = BOX_GOLD;
+        along(27, 17, 50, 4, 73, 17, 13).forEach(function (p, i) {
+          if (i === 6) return;
+          var a = i < 6 ? -40 : 40, x = p[0].toFixed(2), y = p[1].toFixed(2);
+          s += '<ellipse cx="' + x + '" cy="' + y + '" rx="2.8" ry="1.3" fill="url(#mmGoldB)" stroke="#C98A14" stroke-width="0.4" transform="rotate(' + a + ' ' + x + ' ' + y + ')"/>';
+        });
+        return s + '<circle cx="50" cy="10.4" r="2.3" fill="#FF5A6E" stroke="#C98A14" stroke-width="0.6"/><circle cx="49.3" cy="9.7" r="0.6" fill="#FFFFFF"/>';
+      } },
+    { id: 'cake-hat', slot: 'head', blind: 'gold', name: 'Birthday Cake', box: [31, -11, 38, 30],
+      svg: function () {
+        var s = '<path d="M33 17.6 L67 17.6" stroke="#E8D2B0" stroke-width="1.8" stroke-linecap="round"/>' +
+          '<rect x="36" y="8.4" width="28" height="9" rx="1.6" fill="#FFE3EC"/>' +
+          '<path d="M36 9.4 Q38 12.6 40 9.4 Q42 12.6 44 9.4 Q46 12.6 48 9.4 Q50 12.6 52 9.4 Q54 12.6 56 9.4 Q58 12.6 60 9.4 Q62 12.6 64 9.4 L64 8.4 L36 8.4 Z" fill="#FFFFFF"/>' +
+          '<rect x="41" y="1.4" width="18" height="7.4" rx="1.4" fill="#FFC1D6"/>' +
+          '<path d="M41 2.4 Q43 5 45 2.4 Q47 5 49 2.4 Q51 5 53 2.4 Q55 5 57 2.4 Q58 4 59 2.4 L59 1.4 L41 1.4 Z" fill="#FFFFFF"/>' +
+          '<rect x="49" y="-5.6" width="2" height="7" rx="0.6" fill="#7EC8E3"/><path d="M49 -3.6 L51 -4.6 M49 -1.4 L51 -2.4" stroke="#FFFFFF" stroke-width="0.6"/>' +
+          '<ellipse cx="50" cy="-7.4" rx="1.5" ry="2.3" fill="#FFB13B"/><ellipse cx="50" cy="-6.9" rx="0.7" ry="1.2" fill="#FFE27A"/>';
+        [[39, 14, '#4DABF7'], [45, 15.6, '#FFD25A'], [53, 14.2, '#69DB7C'], [60, 15.4, '#FF6B6B'], [44, 5.4, '#9775FA'], [55, 6, '#4DABF7']].forEach(function (p) {
+          s += '<path d="M' + p[0] + ' ' + p[1] + ' l1.4 -0.6" stroke="' + p[2] + '" stroke-width="0.9" stroke-linecap="round"/>';
+        });
+        return s;
+      } },
+    { id: 'dragon-horns', slot: 'head', blind: 'gold', name: 'Dragon Horns', box: [27, -3, 46, 21],
+      svg: function () {
+        return '<path d="M33 15.6 Q27.6 6 33 -1.4 Q35.2 6 39.6 12.4 Z" fill="#5ED6A8" stroke="#2E9E77" stroke-width="0.6" stroke-linejoin="round"/>' +
+          '<path d="M67 15.6 Q72.4 6 67 -1.4 Q64.8 6 60.4 12.4 Z" fill="#5ED6A8" stroke="#2E9E77" stroke-width="0.6" stroke-linejoin="round"/>' +
+          '<path d="M31.2 9.4 L37 10.6 M68.8 9.4 L63 10.6" stroke="#FFD25A" stroke-width="1.5" stroke-linecap="round"/>' +
+          '<path d="M32 4 L35 5 M68 4 L65 5" stroke="#FFD25A" stroke-width="1.1" stroke-linecap="round"/>' +
+          sparkle(26, 2, 1.6, '#FFE27A') + sparkle(74, 2, 1.6, '#FFE27A');
+      } },
+    // ---- Face ----
+    { id: 'clown-nose', slot: 'face', blind: 'silver', name: 'Clown Nose', box: [41, 39, 18, 18],
+      svg: function () {
+        return '<circle cx="50" cy="48.4" r="4.6" fill="#FF4F5E" stroke="#D9304A" stroke-width="0.6"/><circle cx="48.4" cy="46.8" r="1.3" fill="rgba(255,255,255,0.85)"/>';
+      } },
+    { id: 'freckles', slot: 'face', blind: 'silver', name: 'Freckles', box: [19, 43, 62, 12],
+      svg: function () {
+        var s = '';
+        [[24, 48.6], [27.4, 47.4], [26, 51], [29.6, 50.2], [23, 52.2]].forEach(function (p) {
+          s += '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="0.95" fill="#C8865A" fill-opacity="0.85"/>' +
+            '<circle cx="' + (100 - p[0]) + '" cy="' + p[1] + '" r="0.95" fill="#C8865A" fill-opacity="0.85"/>';
+        });
+        return s;
+      } },
+    { id: 'butterfly-glasses', slot: 'face', blind: 'silver', name: 'Butterfly Glasses', box: [17, 30, 66, 22],
+      svg: function () {
+        return both(function (x, y) {
+          return '<ellipse cx="' + (x - 4) + '" cy="' + (y - 2) + '" rx="5" ry="4.6" fill="rgba(255,143,184,0.32)" stroke="#E0628F" stroke-width="1.1"/>' +
+            '<ellipse cx="' + (x + 4) + '" cy="' + (y - 2) + '" rx="5" ry="4.6" fill="rgba(255,143,184,0.32)" stroke="#E0628F" stroke-width="1.1"/>' +
+            '<ellipse cx="' + (x - 3.2) + '" cy="' + (y + 4.4) + '" rx="3.4" ry="3" fill="rgba(201,160,245,0.35)" stroke="#E0628F" stroke-width="1.1"/>' +
+            '<ellipse cx="' + (x + 3.2) + '" cy="' + (y + 4.4) + '" rx="3.4" ry="3" fill="rgba(201,160,245,0.35)" stroke="#E0628F" stroke-width="1.1"/>';
+        }) + '<path d="M44 40 Q50 37.6 56 40" stroke="#E0628F" stroke-width="1.3" fill="none" stroke-linecap="round"/>' +
+          '<path d="M26.6 39.6 L19 38.2 M73.4 39.6 L81 38.2" stroke="#E0628F" stroke-width="1.3" stroke-linecap="round"/>';
+      } },
+    { id: 'swirl-cheeks', slot: 'face', blind: 'silver', name: 'Swirly Blush', box: [19, 43, 62, 14],
+      svg: function () {
+        return '<circle cx="26" cy="50" r="4.6" fill="#FF8FB8" fill-opacity="0.35"/><circle cx="74" cy="50" r="4.6" fill="#FF8FB8" fill-opacity="0.35"/>' +
+          '<path d="' + spiralPath(26, 50, 2, 3.8) + '" stroke="#FF6F91" stroke-width="1" fill="none" stroke-linecap="round"/>' +
+          '<path d="' + spiralPath(74, 50, 2, 3.8) + '" stroke="#FF6F91" stroke-width="1" fill="none" stroke-linecap="round"/>';
+      } },
+    { id: 'brave-bandage', slot: 'face', blind: 'silver', name: 'Brave Bandage', box: [62, 43, 20, 14],
+      svg: function () {
+        return '<g transform="rotate(-22 72 50)"><rect x="65.4" y="47.8" width="13.2" height="4.6" rx="2.2" fill="#F5C99A" stroke="#D9A06A" stroke-width="0.5"/>' +
+          '<rect x="70" y="47.8" width="4" height="4.6" fill="#FBE3C6"/>' +
+          '<circle cx="67.4" cy="49.4" r="0.35" fill="#D9A06A"/><circle cx="67.4" cy="51" r="0.35" fill="#D9A06A"/>' +
+          '<circle cx="76.6" cy="49.4" r="0.35" fill="#D9A06A"/><circle cx="76.6" cy="51" r="0.35" fill="#D9A06A"/></g>';
+      } },
+    { id: 'diamond-shades', slot: 'face', blind: 'gold', name: 'Diamond Shades', box: [17, 31, 66, 22],
+      svg: function () {
+        return both(function (x, y) {
+          return '<path d="M' + (x - 8.6) + ' ' + y + ' L' + x + ' ' + (y - 7.8) + ' L' + (x + 8.6) + ' ' + y + ' L' + x + ' ' + (y + 7.8) + ' Z" fill="rgba(120,200,255,0.4)" stroke="#E0A21B" stroke-width="1.6" stroke-linejoin="round"/>' +
+            '<path d="M' + (x - 4.4) + ' ' + (y - 2) + ' L' + (x - 1.4) + ' ' + (y - 5) + '" stroke="rgba(255,255,255,0.8)" stroke-width="1" stroke-linecap="round"/>' +
+            sparkle(x + 6, y - 6, 1.6);
+        }) + '<path d="M43.6 41 Q50 38.6 56.4 41" stroke="#E0A21B" stroke-width="1.4" fill="none" stroke-linecap="round"/>' +
+          '<path d="M26.4 41 L19 39.4 M73.6 41 L81 39.4" stroke="#E0A21B" stroke-width="1.4" stroke-linecap="round"/>';
+      } },
+    { id: 'hero-mask', slot: 'face', blind: 'gold', name: 'Hero Mask', box: [14, 29, 72, 23],
+      svg: function () {
+        return '<path fill-rule="evenodd" d="M22 35 Q35 30 50 36 Q65 30 78 35 Q80 46 68 49.6 Q58 50 50 45 Q42 50 32 49.6 Q20 46 22 35 Z ' +
+          'M29.4 41.5 a5.6 4.6 0 1 0 11.2 0 a5.6 4.6 0 1 0 -11.2 0 Z M59.4 41.5 a5.6 4.6 0 1 0 11.2 0 a5.6 4.6 0 1 0 -11.2 0 Z" fill="#E8473C" stroke="#FFD25A" stroke-width="0.9"/>' +
+          '<path d="M22.4 38 L15 42 L17.6 35.4 Z M77.6 38 L85 42 L82.4 35.4 Z" fill="#E8473C"/>' +
+          '<path d="M27 34.6 Q31 33 35 33.4" stroke="rgba(255,255,255,0.5)" stroke-width="1" fill="none" stroke-linecap="round"/>';
+      } },
+    { id: 'rainbow-cheeks', slot: 'face', blind: 'gold', name: 'Rainbow Cheeks', box: [18, 42, 64, 13],
+      svg: function () {
+        var s = '';
+        [26, 74].forEach(function (x) {
+          ['#FF6B6B', '#FFE066', '#4DABF7'].forEach(function (c, i) {
+            var r = 5 - i * 1.5;
+            s += '<path d="M' + (x - r) + ' 52 Q' + x + ' ' + (52 - r * 1.25) + ' ' + (x + r) + ' 52" stroke="' + c + '" stroke-width="1.3" fill="none" stroke-linecap="round"/>';
+          });
+          s += '<circle cx="' + (x - 5.4) + '" cy="52.4" r="1.4" fill="#FFFFFF"/><circle cx="' + (x + 5.4) + '" cy="52.4" r="1.4" fill="#FFFFFF"/>';
+        });
+        return s + sparkle(31, 46, 1.2, '#FFE27A') + sparkle(69, 46, 1.2, '#FFE27A');
+      } },
+    { id: 'twinkle-specs', slot: 'face', blind: 'gold', name: 'Twinkle Specs', box: [17, 28, 66, 26],
+      svg: function () {
+        return '<circle cx="35" cy="41.5" r="8.4" fill="rgba(255,240,200,0.2)" stroke="#E0A21B" stroke-width="1.7"/>' +
+          '<circle cx="65" cy="41.5" r="8.4" fill="rgba(255,240,200,0.2)" stroke="#E0A21B" stroke-width="1.7"/>' +
+          '<path d="M43.4 40.4 Q50 37.4 56.6 40.4" stroke="#E0A21B" stroke-width="1.5" fill="none" stroke-linecap="round"/>' +
+          '<path d="M26.6 40.2 L19 38.6 M73.4 40.2 L81 38.6" stroke="#E0A21B" stroke-width="1.5" stroke-linecap="round"/>' +
+          '<path d="' + starPath(26.4, 32.6, 2.2) + '" fill="#FFD25A"/><path d="' + starPath(74, 32, 2.6) + '" fill="#FFD25A"/>' +
+          sparkle(71, 50, 1.8, '#FFE27A') + sparkle(29, 50.6, 1.4, '#FFE27A');
+      } },
+    { id: 'masquerade', slot: 'face', blind: 'gold', name: 'Masquerade Mask', box: [20, 8, 66, 42],
+      svg: function () {
+        return BOX_GOLD + '<path d="M74 36.4 Q84.6 22 82 9.6 Q78 22 71.6 34.6 Z" fill="#C9A0F5" stroke="#9775FA" stroke-width="0.5"/>' +
+          '<path d="M73 35.4 Q79 22 81.6 11" stroke="#7A5AC9" stroke-width="0.6" fill="none"/>' +
+          '<path fill-rule="evenodd" d="M23 38 Q30 32 40 35 Q46 37 50 40 Q54 37 60 35 Q70 32 77 38 Q76 46 66 48 Q57 48 50 43 Q43 48 34 48 Q24 46 23 38 Z ' +
+          'M29.6 41.4 a5.4 4.2 0 1 0 10.8 0 a5.4 4.2 0 1 0 -10.8 0 Z M59.6 41.4 a5.4 4.2 0 1 0 10.8 0 a5.4 4.2 0 1 0 -10.8 0 Z" fill="url(#mmGoldB)" stroke="#C98A14" stroke-width="0.6"/>' +
+          '<circle cx="50" cy="41.6" r="1.4" fill="#FF5A6E"/><circle cx="26" cy="40" r="0.9" fill="#8FE3FF"/><circle cx="74" cy="40" r="0.9" fill="#8FE3FF"/>';
+      } },
+    // ---- Necklaces ----
+    { id: 'polka-bow-tie', slot: 'neck', blind: 'silver', name: 'Polka Bow Tie', box: [36, 55, 28, 16],
+      svg: function () {
+        return '<path d="M50 63 L40 57.6 Q38 63 40 68.4 Z M50 63 L60 57.6 Q62 63 60 68.4 Z" fill="#3E8EDB" stroke="#2F6FB0" stroke-width="0.5" stroke-linejoin="round"/>' +
+          '<rect x="47.6" y="60.6" width="4.8" height="4.8" rx="1.2" fill="#2F6FB0"/>' +
+          '<circle cx="42.4" cy="61" r="0.9" fill="#FFFFFF"/><circle cx="44.4" cy="65.4" r="0.9" fill="#FFFFFF"/><circle cx="41.6" cy="65" r="0.6" fill="#FFFFFF"/>' +
+          '<circle cx="57.6" cy="61" r="0.9" fill="#FFFFFF"/><circle cx="55.6" cy="65.4" r="0.9" fill="#FFFFFF"/><circle cx="58.4" cy="65" r="0.6" fill="#FFFFFF"/>';
+      } },
+    { id: 'acorn-necklace', slot: 'neck', blind: 'silver', name: 'Acorn Necklace', box: [30, 56, 40, 18],
+      svg: function () {
+        return chain('#8A5A3A') + '<path d="M50.2 62 L50.8 60.4" stroke="#6B4226" stroke-width="0.8" stroke-linecap="round"/>' +
+          '<ellipse cx="50" cy="68.4" rx="3.4" ry="3.9" fill="#D9933E"/><ellipse cx="48.8" cy="67.6" rx="0.9" ry="1.6" fill="rgba(255,255,255,0.35)"/>' +
+          '<path d="M45.6 65.6 Q50 61.4 54.4 65.6 Z" fill="#8A5A3A"/>' +
+          '<path d="M47 64.6 L48.4 63.4 M49 64.8 L50.8 63 M51.2 64.8 L52.8 63.6" stroke="#6B4226" stroke-width="0.5"/>';
+      } },
+    { id: 'coach-whistle', slot: 'neck', blind: 'silver', name: 'Coach Whistle', box: [30, 56, 40, 18],
+      svg: function () {
+        return chain('#E8473C', 1) +
+          '<path d="M45.5 64.6 L54.5 64.6 Q56.5 67 54.5 69.4 L47 69.4 Q44 69.4 44 67 Q44 64.6 45.5 64.6 Z" fill="#C9D2DE" stroke="#8A96A8" stroke-width="0.6"/>' +
+          '<rect x="54" y="65.2" width="4.2" height="2.4" rx="0.6" fill="#B8C2CF" stroke="#8A96A8" stroke-width="0.4"/>' +
+          '<circle cx="48.6" cy="66.6" r="1" fill="#6B7584"/><path d="M46 65.6 L50 65.6" stroke="rgba(255,255,255,0.8)" stroke-width="0.6" stroke-linecap="round"/>';
+      } },
+    { id: 'donut-pendant', slot: 'neck', blind: 'silver', name: 'Donut Pendant', box: [30, 56, 40, 18],
+      svg: function () {
+        var s = chain('#E8A0B8') + '<circle cx="50" cy="67.8" r="4.4" fill="#E3A86B"/><circle cx="50" cy="67.6" r="3.7" fill="#FF8FB8"/>' +
+          '<circle cx="50" cy="67.6" r="1.4" fill="#FFF6E8" stroke="#E3A86B" stroke-width="0.5"/>';
+        [[47.6, 65.6, '#FFE066'], [52.6, 65.4, '#4DABF7'], [53, 69.4, '#69DB7C'], [47.2, 69.6, '#FFFFFF']].forEach(function (p) {
+          s += '<path d="M' + p[0] + ' ' + p[1] + ' l0.9 0.5" stroke="' + p[2] + '" stroke-width="0.7" stroke-linecap="round"/>';
+        });
+        return s;
+      } },
+    { id: 'bee-scarf', slot: 'neck', blind: 'silver', name: 'Bee Scarf', box: [22, 55, 56, 27],
+      svg: function () {
+        return '<path d="M61 63 L66 80 L57.6 80 L55.4 65 Z" fill="#FFD54A"/><path d="M57 71 L64.2 71 M57.7 76 L65.4 76" stroke="#2E2A3A" stroke-width="1.8"/>' +
+          '<path d="M24 58 Q50 70 76 58 L77 64.4 Q50 77 23 64.4 Z" fill="#FFD54A"/>' +
+          '<path d="' + [30, 38, 46, 54, 62, 70].map(scarfStripe).join(' ') + '" stroke="#2E2A3A" stroke-width="2.4"/>';
+      } },
+    { id: 'trophy-pendant', slot: 'neck', blind: 'gold', name: 'Trophy Pendant', box: [36, 55, 28, 20],
+      svg: function () {
+        return BOX_GOLD + '<path d="M40 57 L50 65.4 L60 57" stroke="#3E8EDB" stroke-width="2.4" fill="none" stroke-linejoin="round"/>' +
+          '<path d="M45.4 64.6 Q42.4 64.6 43.2 67.2 Q44 69 46.2 68.6 M54.6 64.6 Q57.6 64.6 56.8 67.2 Q56 69 53.8 68.6" stroke="#E0A21B" stroke-width="0.9" fill="none"/>' +
+          '<path d="M45.4 64.4 L54.6 64.4 Q54.6 70 50 70.6 Q45.4 70 45.4 64.4 Z" fill="url(#mmGoldB)" stroke="#C98A14" stroke-width="0.5"/>' +
+          '<rect x="49.2" y="70.4" width="1.6" height="1.8" fill="#C98A14"/><rect x="46.6" y="72" width="6.8" height="1.9" rx="0.5" fill="#C98A14"/>' +
+          '<path d="' + starPath(50, 66.8, 1.6) + '" fill="#FFF6C8"/>';
+      } },
+    { id: 'royal-cape', slot: 'neck', blind: 'gold', name: 'Royal Cape', box: [12, 54, 76, 30],
+      svg: function () {
+        var s = '<path d="M21 62 L13.6 82.4 L29 80 Z M79 62 L86.4 82.4 L71 80 Z" fill="#C62F3E" stroke="#9A1F2C" stroke-width="0.5" stroke-linejoin="round"/>' +
+          '<path d="M22 57 Q50 72 78 57 L80 63 Q50 80 20 63 Z" fill="#FFFFFF" stroke="#E3E0EA" stroke-width="0.6"/>';
+        along(23, 61, 50, 77, 77, 61, 9).forEach(function (p, i) {
+          if (i % 2) return;
+          s += '<path d="M' + p[0].toFixed(2) + ' ' + (p[1] - 1.6).toFixed(2) + ' l0 1.8" stroke="#2E2A3A" stroke-width="1" stroke-linecap="round"/>';
+        });
+        return s + '<circle cx="50" cy="70.6" r="2.6" fill="#FFD25A" stroke="#C98A14" stroke-width="0.6"/><circle cx="50" cy="70.6" r="1" fill="#FF5A6E"/>';
+      } },
+    { id: 'diamond-necklace', slot: 'neck', blind: 'gold', name: 'Diamond Necklace', box: [30, 56, 40, 20],
+      svg: function () {
+        var s = chain('#C9D2DE', 0.9);
+        along(32, 58, 50, 72, 68, 58, 7).forEach(function (p, i) {
+          if (i === 3) return;
+          s += '<circle cx="' + p[0].toFixed(2) + '" cy="' + p[1].toFixed(2) + '" r="0.8" fill="#DFF6FF" stroke="#8FD1EA" stroke-width="0.3"/>';
+        });
+        return s + '<path d="M45.6 65 L54.4 65 L56 67 L50 73.4 L44 67 Z" fill="#8FE3FF" stroke="#4AA8D8" stroke-width="0.6" stroke-linejoin="round"/>' +
+          '<path d="M44 67 L56 67 M47.6 65 L46.6 67 L50 73.4 L53.4 67 L52.4 65" stroke="#4AA8D8" stroke-width="0.4" fill="none"/>' +
+          sparkle(57.6, 64, 1.6) + sparkle(42.6, 70.6, 1.2);
+      } },
+    { id: 'moon-pendant', slot: 'neck', blind: 'gold', name: 'Moon & Star', box: [30, 56, 40, 20],
+      svg: function () {
+        return BOX_GOLD + chain('#E0A21B', 0.8) +
+          '<path d="M51.4 63.2 A5.2 5.2 0 1 0 51.4 73.4 A4 4 0 1 1 51.4 63.2 Z" fill="url(#mmGoldB)" stroke="#C98A14" stroke-width="0.5"/>' +
+          '<path d="' + starPath(53.6, 67, 1.7) + '" fill="#FFE27A" stroke="#E0A21B" stroke-width="0.4"/>';
+      } },
+    { id: 'moint-medallion', slot: 'neck', blind: 'gold', name: 'Moint Medallion', box: [28, 55, 44, 22],
+      svg: function () {
+        return BOX_GOLD + '<path d="M31 57.4 Q50 72 69 57.4" stroke="#E0A21B" stroke-width="1.5" fill="none" stroke-dasharray="1.6 0.9"/>' +
+          '<circle cx="50" cy="68.8" r="5.6" fill="url(#mmGoldB)" stroke="#C98A14" stroke-width="0.7"/>' +
+          '<circle cx="50" cy="68.8" r="4.3" fill="none" stroke="#FFF3C4" stroke-width="0.5"/>' + txt(50, 71.2, 6.4, '#7A4A0C', 'M') + sparkle(55.6, 63.4, 1.6);
+      } }
+  ];
+  // Moods from the boxes are drawn like the other Moods (patch over the eyes first)
+  var BOX_MOODS = [
+    { id: 'mood-sparkly', blind: 'silver', name: 'Sparkly Eyes', art: function () {
+        return both(function (x, y) {
+          return '<ellipse cx="' + x + '" cy="' + y + '" rx="6.2" ry="7.6" fill="' + EYE_INK + '"/>' +
+            '<ellipse cx="' + x + '" cy="' + (y + 3) + '" rx="4.4" ry="3.4" fill="#5B4A9E"/>' +
+            '<circle cx="' + (x - 2.2) + '" cy="' + (y - 3) + '" r="2.4" fill="#FFFFFF"/><circle cx="' + (x + 2.4) + '" cy="' + (y + 2.6) + '" r="1.2" fill="#FFFFFF"/>' +
+            sparkle(x + 2.4, y - 3.6, 1.5, '#FFFFFF');
+        });
+      } },
+    { id: 'mood-dot-eyes', blind: 'silver', name: 'Dot Eyes', art: function () {
+        return both(function (x, y) { return '<circle cx="' + x + '" cy="' + (y + 1) + '" r="2" fill="' + EYE_INK + '"/>'; }) +
+          '<ellipse cx="26" cy="49.6" rx="3.6" ry="2" fill="#FF8FB8" fill-opacity="0.5"/><ellipse cx="74" cy="49.6" rx="3.6" ry="2" fill="#FF8FB8" fill-opacity="0.5"/>';
+      } },
+    { id: 'mood-ko', blind: 'silver', name: 'KO', art: function () {
+        return both(function (x, y) { return line('M' + (x - 4.6) + ' ' + (y - 4.6) + ' L' + (x + 4.6) + ' ' + (y + 4.6) + ' M' + (x + 4.6) + ' ' + (y - 4.6) + ' L' + (x - 4.6) + ' ' + (y + 4.6), 2.6); }) +
+          sparkle(50, 30, 2.2, '#FFE27A') + sparkle(42, 27, 1.4, '#FFE27A') + sparkle(58, 27, 1.4, '#FFE27A');
+      } },
+    { id: 'mood-squeeze', blind: 'silver', name: 'Squeeze', art: function () {
+        return line('M30 36.6 L39 41 L30 45.4', 2.6) + line('M70 36.6 L61 41 L70 45.4', 2.6);
+      } },
+    { id: 'mood-flower-eyes', blind: 'silver', name: 'Flower Eyes', art: function () {
+        return both(function (x, y) { return flower(x, y, 5.4, '#FF8FB8', '#FFE27A'); });
+      } },
+    { id: 'mood-rainbow-eyes', blind: 'gold', name: 'Rainbow Eyes', art: function () {
+        return both(function (x, y) {
+          var s = '';
+          ['#FF6B6B', '#FFA94D', '#FFE066', '#69DB7C', '#4DABF7'].forEach(function (c, i) {
+            s += '<circle cx="' + x + '" cy="' + y + '" r="' + (6.8 - i * 1.25).toFixed(2) + '" fill="' + c + '"/>';
+          });
+          return s + '<circle cx="' + (x - 2.2) + '" cy="' + (y - 2.4) + '" r="1.4" fill="#FFFFFF"/>';
+        });
+      } },
+    { id: 'mood-galaxy-eyes', blind: 'gold', name: 'Galaxy Eyes', art: function () {
+        return '<defs><radialGradient id="mmGalaxy" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#9775FA"/><stop offset="1" stop-color="#1E1A4A"/></radialGradient></defs>' +
+          both(function (x, y) {
+            return '<ellipse cx="' + x + '" cy="' + y + '" rx="6.2" ry="7.4" fill="url(#mmGalaxy)" stroke="' + EYE_INK + '" stroke-width="0.6"/>' +
+              sparkle(x - 2, y - 2.6, 1.6, '#FFFFFF') + sparkle(x + 2.6, y + 2, 1.1, '#FFE27A') +
+              '<circle cx="' + (x + 2.4) + '" cy="' + (y - 3.4) + '" r="0.5" fill="#FFFFFF"/><circle cx="' + (x - 2.6) + '" cy="' + (y + 3.4) + '" r="0.5" fill="#8FE3FF"/>';
+          });
+      } },
+    { id: 'mood-fired-up', blind: 'gold', name: 'Fired Up', art: function () {
+        return both(function (x, y) {
+          return '<path d="M' + (x - 5.6) + ' ' + (y - 1) + ' Q' + (x - 7) + ' ' + (y - 9) + ' ' + (x - 2) + ' ' + (y - 13) + ' Q' + (x - 1) + ' ' + (y - 8) + ' ' + x + ' ' + (y - 9) +
+              ' Q' + (x + 1.4) + ' ' + (y - 13) + ' ' + (x + 4) + ' ' + (y - 14) + ' Q' + (x + 7.4) + ' ' + (y - 8) + ' ' + (x + 5.6) + ' ' + (y - 1) + ' Z" fill="#FF8A3C"/>' +
+            '<path d="M' + (x - 3.4) + ' ' + (y - 1) + ' Q' + (x - 3.6) + ' ' + (y - 6) + ' ' + x + ' ' + (y - 8.6) + ' Q' + (x + 3.6) + ' ' + (y - 6) + ' ' + (x + 3.4) + ' ' + (y - 1) + ' Z" fill="#FFD25A"/>' +
+            eyeBall(x, y + 1, 5, 6.2);
+        });
+      } },
+    { id: 'mood-diamond-eyes', blind: 'gold', name: 'Diamond Eyes', art: function () {
+        return both(function (x, y) {
+          return '<path d="M' + (x - 5.4) + ' ' + (y - 3) + ' L' + (x - 2.8) + ' ' + (y - 6.4) + ' L' + (x + 2.8) + ' ' + (y - 6.4) + ' L' + (x + 5.4) + ' ' + (y - 3) + ' L' + x + ' ' + (y + 6.6) + ' Z" fill="#8FE3FF" stroke="#2E7DB0" stroke-width="0.8" stroke-linejoin="round"/>' +
+            '<path d="M' + (x - 5.4) + ' ' + (y - 3) + ' L' + (x + 5.4) + ' ' + (y - 3) + ' M' + (x - 1.4) + ' ' + (y - 6.4) + ' L' + (x - 2.4) + ' ' + (y - 3) + ' L' + x + ' ' + (y + 6.6) + ' L' + (x + 2.4) + ' ' + (y - 3) + ' L' + (x + 1.4) + ' ' + (y - 6.4) + '" stroke="#2E7DB0" stroke-width="0.5" fill="none"/>' +
+            sparkle(x + 5, y - 6, 1.8, '#FFFFFF');
+        });
+      } },
+    { id: 'mood-sunshine', blind: 'gold', name: 'Sunshine Eyes', art: function () {
+        return both(function (x, y) {
+          var rays = '';
+          for (var i = 0; i < 8; i++) {
+            var a = i / 8 * Math.PI * 2;
+            rays += 'M' + (x + Math.cos(a) * 5).toFixed(2) + ' ' + (y + Math.sin(a) * 5).toFixed(2) + ' L' + (x + Math.cos(a) * 7.4).toFixed(2) + ' ' + (y + Math.sin(a) * 7.4).toFixed(2) + ' ';
+          }
+          return '<path d="' + rays + '" stroke="#F5A524" stroke-width="1.4" stroke-linecap="round"/>' +
+            '<circle cx="' + x + '" cy="' + y + '" r="4.2" fill="#FFD25A" stroke="#F5A524" stroke-width="0.6"/>' +
+            line('M' + (x - 2) + ' ' + (y + 0.4) + ' Q' + x + ' ' + (y + 2.2) + ' ' + (x + 2) + ' ' + (y + 0.4), 0.9, '#B26A00');
+        });
+      } }
+  ];
+  BOX_MOODS.forEach(function (m) {
+    m.slot = 'mood';
+    m.svg = function () { return moodPatch() + m.art(); };
+    BOX_ITEMS.push(m);
+  });
+  var BLIND_BOXES = {
+    silver: { name: 'Silver Box', price: 500 },
+    gold: { name: 'Gold Box', price: 700 }
+  };
+  function boxPool(slot, tier) {
+    return BOX_ITEMS.filter(function (it) { return it.slot === slot && it.blind === tier; });
+  }
+  // → { result: 'ok', id } | { result: 'poor' } | { result: 'done' } (all found)
+  function openBox(slot, tier) {
+    var bb = BLIND_BOXES[tier];
+    if (!bb) return { result: 'unknown' };
+    var c = readCloset();
+    var left = boxPool(slot, tier).filter(function (it) { return c.owned.indexOf(it.id) < 0; });
+    if (!left.length) return { result: 'done' };
+    if (balance() < bb.price) return { result: 'poor' };
+    var it = left[Math.floor(Math.random() * left.length)];
+    addMoints(-bb.price);
+    c = readCloset();
+    c.owned.push(it.id);
+    c.equipped[it.slot] = it.id;   // put it on right away
+    saveCloset(c);
+    return { result: 'ok', id: it.id };
+  }
+
   var ITEM_BY_ID = {};
-  ITEMS.concat(MOODS, BACKGROUNDS).forEach(function (it) { ITEM_BY_ID[it.id] = it; });
+  ITEMS.concat(MOODS, BACKGROUNDS, BOX_ITEMS).forEach(function (it) { ITEM_BY_ID[it.id] = it; });
 
   function itemSVG(id, viewBox) {
     var it = ITEM_BY_ID[id];
@@ -1021,6 +1390,10 @@
     ITEMS: ITEMS,
     MOODS: MOODS,
     BACKGROUNDS: BACKGROUNDS,
+    BOX_ITEMS: BOX_ITEMS,
+    BLIND_BOXES: BLIND_BOXES,
+    boxPool: boxPool,
+    openBox: openBox,
     SLOTS: SLOTS,
     balance: balance,
     add: addMoints,
@@ -1143,6 +1516,36 @@
     '.mm-tag{font-size:11px;font-weight:900;padding:2px 8px;border-radius:999px;background:#E6F4D9;color:#4E7A2E}',
     '.mm-tag.is-wear{background:#7A4F2E;color:#FFF6E8}',
     '.mm-none svg{opacity:0.5}',
+    // blind boxes (Silver 500 / Gold 700): first two tiles of each outfit tab
+    '.mm-boxtile{background:linear-gradient(180deg,#F7F9FC,#DCE4EE);box-shadow:0 3px 0 #AEBBCB,inset 0 0 0 2px #FFFFFF}',
+    '.mm-boxtile.is-gold{background:linear-gradient(180deg,#FFF8DC,#FFDF8A);box-shadow:0 3px 0 #D9A63A,inset 0 0 0 2px #FFFFFF}',
+    '.mm-boxtile.is-sel{box-shadow:0 3px 0 #C9781A,inset 0 0 0 3px #F5B83D}',
+    '.mm-boxtile svg{animation:mmWiggle 2.8s ease-in-out infinite}',
+    '.mm-boxtile.is-gold svg{animation-delay:-1.4s}',
+    '.mm-boxtile.is-done svg{animation:none;opacity:0.55}',
+    '@keyframes mmWiggle{0%,82%,100%{transform:none}86%{transform:rotate(-7deg)}90%{transform:rotate(7deg)}94%{transform:rotate(-4deg)}}',
+    '.mm-box-left{font-size:10.5px;font-weight:800;color:#8A6A4A}',
+    '.mm-rare{position:absolute;top:5px;right:5px;font-size:9px;font-weight:900;letter-spacing:0.04em;padding:1px 5px;border-radius:999px;background:#DCE4EE;color:#4A5A70}',
+    '.mm-rare.is-gold{background:#FFD86A;color:#7A4A0C}',
+    '.mm-reveal{position:fixed;inset:0;z-index:75;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(30,18,10,0.6);animation:mmFade .2s ease-out}',
+    '.mm-reveal-card{position:relative;width:min(300px,100%);padding:22px 18px 18px;border-radius:22px;background:#FFF6E8;color:#4A2F1A;text-align:center;overflow:hidden;',
+    'box-shadow:0 18px 50px rgba(40,20,5,0.45),inset 0 0 0 3px #F1D9B5;font-family:-apple-system,"Segoe UI",Roboto,sans-serif}',
+    '.mm-reveal-card.is-gold{box-shadow:0 18px 50px rgba(40,20,5,0.45),inset 0 0 0 3px #F5B83D}',
+    '.mm-reveal-stage{position:relative;height:150px;display:flex;align-items:center;justify-content:center}',
+    '.mm-reveal-box svg{width:140px;height:140px;animation:mmShake 1.1s ease-in-out}',
+    '@keyframes mmShake{0%{transform:none}12%{transform:rotate(-9deg)}24%{transform:rotate(9deg)}36%{transform:rotate(-11deg)}48%{transform:rotate(11deg)}',
+    '60%{transform:rotate(-6deg) scale(1.04)}72%{transform:rotate(6deg) scale(1.08)}86%{transform:scale(1.2);opacity:1}100%{transform:scale(1.35);opacity:0}}',
+    '.mm-reveal-rays{position:absolute;left:50%;top:50%;width:300px;height:300px;margin:-150px 0 0 -150px;border-radius:50%;',
+    'background:repeating-conic-gradient(rgba(255,214,120,0.55) 0 10deg,rgba(255,214,120,0) 10deg 20deg);',
+    '-webkit-mask:radial-gradient(circle,#000 30%,transparent 68%);mask:radial-gradient(circle,#000 30%,transparent 68%);animation:mmRays 8s linear infinite}',
+    '.mm-reveal-card:not(.is-gold) .mm-reveal-rays{background:repeating-conic-gradient(rgba(170,190,215,0.55) 0 10deg,rgba(170,190,215,0) 10deg 20deg)}',
+    '@keyframes mmRays{to{transform:rotate(360deg)}}',
+    '.mm-reveal-item{position:relative;width:130px;height:130px;animation:mmPop .5s cubic-bezier(.2,1.6,.4,1)}',
+    '.mm-reveal-item > svg,.mm-reveal-item .mm-mood-icon{width:100%;height:100%}',
+    '.mm-reveal-new{display:inline-block;margin-top:6px;padding:2px 10px;border-radius:999px;background:#FF6F91;color:#FFFFFF;font-size:12px;font-weight:900;letter-spacing:0.08em}',
+    '.mm-reveal-card h3{margin:6px 0 2px;font-size:21px;font-weight:900;color:#6B3A12}',
+    '.mm-reveal-card p{margin:0 0 14px;font-size:13px;font-weight:700;color:#8A5A2E}',
+    '.mm-reveal-card .mm-big{width:100%;margin:0}',
     '.mm-action{position:sticky;bottom:0;padding:10px 14px 14px;background:linear-gradient(180deg,rgba(255,246,232,0),#FFF6E8 30%)}',
     '.mm-action .mm-big{width:100%;margin:0}',
     '.mm-note{text-align:center;font-size:12px;font-weight:700;color:#A0764A;margin:6px 0 0}',
@@ -1309,6 +1712,7 @@
     injectStyle();
     closetState.tab = slot || closetState.tab || 'head';
     closetState.sel = null;
+    revealing = false;
     var ov = showOverlay('mm-closet',
       // small preview that stays in view once the big stage scrolls away (long lists)
       '<div class="mm-mini-wrap"><div class="mm-mini" data-mm-mini aria-hidden="true"></div></div>' +
@@ -1320,12 +1724,16 @@
       }).join('') + '</div>' +
       '<div class="mm-grid" data-mm-grid></div>' +
       '<div class="mm-action"><button class="mm-big" type="button" data-mm-act></button>' +
-      '<p class="mm-note">Earn Moints from the Daily Bonus, Moku Bridge and Moku Fight.</p></div>',
+      '<p class="mm-note">Earn Moints from the Daily Bonus and the games with the M coin.</p></div>',
       'Moku Closet');
     ov.addEventListener('click', function (e) {
-      var t = e.target.closest ? e.target.closest('[data-mm-tab],[data-mm-item],[data-mm-act]') : null;
+      var t = e.target.closest ? e.target.closest('[data-mm-tab],[data-mm-item],[data-mm-box],[data-mm-act]') : null;
       if (!t) return;
-      if (t.hasAttribute('data-mm-tab')) {
+      if (t.hasAttribute('data-mm-box')) {
+        sfxTap();
+        closetState.sel = 'box:' + t.getAttribute('data-mm-box');
+        renderCloset(false);
+      } else if (t.hasAttribute('data-mm-tab')) {
         sfxTap();
         closetState.tab = t.getAttribute('data-mm-tab');
         closetState.sel = null;
@@ -1375,18 +1783,33 @@
     var worn = c.equipped[closetState.tab];
     // Moods: "Usual" = Moku's own face; other tabs: "Nothing"
     var isMood = closetState.tab === 'mood';
-    var html = '<button class="mm-item' + (isMood ? '' : ' mm-none') + (!worn && (!closetState.sel || closetState.sel === 'none') ? ' is-sel' : '') + '" type="button" data-mm-item="none">' +
+    var html = closetState.tab === 'bg' ? '' : ['silver', 'gold'].map(function (tier) {
+      var pool = boxPool(closetState.tab, tier);
+      var found = pool.filter(function (it) { return c.owned.indexOf(it.id) >= 0; }).length;
+      var done = found >= pool.length;
+      return '<button class="mm-item mm-boxtile' + (tier === 'gold' ? ' is-gold' : '') + (done ? ' is-done' : '') +
+        (closetState.sel === 'box:' + tier ? ' is-sel' : '') + '" type="button" data-mm-box="' + tier + '" aria-label="' +
+        BLIND_BOXES[tier].name + ', ' + BLIND_BOXES[tier].price + ' Moints, ' + found + ' of ' + pool.length + ' found">' + boxArt(tier) +
+        '<span class="mm-item-name">' + BLIND_BOXES[tier].name + '</span>' +
+        (done ? '<span class="mm-tag">All found!</span>' : '<span class="mm-price">' + COIN + fmt(BLIND_BOXES[tier].price) + '</span>') +
+        '<span class="mm-box-left">' + found + ' / ' + pool.length + ' found</span></button>';
+    }).join('');
+    html += '<button class="mm-item' + (isMood ? '' : ' mm-none') + (!worn && (!closetState.sel || closetState.sel === 'none') ? ' is-sel' : '') + '" type="button" data-mm-item="none">' +
       (isMood
         ? '<span class="mm-mood-icon"><span class="mm-doll"><img src="' + HERO_SRC + '" alt=""></span></span>'
         : '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="#C9A27C" stroke-width="2"/><path d="M6.5 17.5 L17.5 6.5" stroke="#C9A27C" stroke-width="2"/></svg>') +
       '<span class="mm-item-name">' + (isMood ? 'Usual' : 'Nothing') + '</span>' +
       (!worn ? '<span class="mm-tag is-wear">' + (isMood ? 'On' : 'Wearing') + '</span>' : '<span class="mm-tag">' + (isMood ? 'Use' : 'Take off') + '</span>') + '</button>';
-    ITEMS.concat(MOODS, BACKGROUNDS).filter(function (it) { return it.slot === closetState.tab; }).forEach(function (it) {
+    // box items only show up once you have found them
+    ITEMS.concat(MOODS, BACKGROUNDS, BOX_ITEMS).filter(function (it) {
+      return it.slot === closetState.tab && (!it.blind || c.owned.indexOf(it.id) >= 0);
+    }).forEach(function (it) {
       var have = c.owned.indexOf(it.id) >= 0;
       var wearing = worn === it.id;
       var sel = closetState.sel ? closetState.sel === it.id : wearing;
       html += '<button class="mm-item' + (sel ? ' is-sel' : '') + '" type="button" data-mm-item="' + it.id + '" aria-label="' + it.name +
         (have ? (wearing ? ', wearing' : ', owned') : ', ' + it.price + ' Moints') + '">' + iconSVG(it.id) +
+        (it.blind ? '<span class="mm-rare' + (it.blind === 'gold' ? ' is-gold' : '') + '">' + (it.blind === 'gold' ? '★ GOLD' : '★ SILVER') + '</span>' : '') +
         '<span class="mm-item-name">' + it.name + '</span>' +
         (wearing ? '<span class="mm-tag is-wear">Wearing</span>' : have ? '<span class="mm-tag">Owned</span>' :
           '<span class="mm-price">' + COIN + fmt(it.price) + '</span>') + '</button>';
@@ -1394,7 +1817,14 @@
     ov.querySelector('[data-mm-grid]').innerHTML = html;
     var act = ov.querySelector('[data-mm-act]');
     var sel = closetState.sel && ITEM_BY_ID[closetState.sel];
-    if (sel && c.owned.indexOf(sel.id) < 0) {
+    var boxTier = /^box:/.test(closetState.sel || '') ? closetState.sel.slice(4) : null;
+    if (boxTier) {
+      var left = boxPool(closetState.tab, boxTier).filter(function (it) { return c.owned.indexOf(it.id) < 0; }).length;
+      var need = BLIND_BOXES[boxTier].price - balance();
+      act.disabled = !left;
+      act.innerHTML = !left ? 'You found all 5! ✨' : need > 0 ? 'Need ' + COIN + ' ' + fmt(need) + ' more' : 'Open for ' + COIN + ' ' + fmt(BLIND_BOXES[boxTier].price);
+      act.setAttribute('data-mm-act', !left ? '' : need > 0 ? 'poor' : 'box');
+    } else if (sel && c.owned.indexOf(sel.id) < 0) {
       var short = sel.price - balance();
       act.disabled = false;
       act.innerHTML = short > 0 ? 'Need ' + COIN + ' ' + fmt(short) + ' more' : 'Buy for ' + COIN + ' ' + fmt(sel.price);
@@ -1406,6 +1836,7 @@
     }
   }
   function closetAction() {
+    if (/^box:/.test(closetState.sel || '')) { openBoxUI(closetState.tab, closetState.sel.slice(4)); return; }
     var sel = closetState.sel && ITEM_BY_ID[closetState.sel];
     if (!sel) return;
     var res = buy(sel.id);
@@ -1419,6 +1850,69 @@
       sfxNope();
       toast('Not enough Moints yet');
     }
+  }
+
+  // ---------- blind boxes: box art and the opening show ----------
+  function boxArt(tier) {
+    var gold = tier === 'gold';
+    var body = gold ? ['#FFE68A', '#E9AE2E'] : ['#F2F5FA', '#B9C5D4'];
+    var ribbon = gold ? '#E8473C' : '#3E8EDB', knot = gold ? '#C62F3E' : '#2F6FB0';
+    var id = 'mmBox' + tier;
+    return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><linearGradient id="' + id + '" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0" stop-color="' + body[0] + '"/><stop offset="1" stop-color="' + body[1] + '"/></linearGradient></defs>' +
+      '<ellipse cx="50" cy="93" rx="34" ry="4" fill="rgba(74,47,26,0.18)"/>' +
+      '<rect x="18" y="46" width="64" height="44" rx="6" fill="url(#' + id + ')" stroke="rgba(74,47,26,0.25)" stroke-width="1"/>' +
+      '<rect x="12" y="33" width="76" height="16" rx="5" fill="' + body[0] + '" stroke="rgba(74,47,26,0.25)" stroke-width="1"/>' +
+      '<rect x="44" y="33" width="12" height="57" fill="' + ribbon + '"/>' +
+      '<ellipse cx="39" cy="26" rx="10" ry="6.4" fill="none" stroke="' + ribbon + '" stroke-width="5" transform="rotate(-20 39 26)"/>' +
+      '<ellipse cx="61" cy="26" rx="10" ry="6.4" fill="none" stroke="' + ribbon + '" stroke-width="5" transform="rotate(20 61 26)"/>' +
+      '<circle cx="50" cy="31" r="5.6" fill="' + knot + '"/>' +
+      '<text x="31" y="78" font-size="22" font-weight="900" fill="#FFFFFF" stroke="rgba(74,47,26,0.35)" stroke-width="1" font-family="-apple-system,Segoe UI,Roboto,sans-serif" text-anchor="middle">?</text>' +
+      '<text x="69" y="78" font-size="22" font-weight="900" fill="#FFFFFF" stroke="rgba(74,47,26,0.35)" stroke-width="1" font-family="-apple-system,Segoe UI,Roboto,sans-serif" text-anchor="middle">?</text>' +
+      (gold ? sparkle(86, 30, 5, '#FFF6C8') + sparkle(14, 56, 3.6, '#FFF6C8') : sparkle(86, 30, 4, '#FFFFFF')) + '</svg>';
+  }
+  function sfxRattle() { [0, 0.14, 0.28, 0.42, 0.56, 0.7].forEach(function (t, i) { tone(i % 2 ? 392 : 440, 0.06, t, 'square', 0.03); }); }
+  function sfxTada(gold) {
+    (gold ? [784, 988, 1175, 1568, 1976] : [659, 784, 988, 1318]).forEach(function (f, i) { tone(f, 0.26, i * 0.09, 'triangle', 0.09); });
+    sfxCoins();
+  }
+  var revealing = false;
+  function openBoxUI(slot, tier) {
+    if (revealing || !openOverlay) return;
+    var res = openBox(slot, tier);
+    if (res.result === 'poor') { sfxNope(); toast('Not enough Moints yet'); return; }
+    if (res.result !== 'ok') { renderCloset(false); return; }
+    revealing = true;
+    var it = ITEM_BY_ID[res.id];
+    var gold = tier === 'gold';
+    var host = openOverlay;
+    var rv = document.createElement('div');
+    rv.className = 'mm-reveal';
+    rv.innerHTML = '<div class="mm-reveal-card' + (gold ? ' is-gold' : '') + '" role="dialog" aria-modal="true" aria-label="' + BLIND_BOXES[tier].name + '">' +
+      '<div class="mm-reveal-stage"><span class="mm-reveal-box">' + boxArt(tier) + '</span></div>' +
+      '<h3>' + (gold ? 'Gold Box…' : 'Silver Box…') + '</h3><p>What will it be?</p></div>';
+    host.appendChild(rv);
+    sfxRattle();
+    renderCards();
+    setTimeout(function () {
+      if (!rv.isConnected) { revealing = false; return; }
+      var card = rv.querySelector('.mm-reveal-card');
+      card.innerHTML = '<div class="mm-reveal-stage"><span class="mm-reveal-rays"></span><span class="mm-reveal-item">' + iconSVG(it.id) + '</span></div>' +
+        '<span class="mm-reveal-new">NEW!</span><h3>' + it.name + '</h3>' +
+        '<p>' + (gold ? '★ Gold Box' : '★ Silver Box') + ' · Moku is wearing it now!</p>' +
+        '<button class="mm-big" type="button" data-mm-yay>Yay!</button>';
+      sfxTada(gold);
+      burst(card);
+      var yay = card.querySelector('[data-mm-yay]');
+      yay.focus();
+      yay.addEventListener('click', function () {
+        rv.remove();
+        revealing = false;
+        closetState.sel = res.id;
+        renderCloset(true);
+      });
+      afterChange();
+    }, 1150);
   }
 
   // ---------- hub slots: card / bar / doll ----------
