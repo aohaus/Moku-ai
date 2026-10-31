@@ -547,7 +547,7 @@ body.racing #helpRow, body.racing #hudScore, body.racing #roundDots { display: n
 
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.2.0 · Updated Oct 31, 2026</div>
+<div id="buildInfo">v0.2.1 · Updated Oct 31, 2026</div>
 
 <!-- ---------- title ---------- -->
 <div id="titleScreen">
@@ -1242,6 +1242,19 @@ body.racing #helpRow, body.racing #hudScore, body.racing #roundDots { display: n
     ['solvedOverlay', 'resultOverlay', 'revealOverlay', 'finalOverlay'].forEach(function (id) { $(id).classList.remove('show'); });
     $('countdownOv').classList.remove('show');
   }
+  // Deep link from the hub's Invites (SPEC.md §7): ?join=<code> joins that Riddle Race room.
+  // The page opens straight into it, then drops the query so a reload doesn't repeat it.
+  (function () {
+    function go() {
+      var v = new URLSearchParams(location.search).get('join');
+      if (!v || !/^[a-z]{4}$/i.test(v)) return;
+      history.replaceState(null, '', location.pathname + location.hash);
+      if (!onlineReady()) return;
+      openRaceMenu();
+      joinRoom(v);
+    }
+    if (document.readyState === 'complete') setTimeout(go, 0); else window.addEventListener('load', go);
+  })();
   function openRaceMenu() {
     stopRace();
     showRaceView('menu');

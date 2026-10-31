@@ -479,7 +479,7 @@ button.chal-row:disabled { opacity: 0.6; }
 
 <div id="title-frame"></div>
 <a id="hub-link" href="index.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.6.0 · Updated Oct 30, 2026</div>
+<div id="buildInfo">v0.6.1 · Updated Oct 31, 2026</div>
 
 <!-- Item icons, reused by the HUD and the shop -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -2184,6 +2184,18 @@ button.chal-row:disabled { opacity: 0.6; }
     toast(err.code === 'offline' ? "You're offline. Try again soon." : err.status === 404 && err.code !== 'challenge_not_found' &&
       err.code !== 'opponent_not_found' ? 'Challenges are coming soon!' : err.message);
   }
+  // Deep link from the hub's Invites (SPEC.md §7): ?challenge=<id> opens that friend challenge.
+  // The page opens straight into it, then drops the query so a reload doesn't repeat it.
+  (function () {
+    function go() {
+      var v = new URLSearchParams(location.search).get('challenge');
+      if (!v || !/^[0-9a-z]{6,40}$/i.test(v)) return;
+      history.replaceState(null, '', location.pathname + location.hash);
+      if (!onlineReady()) return;
+      openChallenge(v);
+    }
+    if (document.readyState === 'complete') setTimeout(go, 0); else window.addEventListener('load', go);
+  })();
   function openChallenges() {
     openOverlay('chalOverlay');
     var box = $('chalList');

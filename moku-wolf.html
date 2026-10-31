@@ -2667,6 +2667,19 @@ header {
   function mpMaxWolves(n) { return Math.max(1, Math.floor((n - 1) / 2)); }
 
   // ---------- menu ----------
+  // Deep link from the hub's Invites (SPEC.md §7): ?join=<code> joins that room.
+  // The page opens straight into it, then drops the query so a reload doesn't repeat it.
+  (function () {
+    function go() {
+      var v = new URLSearchParams(location.search).get('join');
+      if (!v || !/^[a-z]{4}$/i.test(v)) return;
+      history.replaceState(null, '', location.pathname + location.hash);
+      if (!mpReady()) return;
+      openMpMenu();
+      mpJoin(v);
+    }
+    if (document.readyState === 'complete') setTimeout(go, 0); else window.addEventListener('load', go);
+  })();
   function openMpMenu() {
     if (!mpReady()) { mpToast('Log in on the Moku Series page to play with friends.'); return; }
     mpStop();

@@ -146,6 +146,8 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
 - 表示用データは `hub.html` の `CATALOG`、進捗ロジックは従来どおり `GAMES`(同じ `card` キー)。新規タイトル追加時は両方+`SHELVES`+アイコンSVG+スクリーンショットを追加する。
 - **Moint の印**: `CATALOG[].moint` があるゲームはタイルの左上に金色のMコイン、詳細シートに「Earn Moints」(§13)。
 - **マルチプレイの印**(2026-10-30〜): `CATALOG[].multi = { how }` があるゲーム(友達とオンラインで遊べる。§14)はタイルの左上に青い「2人」バッジ(Mコインがあればその右)、詳細シートに「Play with Friends」。今は Moku Chess(Play a Friend)/ Moku Bridge(Challenge a Friend)/ Moku Word Riddles(Riddle Race)/ Moyomoyo(Multiplayer)。
+- **Invites**(2026-10-31〜): ハブの一番上(Today's Pick の上)に、友達が待っているマルチプレイを最大4件出す(ログイン中だけ。なければ欄ごと出さない)。招待されてまだ入っていない部屋(Moku Wolf / Moyomoyo / Riddle Race のロビー。`GET /rooms?game=` の `joined: false`)→ 友達のチャレンジでまだ遊んでいないもの(Moku Bridge。`GET /challenges` の `yourTurn` で自分が作っていないもの)→ 自分の番のオンライン対局(Moku Chess。`GET /matches` の `yourTurn`)の順。開いた時・タブに戻った時・1分おきに読み直す(10秒以内の読み直しはしない)。どれかの API が失敗してもその分を出さないだけ。
+  - ボタンは各ゲームへの直リンク: `moku-wolf.html?join=<コード>` / `moyomoyo.html?join=` / `moku-word-riddles.html?join=` / `moku-bridge.html?challenge=<id>` / `moku-chess.html?match=<id>`。ゲーム側はページを開いたらその部屋・対局に入り、URL からクエリを消す(再読み込みでくり返さない)。新しいマルチプレイのゲームは `hub.html` の Invites の `GAMES`(と部屋なら `ROOM_GAMES`)に足し、ゲーム側にも同じ直リンクを入れる。
 - **アイコンの角丸**(2026-10-30〜): ゲームアイコンのタイルは `border-radius: 18%`(以前は 26%。少し四角に寄せた)。My Games の行のアイコンも同じ、Achievements のカードの小さいアイコンは 8px。
 
 **ハブ背景の写真化(完了、2026-08-14)**: 手描きSVGシルエットは廃止し、`backgrounds/<city>.jpg`(都市ごとに1枚、JPEG・軽量化済み)を実背景として採用。時間帯ごとの見た目は画像を差し替えず、CSSの `filter`(brightness/saturate/hue-rotate)+ `mix-blend-mode: multiply` の色調オーバーレイのみで作る。太陽/月の可動域は狭い帯に収めてある(`hub.html` は上部バーの高さ(28〜40px)でプロフィールカードに重ならない、`index.html` は上部バーのすぐ下(画面の高さの6〜9%))。新しい都市を追加する場合は `backgrounds/<key>.jpg` を追加し、`hub.html`/`index.html` 両方の `PLACES` 配列にエントリを足すだけでよい。
