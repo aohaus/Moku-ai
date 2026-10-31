@@ -74,7 +74,7 @@
   var WALLET_KEY = 'moku:moint:wallet';
   var CLOSET_KEY = 'moku:moint:closet';
 
-  // "Get the latest games" (My Moku) reloads with ?fresh=… so the browser
+  // "Get the latest games & updates" (My Moku) reloads with ?fresh=… so the browser
   // and Cloudflare can't hand back an old copy. Tidy the address afterwards.
   try {
     if (/[?&]fresh=/.test(location.search) && global.URL && history.replaceState) {
@@ -1089,7 +1089,7 @@
           '<button class="mka-secondary" type="button" data-go="logout">👋 Log Out</button>' +
           (user.admin ? '<a class="mka-secondary is-wide" href="admin.html">🛠 Admin</a>' : '') + '</div>' +
           '<p class="mka-id">Player ID: ' + esc(user.loginId) + ' · keep it secret</p>' +
-          '<button class="mka-refresh" type="button" data-act="refresh">↻ Get the latest games</button>'
+          '<button class="mka-refresh" type="button" data-act="refresh">↻ Get the latest games &amp; updates</button>'
         : '<button class="mka-wide" type="button" data-act="login">' +
           '<span class="mka-wide-icon" aria-hidden="true">☁️</span>' +
           '<span class="mka-wide-text"><span class="mka-wide-title"><span>Log In</span></span>' +
@@ -1110,30 +1110,45 @@
     });
   }
 
-  // For when a new game was just added but the hub still shows the old list:
-  // the browser (and Cloudflare in front of dechatgpt.com) may keep serving an
-  // old hub.html for a while. Refetch the pages past every cache, then reload
-  // with a one-off ?fresh= so no cache can answer. Progress lives in
-  // localStorage, so nothing is lost; the hub syncs again after the reload.
+  // For when a new game or a game's update doesn't show up: the browser keeps
+  // pages in its cache for a while, so the hub can show an old game list and a
+  // game can open as its old version. Refetch the hub, then every game page it
+  // lists, past the cache (cache: 'reload' also refreshes the browser's own
+  // copy, so the next normal visit gets the new page). Then reload with a
+  // one-off ?fresh= so no cache can answer. Progress lives in localStorage,
+  // so nothing is lost; the hub syncs again after the reload.
   function forceRefresh(btn) {
     if (btn) { btn.disabled = true; btn.textContent = 'Updating…'; }
-    var here = location.pathname.split('/').pop() || 'index.html';
-    var pages = ['hub.html', 'index.html'];
-    if (pages.indexOf(here) < 0) pages.push(here);
-    var jobs = pages.map(function (p) {
-      return global.fetch ? fetch(p, { cache: 'reload' }).catch(function () {}) : null;
-    });
-    if (global.caches && caches.keys) {
-      jobs.push(caches.keys().then(function (keys) {
-        return Promise.all(keys.map(function (k) { return caches.delete(k); }));
-      }).catch(function () {}));
-    }
+    var done = false;
     var go = function () {
-      var url = location.pathname + '?fresh=' + Date.now().toString(36) + location.hash;
-      location.replace(url);
+      if (done) return;
+      done = true;
+      location.replace(location.pathname + '?fresh=' + Date.now().toString(36) + location.hash);
     };
-    Promise.all(jobs).then(go, go);
-    setTimeout(go, 4000);   // a slow network shouldn't leave the button stuck
+    setTimeout(go, 15000);   // a slow network shouldn't leave the button stuck
+    if (!global.fetch) { go(); return; }
+    var reload = function (p) {
+      return fetch(p, { cache: 'reload' }).then(function (r) { return r.ok ? r.text() : ''; }).catch(function () { return ''; });
+    };
+    var here = location.pathname.split('/').pop() || 'index.html';
+    var pages = ['index.html', 'hollow.html'];
+    if (here !== 'hub.html' && pages.indexOf(here) < 0) pages.push(here);
+    var cleared = global.caches && caches.keys
+      ? caches.keys().then(function (keys) { return Promise.all(keys.map(function (k) { return caches.delete(k); })); }).catch(function () {})
+      : null;
+    reload('hub.html').then(function (hub) {
+      // The games are the hub's CATALOG entries: gameId: 'moku-bridge' → moku-bridge.html
+      var re = /gameId:\s*'([a-z0-9-]+)'/g, m;
+      while ((m = re.exec(hub))) if (pages.indexOf(m[1] + '.html') < 0) pages.push(m[1] + '.html');
+      var left = pages.length;
+      if (btn) btn.textContent = 'Updating… 0 / ' + pages.length;
+      return Promise.all(pages.map(function (p) {
+        return reload(p).then(function () {
+          left--;
+          if (btn) btn.textContent = 'Updating… ' + (pages.length - left) + ' / ' + pages.length;
+        });
+      }));
+    }).then(function () { return cleared; }).then(go, go);
   }
 
   // `keys` (optional) = the saves changed on both sides; everything else is
