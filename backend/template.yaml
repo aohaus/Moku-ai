@@ -131,6 +131,11 @@ Resources:
         "POST /rooms/{id}/answer":
           ThrottlingBurstLimit: 40
           ThrottlingRateLimit: 20
+        # Moyomoyo Multiplayer: each page in a game posts its board about once
+        # a second and gets everyone's boards back (4 players ≈ 4/s per room).
+        "POST /rooms/{id}/state":
+          ThrottlingBurstLimit: 80
+          ThrottlingRateLimit: 40
       CorsConfiguration:
         AllowOrigins:
           - !Ref AllowedOrigin
@@ -420,6 +425,12 @@ Resources:
           Properties:
             ApiId: !Ref MokuScoresApi
             Path: /rooms/{id}/again
+            Method: POST
+        RoomState:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /rooms/{id}/state
             Method: POST
 
 Outputs:
