@@ -6,6 +6,7 @@
 <script src="shared/moku-gate.js?v=20261026"></script>
 <script src="shared/moku-account.js?v=20261031b" data-mode="background"></script>
 <script src="shared/moku-moint.js?v=20261026" data-mode="none"></script>
+<script src="shared/moku-random.js?v=20261030"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>Moyomoyo</title>
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
@@ -394,10 +395,97 @@ body.on-title #title-bg { display: block; }
 @media (prefers-reduced-motion: reduce) {
   #title-logo span { animation: none; }
 }
+/* ─── Multiplayer screens (menu / lobby / results) ─── */
+#mp-screen {
+  position: fixed; inset: 0; z-index: 8; display: none;
+  align-items: center; justify-content: center;
+  padding: calc(16px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right))
+           calc(16px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+  background: rgba(30,12,46,0.72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  color: #FFE9F5; font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+body.on-mp #mp-screen { display: flex; }
+.mp-card {
+  width: min(440px, 100%); max-height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 22px 20px 16px; border-radius: 22px;
+  background: linear-gradient(180deg, #4A2560, #331A48);
+  border: 2px solid #D96FB0; box-shadow: inset 0 0 0 4px rgba(122,61,99,0.6), 0 20px 60px rgba(0,0,0,0.5);
+  text-align: center;
+}
+.mp-view { display: none; }
+.mp-view.show { display: block; }
+.mp-card h2 { font-size: 24px; font-weight: 800; letter-spacing: 0.01em; margin-bottom: 6px; }
+.mp-card h3 { font-size: 13px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #FFB0DC; margin: 16px 0 8px; text-align: left; }
+.mp-sub { font-size: 13px; color: rgba(255,233,245,0.72); line-height: 1.5; margin: 6px 0 12px; }
+.mp-sub:empty { display: none; }
+.mp-prizes { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; margin-bottom: 14px; font-size: 12.5px; font-weight: 800; color: #FFD86A; }
+.mp-prizes span { padding: 3px 9px; border-radius: 99px; background: rgba(255,201,74,0.12); border: 1px solid rgba(255,201,74,0.35); }
+.mp-prizes em { font-style: normal; color: rgba(255,255,255,0.55); font-weight: 700; }
+.mp-btn {
+  display: block; width: 100%; margin: 8px 0 0; padding: 13px 18px;
+  background: #FF6FA8; color: #fff; border: 0; border-radius: 30px;
+  font: 800 17px -apple-system, "Segoe UI", Roboto, Arial, sans-serif; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(255,111,168,0.4); touch-action: manipulation;
+}
+.mp-btn:disabled { opacity: 0.45; box-shadow: none; cursor: default; }
+.mp-btn:not(:disabled):active { transform: scale(0.97); }
+.mp-btn2 { width: auto; margin: 0; padding: 11px 20px; font-size: 15px; }
+.mp-join { display: flex; gap: 8px; margin-top: 10px; }
+#mp-code {
+  flex: 1; min-width: 0; padding: 10px 14px; border-radius: 30px;
+  background: rgba(255,255,255,0.10); border: 1.5px solid rgba(255,255,255,0.3); color: #fff;
+  font: 800 20px/1 -apple-system, "Segoe UI", Roboto, Arial, sans-serif; letter-spacing: 0.3em; text-align: center; text-transform: uppercase;
+}
+#mp-code::placeholder { color: rgba(255,255,255,0.35); }
+.mp-link { margin-top: 14px; background: none; border: 0; color: rgba(255,233,245,0.65); font: 700 14px -apple-system, Arial, sans-serif; cursor: pointer; padding: 8px 12px; }
+.mp-list { display: flex; flex-direction: column; gap: 6px; }
+.mp-row {
+  display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 14px;
+  background: rgba(255,255,255,0.07); text-align: left; font-size: 14px; font-weight: 700;
+}
+.mp-row.you { background: rgba(255,111,168,0.18); box-shadow: inset 0 0 0 1.5px rgba(255,143,196,0.4); }
+.mp-row .who { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mp-row .who small { display: block; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.5); }
+.mp-row .tag { font-size: 12px; color: #FFD86A; font-weight: 800; white-space: nowrap; }
+.mp-row .rank { width: 30px; text-align: center; font-size: 20px; font-weight: 900; color: #FFE066; }
+.mp-row .total { font-size: 17px; font-weight: 900; color: #FFE066; font-variant-numeric: tabular-nums; }
+.mp-row .smallBtn { padding: 7px 14px; border-radius: 20px; border: 0; background: #FF6FA8; color: #fff; font: 800 13px Arial, sans-serif; cursor: pointer; }
+.mp-row .smallBtn:disabled { background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.6); }
+.mp-row .online { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #5BE38A; margin-right: 4px; }
+.mp-note { font-size: 13px; color: rgba(255,255,255,0.5); padding: 6px; }
+.mp-av { position: relative; width: 38px; height: 38px; flex: none; border-radius: 50%; overflow: hidden; background: rgba(255,255,255,0.12); }
+.mp-av img, .mp-av svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.mp-codebox { padding: 10px; border-radius: 16px; background: rgba(20,5,30,0.35); }
+.mp-codebox small { display: block; font-size: 12px; font-weight: 700; color: rgba(255,233,245,0.7); }
+.mp-codebox b { display: block; font-size: 46px; font-weight: 900; letter-spacing: 0.22em; padding-left: 0.22em; color: #FFE9F5; text-shadow: 0 3px 0 #7A3D63; }
+.mp-prize { margin: 14px 0 4px; padding: 10px 14px; border-radius: 14px; background: rgba(255,201,74,0.12); border: 1px solid rgba(255,201,74,0.4); font-size: 15px; font-weight: 800; color: #FFD86A; }
+.mp-prize:empty { display: none; }
+.mp-prize small { display: block; margin-top: 3px; font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.6); }
+.mp-prize .coin { display: inline-flex; align-items: center; justify-content: center; width: 1.3em; height: 1.3em; margin-right: 6px; border-radius: 50%; font-style: normal;
+  background: radial-gradient(circle at 35% 30%, #FFF3B0, #FFC94A 55%, #C98A1B); color: #6A4300; font-size: 0.75em; font-weight: 900; vertical-align: 1px; }
+/* Short landscape phones: tighter card so the buttons fit without scrolling */
+@media (max-height: 430px) {
+  .mp-card { padding: 12px 16px 8px; }
+  .mp-card h2 { font-size: 20px; margin-bottom: 4px; }
+  .mp-card h3 { margin: 10px 0 6px; }
+  .mp-row { padding: 5px 10px; }
+  .mp-av { width: 30px; height: 30px; }
+  .mp-prize { margin: 8px 0 2px; padding: 6px 12px; }
+  .mp-btn { padding: 10px 18px; }
+  .mp-link { margin-top: 6px; padding: 6px 12px; }
+  .mp-codebox b { font-size: 36px; }
+}
+#mp-toast {
+  position: fixed; left: 50%; bottom: calc(28px + env(safe-area-inset-bottom)); z-index: 20;
+  transform: translate(-50%, 20px); opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s;
+  max-width: 86vw; padding: 10px 18px; border-radius: 20px; background: rgba(20,5,30,0.92); color: #fff;
+  font: 700 14px -apple-system, Arial, sans-serif; text-align: center; box-shadow: 0 6px 24px rgba(0,0,0,0.4);
+}
+#mp-toast.show { opacity: 1; transform: translate(-50%, 0); }
 @media (max-width: 600px) and (orientation: portrait) {
   #rotate-hint { display: flex; }
   #game-layout { display: none; }
-  #title-screen, #title-bg { display: none !important; }
+  #title-screen, #title-bg, #mp-screen { display: none !important; }
   #title-frame { display: none; }
   #hub-link { display: none !important; }
   #buildInfo { display: none !important; }
@@ -426,6 +514,11 @@ body.on-title #title-bg { display: block; }
           <span class="desc">Beat 5 rats in a row</span>
           <span class="best" id="title-best-1"></span>
         </button>
+        <button class="titleMenuItem" data-i="2" role="menuitem">
+          <span class="label">👥 Multiplayer</span>
+          <span class="desc">2–4 friends · 3 games</span>
+          <span class="best" id="title-best-2"></span>
+        </button>
       </div>
       <div id="title-moints" class="hidden"></div>
       <div id="title-hint">Tap to play · ↑↓ and Enter</div>
@@ -433,8 +526,47 @@ body.on-title #title-bg { display: block; }
   </div>
 </div>
 <div id="title-frame"></div>
+<!-- Moyomoyo Multiplayer: menu / lobby / final results (the games themselves are on the canvas) -->
+<div id="mp-screen" aria-live="polite">
+  <div class="mp-card">
+    <div id="mp-menu" class="mp-view">
+      <h2>👥 Multiplayer</h2>
+      <p class="mp-sub">Play with 2–4 friends on their own phones or tablets.<br>3 games — the highest total score wins!</p>
+      <div class="mp-prizes"><span>🥇 500</span><span>🥈 300</span><span>🥉 200</span><span>4th 100</span><em>Moints</em></div>
+      <button id="mp-make" class="mp-btn">Make a Room ▶</button>
+      <div class="mp-join">
+        <input id="mp-code" maxlength="4" placeholder="CODE" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Room code">
+        <button id="mp-join" class="mp-btn mp-btn2">Join</button>
+      </div>
+      <h3>Your rooms</h3>
+      <div id="mp-rooms" class="mp-list"></div>
+      <button class="mp-back mp-link">◀ Back</button>
+    </div>
+    <div id="mp-lobby" class="mp-view">
+      <div class="mp-codebox"><small id="mp-lobby-hint">Tell your friends this code!</small><b id="mp-lobby-code">----</b></div>
+      <h3 id="mp-lobby-title">Players</h3>
+      <div id="mp-players" class="mp-list"></div>
+      <button id="mp-start" class="mp-btn">Start ▶</button>
+      <p id="mp-wait" class="mp-sub"></p>
+      <div id="mp-invite-panel">
+        <h3>Invite friends</h3>
+        <div id="mp-invites" class="mp-list"></div>
+      </div>
+      <button id="mp-leave" class="mp-link">Leave Room</button>
+    </div>
+    <div id="mp-results" class="mp-view">
+      <h2 id="mp-res-title">🏆 Final Results</h2>
+      <div id="mp-standings" class="mp-list"></div>
+      <div id="mp-prize" class="mp-prize"></div>
+      <button id="mp-again" class="mp-btn">Play Again ▶</button>
+      <p id="mp-res-wait" class="mp-sub"></p>
+      <button class="mp-back mp-link">🏠 Title</button>
+    </div>
+  </div>
+</div>
+<div id="mp-toast"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v1.4.0 · Updated Oct 30, 2026</div>
+<div id="buildInfo">v1.5.0 · Updated Oct 31, 2026</div>
 <div id="game-layout">
   <div id="wrapper">
     <canvas id="c"></canvas>
@@ -630,7 +762,7 @@ const ROT_OFFSETS = [[0,-1],[1,0],[0,1],[-1,0]]; // up, right, down, left
 
 // ─── STATE ────────────────────────────────────────────────────
 let state = 'TITLE'; // TITLE | PLAYING | PAUSED | GAMEOVER | VS_LEVEL_CLEAR | VS_COUNTDOWN
-let mode = 'MARATHON'; // MARATHON | VS — which ruleset the PLAYING/PAUSED/GAMEOVER states refer to
+let mode = 'MARATHON'; // MARATHON | VS | MULTI — which ruleset the PLAYING/PAUSED/GAMEOVER states refer to
 let vsP = null, vsC = null; // the two boards while mode === 'VS' (player / CPU)
 let vsWinnerIsPlayer = false; // set right before GAMEOVER in VS mode, drives the result text
 let cpuLevel = 1; // 1-5, index into CPU_ENEMIES — which boss the CPU board currently is
@@ -1233,7 +1365,7 @@ function drawComboAnnouncement() {
 // the exact same characters as in play. The in-game ranking (a
 // device-local Top 10) was removed at the same time; the series-wide
 // Achievements screen in the hub already ranks Marathon high scores.
-const TITLE_MENU_COUNT = 2;
+const TITLE_MENU_COUNT = 3;
 const LOGO_COLORS = ['#FF5C7A', '#2DD4A8', '#9B5DE5', '#4F9DFF', '#FF5C7A', '#FFC94A', '#9B5DE5', '#2DD4A8'];
 const titleArt = document.getElementById('title-art');
 const titleArtCtx = titleArt.getContext('2d');
@@ -1292,6 +1424,7 @@ function refreshTitleInfo() {
   } else {
     m.classList.add('hidden');
   }
+  mpTitleInvites();
   refreshTitleMenu();
 }
 // Shows/hides everything that only belongs on the title screen (SPEC.md
@@ -1307,6 +1440,7 @@ function setTitleVisible(on) {
 function activateTitleMenu(i) {
   if (i === 0) startGame();
   else if (i === 1) startVsGame();
+  else if (i === 2) openMpMenu();
 }
 
 function drawTitleScreen() {
@@ -1436,6 +1570,7 @@ function drawPausedOverlay(w, h) {
 function draw() {
   ctx.clearRect(0, 0, W, H);
   if (state === 'TITLE') { drawTitleScreen(); return; }
+  if (mode === 'MULTI') { drawMulti(); return; }
   if (mode === 'VS') { drawVs(); return; }
 
   ctx.save();
@@ -1471,6 +1606,7 @@ function draw() {
 // ─── GAME LOGIC ───────────────────────────────────────────────
 
 function update() {
+  if (mode === 'MULTI') { updateMulti(); return; }
   if (state === 'VS_COUNTDOWN') {
     particles.forEach(p => p.update());
     particles = particles.filter(p => p.alive);
@@ -1758,12 +1894,15 @@ function refreshGarbageCols(b) {
 // with cpuLevel exactly like marathon's does with its own level — 赤
 // (stage 3) from Lv3, 青 (stage 4) from Lv5 — instead of every color
 // being available from Lv1.
-function vbRollStage() {
-  if (Math.random() < MAGIC_CHANCE) return RAINBOW;
-  const pool = getSpawnPool(cpuLevel);
-  return pool[Math.floor(Math.random() * pool.length)];
+// A Multiplayer board brings its own seeded random (b.rng, shared/moku-random.js)
+// so every player gets the same pieces in the same order, from a fixed pool.
+function vbRollStage(b) {
+  const rand = b && b.rng ? () => b.rng.next() : Math.random;
+  if (rand() < MAGIC_CHANCE) return RAINBOW;
+  const pool = getSpawnPool(b && b.rng ? MP_POOL_LEVEL : cpuLevel);
+  return pool[Math.floor(rand() * pool.length)];
 }
-function vbRollPair() { return { s1: vbRollStage(), s2: vbRollStage() }; }
+function vbRollPair(b) { return { s1: vbRollStage(b), s2: vbRollStage(b) }; }
 
 function vbCellCenter(b, col, row) {
   return { x: b.x0 + col * VS_CELL + VS_CELL / 2, y: VS_GRID_Y0 + row * VS_CELL + VS_CELL / 2 };
@@ -1797,7 +1936,7 @@ function vbLockPiece(b) {
 function vbTrySpawnPiece(b) {
   if (b.grid[VS_SPAWN_COL][1] !== null || b.grid[VS_SPAWN_COL][0] !== null) { b.alive = false; return; }
   b.piece = { col: VS_SPAWN_COL, row: 1, rot: 0, s1: b.nextPair.s1, s2: b.nextPair.s2 };
-  b.nextPair = vbRollPair();
+  b.nextPair = vbRollPair(b);
   b.fallTimer = 0;
   if (b.isCpu) b.aiTarget = vbAiPickTarget(b);
 }
@@ -1981,8 +2120,12 @@ function vbUpdateBoard(b, opponent) {
           atk -= cancel;
           refreshGarbageCols(b);
           if (atk > 0) {
-            opponent.pendingGarbage += atk;
-            refreshGarbageCols(opponent);
+            // Multiplayer boards hand the attack to the network (mpSendAttack)
+            if (b.onAttack) b.onAttack(atk);
+            else {
+              opponent.pendingGarbage += atk;
+              refreshGarbageCols(opponent);
+            }
           }
         }
         b.chainCount = 0;
@@ -2648,13 +2791,742 @@ function playSfx(kind, arg) {
   }
 }
 
+// ─── MULTIPLAYER (rooms API, backend/API_SPEC.md "Moyomoyo Multiplayer") ───
+// 2–4 friends, each on their own device, 3 games, highest total score wins.
+// Every page runs its own board (the Moyo Quest code above) with the game's
+// shared seed; the server only relays and referees. About every 0.8 s the page
+// posts its board (POST /rooms/{code}/state) and gets everyone's back.
+// お邪魔: a chain's leftover attack (after 相殺) is split evenly between the
+// boards still standing (mpSendAttack); attacks for us land in the incoming
+// tray (mpReadAttacks) and drop at our next piece, so a second of network delay
+// never shows.
+const MP_POOL_LEVEL = 3;          // pieces: the Lv.3 pool (4 colors) for every game
+const MP_SEND_MS = 800;
+const MP_LOBBY_MS = 2000;
+const MP_PRIZES = [500, 300, 200, 100];   // Moints by final rank, outside the daily cap
+const MP_SETS_PER_DAY = 2;               // prizes for at most 2 finished sets (3 games each) a day
+const MP_PAID_KEEP_MS = 3 * 24 * 60 * 60 * 1000;   // rooms vanish after a day; remember paid ones longer
+const MP_MINI_CELL = 30;
+let mp = null;   // { id, key, room, offset, timer, busy, view, r, board, started, ko, attackId, sent, seen, finalSent, flash, mini, lobbySig, movingNext, prize }
+const mpHero = new Image();
+mpHero.src = 'brand/mokumoku-hero.png';
+
+function $mp(id) { return document.getElementById(id); }
+function mpReady() {
+  const A = window.MokuAccount;
+  return !!(A && A.isEnabled() && A.getUser());
+}
+let mpToastTimer = null;
+function mpToast(text) {
+  const el = $mp('mp-toast');
+  el.textContent = text;
+  el.classList.add('show');
+  clearTimeout(mpToastTimer);
+  mpToastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+}
+// Rejects with { code, status }; code 'offline' when the request never got through.
+function mpApi(method, path, data) {
+  const A = window.MokuAccount;
+  const headers = { authorization: 'Bearer ' + A.getToken() };
+  if (data) headers['content-type'] = 'application/json';
+  return fetch(A.apiBase() + path, { method, headers, body: data ? JSON.stringify(data) : undefined })
+    .then(res => res.json().catch(() => ({})).then(d => {
+      if (res.ok) return d;
+      const e = new Error(d.message || 'Something went wrong.');
+      e.code = d.error || 'http_' + res.status; e.status = res.status;
+      throw e;
+    }), () => {
+      const e = new Error("You're offline.");
+      e.code = 'offline';
+      throw e;
+    });
+}
+function mpErrText(e) {
+  if (e.code === 'offline') return "You're offline. Try again soon.";
+  if (e.status === 404 && e.code === 'not_found') return 'Multiplayer is coming soon!';
+  return e.message;
+}
+function mpNow() { return Date.now() + (mp ? mp.offset : 0); }
+function mpEsc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+// A friend's Moku in their Closet outfit (GET /players public card), ours from this device.
+function mpAvatar(tag) {
+  const M = window.MokuMoint;
+  let outfit = '';
+  if (M && mp && tag === mp.room.you) outfit = M.outfitSVG(M.closet().equipped);
+  else if (M) {
+    const A = window.MokuAccount, list = A && A.getPlayers && A.getPlayers();
+    const p = list && list.players.find(x => x.tag === tag);
+    if (p && p.card && p.card.outfit) outfit = M.outfitSVG(p.card.outfit);
+  }
+  return `<span class="mp-av"><img src="brand/mokumoku-hero.png" alt="">${outfit}</span>`;
+}
+function mpName(tag) {
+  const p = mp && mp.room.players.find(x => x.tag === tag);
+  return p ? p.name : 'Friend';
+}
+
+// ---------- screens ----------
+function mpShowScreen(view) {
+  document.body.classList.add('on-mp');
+  ['menu', 'lobby', 'results'].forEach(v => $mp('mp-' + v).classList.toggle('show', v === view));
+  if (mp) mp.view = view;
+}
+function mpHideScreen() { document.body.classList.remove('on-mp'); }
+
+let mpInvitesChecked = 0;
+// "📨 1 invite!" under the title menu item (at most every 20 s)
+function mpTitleInvites() {
+  const el = $mp('title-best-2');
+  if (!mpReady()) { el.textContent = 'Log in to play'; return; }
+  if (Date.now() - mpInvitesChecked < 20000) return;
+  mpInvitesChecked = Date.now();
+  mpApi('GET', '/rooms?game=moyomoyo').then(res => {
+    const rooms = res.rooms.filter(r => r.game === 'moyomoyo');   // an older server lists every room
+    const n = rooms.filter(r => !r.joined && r.status === 'lobby').length;
+    el.textContent = n ? `📨 ${n} invite${n === 1 ? '' : 's'}!` : rooms.length ? 'Back to your room ▶' : '';
+  }, () => {});
+}
+
+function openMpMenu() {
+  if (!mpReady()) { mpToast('Log in on the Moku Series page to play with friends.'); return; }
+  mpStop();
+  setTitleVisible(false);
+  mpShowScreen('menu');
+  mpLoadRooms();
+  MokuAccount.loadPlayers(true);
+}
+function mpLoadRooms() {
+  const box = $mp('mp-rooms');
+  box.innerHTML = '<div class="mp-note">Loading…</div>';
+  mpApi('GET', '/rooms?game=moyomoyo').then(res => {
+    res.rooms = res.rooms.filter(r => r.game === 'moyomoyo');
+    if (!res.rooms.length) { box.innerHTML = '<div class="mp-note">No invites yet. Make a room and share the code!</div>'; return; }
+    box.innerHTML = '';
+    res.rooms.forEach(room => {
+      const host = room.players.find(p => p.host) || room.players[0];
+      const row = document.createElement('div');
+      row.className = 'mp-row';
+      const what = room.status === 'playing' ? 'Playing now' : room.joined ? 'Waiting in the room' : 'Invited you!';
+      row.innerHTML = mpAvatar(host.tag) + `<span class="who">${mpEsc(host.name)}’s room · ${room.id}<small>${what} · ${room.players.length} / 4</small></span>` +
+        `<button class="smallBtn">${room.joined ? 'Back ▶' : 'Join ▶'}</button>`;
+      row.querySelector('button').addEventListener('click', () => mpJoin(room.id));
+      box.appendChild(row);
+    });
+  }, e => { box.innerHTML = `<div class="mp-note">${mpEsc(mpErrText(e))}</div>`; });
+}
+function mpMake() {
+  const btn = $mp('mp-make');
+  btn.disabled = true;
+  mpApi('POST', '/rooms', { game: 'moyomoyo' }).then(res => { btn.disabled = false; mpEnterRoom(res.room); },
+    e => { btn.disabled = false; mpToast(mpErrText(e)); });
+}
+function mpJoin(code) {
+  code = String(code || '').toUpperCase().replace(/[^A-Z]/g, '');
+  if (code.length !== 4) { mpToast('Room codes have 4 letters.'); return; }
+  mpApi('POST', `/rooms/${code}/join`, {}).then(res => { $mp('mp-code').value = ''; mpEnterRoom(res.room); },
+    e => mpToast(e.code === 'room_not_found' ? 'No room with that code.' : mpErrText(e)));
+}
+
+// ---------- room ----------
+function mpEnterRoom(room) {
+  if (room.game !== 'moyomoyo') {
+    // A server from before Moyomoyo Multiplayer makes a Riddle Race room instead: close it again.
+    mpApi('POST', `/rooms/${room.id}/leave`, {}).catch(() => {});
+    mpToast('Multiplayer is coming soon!');
+    return;
+  }
+  mpStop();
+  mp = { id: room.id, key: room.key, room, offset: room.now - Date.now(), timer: null, busy: false, view: null,
+         r: 0, board: null, started: false, ko: false, attackId: 0, sent: [], seen: {}, finalSent: false,
+         flash: null, mini: {}, lobbySig: null, movingNext: false, prize: null };
+  mpSetRoom(room);
+  mpSchedule();
+}
+function mpStop() {
+  if (mp) clearTimeout(mp.timer);
+  mp = null;
+  mpHideScreen();
+  document.getElementById('pause-btn').title = 'Pause';
+}
+function mpSchedule(ms) {
+  if (!mp) return;
+  clearTimeout(mp.timer);
+  mp.timer = setTimeout(mpTick, ms !== undefined ? ms : mp.room.status === 'playing' ? MP_SEND_MS : MP_LOBBY_MS);
+}
+// Send right away (an attack, a KO, the final score) instead of waiting for the next tick.
+function mpKick() { if (mp && !mp.busy) mpSchedule(30); }
+function mpTick() {
+  if (!mp) return;
+  const m = mp;
+  if (m.busy) { mpSchedule(); return; }
+  const playing = m.room.status === 'playing';
+  m.busy = true;
+  const req = playing ? mpApi('POST', `/rooms/${m.id}/state`, mpMyState()) : mpApi('GET', `/rooms/${m.id}?v=${m.room.version}`);
+  req.then(res => {
+    m.busy = false;
+    if (mp !== m) return;
+    if (res.room) mpSetRoom(res.room);
+    else if (res.now) m.offset = res.now - Date.now();
+    mpSchedule();
+  }, e => {
+    m.busy = false;
+    if (mp !== m) return;
+    if (e.status === 404 || e.status === 401) { mpToast('This room is gone.'); mpStop(); quitToTitle(); return; }
+    mpSchedule();
+  });
+}
+function mpSetRoom(room) {
+  if (!mp || room.key !== mp.key) return;
+  mp.room = room;
+  mp.offset = room.now - Date.now();
+  if (room.status === 'closed') { mpToast('The host closed the room.'); openMpMenu(); return; }
+  if (room.status === 'lobby') { if (mp.view !== 'lobby') mpShowScreen('lobby'); mpRenderLobby(); return; }
+  if (room.status === 'playing') {
+    if (mp.view !== 'game') mpEnterGame();
+    if (mp.r !== room.round) mpSetupRound();
+    mpReadAttacks();
+    if (room.roundEndAt && !mp.finalSent) mpEndRound();
+    return;
+  }
+  // done
+  if (mp.view !== 'results') mpShowResults();
+  else mpRenderResultsWait();
+  if (room.next && !room.isHost && !mp.movingNext) {
+    mp.movingNext = true;
+    mpApi('POST', `/rooms/${room.next}/join`, {}).then(res => mpEnterRoom(res.room), () => { if (mp) mp.movingNext = false; });
+  }
+}
+
+function mpRenderLobby() {
+  const room = mp.room, A = window.MokuAccount, list = A && A.getPlayers && A.getPlayers();
+  const sig = room.version + ':' + (list ? list.players.length : 0);
+  if (mp.lobbySig === sig) return;
+  mp.lobbySig = sig;
+  $mp('mp-lobby-code').textContent = room.id;
+  $mp('mp-lobby-hint').textContent = room.joined ? 'Tell your friends this code!' : 'You are invited!';
+  $mp('mp-lobby-title').textContent = `Players (${room.players.length} / 4)`;
+  const box = $mp('mp-players');
+  box.innerHTML = '';
+  room.players.forEach(p => {
+    const row = document.createElement('div');
+    row.className = 'mp-row' + (p.tag === room.you ? ' you' : '');
+    row.innerHTML = mpAvatar(p.tag) + `<span class="who">${mpEsc(p.name)}${p.tag === room.you ? ' (You)' : ''}<small>#${p.tag}</small></span>` +
+      (p.host ? '<span class="tag">👑 Host</span>' : '');
+    box.appendChild(row);
+  });
+  room.invited.forEach(p => {
+    const row = document.createElement('div');
+    row.className = 'mp-row';
+    row.style.opacity = '0.6';
+    row.innerHTML = mpAvatar(p.tag) + `<span class="who">${mpEsc(p.name)}<small>Invited…</small></span>`;
+    box.appendChild(row);
+  });
+  const sb = $mp('mp-start'), wait = $mp('mp-wait');
+  if (!room.joined) {
+    sb.style.display = ''; sb.disabled = room.players.length >= 4; sb.textContent = 'Join this Room ▶';
+    wait.textContent = room.players.length >= 4 ? 'This room is full.' : '';
+  } else if (room.isHost) {
+    sb.style.display = ''; sb.disabled = room.players.length < 2; sb.textContent = 'Start 3 Games ▶';
+    wait.textContent = room.players.length < 2 ? 'Waiting for a friend to join…' : 'Everyone here? Start when you are ready!';
+  } else {
+    sb.style.display = 'none';
+    wait.textContent = 'Waiting for the host to start…';
+  }
+  $mp('mp-leave').textContent = room.joined ? 'Leave Room' : 'No Thanks';
+  $mp('mp-invite-panel').style.display = room.joined && room.players.length < 4 ? '' : 'none';
+  const inv = $mp('mp-invites');
+  const inRoom = {};
+  room.players.concat(room.invited).forEach(p => { inRoom[p.tag] = true; });
+  const friends = list ? list.players.filter(p => !p.you && p.tag !== room.you && !room.players.some(x => x.tag === p.tag)) : [];
+  friends.sort((a, b) => (b.online ? 1 : 0) - (a.online ? 1 : 0));
+  inv.innerHTML = friends.length ? '' : `<div class="mp-note">${list ? 'No friends to invite yet. Share the code!' : 'Loading friends…'}</div>`;
+  friends.slice(0, 20).forEach(p => {
+    const row = document.createElement('div');
+    row.className = 'mp-row';
+    const invited = !!inRoom[p.tag];
+    row.innerHTML = mpAvatar(p.tag) + `<span class="who">${mpEsc(p.displayName)}<small>${p.online ? '<span class="online"></span>Online' : '#' + p.tag}</small></span>` +
+      `<button class="smallBtn"${invited ? ' disabled' : ''}>${invited ? 'Invited ✓' : 'Invite'}</button>`;
+    row.querySelector('button').addEventListener('click', e => {
+      e.target.disabled = true;
+      mpApi('POST', `/rooms/${room.id}/invite`, { tag: p.tag }).then(res => { mpSetRoom(res.room); mpToast(`Invited ${p.displayName}!`); },
+        err => { e.target.disabled = false; mpToast(mpErrText(err)); });
+    });
+    inv.appendChild(row);
+  });
+}
+
+// ---------- a game ----------
+function mpEnterGame() {
+  mp.view = 'game';
+  mpHideScreen();
+  setTitleVisible(false);
+  mode = 'MULTI';
+  state = 'MP_WAIT';
+  resizeCanvasTo(VS_CANVAS_W, VS_CANVAS_H);
+  particles = []; flashAlpha = 0; shakeX = 0; shakeY = 0;
+  document.body.classList.add('vs-active');
+  document.getElementById('overlay').classList.add('hidden');
+  document.getElementById('hud').style.visibility = 'visible';
+  document.getElementById('hud-marathon-info').style.visibility = 'hidden';
+  const pb = document.getElementById('pause-btn');
+  pb.textContent = '✕';
+  pb.title = 'Leave';
+  document.getElementById('left-col').style.visibility = 'visible';
+  document.getElementById('right-col').style.visibility = 'visible';
+}
+function mpSetupRound() {
+  const room = mp.room;
+  const b = newVsBoard(VS_P_X0, false);
+  b.rng = MokuRandom.create(room.seed);
+  b.onAttack = mpSendAttack;
+  b.nextPair = vbRollPair(b);
+  mp.r = room.round;
+  mp.board = b;
+  vsP = b;
+  mp.started = false; mp.ko = false; mp.finalSent = false;
+  mp.attackId = 0; mp.sent = []; mp.seen = {}; mp.flash = null; mp.mini = {};
+  particles = [];
+  state = 'MP_WAIT';
+}
+function mpEndRound() {
+  mp.finalSent = true;
+  if (state === 'PLAYING') {
+    state = 'MP_WAIT';
+    if (mp.board.alive) playSfx('levelup');
+  }
+  mpKick();
+}
+function mpAskLeave() {
+  if (!mp) return;
+  if (mp.room.status === 'playing' && !confirm('Leave the game? You will be out for the rest of it.')) return;
+  quitToTitle();
+}
+
+// 10 columns × 9 rows, top row first: . empty, 0-4 stage, r rainbow, g お邪魔
+function mpEncodeBoard(grid) {
+  let s = '';
+  for (let r = 0; r < GRID_ROWS; r++) {
+    for (let c = 0; c < GRID_COLS; c++) {
+      const v = grid[c][r];
+      s += v === null ? '.' : v === RAINBOW ? 'r' : v === GARBAGE ? 'g' : String(v);
+    }
+  }
+  return s;
+}
+function mpMyState() {
+  const room = mp.room, mine = mp.board && mp.r === room.round;
+  return {
+    r: room.round,
+    score: mine ? mp.board.score : 0,
+    alive: mine ? mp.board.alive : true,
+    final: mine ? mp.finalSent : false,
+    board: mine ? mpEncodeBoard(mp.board.grid) : '',
+    attacks: mine ? mp.sent.slice(-30) : [],
+  };
+}
+
+// Split an attack evenly between the boards still standing (best score gets
+// the odd cells first), and remember it so the next posts carry it.
+function mpSendAttack(atk) {
+  if (!mp) return;
+  const room = mp.room;
+  const foes = room.states.filter(s => s.tag !== room.you && s.r === mp.r && s.alive && !s.out);
+  if (!foes.length) return;
+  foes.sort((a, b) => b.score - a.score || (a.tag < b.tag ? -1 : 1));
+  const base = Math.floor(atk / foes.length);
+  let extra = atk % foes.length;
+  const to = {};
+  foes.forEach(f => {
+    const n = base + (extra > 0 ? 1 : 0);
+    if (extra > 0) extra--;
+    if (n > 0) to[f.tag] = Math.min(200, n);
+  });
+  const tags = Object.keys(to);
+  if (!tags.length) return;
+  mp.sent.push({ id: ++mp.attackId, to });
+  if (mp.sent.length > 30) mp.sent.shift();
+  mp.flash = { text: `⚔️ ${atk} → ${tags.length === 1 ? mpName(tags[0]) : tags.length + ' friends'}`, color: '#FFE066', timer: 90 };
+  mpKick();
+}
+// Attacks from the others we haven't read yet → our incoming tray.
+function mpReadAttacks() {
+  const room = mp.room;
+  if (!mp.board || mp.r !== room.round || room.roundEndAt) return;
+  let total = 0;
+  const from = [];
+  room.states.forEach(s => {
+    if (s.tag === room.you || s.r !== mp.r) return;
+    const seen = mp.seen[s.tag] || 0;
+    let max = seen, got = 0;
+    s.attacks.forEach(a => {
+      if (a.id > seen) { max = Math.max(max, a.id); got += a.to[room.you] || 0; }
+    });
+    mp.seen[s.tag] = max;
+    if (got) { total += got; from.push(mpName(s.tag)); }
+  });
+  if (!total || !mp.started || !mp.board.alive) return;
+  mp.board.pendingGarbage += total;
+  refreshGarbageCols(mp.board);
+  mp.flash = { text: `💥 +${total} from ${from.join(' & ')}`, color: '#FF9A9A', timer: 90 };
+  playSfx('lock');
+}
+
+function updateMulti() {
+  particles.forEach(p => p.update());
+  particles = particles.filter(p => p.alive);
+  if (!mp || !mp.board || mp.view !== 'game') return;
+  const room = mp.room, b = mp.board;
+  if (room.status !== 'playing' || mp.r !== room.round) return;
+  if (!mp.started && !room.roundEndAt && mpNow() >= room.roundStartAt) {
+    mp.started = true;
+    state = 'PLAYING';
+    vbTrySpawnPiece(b);
+    playSfx('magic');
+  }
+  if (state !== 'PLAYING') return;
+  vbUpdateBoard(b, null);
+  if (!b.alive && !mp.ko) {
+    mp.ko = true;
+    state = 'MP_OUT';
+    playSfx('gameover');
+    addShake(12);
+    mpKick();
+  }
+}
+
+// ---------- drawing ----------
+const MP_BOARD_CHARS = { '.': null, r: RAINBOW, g: GARBAGE };
+// An opponent's board, drawn into its own small canvas only when it changes
+// (about once a second) — redrawing up to 270 gummies every frame is too much
+// for an iPhone 7.
+function mpBoardImage(tag, board, cell) {
+  const key = tag + ':' + cell;
+  let e = mp.mini[key];
+  if (e && e.board === board) return e.canvas;
+  if (!e) {
+    const c = document.createElement('canvas');
+    c.width = Math.round(GRID_COLS * cell * DPR);
+    c.height = Math.round(GRID_ROWS * cell * DPR);
+    e = mp.mini[key] = { canvas: c, board: null };
+  }
+  e.board = board;
+  const prev = ctx;
+  ctx = e.canvas.getContext('2d');
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.clearRect(0, 0, GRID_COLS * cell, GRID_ROWS * cell);
+  for (let i = 0; i < board.length; i++) {
+    const ch = board[i];
+    const v = ch in MP_BOARD_CHARS ? MP_BOARD_CHARS[ch] : Number(ch);
+    if (v === null) continue;
+    const x = (i % GRID_COLS) * cell + cell / 2, y = Math.floor(i / GRID_COLS) * cell + cell / 2;
+    if (v === GARBAGE) { drawGarbageBlock(x, y, cell); continue; }
+    const vis = stageVisual(v);
+    drawGummyShape(x, y, cell * 0.42, vis.color, vis.face, 0, 1, false, vis.magic);
+  }
+  ctx = prev;
+  return e.canvas;
+}
+function mpDrawAvatar(x, y, size) {
+  if (!mpHero.complete || !mpHero.naturalWidth) return;
+  ctx.save();
+  ctx.beginPath(); ctx.arc(x, y, size / 2, 0, Math.PI * 2); ctx.clip();
+  ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.fillRect(x - size / 2, y - size / 2, size, size);
+  ctx.drawImage(mpHero, x - size / 2, y - size / 2, size, size);
+  ctx.restore();
+}
+function mpDrawOpponent(p, s, x, y, cell) {
+  const w = GRID_COLS * cell, h = GRID_ROWS * cell;
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  ctx.beginPath(); ctx.roundRect(x - 4, y - 4, w + 8, h + 8, 8); ctx.fill();
+  ctx.strokeStyle = 'rgba(160,200,255,0.4)'; ctx.lineWidth = 2;
+  ctx.strokeRect(x, y, w, h);
+  if (s && s.board) ctx.drawImage(mpBoardImage(p.tag, s.board, cell), x, y, w, h);
+  // name + score above the board
+  const big = cell >= VS_CELL;
+  const av = big ? 44 : 26;
+  const headY = big ? y - 70 : y - 20;
+  mpDrawAvatar(x + av / 2, headY, av);
+  ctx.textAlign = 'left';
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.font = `bold ${big ? 17 : 14}px Arial`;
+  ctx.fillText(p.name, x + av + 8, headY - (big ? 2 : 1));
+  ctx.fillStyle = '#FFE066';
+  ctx.font = `bold ${big ? 14 : 12}px Arial`;
+  ctx.fillText(`${s ? s.score : 0}pt`, x + av + 8, headY + (big ? 16 : 13));
+  if (s && s.out) {
+    ctx.fillStyle = 'rgba(20,5,30,0.62)';
+    ctx.fillRect(x, y, w, h);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#FFB0DC';
+    ctx.font = `bold ${big ? 44 : 26}px Arial`;
+    ctx.fillText(s.alive ? '📴 Gone' : '💥 KO', x + w / 2, y + h / 2 + 10);
+  }
+  ctx.restore();
+}
+function mpDrawOpponents() {
+  const room = mp.room;
+  const foes = room.players.filter(p => p.tag !== room.you);
+  const st = {};
+  room.states.forEach(s => { if (s.r === mp.r) st[s.tag] = s; });
+  if (foes.length === 1) {
+    mpDrawOpponent(foes[0], st[foes[0].tag], VS_C_X0, VS_GRID_Y0, VS_CELL);
+    return;
+  }
+  const w = GRID_COLS * MP_MINI_CELL, h = GRID_ROWS * MP_MINI_CELL, gapX = VS_GRID_W - 2 * w;
+  const rows = [VS_GRID_Y0 - 46, VS_GRID_Y0 - 46 + h + 64];
+  const spots = foes.length === 2
+    ? [[VS_C_X0, (rows[0] + rows[1]) / 2], [VS_C_X0 + w + gapX, (rows[0] + rows[1]) / 2]]
+    : [[VS_C_X0, rows[0]], [VS_C_X0 + w + gapX, rows[0]], [VS_C_X0 + (VS_GRID_W - w) / 2, rows[1]]];
+  foes.forEach((p, i) => mpDrawOpponent(p, st[p.tag], spots[i][0], spots[i][1], MP_MINI_CELL));
+}
+function mpStandingsPanel(title, sub) {
+  const room = mp.room;
+  const rows = room.standings;
+  const pw = 520, ph = 120 + rows.length * 48;
+  const px = (VS_CANVAS_W - pw) / 2, py = (VS_CANVAS_H - ph) / 2;
+  ctx.save();
+  ctx.fillStyle = 'rgba(20,5,30,0.7)';
+  ctx.fillRect(0, 0, VS_CANVAS_W, VS_CANVAS_H);
+  ctx.fillStyle = '#3D1E52';
+  ctx.beginPath(); ctx.roundRect(px, py, pw, ph, 22); ctx.fill();
+  ctx.strokeStyle = '#D96FB0'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#FFE9F5';
+  ctx.font = 'bold 28px Arial';
+  ctx.shadowColor = '#FF7FC0'; ctx.shadowBlur = 14;
+  ctx.fillText(title, VS_CANVAS_W / 2, py + 44);
+  ctx.shadowBlur = 0;
+  const medals = ['🥇', '🥈', '🥉', '4th'];
+  rows.forEach((row, i) => {
+    const y = py + 92 + i * 48;
+    const me = row.tag === room.you;
+    if (me) {
+      ctx.fillStyle = 'rgba(255,111,168,0.2)';
+      ctx.beginPath(); ctx.roundRect(px + 16, y - 26, pw - 32, 40, 12); ctx.fill();
+    }
+    ctx.textAlign = 'left';
+    ctx.font = 'bold 22px Arial';
+    ctx.fillStyle = '#FFE066';
+    ctx.fillText(medals[row.rank - 1] || String(row.rank), px + 30, y + 2);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 19px Arial';
+    ctx.fillText(row.name + (me ? ' (You)' : ''), px + 82, y + 1);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.font = '14px Arial';
+    ctx.fillText(row.games.join(' + '), px + pw - 140, y);
+    ctx.fillStyle = '#FFE066';
+    ctx.font = 'bold 21px Arial';
+    ctx.fillText(`${row.total}pt`, px + pw - 30, y + 1);
+  });
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(255,255,255,0.75)';
+  ctx.font = 'bold 17px Arial';
+  ctx.fillText(sub, VS_CANVAS_W / 2, py + ph - 18);
+  ctx.restore();
+}
+function drawMulti() {
+  const bg = ctx.createLinearGradient(0, 0, 0, VS_CANVAS_H);
+  bg.addColorStop(0, '#2A1840'); bg.addColorStop(0.55, '#4A2560'); bg.addColorStop(1, '#331A48');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, VS_CANVAS_W, VS_CANVAS_H);
+  if (!mp || !mp.board) return;
+  const room = mp.room, b = mp.board, rules = room.rules;
+  const t = mpNow();
+
+  ctx.save();
+  ctx.textAlign = 'left';
+  ctx.shadowColor = '#FF7FC0'; ctx.shadowBlur = 12;
+  ctx.fillStyle = '#FFE9F5';
+  ctx.font = 'bold 22px Arial, sans-serif';
+  ctx.fillText('👥 Multiplayer', VS_MARGIN_X, 28);
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = 'rgba(255,224,102,0.85)';
+  ctx.font = 'bold 13px Arial';
+  let line = `Game ${mp.r}/${rules.ROUNDS}`;
+  if (mp.started && !room.roundEndAt) {
+    const left = Math.max(0, Math.ceil((room.roundStartAt + rules.ROUND_MS - t) / 1000));
+    line += `  ·  ⏱ ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
+  }
+  ctx.fillText(line, VS_MARGIN_X, 48);
+  const me = room.standings.find(s => s.tag === room.you);
+  ctx.fillStyle = 'rgba(255,255,255,0.45)';
+  ctx.font = '11px Arial';
+  ctx.fillText(`Total so far: ${me ? me.total : 0}pt`, VS_MARGIN_X, 65);
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(shakeX, shakeY);
+  shakeX *= 0.7; shakeY *= 0.7;
+  if (Math.abs(shakeX) < 0.1) shakeX = 0;
+  if (Math.abs(shakeY) < 0.1) shakeY = 0;
+  vbDrawPanel(b);
+  vbDrawCells(b);
+  if (state === 'PLAYING' && b.phase === 'FALL') vbDrawPiece(b);
+  drawParticles();
+  vbDrawHud(b, 'YOU');
+  vbDrawNextPreview(b);
+  vbDrawIncomingGarbage(b);
+  ctx.restore();
+  mpDrawOpponents();
+
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.font = '18px Arial';
+  ctx.fillText('◀▶ Move · 🔄 Rotate · ▼ Drop', VS_CANVAS_W / 2, VS_CANVAS_H - VS_BOTTOM_MARGIN);
+  ctx.restore();
+
+  if (mp.flash && mp.flash.timer > 0) {
+    mp.flash.timer--;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, mp.flash.timer / 30);
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 26px Arial';
+    ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 10;
+    ctx.fillStyle = mp.flash.color;
+    ctx.fillText(mp.flash.text, VS_P_X0 + VS_GRID_W / 2, VS_GRID_Y0 + VS_GRID_H * 0.3);
+    ctx.restore();
+  }
+
+  if (mp.ko && !room.roundEndAt) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(20,5,30,0.6)';
+    ctx.fillRect(VS_P_X0, VS_GRID_Y0, VS_GRID_W, VS_GRID_H);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#FFE9F5';
+    ctx.font = 'bold 40px Arial';
+    ctx.fillText("💥 You're out!", VS_P_X0 + VS_GRID_W / 2, VS_GRID_Y0 + VS_GRID_H / 2 - 10);
+    ctx.font = 'bold 17px Arial';
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.fillText('Your score still counts. Watch your friends!', VS_P_X0 + VS_GRID_W / 2, VS_GRID_Y0 + VS_GRID_H / 2 + 26);
+    ctx.restore();
+  }
+
+  if (flashAlpha > 0.01) {
+    ctx.save();
+    ctx.globalAlpha = flashAlpha;
+    ctx.fillStyle = '#FFE9A0';
+    ctx.fillRect(0, 0, VS_CANVAS_W, VS_CANVAS_H);
+    ctx.restore();
+    flashAlpha *= 0.82;
+  } else flashAlpha = 0;
+
+  // Between games: the scores so far, then the countdown.
+  if (room.roundEndAt) {
+    mpStandingsPanel(`Game ${mp.r} over!`, 'Adding up the scores…');
+  } else if (t < room.roundStartAt) {
+    const secs = Math.max(1, Math.ceil((room.roundStartAt - t) / 1000));
+    if (room.results.length && secs > 3) {
+      mpStandingsPanel(`After game ${room.results.length}`, `Game ${mp.r} starts in ${secs}…`);
+    } else {
+      ctx.save();
+      ctx.fillStyle = 'rgba(10,2,20,0.6)';
+      ctx.fillRect(0, 0, VS_CANVAS_W, VS_CANVAS_H);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#FFE9F5';
+      ctx.font = 'bold 30px Arial';
+      ctx.fillText(`Game ${mp.r} of ${rules.ROUNDS}`, VS_CANVAS_W / 2, VS_CANVAS_H / 2 - 110);
+      ctx.shadowColor = '#FF6FA8'; ctx.shadowBlur = 40;
+      ctx.font = 'bold 150px Arial';
+      ctx.fillText(String(secs), VS_CANVAS_W / 2, VS_CANVAS_H / 2);
+      ctx.shadowBlur = 0;
+      ctx.font = 'bold 20px Arial';
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      ctx.fillText('Same pieces for everyone. Make chains to send blocks!', VS_CANVAS_W / 2, VS_CANVAS_H / 2 + 100);
+      ctx.restore();
+    }
+  }
+}
+
+// ---------- the end ----------
+function mpPayPrize(room) {
+  const me = room.standings.find(s => s.tag === room.you);
+  if (!me || !window.MokuMoint) return null;
+  const prog = loadProgress();
+  const t = Date.now();
+  const multi = prog.multi && typeof prog.multi === 'object' ? prog.multi : { day: '', sets: 0, paid: {} };
+  Object.keys(multi.paid || {}).forEach(k => { if (multi.paid[k].forgetAt < t) delete multi.paid[k]; });
+  if (!multi.paid) multi.paid = {};
+  if (multi.paid[room.key]) return { rank: me.rank, got: multi.paid[room.key].got, limit: false, again: true };
+  const d = new Date();
+  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  if (multi.day !== today) { multi.day = today; multi.sets = 0; }
+  let got = 0, limit = false;
+  if (multi.sets >= MP_SETS_PER_DAY) limit = true;
+  else {
+    got = MokuMoint.earn(GAME_ID, MP_PRIZES[me.rank - 1] || 0, { capped: false });
+    multi.sets++;
+  }
+  multi.paid[room.key] = { got, forgetAt: t + MP_PAID_KEEP_MS };
+  prog.multi = multi;
+  saveProgress(prog);
+  return { rank: me.rank, got, limit, again: false };
+}
+function mpShowResults() {
+  const room = mp.room;
+  state = 'MP_WAIT';
+  document.getElementById('left-col').style.visibility = 'hidden';
+  document.getElementById('right-col').style.visibility = 'hidden';
+  document.getElementById('hud').style.visibility = 'hidden';
+  mpShowScreen('results');
+  const me = room.standings.find(s => s.tag === room.you);
+  $mp('mp-res-title').textContent = me && me.rank === 1 ? '🏆 You won!' : '🏆 Final Results';
+  const medals = ['🥇', '🥈', '🥉', '4th'];
+  $mp('mp-standings').innerHTML = room.standings.map(row =>
+    `<div class="mp-row${row.tag === room.you ? ' you' : ''}"><span class="rank">${medals[row.rank - 1] || row.rank}</span>${mpAvatar(row.tag)}` +
+    `<span class="who">${mpEsc(row.name)}${row.tag === room.you ? ' (You)' : ''}<small>${row.games.join(' + ')}</small></span>` +
+    `<span class="total">${row.total}pt</span></div>`).join('');
+  mp.prize = mpPayPrize(room);
+  const pz = $mp('mp-prize'), p = mp.prize;
+  if (!p) pz.innerHTML = '';
+  else if (p.limit) pz.innerHTML = `No Moints this time<small>You got today's ${MP_SETS_PER_DAY} Multiplayer prizes. Come back tomorrow!</small>`;
+  else pz.innerHTML = `<i class="coin">M</i> +${p.got} Moints<small>${['1st', '2nd', '3rd', '4th'][p.rank - 1]} place!</small>`;
+  if (p && p.got && !p.again) playSfx('magic');
+  mpRenderResultsWait();
+}
+function mpRenderResultsWait() {
+  const room = mp.room;
+  $mp('mp-again').style.display = room.isHost ? '' : 'none';
+  $mp('mp-res-wait').textContent = room.isHost ? 'Play 3 more games with the same friends?' : 'Waiting for the host to play again…';
+}
+function mpAgain() {
+  const btn = $mp('mp-again');
+  btn.disabled = true;
+  mpApi('POST', `/rooms/${mp.id}/again`, {}).then(res => { btn.disabled = false; mpEnterRoom(res.room); },
+    e => { btn.disabled = false; mpToast(mpErrText(e)); });
+}
+function mpLeaveRoom() {
+  const m = mp;
+  if (m && m.room.status === 'lobby') mpApi('POST', `/rooms/${m.id}/leave`, {}).catch(() => {});
+  openMpMenu();
+}
+
+$mp('mp-make').addEventListener('click', mpMake);
+$mp('mp-join').addEventListener('click', () => mpJoin($mp('mp-code').value));
+$mp('mp-code').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') mpJoin($mp('mp-code').value); });
+$mp('mp-start').addEventListener('click', () => {
+  if (!mp) return;
+  const room = mp.room, btn = $mp('mp-start');
+  btn.disabled = true;
+  const req = room.joined ? mpApi('POST', `/rooms/${room.id}/start`, {}) : mpApi('POST', `/rooms/${room.id}/join`, {});
+  req.then(res => { btn.disabled = false; mp.lobbySig = null; mpSetRoom(res.room); }, e => { btn.disabled = false; mpToast(mpErrText(e)); });
+});
+$mp('mp-leave').addEventListener('click', mpLeaveRoom);
+$mp('mp-again').addEventListener('click', mpAgain);
+document.querySelectorAll('.mp-back').forEach(btn => btn.addEventListener('click', () => { mpStop(); quitToTitle(); }));
+window.addEventListener('moku:players', () => { if (mp && mp.view === 'lobby') { mp.lobbySig = null; mpRenderLobby(); } });
+
 // ─── INPUT ────────────────────────────────────────────────────
 
 // The canvas's internal drawing size varies by mode (see resizeCanvasTo),
 // so touch/click coordinates are mapped using its current logical size —
 // not the fixed marathon W x H — to stay correct in both modes.
 function currentCanvasSize() {
-  return mode === 'VS' ? [VS_CANVAS_W, VS_CANVAS_H] : [W, H];
+  return mode === 'VS' || mode === 'MULTI' ? [VS_CANVAS_W, VS_CANVAS_H] : [W, H];
 }
 
 function getPos(e) {
@@ -2680,6 +3552,7 @@ function resumeGame() {
   document.getElementById('pause-btn').textContent = '⏸';
 }
 function quitToTitle() {
+  mpStop();
   state = 'TITLE';
   mode = 'MARATHON';
   resizeCanvasTo(W, H);
@@ -2728,7 +3601,7 @@ canvas.addEventListener('touchend',   onUp,   { passive: false });
 
 function ctrlAction(action) {
   if (state !== 'PLAYING') return;
-  if (mode === 'VS') {
+  if (mode === 'VS' || mode === 'MULTI') {
     if (!vsP || vsP.phase !== 'FALL') return;
     if (action === 'left') vbMoveLeft(vsP);
     else if (action === 'right') vbMoveRight(vsP);
@@ -2796,11 +3669,13 @@ document.querySelectorAll('.titleMenuItem').forEach(btn => {
 });
 
 document.getElementById('pause-btn').addEventListener('click', () => {
+  if (mode === 'MULTI') { mpAskLeave(); return; } // a network game can't pause: this button leaves instead
   if (state === 'PLAYING') pauseGame();
   else if (state === 'PAUSED') resumeGame();
 });
 
 document.addEventListener('keydown', e => {
+  if (document.body.classList.contains('on-mp')) return; // menu / lobby / results: let the page's own buttons and input have the keys
   // Space/arrows are exclusively game controls here — never anything the
   // page itself should do with them (scroll, or — the actual bug this
   // fixes — re-triggering whichever <button> (e.g. #pause-btn) happens to
@@ -2822,7 +3697,7 @@ document.addEventListener('keydown', e => {
     }
     return;
   }
-  if (e.key === 'Escape' && (state === 'PLAYING' || state === 'PAUSED')) {
+  if (e.key === 'Escape' && mode !== 'MULTI' && (state === 'PLAYING' || state === 'PAUSED')) {
     if (state === 'PLAYING') pauseGame(); else resumeGame();
     return;
   }
