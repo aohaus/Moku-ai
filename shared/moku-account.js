@@ -73,6 +73,16 @@
   // device and the cloud changed it, the two changes are added together.
   var WALLET_KEY = 'moku:moint:wallet';
   var CLOSET_KEY = 'moku:moint:closet';
+
+  // "Get the latest games" (My Moku) reloads with ?fresh=… so the browser
+  // and Cloudflare can't hand back an old copy. Tidy the address afterwards.
+  try {
+    if (/[?&]fresh=/.test(location.search) && global.URL && history.replaceState) {
+      var freshUrl = new URL(location.href);
+      freshUrl.searchParams.delete('fresh');
+      history.replaceState(history.state, '', freshUrl.pathname + freshUrl.search + freshUrl.hash);
+    }
+  } catch (e) {}
   // Bookkeeping (visit streak, "last played" times, completed flags, the
   // Daily Bonus record): if both sides changed one, keep this device's —
   // nobody loses progress over these.
@@ -692,6 +702,10 @@
     '.mka-profile-actions .mka-secondary{height:42px;font-size:14px;padding:0 8px}',
     '.mka-profile-actions .is-wide{grid-column:1/-1}',
     '.mka-id{margin:10px 2px 0;font-size:11.5px;font-weight:600;color:rgba(237,238,246,0.45);text-align:center}',
+    '.mka-refresh{display:block;margin:6px auto 0;padding:6px 10px;border:0;background:none;font:inherit;font-size:11.5px;font-weight:700;',
+    'color:rgba(237,238,246,0.45);text-decoration:underline;text-underline-offset:2px;cursor:pointer}',
+    '.mka-refresh:hover{color:rgba(237,238,246,0.75)}',
+    '.mka-refresh:disabled{text-decoration:none;cursor:default}',
     '.mka-actions{display:flex;flex-direction:column;gap:10px}',
     '.mka-choice{display:flex;align-items:center;gap:12px;width:100%;padding:14px;border-radius:14px;text-align:left;',
     'border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.05);color:#EDEEF6;font:inherit;cursor:pointer}',
@@ -1074,7 +1088,8 @@
           '<button class="mka-secondary" type="button" data-go="pin">🔑 Change PIN</button>' +
           '<button class="mka-secondary" type="button" data-go="logout">👋 Log Out</button>' +
           (user.admin ? '<a class="mka-secondary is-wide" href="admin.html">🛠 Admin</a>' : '') + '</div>' +
-          '<p class="mka-id">Player ID: ' + esc(user.loginId) + ' · keep it secret</p>'
+          '<p class="mka-id">Player ID: ' + esc(user.loginId) + ' · keep it secret</p>' +
+          '<button class="mka-refresh" type="button" data-act="refresh">↻ Get the latest games</button>'
         : '<button class="mka-wide" type="button" data-act="login">' +
           '<span class="mka-wide-icon" aria-hidden="true">☁️</span>' +
           '<span class="mka-wide-text"><span class="mka-wide-title"><span>Log In</span></span>' +
@@ -1089,9 +1104,36 @@
       if (!b) return;
       var act = b.getAttribute('data-act');
       if (act === 'sync') syncNow({ interactive: true });
+      else if (act === 'refresh') forceRefresh(b);
       else if (act === 'login') openModal('login');
       else if (b.hasAttribute('data-go')) openModal(b.getAttribute('data-go'));
     });
+  }
+
+  // For when a new game was just added but the hub still shows the old list:
+  // the browser (and Cloudflare in front of dechatgpt.com) may keep serving an
+  // old hub.html for a while. Refetch the pages past every cache, then reload
+  // with a one-off ?fresh= so no cache can answer. Progress lives in
+  // localStorage, so nothing is lost; the hub syncs again after the reload.
+  function forceRefresh(btn) {
+    if (btn) { btn.disabled = true; btn.textContent = 'Updating…'; }
+    var here = location.pathname.split('/').pop() || 'index.html';
+    var pages = ['hub.html', 'index.html'];
+    if (pages.indexOf(here) < 0) pages.push(here);
+    var jobs = pages.map(function (p) {
+      return global.fetch ? fetch(p, { cache: 'reload' }).catch(function () {}) : null;
+    });
+    if (global.caches && caches.keys) {
+      jobs.push(caches.keys().then(function (keys) {
+        return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+      }).catch(function () {}));
+    }
+    var go = function () {
+      var url = location.pathname + '?fresh=' + Date.now().toString(36) + location.hash;
+      location.replace(url);
+    };
+    Promise.all(jobs).then(go, go);
+    setTimeout(go, 4000);   // a slow network shouldn't leave the button stuck
   }
 
   // `keys` (optional) = the saves changed on both sides; everything else is
