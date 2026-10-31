@@ -17,6 +17,7 @@
 
 パソコンへのインストールは不要。AWS コンソール上部の `>_` アイコンから CloudShell を開くと、AWS CLI と SAM CLI が入っている。
 ライブラリ(`@aws-sdk/*`)は Lambda の Node.js ランタイムに最初から入っているので `sam build` は不要。
+**`sam build` は実行しないこと。** 一度でも実行すると `backend/.aws-sam/build/` ができ、`sam deploy` は `git pull` した `template.yaml` ではなくその古いコピーを使い続ける(「File with same data already exists」「No changes to deploy」と出て、何も更新されない。2026-10-31 に Moyomoyo Multiplayer の `POST /rooms/{id}/state` がこれで 404 のままだった)。下の更新の手順は、念のため毎回 `.aws-sam` を消してからデプロイする。
 
 ```sh
 git clone https://github.com/aohaus/Moku-ai.git   # 初回だけ。2回目以降は cd ~/Moku-ai && git pull
@@ -27,7 +28,8 @@ sam deploy --parameter-overrides AllowedOrigin=https://aohaus.github.io AuthSecr
 ```
 
 - 途中の `Deploy this changeset? [y/N]:` には **`y` を入力してから Enter**。Enter だけだと初期値の `N`(デプロイしない)になり、何も更新されないまま終わる(2026-10-24 に実際に起きた)。
-- **2回目以降(コードの更新だけ)**: `cd ~/Moku-ai && git pull && cd backend && sam deploy`(保存済みの値で更新される)。
+- **2回目以降(コードの更新だけ)**: `cd ~/Moku-ai && git pull && cd backend && rm -rf .aws-sam && sam deploy`(保存済みの値で更新される。`rm -rf .aws-sam` は古いビルドのコピーを消すだけで、`samconfig.toml` や AWS 上のデータには影響しない)。
+  - `No changes to deploy` と出たのに新しい機能が動かない時は、`.aws-sam` が残っていないか、`git log -1 --oneline` が最新か、を確かめる。スタックが本当に更新されたかは下の「デプロイ後の確認」の日時で分かる。
   - 新しいエンドポイントを足した時(例: 2026-10-24 の `GET /players`)もこれでよい。デプロイ前の古い API でもクライアントは壊れない(プロフィールの Players 欄が出ないだけ)。
   - 2026-10-25 のアクセスログ追加では、テーブルに TTL(`ttl` 属性で古いログを自動削除)の設定も入る。これも `sam deploy` だけでよい。
 - **AuthSecret を変えずに招待コードだけ変える**: 保管している AuthSecret を `SECRET=...` に入れてから、上の `sam deploy --parameter-overrides ...` を新しい招待コードで実行する。AuthSecret を変えると全員ログアウトされる。
