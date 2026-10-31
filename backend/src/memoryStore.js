@@ -18,6 +18,7 @@ function createMemoryStore() {
   const playerMatches = new Map(); // uid -> Map(matchId -> row)
   const rooms = new Map();
   const playerRooms = new Map(); // uid -> Map(roomId -> row)
+  const roomStates = new Map();  // roomId -> Map(uid -> Moyomoyo player row)
 
   function putRoomRows(rows) {
     for (const { uid, ...row } of rows) {
@@ -150,6 +151,15 @@ function createMemoryStore() {
       if (!current || current.version !== baseVersion) throw codedError("conflict");
       rooms.set(room.id, JSON.parse(JSON.stringify(room)));
       putRoomRows(rows);
+    },
+    async putRoomState(roomId, row, ttl) {
+      if (!roomStates.has(roomId)) roomStates.set(roomId, new Map());
+      roomStates.get(roomId).set(row.uid, JSON.parse(JSON.stringify({ ...row, ttl })));
+    },
+    async listRoomStates(roomId) {
+      const out = {};
+      (roomStates.get(roomId) || new Map()).forEach((row, uid) => { out[uid] = JSON.parse(JSON.stringify(row)); });
+      return out;
     },
     async listPlayerRooms(uid) {
       return [...(playerRooms.get(uid) || new Map()).values()].map((row) => ({ uid, ...row }));

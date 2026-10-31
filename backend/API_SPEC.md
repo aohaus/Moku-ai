@@ -509,3 +509,48 @@ PINはどこにも記録しない。DynamoDB の `ttl` で90日後に自動削�
 
 本文なし。ホストだけ、レースが終わった後。同じプレイヤーが入った新しいロビーを作り、元の部屋の `next` にそのコードを入れる。2回押しても同じ部屋を返す。
 → **201** `{ "room": … }`(新しい部屋)/ `403 not_host` / `409 not_done`
+
+# Moyomoyo Multiplayer(Rooms の `game: "moyomoyo"`、2026-10-31〜)
+
+ログインした2〜4人が、それぞれの端末で Moyo Quest と同じ盤面を同時に遊ぶ。**3試合のスコアの合計**で順位を決める(`src/moyoParty.js`。部屋のコード・招待・開始・`again` は Riddle Race と同じ `src/roomApi.js`)。
+
+- **方式**: サーバーは**中継と審判だけ**。お邪魔の計算も盤面の動きも各ページ(`moyomoyo.html`)がする。ページは試合中、自分の盤面の様子を約1秒おきに `POST /rooms/{code}/state` で送り、返事で全員の盤面と攻撃を受け取る。お邪魔は「予告トレイ」に入って次のグミが出る時に落ちるので、1秒ほど遅れて届いても遊んでいる人には分からない。
+- **公平**: 試合ごとに `seed` を配り、全員が同じ順番のグミで遊ぶ(`shared/moku-random.js`)。
+- **お邪魔**: 連鎖した人のページが、その時まだ残っている相手全員で**山分け**して送り先を決め、自分の `attacks` に `{ id, to: { "#uタグ": マス数 } }` を足す(`id` は試合ごとに 1 から)。受け取る側は、まだ読んでいない `id` の自分あての数を予告トレイに足す(相殺は Moyo Quest と同じ)。
+- **試合の終わり**(`advance()`。サーバーは部屋を読む・書くたびに同じ規則で判定する):
+  - 残っている人が1人以下になった(盤面があふれた `alive: false`、または `STALE_MS` = 12秒なにも送ってこないページ)か、`ROUND_MS` = 3分たった → `roundEndAt`。
+  - ページは `roundEndAt` を見たら盤面を止め、`final: true` で最後のスコアを送る。全員の `final` がそろうか `GRACE_MS` = 4秒たったら、その試合のスコアを `results` に残す。
+  - 次の試合は `INTERMISSION_MS` = 9秒後(新しい `seed`)。3試合目の後は `status: "done"`。
+- **データ**: 部屋(`pk ROOM#<コード> / sk STATE`)が変わるのは開始・試合の終わり・次の試合だけ。盤面は**プレイヤーごとの行** `pk ROOM#<コード> / sk P#<uid>`(本人だけが書くので、4人が同時に連鎖してもぶつからない)。行には部屋の `key` を入れ、使い回されたコードの古い行は読まない。部屋と同じ TTL。
+- **ポーリング**: 試合中(カウントダウン・休憩も)は `POST …/state` を約0.8秒おき。ロビーと結果は `GET /rooms/{code}?v=` を2秒おき。スロットリングは `POST /rooms/{id}/state` 40/秒・瞬間80。
+- **Moint**(ページ側、`MokuMoint.earn` の上限の外): 合計の順位で 1位 500 / 2位 300 / 3位 200 / 4位 100(同点は同じ順位)。もらえるのは1日2セット(3試合で1セット)まで。
+
+## Moyomoyo の部屋の形
+
+```json
+{ "id": "KQRT", "key": "…", "game": "moyomoyo", "status": "playing", "you": "u1a2b3", "joined": true, "isHost": true,
+  "players": [ { "name": "Aoi", "tag": "u1a2b3", "host": true, "score": 310 } ], "invited": [],
+  "rules": { "ROUNDS": 3, "MAX_PLAYERS": 4, "COUNTDOWN_MS": 5000, "ROUND_MS": 180000, "INTERMISSION_MS": 9000, "STALE_MS": 12000, "GRACE_MS": 4000 },
+  "round": 2, "seed": "9f3a01bc", "roundStartAt": 1793420000000, "roundEndAt": null,
+  "results": [ { "scores": { "u1a2b3": 310, "u4c5d6": 150 } } ],
+  "standings": [ { "tag": "u1a2b3", "name": "Aoi", "games": [310], "total": 310, "rank": 1 } ],
+  "states": [ { "tag": "u1a2b3", "r": 2, "score": 40, "alive": true, "out": false, "final": false,
+                "board": "…90文字…", "attacks": [ { "id": 1, "to": { "u4c5d6": 5 } } ] } ],
+  "next": null, "version": 3, "now": 1793420007000 }
+```
+
+- `players[].score`: ここまでの合計。`standings`: 合計の高い順、`rank` は同点なら同じ。
+- `states`: 今の試合(`round`)の各プレイヤー。まだ送っていない人は `alive: true, score: 0`。`out`: あふれた、または黙っている。`board`: 10列×9段を上の段から90文字(`.` 空き、`0`〜`4` グミの段階、`r` レインボー、`g` お邪魔)。
+- `seed`: 試合中だけ。`done` では `null`。
+
+## `POST /rooms`(Moyomoyo)
+
+`{ "game": "moyomoyo" }` → **201** `{ "room": … }`。`400 invalid_game`。`GET /rooms?game=moyomoyo` で Moyomoyo の部屋だけ(`game` なしは Riddle Race の部屋だけ)。1部屋4人まで。`POST …/answer` は `400 wrong_game`。
+
+## `POST /rooms/{code}/state`
+
+`{ "r": 1, "score": 120, "alive": true, "final": false, "board": "…", "attacks": [ { "id": 1, "to": { "u4c5d6": 3 } } ] }`
+
+- `r` が今の試合(休憩・カウントダウン中は次の試合)の時だけ保存する。前の試合の遅れた送信は保存せず、今の部屋を返す。一度 `alive: false` になったら、その試合は `false` のまま。`final` の後のスコアは変わらない。
+- `attacks` は最大30件(古いものはページが消す)、送り先は3人まで、1件200マスまで。
+→ **200** `{ "room": … }`(全員の `states` つき)/ `400 invalid_state` / `wrong_game` / `404 room_not_found`

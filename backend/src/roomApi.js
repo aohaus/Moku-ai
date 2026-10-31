@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const { json } = require("./response");
 const { TAG_RE, err, parseBody, tagOf, makeAuthenticate, findOpponent } = require("./playCommon");
 const MokuRiddles = require("./vendor/moku-riddles");
+const moyo = require("./moyoParty");
 
 // Riddle Race rooms (API_SPEC.md "Rooms"): several logged-in players solve the
 // same Moku Word Riddles at the same time. A host opens a room (a 4-letter
@@ -15,6 +16,10 @@ const MokuRiddles = require("./vendor/moku-riddles");
 // joins, starts or answers first.
 //
 // Players are keyed by uid; only display names and #u tags leave the server.
+//
+// The same rooms also host Moyomoyo Multiplayer (game "moyomoyo", moyoParty.js):
+// 2–4 players, 3 games, and each player posts their board to
+// POST /rooms/{code}/state instead of answering riddles.
 
 const CODE_LETTERS = "ABCDEFGHJKMNPQRSTUVWXYZ";   // no I, L, O: easy to read out and type
 const CODE_RE = /^[A-Z]{4}$/;
@@ -24,6 +29,15 @@ const COUNTS = [5, 10];
 const MAX_OPEN_ROOMS = 10;                 // lobby/playing rooms you can be in at once (a soft cap)
 const TTL_SEC = 24 * 60 * 60;              // a day after the last change, DynamoDB deletes it
 const { RACE } = MokuRiddles;
+const GAMES = ["riddles", "moyomoyo"];
+const gameOf = (room) => room.game || "riddles";   // rooms from before "game" existed are riddle rooms
+const maxPlayers = (room) => (gameOf(room) === "moyomoyo" ? moyo.RULES.MAX_PLAYERS : MAX_PLAYERS);
+
+// lobby / playing / done / closed, for either game
+function phaseOf(room, t) {
+  if (gameOf(room) === "moyomoyo") return room.status;
+  return MokuRiddles.raceTimeline(room, t).phase;
+}
 
 function newCode() {
   let out = "";
@@ -56,8 +70,29 @@ function scores(room) {
   return s;
 }
 
-// What a player (or an invited friend) sees.
-function roomView(room, uid, t) {
+// What a player (or an invited friend) sees. states: the Moyomoyo players' rows.
+function roomView(room, uid, t, states) {
+  if (gameOf(room) === "moyomoyo") {
+    const totals = {};
+    moyo.standings(room).forEach((row) => { totals[row.uid] = row.total; });
+    return {
+      id: room.id,
+      key: room.key,
+      game: "moyomoyo",
+      status: room.status,
+      you: room.players.concat(room.invited).find((p) => p.uid === uid)?.tag || null,
+      joined: isPlayer(room, uid),
+      isHost: room.host === uid,
+      players: room.players.map((p) => ({ name: p.name, tag: p.tag, host: p.uid === room.host, score: totals[p.uid] || 0 })),
+      invited: room.invited.filter((p) => !isPlayer(room, p.uid)).map((p) => ({ name: p.name, tag: p.tag })),
+      ...moyo.view(room, states, t),
+      next: room.next || null,
+      version: room.version,
+      createdAt: room.createdAt,
+      updatedAt: room.updatedAt,
+      now: t,
+    };
+  }
   const tl = MokuRiddles.raceTimeline(room, t);
   const sc = scores(room);
   const tagByUid = {};
@@ -66,6 +101,7 @@ function roomView(room, uid, t) {
   return {
     id: room.id,
     key: room.key,
+    game: "riddles",
     status: tl.phase === "done" ? "done" : room.status,
     you: room.players.concat(room.invited).find((p) => p.uid === uid)?.tag || null,
     joined: isPlayer(room, uid),
@@ -87,7 +123,10 @@ function roomView(room, uid, t) {
 }
 
 function createRoomApi(store, config) {
-  const { authSecret, now = () => Date.now(), newKey = () => crypto.randomBytes(8).toString("hex"), code = newCode, pick = pickRiddles } = config;
+  const {
+    authSecret, now = () => Date.now(), newKey = () => crypto.randomBytes(8).toString("hex"), code = newCode, pick = pickRiddles,
+    newSeed = () => crypto.randomBytes(4).toString("hex"),
+  } = config;
   if (!authSecret || authSecret.length < 32) {
     throw new Error("AUTH_SECRET must be at least 32 characters");
   }
@@ -120,7 +159,7 @@ function createRoomApi(store, config) {
       const room = await load(row.roomId);
       if (!room || room.key !== row.key) continue;
       if (!(isPlayer(room, uid) || isInvited(room, uid))) continue;
-      const phase = MokuRiddles.raceTimeline(room, t).phase;
+      const phase = phaseOf(room, t);
       if (phase === "closed" || phase === "done") continue;
       out.push(room);
     }
@@ -149,15 +188,17 @@ function createRoomApi(store, config) {
     return { error: err(409, "busy", "Lots happening! Try again.") };
   }
 
-  async function newRoom(host, count, players) {
+  async function newRoom(host, game, count, players) {
     const t = now();
     for (let i = 0; i < 8; i++) {
       const room = {
         id: code(),
         key: newKey(),
+        game,
         host: host.uid,
         status: "lobby",
         count,
+        ...(game === "moyomoyo" ? moyo.newRoomFields() : {}),
         players,
         invited: [],
         riddles: [],
@@ -179,19 +220,24 @@ function createRoomApi(store, config) {
   }
 
   async function create(user, body) {
-    const count = body.count === undefined ? 5 : body.count;
-    if (!COUNTS.includes(count)) return err(400, "invalid_count", "Choose 5 or 10 riddles.");
+    const game = body.game === undefined ? "riddles" : body.game;
+    if (!GAMES.includes(game)) return err(400, "invalid_game", "That game can't be played in a room.");
+    const count = game === "moyomoyo" ? moyo.RULES.ROUNDS : body.count === undefined ? 5 : body.count;
+    if (game === "riddles" && !COUNTS.includes(count)) return err(400, "invalid_count", "Choose 5 or 10 riddles.");
     if ((await openRooms(user.uid)).filter((r) => isPlayer(r, user.uid)).length >= MAX_OPEN_ROOMS) {
-      return err(409, "too_many_rooms", "Finish a race before opening a new room.");
+      return err(409, "too_many_rooms", "Finish a game before opening a new room.");
     }
-    const room = await newRoom(user, count, [seat(user)]);
-    return json(201, { room: roomView(room, user.uid, now()) });
+    const room = await newRoom(user, game, count, [seat(user)]);
+    return json(201, { room: roomView(room, user.uid, now(), {}) });
   }
 
-  // Rooms you are in or were invited to that haven't finished.
-  async function list(user) {
+  // Rooms you are in or were invited to that haven't finished, for one game
+  // (?game=, riddles when left out — the Riddle Race page doesn't send it).
+  async function list(user, query) {
+    const game = (query && query.game) || "riddles";
+    if (!GAMES.includes(game)) return err(400, "invalid_game", "That game can't be played in a room.");
     const t = now();
-    const rooms = (await openRooms(user.uid)).map((r) => roomView(r, user.uid, t));
+    const rooms = (await openRooms(user.uid)).filter((r) => gameOf(r) === game).map((r) => roomView(r, user.uid, t, {}));
     rooms.sort((a, b) => (a.joined === b.joined ? (b.updatedAt || "").localeCompare(a.updatedAt || "") : a.joined ? 1 : -1));
     return json(200, { rooms, invites: rooms.filter((r) => !r.joined && r.status === "lobby").length, now: t });
   }
@@ -199,21 +245,65 @@ function createRoomApi(store, config) {
   async function get(user, id, query) {
     const room = await loadFor(user, id);
     if (!room) return gone();
+    if (gameOf(room) === "moyomoyo" && room.status === "playing") {
+      // A game in progress: always send everyone's boards (they change every second).
+      const states = await statesOf(room);
+      const settled = await settle(id, room, states);
+      return json(200, { changed: true, room: roomView(settled, user.uid, now(), states) });
+    }
     const t = now();
     if (query && query.v !== undefined && String(room.version) === String(query.v)) return json(200, { changed: false, now: t });
-    return json(200, { changed: true, room: roomView(room, user.uid, t) });
+    const states = gameOf(room) === "moyomoyo" && room.status === "done" ? await statesOf(room) : {};
+    return json(200, { changed: true, room: roomView(room, user.uid, t, states) });
+  }
+
+  // Moyomoyo players' rows for this room (a reused code can still have rows
+  // from the expired room before it: those have another key).
+  async function statesOf(room) {
+    const all = await store.listRoomStates(room.id), out = {};
+    Object.keys(all).forEach((uid) => { if (all[uid].key === room.key) out[uid] = all[uid]; });
+    return out;
+  }
+
+  // Moyomoyo: save the room when a game ended or the next one starts.
+  const NO_CHANGE = { noChange: true };
+  async function settle(id, room, states) {
+    const t = now();
+    if (!moyo.advance(JSON.parse(JSON.stringify(room)), states, t)) return room;
+    const res = await update(id, (r) => (moyo.advance(r, states, t) ? null : NO_CHANGE));
+    return res.room || room;
+  }
+
+  // Moyomoyo: { r, score, alive, final, board, attacks } — this player's board
+  // right now. Answers with the room and everyone's boards, so a page in a
+  // game only needs this one call each second.
+  async function postState(user, id, body) {
+    const room = await load(id);
+    if (!room || !isPlayer(room, user.uid)) return gone();
+    if (gameOf(room) !== "moyomoyo") return err(400, "wrong_game", "This room isn't a Moyomoyo room.");
+    const next = moyo.cleanState(body);
+    if (!next) return err(400, "invalid_state", "That board doesn't look right.");
+    let states = await statesOf(room);
+    if (room.status === "playing" && next.r === room.round) {
+      const t = now();
+      const row = { ...moyo.mergeState(states[user.uid], next, user.uid, t), key: room.key };
+      await store.putRoomState(id, row, room.ttl);
+      states = { ...states, [user.uid]: row };
+    }
+    const settled = await settle(id, room, states);
+    return json(200, { room: roomView(settled, user.uid, now(), states) });
   }
 
   async function join(user, id) {
     const res = await update(id, (room) => {
-      if (isPlayer(room, user.uid)) return json(200, { room: roomView(room, user.uid, now()) });
-      if (room.status !== "lobby") return err(409, "already_started", "This race already started.");
-      if (room.players.length >= MAX_PLAYERS) return err(409, "room_full", "This room is full.");
+      if (isPlayer(room, user.uid)) return json(200, { room: roomView(room, user.uid, now(), {}) });
+      if (room.status !== "lobby") return err(409, "already_started", "This game already started.");
+      if (room.players.length >= maxPlayers(room)) return err(409, "room_full", "This room is full.");
       room.players.push(seat(user));
       return null;
     }, (room) => [indexRow(user.uid, room)]);
     if (res.error) return res.error;
-    return json(200, { room: roomView(res.room, user.uid, now()) });
+    return json(200, { room: roomView(res.room, user.uid, now(), {}) });
   }
 
   async function invite(user, id, body) {
@@ -223,14 +313,14 @@ function createRoomApi(store, config) {
     const friend = found.opponent;
     const res = await update(id, (room) => {
       if (!isPlayer(room, user.uid)) return gone();
-      if (room.status !== "lobby") return err(409, "already_started", "This race already started.");
-      if (isPlayer(room, friend.uid) || isInvited(room, friend.uid)) return json(200, { room: roomView(room, user.uid, now()) });
+      if (room.status !== "lobby") return err(409, "already_started", "This game already started.");
+      if (isPlayer(room, friend.uid) || isInvited(room, friend.uid)) return json(200, { room: roomView(room, user.uid, now(), {}) });
       if (room.invited.length >= MAX_INVITES) return err(409, "too_many_invites", "That's a lot of invites! Share the room code instead.");
       room.invited.push(seat(friend));
       return null;
     }, (room) => [indexRow(friend.uid, room)]);
     if (res.error) return res.error;
-    return json(200, { room: roomView(res.room, user.uid, now()) });
+    return json(200, { room: roomView(res.room, user.uid, now(), {}) });
   }
 
   // In the lobby: leave (the host leaving closes the room). Once it started
@@ -238,7 +328,7 @@ function createRoomApi(store, config) {
   async function leave(user, id) {
     const res = await update(id, (room) => {
       if (!isPlayer(room, user.uid) && !isInvited(room, user.uid)) return gone();
-      if (room.status !== "lobby") return json(200, { room: roomView(room, user.uid, now()) });
+      if (room.status !== "lobby") return json(200, { room: roomView(room, user.uid, now(), {}) });
       if (room.host === user.uid) room.status = "closed";
       room.players = room.players.filter((p) => p.uid !== user.uid);
       room.invited = room.invited.filter((p) => p.uid !== user.uid);
@@ -251,16 +341,20 @@ function createRoomApi(store, config) {
   async function start(user, id) {
     const res = await update(id, (room) => {
       if (!isPlayer(room, user.uid)) return gone();
-      if (room.host !== user.uid) return err(403, "not_host", "Only the host can start the race.");
-      if (room.status !== "lobby") return json(200, { room: roomView(room, user.uid, now()) });
+      if (room.host !== user.uid) return err(403, "not_host", "Only the host can start the game.");
+      if (room.status !== "lobby") return json(200, { room: roomView(room, user.uid, now(), {}) });
       if (room.players.length < 2) return err(409, "need_players", "Wait for a friend to join.");
+      if (gameOf(room) === "moyomoyo") {
+        moyo.start(room, now(), newSeed);
+        return null;
+      }
       room.status = "playing";
       room.riddles = pick(room.count);
       room.startAt = now() + RACE.COUNTDOWN_MS;
       return null;
     });
     if (res.error) return res.error;
-    return json(200, { room: roomView(res.room, user.uid, now()) });
+    return json(200, { room: roomView(res.room, user.uid, now(), {}) });
   }
 
   // { q, answer }. Only the riddle on screen right now counts, and only the
@@ -271,40 +365,41 @@ function createRoomApi(store, config) {
     }
     const res = await update(id, (room) => {
       if (!isPlayer(room, user.uid)) return gone();
+      if (gameOf(room) !== "riddles") return err(400, "wrong_game", "This room isn't a Riddle Race.");
       const t = now();
       const tl = MokuRiddles.raceTimeline(room, t);
       if (tl.phase !== "question" || tl.q !== body.q) {
-        return json(200, { correct: MokuRiddles.isCorrect(room.riddles[body.q], body.answer), first: false, late: true, room: roomView(room, user.uid, t) });
+        return json(200, { correct: MokuRiddles.isCorrect(room.riddles[body.q], body.answer), first: false, late: true, room: roomView(room, user.uid, t, {}) });
       }
-      if (!MokuRiddles.isCorrect(room.riddles[body.q], body.answer)) return json(200, { correct: false, first: false, room: roomView(room, user.uid, t) });
+      if (!MokuRiddles.isCorrect(room.riddles[body.q], body.answer)) return json(200, { correct: false, first: false, room: roomView(room, user.uid, t, {}) });
       room.wins = { ...(room.wins || {}), [body.q]: { uid: user.uid, at: t } };
       return null;
     });
     if (res.error) return res.error;
-    return json(200, { correct: true, first: true, room: roomView(res.room, user.uid, now()) });
+    return json(200, { correct: true, first: true, room: roomView(res.room, user.uid, now(), {}) });
   }
 
   // After a race: the host opens a new room with the same players already in it.
   async function again(user, id) {
     const old = await loadFor(user, id);
     if (!old || !isPlayer(old, user.uid)) return gone();
-    if (old.host !== user.uid) return err(403, "not_host", "Only the host can start a new race.");
-    if (MokuRiddles.raceTimeline(old, now()).phase !== "done") return err(409, "not_done", "This race isn't over yet.");
+    if (old.host !== user.uid) return err(403, "not_host", "Only the host can start a new game.");
+    if (phaseOf(old, now()) !== "done") return err(409, "not_done", "This game isn't over yet.");
     if (old.next) {
       const existing = await load(old.next);
-      if (existing && existing.key === old.nextKey) return json(200, { room: roomView(existing, user.uid, now()) });
+      if (existing && existing.key === old.nextKey) return json(200, { room: roomView(existing, user.uid, now(), {}) });
     }
-    const room = await newRoom(user, old.count, old.players.map((p) => ({ ...p })));
+    const room = await newRoom(user, gameOf(old), old.count, old.players.map((p) => ({ ...p })));
     // Point the old room at the new one, so the friends waiting on the results move over too.
     const res = await update(id, (r) => { r.next = room.id; r.nextKey = room.key; return null; });
     if (res.error) return res.error;
-    return json(201, { room: roomView(room, user.uid, now()) });
+    return json(201, { room: roomView(room, user.uid, now(), {}) });
   }
 
   return async function handler(event) {
     const method = event.requestContext?.http?.method || "GET";
     const path = (event.rawPath || "/").replace(/\/+$/, "") || "/";
-    const one = /^\/rooms\/([^/]+)(?:\/(join|invite|leave|start|answer|again))?$/.exec(path);
+    const one = /^\/rooms\/([^/]+)(?:\/(join|invite|leave|start|answer|again|state))?$/.exec(path);
     try {
       const isList = path === "/rooms" && (method === "GET" || method === "POST");
       const isOne = one && !one[2] && method === "GET";
@@ -317,7 +412,7 @@ function createRoomApi(store, config) {
       if (!user) return err(401, "unauthorized", "Please log in again.");
 
       if (isOne) return await get(user, id, event.queryStringParameters);
-      if (isList && method === "GET") return await list(user);
+      if (isList && method === "GET") return await list(user, event.queryStringParameters);
       const body = parseBody(event);
       if (!body) return err(400, "invalid_json", "invalid JSON body");
       if (isList) return await create(user, body);
@@ -327,6 +422,7 @@ function createRoomApi(store, config) {
         case "leave": return await leave(user, id);
         case "start": return await start(user, id);
         case "answer": return await answer(user, id, body);
+        case "state": return await postState(user, id, body);
         default: return await again(user, id);
       }
     } catch (e) {

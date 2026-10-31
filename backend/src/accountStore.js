@@ -19,6 +19,7 @@ const { doc } = require("./db");
 //   pk "PLAYER#<uid>",    sk "CHAL#<id>"   that player's row in their challenge list
 //   pk "ROOM#<code>",     sk "STATE"    a Riddle Race room (roomApi.js)
 //   pk "PLAYER#<uid>",    sk "ROOM#<code>"   a room that player is in or was invited to
+//   pk "ROOM#<code>",     sk "P#<uid>"   a Moyomoyo player's board in that room (moyoParty.js)
 // (plus the log and error items further down). Match items carry `ttl`.
 
 const TABLE = process.env.ACCOUNTS_TABLE_NAME;
@@ -608,10 +609,32 @@ async function listPlayerRooms(uid) {
   return (res.Items || []).filter((i) => !i.ttl || i.ttl > t).map(({ pk, sk, ...row }) => ({ uid, ...row }));
 }
 
+// Moyomoyo Multiplayer: each player writes only their own row, so nothing to
+// condition on. A code reused after a room expired can still have old rows
+// until TTL deletes them, so each row carries the room's key (roomApi.js
+// keeps only the rows with the current room's key).
+async function putRoomState(roomId, row, ttl) {
+  await doc.send(new PutCommand({ TableName: TABLE, Item: { pk: `ROOM#${roomId}`, sk: `P#${row.uid}`, ...row, ttl } }));
+}
+
+async function listRoomStates(roomId) {
+  const res = await doc.send(
+    new QueryCommand({
+      TableName: TABLE,
+      KeyConditionExpression: "pk = :pk AND begins_with(sk, :p)",
+      ExpressionAttributeValues: { ":pk": `ROOM#${roomId}`, ":p": "P#" },
+    })
+  );
+  const t = Math.floor(Date.now() / 1000);
+  const out = {};
+  (res.Items || []).filter((i) => !i.ttl || i.ttl > t).forEach(({ pk, sk, ...row }) => { out[row.uid] = row; });
+  return out;
+}
+
 module.exports = {
   getUser, createUser, updateUser, getSave, putSave, listUsers, listSaves, deleteUser, renameUser,
   addLog, listLogs, recordError, listErrors, updateError, deleteError,
   createMatch, getMatch, saveMatch, listPlayerMatches,
   createChallenge, getChallenge, saveChallenge, listPlayerChallenges,
-  createRoom, getRoom, saveRoom, listPlayerRooms,
+  createRoom, getRoom, saveRoom, listPlayerRooms, putRoomState, listRoomStates,
 };
