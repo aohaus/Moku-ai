@@ -244,28 +244,32 @@
   @keyframes bannerPop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
   #flash { position: fixed; inset: 0; z-index: 24; pointer-events: none; opacity: 0; transition: opacity .35s; background: #FFD9C7; }
 
+  /* ジョイスティック(v1.1.1: 動かせる幅を 20% 広く、画面の端から離して、半透明に。触っている間だけ少し濃く) */
   #joy {
     position: absolute; pointer-events: auto; touch-action: none;
-    left: calc(20px + env(safe-area-inset-left, 0px)); bottom: calc(24px + env(safe-area-inset-bottom, 0px));
-    width: 136px; height: 136px; border-radius: 50%;
-    background: radial-gradient(circle, rgba(255,246,230,0.45), rgba(255,246,230,0.22));
-    border: 3px solid rgba(255,246,230,0.85); box-shadow: 0 4px 12px rgba(60,30,10,0.25);
+    left: calc(44px + env(safe-area-inset-left, 0px)); bottom: calc(48px + env(safe-area-inset-bottom, 0px));
+    width: 164px; height: 164px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,246,230,0.22), rgba(255,246,230,0.1));
+    border: 3px solid rgba(255,246,230,0.55); box-shadow: 0 4px 12px rgba(60,30,10,0.12);
     display: flex; align-items: center; justify-content: center;
+    opacity: 0.8; transition: opacity .15s;
   }
+  #joy.on { opacity: 1; }
   #knob {
-    width: 56px; height: 56px; border-radius: 50%; pointer-events: none;
+    width: 60px; height: 60px; border-radius: 50%; pointer-events: none; opacity: 0.72;
     background: radial-gradient(circle at 35% 30%, #FFD38A, var(--btn) 60%);
-    box-shadow: 0 4px 0 var(--btn-dk), 0 6px 10px rgba(60,30,10,0.3);
+    box-shadow: 0 4px 0 rgba(184,116,26,0.8), 0 6px 10px rgba(60,30,10,0.2);
   }
+  #joy.on #knob { opacity: 0.88; }
   #camTip {
     position: absolute; right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(18px + env(safe-area-inset-bottom, 0px));
     font-size: 12px; font-weight: 600; color: #FFF6E6; text-shadow: 0 1px 3px rgba(60,30,10,0.8); text-align: right; line-height: 1.35;
   }
-  @media (hover: hover) and (pointer: fine) { #joy { width: 112px; height: 112px; opacity: .8; } #knob { width: 46px; height: 46px; } }
+  @media (hover: hover) and (pointer: fine) { #joy { width: 134px; height: 134px; } #knob { width: 50px; height: 50px; } }
   @media (max-height: 460px) {
     #depth { height: 46vh; }
-    #joy { width: 112px; height: 112px; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
-    #knob { width: 46px; height: 46px; }
+    #joy { width: 134px; height: 134px; left: calc(32px + env(safe-area-inset-left, 0px)); bottom: calc(28px + env(safe-area-inset-bottom, 0px)); }
+    #knob { width: 50px; height: 50px; }
     #hint { top: 30%; font-size: 13.5px; }
     #titleHero { width: min(120px, 30vw, 26vh); }
     #title { padding-top: calc(env(safe-area-inset-top, 0px) + 30px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); }
@@ -284,7 +288,7 @@
 
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v1.1.0 · Updated Oct 31, 2026</div>
+<div id="buildInfo">v1.1.1 · Updated Oct 31, 2026</div>
 
 <!-- Title -->
 <div id="title">
@@ -1047,9 +1051,9 @@
     const d = Math.hypot(dx, dy); if (d > R) { dx *= R / d; dy *= R / d; }
     jx = dx / R; jz = dy / R; knob.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
   }
-  joy.addEventListener('pointerdown', e => { jid = e.pointerId; try { joy.setPointerCapture(jid); } catch (er) {} joyMove(e); e.preventDefault(); });
+  joy.addEventListener('pointerdown', e => { jid = e.pointerId; joy.classList.add('on'); try { joy.setPointerCapture(jid); } catch (er) {} joyMove(e); e.preventDefault(); });
   joy.addEventListener('pointermove', e => { if (e.pointerId === jid) joyMove(e); });
-  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(k => joy.addEventListener(k, e => { if (e.pointerId !== jid) return; jid = null; jx = jz = 0; knob.style.transform = ''; }));
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(k => joy.addEventListener(k, e => { if (e.pointerId !== jid) return; jid = null; jx = jz = 0; knob.style.transform = ''; joy.classList.remove('on'); }));
 
   let yaw = 0, pitch = 1.1, dist = 10, fallBlend = 0;
   const pts = new Map(); let lastTap = 0;
