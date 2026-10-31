@@ -362,7 +362,7 @@ body:not(.on-title) #buildInfo { display: none; }
 </svg>
 <div id="title-frame"></div>
 <a id="hub-link" href="index.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.2.1 · Updated Oct 30, 2026</div>
+<div id="buildInfo">v0.2.2 · Updated Oct 31, 2026</div>
 
 <section id="titleScreen" class="screen on">
   <div id="titleArt">
@@ -2416,6 +2416,19 @@ body:not(.on-title) #buildInfo { display: none; }
   // 画面
   // ================================================================
   var screen = 'title';
+  // Deep link from the hub's Invites (SPEC.md §7): ?match=<id> opens that friend game.
+  // The page opens straight into it, then drops the query so a reload doesn't repeat it.
+  (function () {
+    function go() {
+      var v = new URLSearchParams(location.search).get('match');
+      if (!v || !/^[0-9a-z]{6,40}$/i.test(v)) return;
+      history.replaceState(null, '', location.pathname + location.hash);
+      if (!onlineReady()) return;
+      showScreen('friends');
+      openMatch(v);
+    }
+    if (document.readyState === 'complete') setTimeout(go, 0); else window.addEventListener('load', go);
+  })();
   function showScreen(name) {
     screen = name;
     $('titleScreen').classList.toggle('on', name === 'title');

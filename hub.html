@@ -728,6 +728,55 @@ body[data-band="morning"] #starsLayer { --star-opacity: 0.15; }
 }
 
 /* Continue: the most recently opened games (moku:played:<card> timestamps). */
+/* Invites (SPEC.md §7): friends waiting for you in a multiplayer game. Top of the hub. */
+#invitesList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+.invite-card {
+  --hi: #888;
+  --lo: #444;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px 10px 10px;
+  border-radius: 18px;
+  background: linear-gradient(120deg, rgba(255,255,255,0.09), rgba(255,255,255,0.04));
+  border: 1px solid rgba(255,255,255,0.14);
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.05), inset 3px 0 0 var(--hi);
+  color: inherit;
+  text-decoration: none;
+  transition: background .18s ease, transform .18s ease;
+}
+.invite-card:hover, .invite-card:focus-visible { background: rgba(255,255,255,0.12); transform: translateY(-2px); }
+.invite-card:focus-visible { outline: 2px solid #EDEEF6; outline-offset: 3px; }
+.inv-who { position: relative; flex: none; width: 52px; height: 52px; }
+.inv-who .mm-doll { width: 46px; }
+.inv-who .game-icon {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 24px;
+  height: 24px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(255,255,255,0.25);
+}
+.inv-who .game-icon::after { display: none; }
+.inv-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.inv-title { font-size: 14.5px; font-weight: 800; line-height: 1.3; }
+.inv-title b { color: #FFFFFF; font-weight: 900; }
+.inv-sub { font-size: 12.5px; font-weight: 600; color: rgba(237,238,246,0.66); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.inv-go {
+  flex: none;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--hi);
+  color: #10111A;
+  font-size: 13.5px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+.inv-more { font-size: 12.5px; font-weight: 700; color: rgba(237,238,246,0.6); }
 #continueList {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -1720,6 +1769,12 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
       <span id="clock">--:--</span>
     </div>
   </div>
+
+  <section class="game-section" id="invitesSection" aria-labelledby="invitesHead" hidden>
+    <div class="section-head"><h2 id="invitesHead">📬 Invites</h2><span class="section-sub" id="invitesSub">Friends are waiting for you!</span></div>
+    <div id="invitesList" aria-live="polite"></div>
+    <div class="inv-more" id="invitesMore" hidden></div>
+  </section>
 
   <section id="todayPick" aria-label="Today's pick">
     <img class="pick-shot" id="pickShot" src="screenshots/moku-fight.jpg" alt="">
@@ -4292,5 +4347,178 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
 <script src="shared/moku-account.js?v=20261031c"></script>
 <script src="shared/moku-transfer.js?v=20261031c"></script>
 <script src="shared/moku-moint.js?v=20261031c"></script>
+<script>
+// ---------- Invites (SPEC.md §7) ----------
+// Friends waiting for you in a multiplayer game, at the top of the hub:
+// room invites (Moku Wolf / Moyomoyo / Riddle Race lobbies you were invited
+// to but haven't joined), friend challenges you haven't played yet (Moku
+// Bridge), and online games where it's your move (Moku Chess). Each card
+// links straight into it (?join= / ?challenge= / ?match=, handled by the
+// game page). Logged-in players only; any request that fails is just left out.
+(function () {
+  'use strict';
+  var GAMES = {
+    'wolf':           { card: 'mw',  name: 'Moku Wolf',         page: 'moku-wolf.html',         icon: 'moku-wolf',         hi: '#9B6CD9', lo: '#3B1F66' },
+    'moyomoyo':       { card: 'mm',  name: 'Moyomoyo',          page: 'moyomoyo.html',          icon: 'moyomoyo',          hi: '#E98FC7', lo: '#7A3D63' },
+    'riddles':        { card: 'mwr', name: 'Riddle Race',       page: 'moku-word-riddles.html', icon: 'moku-word-riddles', hi: '#C4D04A', lo: '#56601A' },
+    'moku-bridge':    { card: 'mbr', name: 'Moku Bridge',       page: 'moku-bridge.html',       icon: 'moku-bridge',       hi: '#5ED6E8', lo: '#16596A' },
+    'moku-chess':     { card: 'mch', name: 'Moku Chess',        page: 'moku-chess.html',        icon: 'moku-chess',        hi: '#8FB3E8', lo: '#2C4A7A' }
+  };
+  var ROOM_GAMES = ['wolf', 'moyomoyo', 'riddles'];
+  var MAX_SHOWN = 4;
+  var REFRESH_MS = 60000;
+  var section = document.getElementById('invitesSection');
+  var list = document.getElementById('invitesList');
+  var more = document.getElementById('invitesMore');
+  if (!section || !list) return;
+  var MIN_GAP_MS = 10000;
+  var loading = false, timer = null, lastSig = '', lastLoad = 0, lastItems = [];
+
+  function ready() {
+    var A = window.MokuAccount;
+    return !!(A && A.isEnabled() && A.getUser() && A.getToken());
+  }
+  function api(path) {
+    var A = window.MokuAccount;
+    return fetch(A.apiBase() + path, { headers: { authorization: 'Bearer ' + A.getToken() } })
+      .then(function (res) { return res.ok ? res.json() : null; }, function () { return null; })
+      .catch(function () { return null; });
+  }
+  function outfitOf(tag) {
+    var A = window.MokuAccount, data = A && A.getPlayers && A.getPlayers();
+    var p = data && data.players && data.players.filter(function (x) { return x.tag === tag; })[0];
+    return p && p.card && p.card.outfit ? p.card.outfit : {};
+  }
+  function ago(iso) {
+    var t = Date.parse(iso || '');
+    if (isNaN(t)) return '';
+    var m = Math.max(0, Math.round((Date.now() - t) / 60000));
+    if (m < 1) return 'just now';
+    if (m < 60) return m + ' min ago';
+    var h = Math.round(m / 60);
+    if (h < 24) return h + ' h ago';
+    return Math.round(h / 24) + ' d ago';
+  }
+
+  function collect(results) {
+    var items = [];
+    ROOM_GAMES.forEach(function (g, i) {
+      var res = results[i];
+      (res && res.rooms || []).forEach(function (r) {
+        if (r.joined || r.status !== 'lobby' || (r.game && r.game !== g)) return;
+        var host = (r.players || []).filter(function (p) { return p.host; })[0] || (r.players || [])[0];
+        if (!host) return;
+        items.push({ game: g, from: host, verb: 'invited you to', go: 'Join ▶', at: r.updatedAt || r.createdAt,
+          sub: 'Room ' + r.id + ' · ' + (r.players || []).length + ' in the room',
+          href: GAMES[g].page + '?join=' + encodeURIComponent(r.id), rank: 0 });
+      });
+    });
+    var chal = results[ROOM_GAMES.length];
+    (chal && chal.challenges || []).forEach(function (c) {
+      if (c.status !== 'open' || !c.yourTurn || c.you === 'from' || !GAMES[c.game] || !c.opponent) return;
+      items.push({ game: c.game, from: c.opponent, verb: 'challenged you to', go: 'Play ▶', at: c.updatedAt || c.createdAt,
+        sub: c.theyPlayed ? 'They already crossed. Can you beat them?' : 'Same bridge for both of you',
+        href: GAMES[c.game].page + '?challenge=' + encodeURIComponent(c.id), rank: 1 });
+    });
+    var mat = results[ROOM_GAMES.length + 1];
+    (mat && mat.matches || []).forEach(function (m) {
+      if (m.status !== 'active' || !m.yourTurn || !GAMES[m.game] || !m.opponent) return;
+      items.push({ game: m.game, from: m.opponent, verb: 'is waiting in', go: 'Play ▶', at: m.updatedAt,
+        sub: "It's your move!", href: GAMES[m.game].page + '?match=' + encodeURIComponent(m.id), rank: 2 });
+    });
+    items.sort(function (a, b) { return a.rank - b.rank || (Date.parse(b.at || '') || 0) - (Date.parse(a.at || '') || 0); });
+    return items;
+  }
+
+  function card(it) {
+    var g = GAMES[it.game];
+    var a = document.createElement('a');
+    a.className = 'invite-card';
+    a.href = it.href;
+    a.setAttribute('data-play-game', g.card);
+    a.style.setProperty('--hi', g.hi);
+    a.style.setProperty('--lo', g.lo);
+    var who = document.createElement('span');
+    who.className = 'inv-who';
+    who.setAttribute('aria-hidden', 'true');
+    var svg = window.MokuMoint ? MokuMoint.outfitSVG(outfitOf(it.from.tag)) : '';
+    who.innerHTML = '<span class="mm-doll"><img src="brand/mokumoku-hero.png" alt="">' + svg + '</span>';
+    var icon = document.createElement('span');
+    icon.className = 'game-icon';
+    icon.style.setProperty('--hi', g.hi);
+    icon.style.setProperty('--lo', g.lo);
+    var img = document.createElement('img');
+    img.src = 'icons/games/' + g.icon + '.svg';
+    img.alt = '';
+    icon.appendChild(img);
+    who.appendChild(icon);
+    var text = document.createElement('span');
+    text.className = 'inv-text';
+    var title = document.createElement('span');
+    title.className = 'inv-title';
+    title.appendChild(document.createTextNode(it.from.name + ' ' + it.verb + ' '));
+    var b = document.createElement('b');
+    b.textContent = g.name;
+    title.appendChild(b);
+    var sub = document.createElement('span');
+    sub.className = 'inv-sub';
+    var when = ago(it.at);
+    sub.textContent = it.sub + (when ? ' · ' + when : '');
+    text.appendChild(title);
+    text.appendChild(sub);
+    var go = document.createElement('span');
+    go.className = 'inv-go';
+    go.textContent = it.go;
+    a.appendChild(who);
+    a.appendChild(text);
+    a.appendChild(go);
+    a.setAttribute('aria-label', it.from.name + ' ' + it.verb + ' ' + g.name + '. ' + it.sub + '. ' + it.go.replace(' ▶', ''));
+    return a;
+  }
+
+  function render(items) {
+    var sig = JSON.stringify(items.map(function (it) { return [it.href, it.sub, it.from.name]; }));
+    section.hidden = items.length === 0;
+    if (sig === lastSig) return;
+    lastSig = sig;
+    list.textContent = '';
+    items.slice(0, MAX_SHOWN).forEach(function (it) { list.appendChild(card(it)); });
+    var extra = items.length - MAX_SHOWN;
+    more.hidden = extra <= 0;
+    if (extra > 0) more.textContent = '+ ' + extra + ' more — open the game to see them all.';
+    document.getElementById('invitesSub').textContent =
+      items.length === 1 ? 'A friend is waiting for you!' : items.length + ' friends are waiting for you!';
+  }
+
+  function load(force) {
+    if (loading || document.visibilityState === 'hidden') return;
+    if (!ready()) { section.hidden = true; return; }
+    if (force !== true && Date.now() - lastLoad < MIN_GAP_MS) return;
+    loading = true;
+    lastLoad = Date.now();
+    var calls = ROOM_GAMES.map(function (g) { return api('/rooms?game=' + g); });
+    calls.push(api('/challenges'));
+    calls.push(api('/matches'));
+    Promise.all(calls).then(function (results) {
+      loading = false;
+      lastItems = collect(results);
+      render(lastItems);
+    }, function () { loading = false; });
+  }
+
+  function start() {
+    load();
+    if (!timer) timer = setInterval(function () { load(true); }, REFRESH_MS);
+  }
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') load(); });
+  window.addEventListener('focus', function () { load(); });
+  // Friends' outfits arrive a little later: redraw the cards with them.
+  window.addEventListener('moku:players', function () { lastSig = ''; render(lastItems); });
+  if (window.MokuAccount && window.MokuAccount.onStatusChange) {
+    try { window.MokuAccount.onStatusChange(function () { load(); }); } catch (e) {}
+  }
+  if (document.readyState === 'complete') setTimeout(start, 0); else window.addEventListener('load', start);
+})();
+</script>
 </body>
 </html>
