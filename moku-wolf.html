@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <script src="shared/moku-errors.js?v=20261031c"></script>
 <script src="shared/moku-gate.js?v=20261031c"></script>
+<script src="shared/moku-account.js?v=20261031c" data-mode="background"></script>
+<script src="shared/moku-moint.js?v=20261031c" data-mode="none"></script>
+<script src="shared/moku-wolf-words.js?v=20261031c"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>MokuWolf — Wordwolf Party Game</title>
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
@@ -940,6 +943,271 @@ header {
 }
 
 /* Edit Names Modal */
+/* ==================== MULTIPLAYER (rooms API) ==================== */
+.setup-start-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mp-codebox {
+  text-align: center;
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1.5px dashed var(--panel-border);
+  margin-bottom: 12px;
+}
+
+.mp-codebox small {
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-muted);
+}
+
+.mp-codebox b {
+  display: block;
+  font-size: 44px;
+  font-weight: 900;
+  letter-spacing: 0.22em;
+  padding-left: 0.22em;
+  color: #FFFFFF;
+  text-shadow: 0 0 18px var(--primary-glow);
+}
+
+.mp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mp-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.mp-row.you {
+  background: rgba(168, 85, 247, 0.2);
+  box-shadow: inset 0 0 0 1.5px rgba(192, 132, 252, 0.5);
+}
+
+.mp-row .who {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mp-row .who small {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.mp-row .tag {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--accent-gold);
+  white-space: nowrap;
+}
+
+.mp-small {
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 0;
+  background: var(--primary);
+  color: #FFFFFF;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.mp-small:disabled {
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.mp-av {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 50%;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.mp-av img, .mp-av svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.mp-note {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 6px;
+  text-align: center;
+}
+
+.mp-join {
+  display: flex;
+  gap: 8px;
+}
+
+#mpCodeInput {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(255, 255, 255, 0.22);
+  color: #FFFFFF;
+  font-family: inherit;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 0.3em;
+  text-align: center;
+  text-transform: uppercase;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+#mpCodeInput::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.mp-join .btn-secondary {
+  width: auto;
+  padding: 12px 20px;
+}
+
+.mp-link {
+  display: block;
+  margin: 6px auto 0;
+  background: none;
+  border: 0;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 8px 12px;
+}
+
+.mp-wait {
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 4px 0 8px;
+}
+
+.mp-wait:empty {
+  display: none;
+}
+
+.mp-word-box.hidden-word .secret-word-text {
+  letter-spacing: 0.2em;
+  color: var(--text-muted);
+}
+
+.mp-peek {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1.5px dashed var(--accent-gold);
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.mp-peek.show {
+  display: flex;
+}
+
+.mp-peek .e {
+  font-size: 30px;
+}
+
+.mp-choices {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  width: 100%;
+}
+
+.mp-choices .btn-vote-player {
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mp-choices .e {
+  font-size: 30px;
+}
+
+.mp-secs {
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--accent-gold);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.mp-secs:empty {
+  display: none;
+}
+
+.mp-you-line {
+  font-size: 15px;
+  font-weight: 900;
+  color: var(--accent-gold);
+}
+
+.mp-you-line:empty {
+  display: none;
+}
+
+#mpToast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+  transform: translate(-50%, 20px);
+  opacity: 0;
+  max-width: 90%;
+  padding: 10px 18px;
+  border-radius: 16px;
+  background: rgba(20, 12, 36, 0.95);
+  border: 1.5px solid var(--panel-border);
+  color: #FFFFFF;
+  font-size: 14px;
+  font-weight: 800;
+  text-align: center;
+  z-index: 50;
+  pointer-events: none;
+  transition: all 0.25s ease;
+}
+
+#mpToast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
 #namesModal {
   display: none;
   position: fixed;
@@ -1117,11 +1385,16 @@ header {
       </div>
     </div>
 
-    <!-- Start Button -->
-    <button id="btnStartGame" class="btn-primary">
-      <span>START GAME<span class="ja">ゲームスタート</span></span>
-      <span>▶</span>
-    </button>
+    <!-- Start Buttons: pass one phone around, or Multiplayer (everyone's own phone) -->
+    <div class="setup-start-btns">
+      <button id="btnStartGame" class="btn-primary">
+        <span>START GAME<span class="ja">ゲームスタート</span></span>
+        <span>▶</span>
+      </button>
+      <button id="btnOpenMp" class="btn-secondary">
+        <span>👥 MULTIPLAYER<span class="ja">みんなのスマホで遊ぶ</span></span>
+      </button>
+    </div>
   </div>
 
   <!-- ==================== SCREEN 2: PASS PHONE HANDOFF ==================== -->
@@ -1310,7 +1583,241 @@ header {
       </button>
     </div>
   </div>
+
+  <!-- ==================== MULTIPLAYER (rooms API, backend/API_SPEC.md "Moku Wolf Multiplayer") ==================== -->
+  <!-- MP 1: menu — make a room, join with a code, your rooms -->
+  <div id="screenMpMenu" class="screen">
+    <div>
+      <div class="setup-hero">
+        <div class="hero-mascot">📱🐺📱</div>
+        <h1 class="hero-title">Multiplayer<span class="ja">みんなのスマホで遊ぶ</span></h1>
+        <p class="hero-desc">3–10 players, each on their own phone!<span class="ja">3〜10人。ひとり1台のスマホで遊ぼう！</span></p>
+      </div>
+      <div class="panel" style="margin-bottom: 12px;">
+        <button id="btnMpMake" class="btn-primary">
+          <span>MAKE A ROOM<span class="ja">へやをつくる</span></span>
+          <span>▶</span>
+        </button>
+        <div class="setting-label-row" style="margin: 18px 0 8px;">
+          <span class="setting-label">🔑 Join with a Code・コードで入る</span>
+        </div>
+        <div class="mp-join">
+          <input id="mpCodeInput" maxlength="4" placeholder="CODE" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Room code">
+          <button id="btnMpJoin" class="btn-secondary">Join・入る</button>
+        </div>
+        <div class="setting-label-row" style="margin: 18px 0 8px;">
+          <span class="setting-label">🚪 Your Rooms・あなたのへや</span>
+        </div>
+        <div id="mpRooms" class="mp-list"></div>
+      </div>
+    </div>
+    <button id="btnMpMenuBack" class="btn-secondary">
+      <span>◀ Back<span class="ja">もどる</span></span>
+    </button>
+  </div>
+
+  <!-- MP 2: lobby — the code, players, the host's settings, invites -->
+  <div id="screenMpLobby" class="screen">
+    <div>
+      <div class="mp-codebox">
+        <small id="mpLobbyHint">Tell your friends this code!</small>
+        <b id="mpLobbyCode">----</b>
+      </div>
+      <div class="panel" style="margin-bottom: 12px;">
+        <div class="setting-label-row" style="margin-bottom: 8px;">
+          <span class="setting-label" id="mpLobbyTitle">👥 Players・プレイヤー</span>
+        </div>
+        <div id="mpPlayers" class="mp-list"></div>
+      </div>
+      <div class="panel" id="mpSettingsPanel" style="margin-bottom: 12px;">
+        <div class="setting-row">
+          <div class="setting-label-row"><span class="setting-label">🎯 Topic・お題</span></div>
+          <div class="pill-grid" id="mpTopicGrid" style="grid-template-columns: repeat(3, 1fr);"></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-label-row"><span class="setting-label">🐺 WordMoku・ワードモク</span></div>
+          <div class="pill-grid" id="mpWolfGrid"></div>
+        </div>
+        <div class="setting-row" style="margin-bottom: 0;">
+          <div class="setting-label-row"><span class="setting-label">⏱️ Talk Time・はなしあいの時間</span></div>
+          <div class="pill-grid" id="mpMinutesGrid"></div>
+        </div>
+      </div>
+      <div class="panel" id="mpInvitePanel" style="margin-bottom: 12px;">
+        <div class="setting-label-row" style="margin-bottom: 8px;">
+          <span class="setting-label">📨 Invite Friends・友だちをさそう</span>
+        </div>
+        <div id="mpInvites" class="mp-list"></div>
+      </div>
+    </div>
+    <div>
+      <p class="mp-wait" id="mpLobbyWait"></p>
+      <button id="btnMpStart" class="btn-primary">
+        <span id="mpStartLabel">START<span class="ja">スタート</span></span>
+        <span>▶</span>
+      </button>
+      <button id="btnMpLeave" class="mp-link">Leave Room・へやを出る</button>
+    </div>
+  </div>
+
+  <!-- MP 3: your secret word (only on your phone) + who is ready -->
+  <div id="screenMpWord" class="screen">
+    <div class="pass-screen-wrap" style="gap: 14px;">
+      <div class="secret-card">
+        <div class="secret-eyebrow">YOUR SECRET WORD<span class="ja">あなたのひみつの言葉</span></div>
+        <div class="secret-word-box mp-word-box" id="mpWordBox">
+          <div class="secret-word-emoji" id="mpWordEmoji">🤫</div>
+          <div class="secret-word-text" id="mpWordText">? ? ?</div>
+        </div>
+        <p class="secret-tip">
+          🤫 Don't show anyone!<br>
+          When everyone is ready, the talk starts.
+          <span class="ja" style="margin-top: 6px;">だれにも見せないでね！みんながおぼえたら、はなしあいがはじまるよ。</span>
+        </p>
+      </div>
+      <button id="btnMpReveal" class="btn-reveal-card">
+        <span id="mpRevealLabel">👀 TAP TO SEE YOUR WORD<span class="ja">タップして言葉を見る</span></span>
+      </button>
+      <button id="btnMpReady" class="btn-hide-word">
+        <span>✅ OK, I Remember!<span class="ja">おぼえた！</span></span>
+      </button>
+      <div class="panel" style="width: 100%;">
+        <div class="setting-label-row" style="margin-bottom: 8px;">
+          <span class="setting-label" id="mpReadyTitle">⏳ Ready?・じゅんびOK？</span>
+        </div>
+        <div id="mpReadyList" class="mp-list"></div>
+        <button id="btnMpSkipCheck" class="mp-link">⏩ Don't wait — start the talk・またずにスタート</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MP 4: talk — the same timer on every phone -->
+  <div id="screenMpTalk" class="screen">
+    <div>
+      <div class="talk-header-info">
+        <span class="phase-pill">🗣️ TALK TIME・はなしあい</span>
+        <span class="topic-pill-small" id="mpTalkTopic">🍕 Food・食べもの</span>
+      </div>
+      <div class="timer-container">
+        <div class="timer-circle-wrap">
+          <svg class="timer-svg" viewBox="0 0 190 190">
+            <defs>
+              <linearGradient id="mpTimerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#34D399" />
+                <stop offset="60%" stop-color="#A855F7" />
+                <stop offset="100%" stop-color="#EC4899" />
+              </linearGradient>
+            </defs>
+            <circle class="timer-track" cx="95" cy="95" r="85" />
+            <circle id="mpTimerBar" class="timer-bar" cx="95" cy="95" r="85" />
+          </svg>
+          <div class="timer-content">
+            <div class="timer-display" id="mpTimerDisplay">3:00</div>
+            <div class="timer-sublabel" id="mpTimerLabel">DISCUSS<span class="ja">はなしあい</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="hint-roulette-panel">
+        <div class="hint-header">
+          <span class="hint-title">💡 Need an Idea to Ask?<span class="ja">しつもんのヒント</span></span>
+          <button id="btnMpRollHint" class="btn-hint-roll">🎲 New Question<span class="ja">つぎの質問</span></button>
+        </div>
+        <div class="hint-question-box" id="mpHintBox"></div>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+      <div class="mp-peek" id="mpPeekBox"><span class="e" id="mpPeekEmoji"></span><span id="mpPeekText"></span></div>
+      <button id="btnMpPeek" class="btn-secondary">
+        <span>👀 My Word<span class="ja">自分の言葉を見る</span></span>
+      </button>
+      <button id="btnMpVoteNow" class="btn-primary" style="background: linear-gradient(135deg, #E11D48, #9333EA);">
+        <span>🗳️ TIME TO VOTE!<span class="ja">とうひょうへ！</span></span>
+        <span>👉</span>
+      </button>
+      <p class="mp-wait" id="mpTalkWait"></p>
+    </div>
+  </div>
+
+  <!-- MP 5: vote on your own phone -->
+  <div id="screenMpVote" class="screen">
+    <div class="vote-panel">
+      <div class="point-countdown-box">
+        <div style="font-size: 14px; font-weight: 800; text-transform: uppercase; color: #FDA4AF; letter-spacing: 1px;">WHO IS THE WORDMOKU?<span class="ja">ワードモクはだれ？</span></div>
+        <div class="point-big-num" id="mpVoteSecs">60</div>
+        <div class="point-instruct" id="mpVoteInfo">Tap a player to vote!</div>
+      </div>
+      <div class="players-vote-grid" id="mpVoteGrid"></div>
+    </div>
+    <div>
+      <p class="mp-wait" id="mpVoteWait"></p>
+      <button id="btnMpCountNow" class="btn-secondary">
+        <span>📊 Count the Votes Now<span class="ja">いますぐ開票</span></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- MP 6: a caught WordMoku picks the Citizens' word -->
+  <div id="screenMpGuess" class="screen">
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      <div class="result-box">
+        <div class="result-emoji">🐺</div>
+        <div class="result-title" id="mpGuessTitle"></div>
+        <p class="result-sub" id="mpGuessSub"></p>
+        <div class="mp-secs" id="mpGuessSecs"></div>
+      </div>
+      <div class="mp-choices" id="mpChoices"></div>
+    </div>
+    <div>
+      <button id="btnMpSkipGuess" class="mp-link">⏩ Skip・スキップ</button>
+    </div>
+  </div>
+
+  <!-- MP 7: result — words, votes, winner -->
+  <div id="screenMpResult" class="screen">
+    <div style="display: flex; flex-direction: column; gap: 14px; flex: 1;">
+      <div class="result-box">
+        <div class="result-emoji" id="mpResEmoji">🐺</div>
+        <div class="result-title" id="mpResTitle"></div>
+        <p class="result-sub" id="mpResSub"></p>
+        <div class="mp-you-line" id="mpResYou"></div>
+      </div>
+      <div class="words-summary-card">
+        <div style="font-size: 12px; font-weight: 800; letter-spacing: 0.8px; color: #A78BFA; text-transform: uppercase;">
+          📖 Word Breakdown・言葉のこたえあわせ
+        </div>
+        <div class="word-row is-citizen">
+          <div>
+            <div class="word-role-tag role-citizen">Citizens・市民(多数派)</div>
+            <div class="word-name" id="mpResCitizenWord"></div>
+          </div>
+          <div class="word-players" id="mpResCitizens"></div>
+        </div>
+        <div class="word-row is-wolf">
+          <div>
+            <div class="word-role-tag role-wolf">WordMoku・ワードモク(少数派)</div>
+            <div class="word-name" id="mpResWolfWord"></div>
+          </div>
+          <div class="word-players" id="mpResWolves"></div>
+        </div>
+        <div style="font-size: 12px; font-weight: 800; letter-spacing: 0.8px; color: #A78BFA; text-transform: uppercase; margin-top: 4px;">
+          🗳️ Votes・とうひょう
+        </div>
+        <div id="mpResVotes" class="mp-list"></div>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+      <p class="mp-wait" id="mpResWait"></p>
+      <button id="btnMpAgain" class="btn-primary">
+        <span>⚡ PLAY AGAIN (Same Players)<span class="ja">同じメンバーでもう一回</span></span>
+      </button>
+      <button id="btnMpResMenu" class="btn-secondary">
+        <span>🏠 Multiplayer Menu<span class="ja">メニューへ</span></span>
+      </button>
+    </div>
+  </div>
 </div>
+
+<div id="mpToast" aria-live="polite"></div>
 
 <!-- ==================== EDIT NAMES MODAL ==================== -->
 <div id="namesModal">
@@ -1445,189 +1952,7 @@ header {
     }
   }
 
-  // --- WORD PAIRS DATABASE (9-Year-Old Friendly English Pairs, j1/j2 = Japanese) ---
-  var WORD_PAIRS = {
-    food: [
-      { w1: "Pizza", j1: "ピザ", e1: "🍕", w2: "Hamburger", j2: "ハンバーガー", e2: "🍔" },
-      { w1: "Apple", j1: "りんご", e1: "🍎", w2: "Peach", j2: "もも", e2: "🍑" },
-      { w1: "Ice Cream", j1: "アイスクリーム", e1: "🍦", w2: "Frozen Yogurt", j2: "フローズンヨーグルト", e2: "🍧" },
-      { w1: "Hot Dog", j1: "ホットドッグ", e1: "🌭", w2: "Sandwich", j2: "サンドイッチ", e2: "🥪" },
-      { w1: "Milk", j1: "ぎゅうにゅう", e1: "🥛", w2: "Orange Juice", j2: "オレンジジュース", e2: "🧃" },
-      { w1: "Chocolate", j1: "チョコレート", e1: "🍫", w2: "Cookie", j2: "クッキー", e2: "🍪" },
-      { w1: "French Fries", j1: "フライドポテト", e1: "🍟", w2: "Potato Chips", j2: "ポテトチップス", e2: "🥔" },
-      { w1: "Pancake", j1: "パンケーキ", e1: "🥞", w2: "Waffle", j2: "ワッフル", e2: "🧇" },
-      { w1: "Donut", j1: "ドーナツ", e1: "🍩", w2: "Bagel", j2: "ベーグル", e2: "🥯" },
-      { w1: "Strawberry", j1: "いちご", e1: "🍓", w2: "Cherry", j2: "さくらんぼ", e2: "🍒" },
-      { w1: "Popcorn", j1: "ポップコーン", e1: "🍿", w2: "Nachos", j2: "ナチョス", e2: "🧀" },
-      { w1: "Watermelon", j1: "すいか", e1: "🍉", w2: "Melon", j2: "メロン", e2: "🍈" },
-      { w1: "Ramen", j1: "ラーメン", e1: "🍜", w2: "Spaghetti", j2: "スパゲッティ", e2: "🍝" },
-      { w1: "Cheese", j1: "チーズ", e1: "🧀", w2: "Butter", j2: "バター", e2: "🧈" },
-      { w1: "Cupcake", j1: "カップケーキ", e1: "🧁", w2: "Muffin", j2: "マフィン", e2: "🧁" },
-      { w1: "Lemonade", j1: "レモネード", e1: "🍋", w2: "Iced Tea", j2: "アイスティー", e2: "🧋" },
-      { w1: "Taco", j1: "タコス", e1: "🌮", w2: "Burrito", j2: "ブリトー", e2: "🌯" },
-      { w1: "Fried Chicken", j1: "からあげ", e1: "🍗", w2: "Chicken Nuggets", j2: "チキンナゲット", e2: "🍗" },
-      { w1: "Banana", j1: "バナナ", e1: "🍌", w2: "Mango", j2: "マンゴー", e2: "🥭" },
-      { w1: "Rice Ball (Onigiri)", j1: "おにぎり", e1: "🍙", w2: "Bread", j2: "パン", e2: "🍞" },
-      { w1: "Sushi", j1: "おすし", e1: "🍣", w2: "Rice Bowl", j2: "どんぶり", e2: "🍚" },
-      { w1: "Grapes", j1: "ぶどう", e1: "🍇", w2: "Blueberries", j2: "ブルーベリー", e2: "🫐" },
-      { w1: "Orange", j1: "オレンジ", e1: "🍊", w2: "Lemon", j2: "レモン", e2: "🍋" },
-      { w1: "Cake", j1: "ケーキ", e1: "🎂", w2: "Pie", j2: "パイ", e2: "🥧" },
-      { w1: "Curry Rice", j1: "カレーライス", e1: "🍛", w2: "Stew", j2: "シチュー", e2: "🫕" },
-      { w1: "Dumplings", j1: "ぎょうざ", e1: "🥟", w2: "Spring Rolls", j2: "はるまき", e2: "🥢" },
-      { w1: "Boiled Egg", j1: "ゆでたまご", e1: "🥚", w2: "Omelet", j2: "オムレツ", e2: "🍳" },
-      { w1: "Carrot", j1: "にんじん", e1: "🥕", w2: "Corn", j2: "とうもろこし", e2: "🌽" },
-      { w1: "Tomato", j1: "トマト", e1: "🍅", w2: "Bell Pepper", j2: "ピーマン", e2: "🫑" },
-      { w1: "Coffee", j1: "コーヒー", e1: "☕", w2: "Green Tea", j2: "りょくちゃ", e2: "🍵" },
-      { w1: "Soda", j1: "ソーダ", e1: "🥤", w2: "Sparkling Water", j2: "たんさん水", e2: "💧" },
-      { w1: "Candy", j1: "あめ", e1: "🍬", w2: "Lollipop", j2: "ペロペロキャンディ", e2: "🍭" },
-      { w1: "Steak", j1: "ステーキ", e1: "🥩", w2: "Bacon", j2: "ベーコン", e2: "🥓" },
-      { w1: "Pineapple", j1: "パイナップル", e1: "🍍", w2: "Coconut", j2: "ココナッツ", e2: "🥥" },
-      { w1: "Kiwi", j1: "キウイ", e1: "🥝", w2: "Avocado", j2: "アボカド", e2: "🥑" },
-      { w1: "Salad", j1: "サラダ", e1: "🥗", w2: "Soup", j2: "スープ", e2: "🍲" },
-      { w1: "Croissant", j1: "クロワッサン", e1: "🥐", w2: "Pretzel", j2: "プレッツェル", e2: "🥨" },
-      { w1: "Honey", j1: "はちみつ", e1: "🍯", w2: "Maple Syrup", j2: "メープルシロップ", e2: "🍁" },
-      { w1: "Shrimp", j1: "エビ", e1: "🍤", w2: "Crab", j2: "カニ", e2: "🦀" },
-      { w1: "Mochi", j1: "おもち", e1: "🍡", w2: "Marshmallow", j2: "マシュマロ", e2: "☁️" }
-    ],
-    sports: [
-      { w1: "Soccer", j1: "サッカー", e1: "⚽", w2: "Basketball", j2: "バスケットボール", e2: "🏀" },
-      { w1: "Baseball", j1: "やきゅう", e1: "⚾", w2: "Cricket", j2: "クリケット", e2: "🏏" },
-      { w1: "Swimming", j1: "すいえい", e1: "🏊", w2: "Surfing", j2: "サーフィン", e2: "🏄" },
-      { w1: "Skateboarding", j1: "スケートボード", e1: "🛹", w2: "Rollerblading", j2: "インラインスケート", e2: "🛼" },
-      { w1: "Running", j1: "ランニング", e1: "🏃", w2: "Walking", j2: "さんぽ", e2: "🚶" },
-      { w1: "Tennis", j1: "テニス", e1: "🎾", w2: "Badminton", j2: "バドミントン", e2: "🏸" },
-      { w1: "Skiing", j1: "スキー", e1: "🎿", w2: "Snowboarding", j2: "スノーボード", e2: "🏂" },
-      { w1: "Dodgeball", j1: "ドッジボール", e1: "🏐", w2: "Volleyball", j2: "バレーボール", e2: "🏐" },
-      { w1: "Karate", j1: "からて", e1: "🥋", w2: "Judo", j2: "じゅうどう", e2: "🥋" },
-      { w1: "Bowling", j1: "ボウリング", e1: "🎳", w2: "Golf", j2: "ゴルフ", e2: "⛳" },
-      { w1: "Bicycle Racing", j1: "じてんしゃレース", e1: "🚴", w2: "Scooter", j2: "キックスケーター", e2: "🛴" },
-      { w1: "Table Tennis", j1: "たっきゅう", e1: "🏓", w2: "Air Hockey", j2: "エアホッケー", e2: "🏒" },
-      { w1: "Gymnastics", j1: "たいそう", e1: "🤸", w2: "Dance", j2: "ダンス", e2: "💃" },
-      { w1: "Ice Skating", j1: "アイススケート", e1: "⛸️", w2: "Roller Skating", j2: "ローラースケート", e2: "🛼" },
-      { w1: "Rock Climbing", j1: "ボルダリング", e1: "🧗", w2: "Tree Climbing", j2: "木のぼり", e2: "🌲" },
-      { w1: "Rugby", j1: "ラグビー", e1: "🏉", w2: "American Football", j2: "アメフト", e2: "🏈" },
-      { w1: "Ice Hockey", j1: "アイスホッケー", e1: "🏒", w2: "Field Hockey", j2: "フィールドホッケー", e2: "🏑" },
-      { w1: "Boxing", j1: "ボクシング", e1: "🥊", w2: "Wrestling", j2: "レスリング", e2: "🤼" },
-      { w1: "Archery", j1: "アーチェリー", e1: "🏹", w2: "Darts", j2: "ダーツ", e2: "🎯" },
-      { w1: "Scuba Diving", j1: "スキューバダイビング", e1: "🤿", w2: "Snorkeling", j2: "シュノーケリング", e2: "🐠" },
-      { w1: "Sailing", j1: "ヨット", e1: "⛵", w2: "Canoeing", j2: "カヌー", e2: "🛶" },
-      { w1: "Horse Riding", j1: "じょうば", e1: "🏇", w2: "Camel Riding", j2: "ラクダのり", e2: "🐪" },
-      { w1: "Hiking", j1: "ハイキング", e1: "🥾", w2: "Camping", j2: "キャンプ", e2: "🏕️" },
-      { w1: "Jump Rope", j1: "なわとび", e1: "🪢", w2: "Hula Hoop", j2: "フラフープ", e2: "⭕" },
-      { w1: "Marathon", j1: "マラソン", e1: "🏅", w2: "Relay Race", j2: "リレー", e2: "🏃‍♀️" },
-      { w1: "Fencing", j1: "フェンシング", e1: "🤺", w2: "Kendo", j2: "けんどう", e2: "⚔️" },
-      { w1: "Weightlifting", j1: "じゅうりょうあげ", e1: "🏋️", w2: "Push-ups", j2: "うでたてふせ", e2: "💪" },
-      { w1: "Water Polo", j1: "すいきゅう", e1: "🤽", w2: "Handball", j2: "ハンドボール", e2: "🤾" },
-      { w1: "Tag", j1: "おにごっこ", e1: "🏃‍♂️", w2: "Hide and Seek", j2: "かくれんぼ", e2: "🙈" },
-      { w1: "Sledding", j1: "そりあそび", e1: "🛷", w2: "Snowball Fight", j2: "雪がっせん", e2: "❄️" }
-    ],
-    mix: [
-      { w1: "Cat", j1: "ねこ", e1: "🐱", w2: "Dog", j2: "いぬ", e2: "🐶" },
-      { w1: "Lion", j1: "ライオン", e1: "🦁", w2: "Tiger", j2: "トラ", e2: "🐯" },
-      { w1: "Penguin", j1: "ペンギン", e1: "🐧", w2: "Polar Bear", j2: "シロクマ", e2: "🐻‍❄️" },
-      { w1: "Dolphin", j1: "イルカ", e1: "🐬", w2: "Whale", j2: "クジラ", e2: "🐳" },
-      { w1: "Rabbit", j1: "ウサギ", e1: "🐰", w2: "Hamster", j2: "ハムスター", e2: "🐹" },
-      { w1: "Bicycle", j1: "じてんしゃ", e1: "🚲", w2: "Motorcycle", j2: "バイク", e2: "🏍️" },
-      { w1: "Pencil", j1: "えんぴつ", e1: "✏️", w2: "Crayon", j2: "クレヨン", e2: "🖍️" },
-      { w1: "Backpack", j1: "リュック", e1: "🎒", w2: "Handbag", j2: "ハンドバッグ", e2: "👜" },
-      { w1: "Pillow", j1: "まくら", e1: "🛌", w2: "Cushion", j2: "クッション", e2: "🛋️" },
-      { w1: "Sun", j1: "たいよう", e1: "☀️", w2: "Moon", j2: "月", e2: "🌙" },
-      { w1: "Beach", j1: "ビーチ", e1: "🏖️", w2: "Swimming Pool", j2: "プール", e2: "🏊" },
-      { w1: "Cinema", j1: "えいがかん", e1: "🎬", w2: "Living Room TV", j2: "リビングのテレビ", e2: "📺" },
-      { w1: "Smartphone", j1: "スマホ", e1: "📱", w2: "Tablet", j2: "タブレット", e2: "💻" },
-      { w1: "Blanket", j1: "もうふ", e1: "🛏️", w2: "Jacket", j2: "ジャケット", e2: "🧥" },
-      { w1: "Airplane", j1: "ひこうき", e1: "✈️", w2: "Helicopter", j2: "ヘリコプター", e2: "🚁" },
-      { w1: "Guitar", j1: "ギター", e1: "🎸", w2: "Ukulele", j2: "ウクレレ", e2: "🪕" },
-      { w1: "Amusement Park", j1: "ゆうえんち", e1: "🎡", w2: "Playground", j2: "こうえん", e2: "🛝" },
-      { w1: "Umbrella", j1: "かさ", e1: "☂️", w2: "Raincoat", j2: "レインコート", e2: "🧥" },
-      { w1: "Glasses", j1: "めがね", e1: "👓", w2: "Sunglasses", j2: "サングラス", e2: "🕶️" },
-      { w1: "Clock", j1: "かけどけい", e1: "⏰", w2: "Watch", j2: "うでどけい", e2: "⌚" },
-      { w1: "Owl", j1: "フクロウ", e1: "🦉", w2: "Eagle", j2: "ワシ", e2: "🦅" },
-      { w1: "Frog", j1: "カエル", e1: "🐸", w2: "Turtle", j2: "カメ", e2: "🐢" },
-      { w1: "Elephant", j1: "ゾウ", e1: "🐘", w2: "Giraffe", j2: "キリン", e2: "🦒" },
-      { w1: "Monkey", j1: "サル", e1: "🐵", w2: "Gorilla", j2: "ゴリラ", e2: "🦍" },
-      { w1: "Shark", j1: "サメ", e1: "🦈", w2: "Octopus", j2: "タコ", e2: "🐙" },
-      { w1: "Butterfly", j1: "ちょうちょ", e1: "🦋", w2: "Bee", j2: "ハチ", e2: "🐝" },
-      { w1: "Train", j1: "でんしゃ", e1: "🚆", w2: "Bus", j2: "バス", e2: "🚌" },
-      { w1: "Car", j1: "くるま", e1: "🚗", w2: "Taxi", j2: "タクシー", e2: "🚕" },
-      { w1: "Rocket", j1: "ロケット", e1: "🚀", w2: "UFO", j2: "UFO", e2: "🛸" },
-      { w1: "Ruler", j1: "じょうぎ", e1: "📏", w2: "Scissors", j2: "はさみ", e2: "✂️" },
-      { w1: "Notebook", j1: "ノート", e1: "📓", w2: "Sketchbook", j2: "スケッチブック", e2: "🎨" },
-      { w1: "Rain", j1: "雨", e1: "🌧️", w2: "Snow", j2: "雪", e2: "🌨️" },
-      { w1: "Rainbow", j1: "にじ", e1: "🌈", w2: "Fireworks", j2: "はなび", e2: "🎆" },
-      { w1: "Mountain", j1: "山", e1: "⛰️", w2: "Volcano", j2: "かざん", e2: "🌋" },
-      { w1: "Piano", j1: "ピアノ", e1: "🎹", w2: "Drum", j2: "たいこ", e2: "🥁" },
-      { w1: "Robot", j1: "ロボット", e1: "🤖", w2: "Alien", j2: "うちゅう人", e2: "👽" },
-      { w1: "Balloon", j1: "ふうせん", e1: "🎈", w2: "Bubble", j2: "シャボン玉", e2: "🫧" },
-      { w1: "Castle", j1: "おしろ", e1: "🏰", w2: "Tower", j2: "タワー", e2: "🗼" },
-      { w1: "Toothbrush", j1: "はブラシ", e1: "🪥", w2: "Toothpaste", j2: "はみがきこ", e2: "🧴" },
-      { w1: "Teddy Bear", j1: "くまのぬいぐるみ", e1: "🧸", w2: "Doll", j2: "にんぎょう", e2: "🪆" }
-    ],
-    school: [
-      { w1: "Eraser", j1: "けしゴム", e1: "🧼", w2: "Pencil Sharpener", j2: "えんぴつけずり", e2: "✏️" },
-      { w1: "Glue", j1: "のり", e1: "🧴", w2: "Stapler", j2: "ホッチキス", e2: "📎" },
-      { w1: "Blackboard", j1: "こくばん", e1: "⬛", w2: "Whiteboard", j2: "ホワイトボード", e2: "⬜" },
-      { w1: "Principal", j1: "こうちょう先生", e1: "🧑‍💼", w2: "Teacher", j2: "たんにんの先生", e2: "👩‍🏫" },
-      { w1: "School Lunch", j1: "きゅうしょく", e1: "🍛", w2: "Packed Lunch", j2: "おべんとう", e2: "🍱" },
-      { w1: "Recess", j1: "休み時間", e1: "🛝", w2: "After School", j2: "ほうかご", e2: "🌇" },
-      { w1: "Library", j1: "としょしつ", e1: "📚", w2: "Music Room", j2: "おんがくしつ", e2: "🎼" },
-      { w1: "Gym", j1: "たいいくかん", e1: "🏀", w2: "Schoolyard", j2: "うんどうじょう", e2: "🏃" },
-      { w1: "Sports Day", j1: "うんどうかい", e1: "🏅", w2: "Field Trip", j2: "えんそく", e2: "🎒" },
-      { w1: "School Trip", j1: "しゅうがくりょこう", e1: "🗾", w2: "Museum Visit", j2: "はくぶつかん見学", e2: "🏛️" },
-      { w1: "Homework", j1: "しゅくだい", e1: "📝", w2: "Test", j2: "テスト", e2: "💯" },
-      { w1: "Report Card", j1: "つうしんぼ", e1: "📄", w2: "Award Certificate", j2: "しょうじょう", e2: "🏆" },
-      { w1: "Calculator", j1: "でんたく", e1: "🔢", w2: "Abacus", j2: "そろばん", e2: "🧮" },
-      { w1: "Globe", j1: "ちきゅうぎ", e1: "🌍", w2: "Map", j2: "ちず", e2: "🗺️" },
-      { w1: "Microscope", j1: "けんびきょう", e1: "🔬", w2: "Magnifying Glass", j2: "むしめがね", e2: "🔍" },
-      { w1: "Recorder", j1: "リコーダー", e1: "🎶", w2: "Melodica", j2: "けんばんハーモニカ", e2: "🎹" },
-      { w1: "Indoor Shoes", j1: "うわばき", e1: "👟", w2: "Rain Boots", j2: "ながぐつ", e2: "👢" },
-      { w1: "Name Tag", j1: "名ふだ", e1: "🏷️", w2: "Sticker", j2: "シール", e2: "⭐" },
-      { w1: "Chalk", j1: "チョーク", e1: "🖍️", w2: "Marker", j2: "マーカー", e2: "🖊️" },
-      { w1: "Lunch Duty", j1: "きゅうしょくとうばん", e1: "🥄", w2: "Cleaning Time", j2: "そうじの時間", e2: "🧹" },
-      { w1: "Class Photo", j1: "クラス写真", e1: "📸", w2: "Graduation Album", j2: "そつぎょうアルバム", e2: "📒" },
-      { w1: "School Bell", j1: "チャイム", e1: "🔔", w2: "Alarm Clock", j2: "めざましどけい", e2: "⏰" },
-      { w1: "Desk", j1: "つくえ", e1: "🗄️", w2: "Chair", j2: "いす", e2: "🪑" },
-      { w1: "Pencil Case", j1: "ふでばこ", e1: "🖋️", w2: "Pouch", j2: "ポーチ", e2: "👛" },
-      { w1: "Graduation", j1: "そつぎょうしき", e1: "🎓", w2: "Entrance Ceremony", j2: "にゅうがくしき", e2: "🌸" },
-      { w1: "Math", j1: "さんすう", e1: "➗", w2: "Science", j2: "りか", e2: "🧲" },
-      { w1: "Japanese Class", j1: "こくご", e1: "📕", w2: "English Class", j2: "えいご", e2: "🔤" },
-      { w1: "P.E.", j1: "たいいく", e1: "🤸", w2: "Art Class", j2: "ずこう", e2: "🎨" },
-      { w1: "Classroom", j1: "きょうしつ", e1: "🏫", w2: "Teachers' Room", j2: "しょくいんしつ", e2: "☕" },
-      { w1: "School Route", j1: "つうがくろ", e1: "🚸", w2: "School Bus", j2: "スクールバス", e2: "🚌" }
-    ],
-    fantasy: [
-      { w1: "Dragon", j1: "ドラゴン", e1: "🐉", w2: "Dinosaur", j2: "きょうりゅう", e2: "🦖" },
-      { w1: "Wizard", j1: "まほうつかい", e1: "🧙", w2: "Witch", j2: "まじょ", e2: "🧙‍♀️" },
-      { w1: "Ghost", j1: "おばけ", e1: "👻", w2: "Zombie", j2: "ゾンビ", e2: "🧟" },
-      { w1: "Mermaid", j1: "にんぎょ", e1: "🧜‍♀️", w2: "Fairy", j2: "ようせい", e2: "🧚" },
-      { w1: "Unicorn", j1: "ユニコーン", e1: "🦄", w2: "Pegasus", j2: "ペガサス", e2: "🐎" },
-      { w1: "Vampire", j1: "きゅうけつき", e1: "🧛", w2: "Werewolf", j2: "オオカミ男", e2: "🐺" },
-      { w1: "Pirate", j1: "かいぞく", e1: "🏴‍☠️", w2: "Ninja", j2: "にんじゃ", e2: "🥷" },
-      { w1: "Treasure Chest", j1: "たからばこ", e1: "💰", w2: "Magic Lamp", j2: "まほうのランプ", e2: "🪔" },
-      { w1: "Magic Wand", j1: "まほうのつえ", e1: "🪄", w2: "Crystal Ball", j2: "すいしょう玉", e2: "🔮" },
-      { w1: "Knight", j1: "きし", e1: "🛡️", w2: "Samurai", j2: "さむらい", e2: "⚔️" },
-      { w1: "King", j1: "王さま", e1: "👑", w2: "Prince", j2: "王子さま", e2: "🤴" },
-      { w1: "Princess", j1: "おひめさま", e1: "👸", w2: "Queen", j2: "女王さま", e2: "💎" },
-      { w1: "Superhero", j1: "スーパーヒーロー", e1: "🦸", w2: "Villain", j2: "わるもの", e2: "🦹" },
-      { w1: "Giant", j1: "きょじん", e1: "🧌", w2: "Dwarf", j2: "こびと", e2: "🍄" },
-      { w1: "Time Machine", j1: "タイムマシン", e1: "⏳", w2: "Warp Door", j2: "ワープのとびら", e2: "🚪" },
-      { w1: "Invisible Cloak", j1: "とうめいマント", e1: "🫥", w2: "Flying Shoes", j2: "空とぶくつ", e2: "🪽" },
-      { w1: "Magic Potion", j1: "まほうのくすり", e1: "🧪", w2: "Spell Book", j2: "まほうの本", e2: "📖" },
-      { w1: "Haunted House", j1: "おばけやしき", e1: "🏚️", w2: "Secret Base", j2: "ひみつきち", e2: "🛖" },
-      { w1: "Mummy", j1: "ミイラ", e1: "⚰️", w2: "Skeleton", j2: "ガイコツ", e2: "💀" },
-      { w1: "Santa Claus", j1: "サンタクロース", e1: "🎅", w2: "Snowman", j2: "ゆきだるま", e2: "⛄" },
-      { w1: "Monster", j1: "かいじゅう", e1: "👾", w2: "Giant Robot", j2: "きょだいロボ", e2: "🦾" },
-      { w1: "Oni", j1: "おに", e1: "👹", w2: "Kappa", j2: "かっぱ", e2: "🥒" },
-      { w1: "Treasure Map", j1: "たからのちず", e1: "📜", w2: "Secret Code", j2: "あんごう", e2: "🔐" },
-      { w1: "Phoenix", j1: "フェニックス", e1: "🪶", w2: "Griffin", j2: "グリフォン", e2: "🦅" },
-      { w1: "Shooting Star", j1: "ながれ星", e1: "🌠", w2: "Magic Mirror", j2: "まほうのかがみ", e2: "🪞" },
-      { w1: "Ice Magic", j1: "こおりのまほう", e1: "❄️", w2: "Fire Magic", j2: "ほのおのまほう", e2: "🔥" },
-      { w1: "Cinderella", j1: "シンデレラ", e1: "👠", w2: "Snow White", j2: "しらゆきひめ", e2: "🍎" },
-      { w1: "Momotaro", j1: "ももたろう", e1: "🍑", w2: "Urashima Taro", j2: "うらしまたろう", e2: "🐢" },
-      { w1: "Little Red Riding Hood", j1: "赤ずきん", e1: "🧺", w2: "Three Little Pigs", j2: "三びきのこぶた", e2: "🐷" },
-      { w1: "Jack and the Beanstalk", j1: "ジャックと豆の木", e1: "🌱", w2: "Pinocchio", j2: "ピノキオ", e2: "🤥" }
-    ]
-  };
+  // --- WORD PAIRS: shared/moku-wolf-words.js (MokuWolfWords, also used by the Multiplayer server) ---
 
   // --- HINT QUESTIONS (Fun, accessible for 9-year-olds) ---
   var HINT_QUESTIONS = [
@@ -1747,7 +2072,7 @@ header {
 
   // --- SCREEN SWITCHING ---
   function showScreen(screen) {
-    [screenSetup, screenPass, screenReveal, screenTalk, screenVote, screenResult].forEach(function(s) {
+    document.querySelectorAll('#app > .screen').forEach(function(s) {
       s.classList.remove('active');
     });
     screen.classList.add('active');
@@ -1898,12 +2223,7 @@ header {
 
   // Mix draws from every topic's pairs
   function getTopicPool(topic) {
-    if (topic === 'mix') {
-      return Object.keys(WORD_PAIRS).reduce(function(all, key) {
-        return all.concat(WORD_PAIRS[key]);
-      }, []);
-    }
-    return WORD_PAIRS[topic] || WORD_PAIRS.food;
+    return MokuWolfWords.pool(topic);
   }
 
   // Show the number of word pairs under each topic name, e.g. "(40問)"
@@ -2242,6 +2562,643 @@ header {
   document.getElementById('btnChangeSettings').addEventListener('click', function() {
     playSound('tap');
     showScreen(screenSetup);
+  });
+
+  // ==================== MULTIPLAYER (rooms API) ====================
+  // backend/API_SPEC.md "Moku Wolf Multiplayer", backend/src/wolfParty.js.
+  // 3–10 friends, each on their own phone. The host makes a room and shares the
+  // 4-letter code. The server deals every phone its own secret word (no phone
+  // ever gets anyone else's word until the end). Each player looks at theirs
+  // and taps "I remember!"; when everyone has, the same talk timer starts on
+  // every phone. Then everyone votes on their own phone; a caught WordMoku can
+  // still steal the win by picking the Citizens' word from 4 choices.
+  // The page polls GET /rooms/{code}?v= (1 s in a game, 2 s in the lobby, 3 s after).
+  var MP_POLL_GAME = 1000;
+  var MP_POLL_LOBBY = 2000;
+  var MP_POLL_DONE = 3000;
+  var MP_MINUTES = [1, 2, 3, 5];
+  var MP_MAX_PLAYERS = 10;
+  var MP_MIN_PLAYERS = 3;
+  var mp = null;   // { id, key, room, offset, timer, busy, sig, stage, revealed, peek, settings, recorded, movingNext, lastTick }
+  var mpUiTimer = null;
+
+  var screenMpMenu = document.getElementById('screenMpMenu');
+  var screenMpLobby = document.getElementById('screenMpLobby');
+  var screenMpWord = document.getElementById('screenMpWord');
+  var screenMpTalk = document.getElementById('screenMpTalk');
+  var screenMpVote = document.getElementById('screenMpVote');
+  var screenMpGuess = document.getElementById('screenMpGuess');
+  var screenMpResult = document.getElementById('screenMpResult');
+
+  function $(id) { return document.getElementById(id); }
+
+  function mpReady() {
+    var A = window.MokuAccount;
+    return !!(A && A.isEnabled() && A.getUser());
+  }
+
+  var mpToastTimer = null;
+  function mpToast(text) {
+    var el = $('mpToast');
+    el.textContent = text;
+    el.classList.add('show');
+    clearTimeout(mpToastTimer);
+    mpToastTimer = setTimeout(function() { el.classList.remove('show'); }, 2600);
+  }
+
+  // Rejects with { code, status }; code 'offline' when the request never got through.
+  function mpApi(method, path, data) {
+    var A = window.MokuAccount;
+    var headers = { authorization: 'Bearer ' + A.getToken() };
+    if (data) headers['content-type'] = 'application/json';
+    return fetch(A.apiBase() + path, { method: method, headers: headers, body: data ? JSON.stringify(data) : undefined })
+      .then(function(res) {
+        return res.json().catch(function() { return {}; }).then(function(d) {
+          if (res.ok) return d;
+          var e = new Error(d.message || 'Something went wrong.');
+          e.code = d.error || 'http_' + res.status;
+          e.status = res.status;
+          throw e;
+        });
+      }, function() {
+        var e = new Error("You're offline.");
+        e.code = 'offline';
+        throw e;
+      });
+  }
+
+  function mpErrText(e) {
+    if (e.code === 'offline') return "You're offline. Try again soon.";
+    // A server from before Moku Wolf Multiplayer
+    if ((e.status === 404 && e.code === 'not_found') || e.code === 'invalid_game') return 'Multiplayer is coming soon!';
+    return e.message;
+  }
+
+  function mpNow() { return Date.now() + (mp ? mp.offset : 0); }
+
+  function mpEsc(s) {
+    return String(s).replace(/[&<>"']/g, function(c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  // A friend's Moku in their Closet outfit (GET /players public card), ours from this device.
+  function mpAvatar(tag) {
+    var M = window.MokuMoint, outfit = '';
+    try {
+      if (M && mp && tag === mp.room.you) outfit = M.outfitSVG(M.closet().equipped);
+      else if (M) {
+        var A = window.MokuAccount, list = A && A.getPlayers && A.getPlayers();
+        var p = list && list.players.filter(function(x) { return x.tag === tag; })[0];
+        if (p && p.card && p.card.outfit) outfit = M.outfitSVG(p.card.outfit);
+      }
+    } catch (e) {}
+    return '<span class="mp-av"><img src="brand/mokumoku-hero.png" alt="">' + outfit + '</span>';
+  }
+
+  function mpName(tag) {
+    var p = mp && mp.room.players.filter(function(x) { return x.tag === tag; })[0];
+    return p ? p.name : 'Friend';
+  }
+  function mpNames(tags) { return tags.map(mpName).join(', '); }
+
+  function mpSecsLeft(at) { return Math.max(0, Math.ceil((at - mpNow()) / 1000)); }
+
+  function mpMaxWolves(n) { return Math.max(1, Math.floor((n - 1) / 2)); }
+
+  // ---------- menu ----------
+  function openMpMenu() {
+    if (!mpReady()) { mpToast('Log in on the Moku Series page to play with friends.'); return; }
+    mpStop();
+    showScreen(screenMpMenu);
+    mpLoadRooms();
+    try { window.MokuAccount.loadPlayers(true); } catch (e) {}
+  }
+
+  function mpLoadRooms() {
+    var box = $('mpRooms');
+    box.innerHTML = '<div class="mp-note">Loading…</div>';
+    mpApi('GET', '/rooms?game=wolf').then(function(res) {
+      var rooms = res.rooms.filter(function(r) { return r.game === 'wolf'; });
+      if (!rooms.length) { box.innerHTML = '<div class="mp-note">No rooms yet. Make a room and share the code!</div>'; return; }
+      box.innerHTML = '';
+      rooms.forEach(function(room) {
+        var host = room.players.filter(function(p) { return p.host; })[0] || room.players[0];
+        var what = room.status === 'playing' ? 'Playing now' : room.joined ? 'Waiting in the room' : 'Invited you!';
+        var row = document.createElement('div');
+        row.className = 'mp-row';
+        row.innerHTML = mpAvatar(host.tag) + '<span class="who">' + mpEsc(host.name) + '’s room · ' + room.id +
+          '<small>' + what + ' · ' + room.players.length + ' / ' + MP_MAX_PLAYERS + '</small></span>' +
+          '<button class="mp-small">' + (room.joined ? 'Back ▶' : 'Join ▶') + '</button>';
+        row.querySelector('button').addEventListener('click', function() { playSound('tap'); mpJoin(room.id); });
+        box.appendChild(row);
+      });
+    }, function(e) { box.innerHTML = '<div class="mp-note">' + mpEsc(mpErrText(e)) + '</div>'; });
+  }
+
+  function mpMake() {
+    var btn = $('btnMpMake');
+    btn.disabled = true;
+    mpApi('POST', '/rooms', { game: 'wolf' }).then(function(res) { btn.disabled = false; mpEnterRoom(res.room); },
+      function(e) { btn.disabled = false; mpToast(mpErrText(e)); });
+  }
+
+  function mpJoin(code) {
+    code = String(code || '').toUpperCase().replace(/[^A-Z]/g, '');
+    if (code.length !== 4) { mpToast('Room codes have 4 letters.'); return; }
+    mpApi('POST', '/rooms/' + code + '/join', {}).then(function(res) { $('mpCodeInput').value = ''; mpEnterRoom(res.room); },
+      function(e) { mpToast(e.code === 'room_not_found' ? 'No room with that code.' : mpErrText(e)); });
+  }
+
+  // ---------- room ----------
+  function mpEnterRoom(room) {
+    if (room.game !== 'wolf') {
+      // A Riddle Race / Moyomoyo code: step back out of that room.
+      if (room.status === 'lobby') mpApi('POST', '/rooms/' + room.id + '/leave', {}).catch(function() {});
+      mpToast('That code is for a different game.');
+      return;
+    }
+    if (!room.joined && room.status !== 'lobby') { mpToast('This game already started.'); return; }
+    mpStop();
+    mp = { id: room.id, key: room.key, room: room, offset: room.now - Date.now(), timer: null, busy: false, sig: null, stage: null,
+           revealed: false, peek: false, settings: room.settings || { topic: 'food', wolves: 1, minutes: 3 },
+           recorded: false, movingNext: false, lastTick: -1 };
+    mpSetRoom(room);
+    mpSchedule();
+    mpUiTimer = setInterval(mpUiTick, 250);
+  }
+
+  function mpStop() {
+    if (mp) clearTimeout(mp.timer);
+    clearInterval(mpUiTimer);
+    mp = null;
+  }
+
+  function mpSchedule(ms) {
+    if (!mp) return;
+    clearTimeout(mp.timer);
+    var st = mp.room.status;
+    mp.timer = setTimeout(mpTick, ms !== undefined ? ms : st === 'playing' ? MP_POLL_GAME : st === 'done' ? MP_POLL_DONE : MP_POLL_LOBBY);
+  }
+
+  function mpTick() {
+    if (!mp) return;
+    var m = mp;
+    if (m.busy) { mpSchedule(); return; }
+    m.busy = true;
+    mpApi('GET', '/rooms/' + m.id + '?v=' + m.room.version).then(function(res) {
+      m.busy = false;
+      if (mp !== m) return;
+      if (res.room) mpSetRoom(res.room);
+      else if (res.now) m.offset = res.now - Date.now();
+      mpSchedule();
+    }, function(e) {
+      m.busy = false;
+      if (mp !== m) return;
+      if (e.status === 404 || e.status === 401) { mpToast('This room is gone.'); openMpMenu(); return; }
+      mpSchedule();
+    });
+  }
+
+  // POST /rooms/{code}/wolf — ready / vote / guess / skip
+  function mpAct(body, btn) {
+    if (!mp) return;
+    var m = mp;
+    if (btn) btn.disabled = true;
+    mpApi('POST', '/rooms/' + m.id + '/wolf', body).then(function(res) {
+      if (btn) btn.disabled = false;
+      if (mp === m) mpSetRoom(res.room);
+    }, function(e) {
+      if (btn) btn.disabled = false;
+      mpToast(mpErrText(e));
+    });
+  }
+
+  function mpSetRoom(room) {
+    if (!mp || room.key !== mp.key) return;
+    var stageBefore = mp.stage;
+    mp.room = room;
+    mp.offset = room.now - Date.now();
+    if (room.status === 'closed') { mpToast('The host closed the room.'); openMpMenu(); return; }
+    if (room.status === 'lobby') {
+      mp.stage = 'lobby';
+      if (!screenMpLobby.classList.contains('active')) showScreen(screenMpLobby);
+      mpRenderLobby();
+      return;
+    }
+    var w = room.wolf;
+    if (!w) return;
+    mp.stage = w.stage;
+    var changed = mp.sig !== room.version + ':' + w.stage;
+    mp.sig = room.version + ':' + w.stage;
+    if (stageBefore !== w.stage) mpStageSound(w.stage);
+    if (w.stage === 'check') mpShowWord(changed);
+    else if (w.stage === 'talk') mpShowTalk(stageBefore !== 'talk');
+    else if (w.stage === 'vote') mpShowVote(changed);
+    else if (w.stage === 'guess') mpShowGuess(changed);
+    else mpShowResult(changed);
+    if (room.status === 'done' && room.next && !room.isHost && !mp.movingNext) {
+      mp.movingNext = true;
+      mpApi('POST', '/rooms/' + room.next + '/join', {}).then(function(res) { mpEnterRoom(res.room); },
+        function() { if (mp) mp.movingNext = false; });
+    }
+  }
+
+  function mpStageSound(stage) {
+    if (stage === 'check') playSound('reveal');
+    else if (stage === 'talk') playSound('point');
+    else if (stage === 'vote') playSound('countdown');
+    else if (stage === 'guess') playSound('howl');
+    else if (stage === 'done') playSound('fanfare');
+  }
+
+  // Countdowns between polls (talk timer, vote and guess seconds).
+  function mpUiTick() {
+    if (!mp || !mp.room.wolf) return;
+    var w = mp.room.wolf;
+    if (w.stage === 'talk') mpTalkTimer();
+    else if (w.stage === 'vote') $('mpVoteSecs').textContent = mpSecsLeft(w.voteEndAt);
+    else if (w.stage === 'guess') $('mpGuessSecs').textContent = '⏱️ ' + mpSecsLeft(w.guessEndAt) + 's';
+  }
+
+  // ---------- lobby ----------
+  function mpPills(box, items, selected, onPick, enabled) {
+    box.innerHTML = '';
+    items.forEach(function(it) {
+      var b = document.createElement('button');
+      b.className = 'pill-btn' + (it.val === selected ? ' selected' : '');
+      b.disabled = !enabled;
+      if (!enabled && it.val !== selected) b.style.opacity = '0.45';
+      b.innerHTML = it.html;
+      b.addEventListener('click', function() {
+        playSound('tap');
+        onPick(it.val);
+      });
+      box.appendChild(b);
+    });
+  }
+
+  function mpRenderSettings() {
+    var room = mp.room, n = room.players.length, s = mp.settings;
+    var host = room.isHost;
+    s.wolves = Math.min(s.wolves, mpMaxWolves(n));
+    mpPills($('mpTopicGrid'), MokuWolfWords.TOPICS.map(function(t) {
+      var l = TOPIC_LABELS[t];
+      return { val: t, html: '<span>' + l.emoji + '</span><span style="font-size: 12px;">' + (l.short || l.en) + '</span>' };
+    }), s.topic, function(v) { s.topic = v; mpRenderSettings(); }, host);
+    var wolves = [];
+    for (var i = 1; i <= mpMaxWolves(Math.max(n, MP_MIN_PLAYERS)); i++) wolves.push({ val: i, html: String(i) });
+    mpPills($('mpWolfGrid'), wolves, s.wolves, function(v) { s.wolves = v; mpRenderSettings(); }, host);
+    mpPills($('mpMinutesGrid'), MP_MINUTES.map(function(m) {
+      return { val: m, html: m + ' min' };
+    }), s.minutes, function(v) { s.minutes = v; mpRenderSettings(); }, host);
+  }
+
+  function mpRenderLobby() {
+    var room = mp.room, A = window.MokuAccount, list = A && A.getPlayers && A.getPlayers();
+    var sig = room.version + ':' + (list ? list.players.length : 0);
+    if (mp.lobbySig === sig) return;
+    mp.lobbySig = sig;
+    $('mpLobbyCode').textContent = room.id;
+    $('mpLobbyHint').textContent = room.joined ? 'Tell your friends this code!・このコードを友だちに教えてね' : 'You are invited!・さそわれました！';
+    $('mpLobbyTitle').textContent = '👥 Players (' + room.players.length + ' / ' + MP_MAX_PLAYERS + ')・プレイヤー';
+    var box = $('mpPlayers');
+    box.innerHTML = '';
+    room.players.forEach(function(p) {
+      var row = document.createElement('div');
+      row.className = 'mp-row' + (p.tag === room.you ? ' you' : '');
+      row.innerHTML = mpAvatar(p.tag) + '<span class="who">' + mpEsc(p.name) + (p.tag === room.you ? ' (You)' : '') +
+        '<small>#' + p.tag + '</small></span>' + (p.host ? '<span class="tag">👑 Host</span>' : '');
+      box.appendChild(row);
+    });
+    room.invited.forEach(function(p) {
+      var row = document.createElement('div');
+      row.className = 'mp-row';
+      row.style.opacity = '0.6';
+      row.innerHTML = mpAvatar(p.tag) + '<span class="who">' + mpEsc(p.name) + '<small>Invited…</small></span>';
+      box.appendChild(row);
+    });
+
+    // Only the host picks the settings (sent with Start); friends just see the room.
+    $('mpSettingsPanel').style.display = room.joined && room.isHost ? '' : 'none';
+    if (room.isHost) mpRenderSettings();
+
+    var sb = $('btnMpStart'), wait = $('mpLobbyWait'), n = room.players.length;
+    if (!room.joined) {
+      sb.style.display = '';
+      sb.disabled = n >= MP_MAX_PLAYERS;
+      setBi($('mpStartLabel'), 'JOIN THIS ROOM', 'このへやに入る');
+      wait.textContent = n >= MP_MAX_PLAYERS ? 'This room is full.・まんいんです。' : '';
+    } else if (room.isHost) {
+      sb.style.display = '';
+      sb.disabled = n < MP_MIN_PLAYERS;
+      setBi($('mpStartLabel'), 'START', 'スタート');
+      wait.textContent = n < MP_MIN_PLAYERS
+        ? 'Waiting for friends… (' + MP_MIN_PLAYERS + ' players needed)・' + MP_MIN_PLAYERS + '人そろうまで待ってね'
+        : 'Everyone here? Start when you are ready!・みんなそろったらスタート！';
+    } else {
+      sb.style.display = 'none';
+      wait.textContent = 'Waiting for the host to start…・ホストのスタートを待っています…';
+    }
+    $('btnMpLeave').textContent = room.joined ? 'Leave Room・へやを出る' : 'No Thanks・やめておく';
+    $('mpInvitePanel').style.display = room.joined && n < MP_MAX_PLAYERS ? '' : 'none';
+
+    var inv = $('mpInvites'), inRoom = {};
+    room.players.concat(room.invited).forEach(function(p) { inRoom[p.tag] = true; });
+    var friends = list ? list.players.filter(function(p) {
+      return !p.you && p.tag !== room.you && !room.players.some(function(x) { return x.tag === p.tag; });
+    }) : [];
+    friends.sort(function(a, b) { return (b.online ? 1 : 0) - (a.online ? 1 : 0); });
+    inv.innerHTML = friends.length ? '' : '<div class="mp-note">' + (list ? 'No friends to invite yet. Share the code!' : 'Loading friends…') + '</div>';
+    friends.slice(0, 20).forEach(function(p) {
+      var row = document.createElement('div');
+      var invited = !!inRoom[p.tag];
+      row.className = 'mp-row';
+      row.innerHTML = mpAvatar(p.tag) + '<span class="who">' + mpEsc(p.displayName) + '<small>' +
+        (p.online ? '🟢 Online' : '#' + p.tag) + '</small></span>' +
+        '<button class="mp-small"' + (invited ? ' disabled' : '') + '>' + (invited ? 'Invited ✓' : 'Invite') + '</button>';
+      row.querySelector('button').addEventListener('click', function(e) {
+        e.target.disabled = true;
+        playSound('tap');
+        mpApi('POST', '/rooms/' + room.id + '/invite', { tag: p.tag }).then(function(res) {
+          mpSetRoom(res.room);
+          mpToast('Invited ' + p.displayName + '!');
+        }, function(err) { e.target.disabled = false; mpToast(mpErrText(err)); });
+      });
+      inv.appendChild(row);
+    });
+  }
+
+  // ---------- 1. your secret word ----------
+  function mpWordBi(you) { return wordBi(you.w, you.j); }
+
+  function mpShowWord(changed) {
+    var room = mp.room, w = room.wolf;
+    if (!screenMpWord.classList.contains('active')) { mp.revealed = false; showScreen(screenMpWord); }
+    var ready = w.ready.indexOf(room.you) !== -1;
+    var box = $('mpWordBox');
+    box.classList.toggle('hidden-word', !mp.revealed);
+    if (mp.revealed) {
+      $('mpWordEmoji').textContent = w.you.e;
+      if (w.you.j && w.you.j !== w.you.w) setBi($('mpWordText'), w.you.w, w.you.j);
+      else $('mpWordText').textContent = w.you.w;
+    } else {
+      $('mpWordEmoji').textContent = '🤫';
+      $('mpWordText').textContent = '? ? ?';
+    }
+    if (mp.revealed) setBi($('mpRevealLabel'), '🙈 HIDE MY WORD', '言葉をかくす');
+    else if (ready) setBi($('mpRevealLabel'), '👀 PEEK AGAIN', 'もう一度見る');
+    else setBi($('mpRevealLabel'), '👀 TAP TO SEE YOUR WORD', 'タップして言葉を見る');
+    $('btnMpReady').style.display = !ready && mp.revealed ? '' : 'none';
+    if (!changed) return;
+    $('mpReadyTitle').textContent = '⏳ Ready? (' + w.ready.length + ' / ' + room.players.length + ')・じゅんびOK？';
+    var list = $('mpReadyList');
+    list.innerHTML = '';
+    room.players.forEach(function(p) {
+      var ok = w.ready.indexOf(p.tag) !== -1;
+      var row = document.createElement('div');
+      row.className = 'mp-row' + (p.tag === room.you ? ' you' : '');
+      row.innerHTML = mpAvatar(p.tag) + '<span class="who">' + mpEsc(p.name) + (p.tag === room.you ? ' (You)' : '') +
+        '</span><span class="tag">' + (ok ? '✅ Ready' : '⏳ Looking…') + '</span>';
+      list.appendChild(row);
+    });
+    $('btnMpSkipCheck').style.display = room.isHost && w.ready.length < room.players.length ? '' : 'none';
+  }
+
+  // ---------- 2. talk ----------
+  function mpRollHint() {
+    var q = HINT_QUESTIONS[Math.floor(Math.random() * HINT_QUESTIONS.length)];
+    setBi($('mpHintBox'), '"' + q.en + '"', '「' + q.ja + '」');
+  }
+
+  function mpShowPeek() {
+    var w = mp.room.wolf;
+    $('mpPeekBox').classList.toggle('show', mp.peek);
+    $('mpPeekEmoji').textContent = w.you ? w.you.e : '';
+    $('mpPeekText').textContent = w.you ? mpWordBi(w.you) : '';
+    setBi($('btnMpPeek').firstElementChild, mp.peek ? '🙈 Hide My Word' : '👀 My Word', mp.peek ? '言葉をかくす' : '自分の言葉を見る');
+  }
+
+  function mpShowTalk(entering) {
+    var room = mp.room, w = room.wolf;
+    if (entering || !screenMpTalk.classList.contains('active')) {
+      mp.peek = false;
+      mp.lastTick = -1;
+      var t = TOPIC_LABELS[w.topic] || TOPIC_LABELS.food;
+      $('mpTalkTopic').textContent = t.emoji + ' ' + (t.short || t.en) + '・' + t.ja;
+      mpRollHint();
+      showScreen(screenMpTalk);
+    }
+    mpShowPeek();
+    $('btnMpVoteNow').style.display = room.isHost ? '' : 'none';
+    $('mpTalkWait').textContent = room.isHost ? '' : 'The host can start the vote early.・ホストは早めにとうひょうにできます。';
+    mpTalkTimer();
+  }
+
+  function mpTalkTimer() {
+    var w = mp.room.wolf;
+    var left = mpSecsLeft(w.talkEndAt), total = w.minutes * 60;
+    var mins = Math.floor(left / 60), secs = left % 60;
+    $('mpTimerDisplay').textContent = (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs;
+    var bar = $('mpTimerBar');
+    bar.style.strokeDashoffset = 2 * Math.PI * 85 * (1 - Math.min(1, left / total));
+    bar.style.stroke = left <= 30 ? '#EF4444' : 'url(#mpTimerGrad)';
+    $('mpTimerLabel').style.color = left <= 30 ? '#EF4444' : 'var(--primary)';
+    if (left <= 10 && left > 0 && left !== mp.lastTick) playSound('tick');
+    mp.lastTick = left;
+  }
+
+  // ---------- 3. vote ----------
+  function mpShowVote(changed) {
+    var room = mp.room, w = room.wolf;
+    if (!screenMpVote.classList.contains('active')) showScreen(screenMpVote);
+    $('mpVoteSecs').textContent = mpSecsLeft(w.voteEndAt);
+    if (!changed) return;
+    setBi($('mpVoteInfo'), w.myVote ? 'You voted for ' + mpName(w.myVote) + '!' : 'Tap a player to vote!',
+      w.myVote ? mpName(w.myVote) + 'にとうひょうしました！' : 'ワードモクだと思う人をタップ！');
+    var grid = $('mpVoteGrid');
+    grid.innerHTML = '';
+    room.players.forEach(function(p) {
+      if (p.tag === room.you) return;
+      var b = document.createElement('button');
+      b.className = 'btn-vote-player' + (w.myVote === p.tag ? ' voted-selected' : '');
+      b.textContent = p.name;
+      b.addEventListener('click', function() {
+        playSound('tap');
+        document.querySelectorAll('#mpVoteGrid .btn-vote-player').forEach(function(x) { x.classList.remove('voted-selected'); });
+        b.classList.add('voted-selected');
+        mpAct({ do: 'vote', tag: p.tag });
+      });
+      grid.appendChild(b);
+    });
+    $('mpVoteWait').textContent = w.voted.length + ' / ' + room.players.length + ' voted・とうひょうずみ' +
+      (w.myVote ? ' — you can change your vote until time is up.' : '');
+    $('btnMpCountNow').style.display = room.isHost ? '' : 'none';
+  }
+
+  // ---------- 4. a caught WordMoku guesses ----------
+  function mpShowGuess(changed) {
+    var room = mp.room, w = room.wolf;
+    if (!screenMpGuess.classList.contains('active')) showScreen(screenMpGuess);
+    $('mpGuessSecs').textContent = '⏱️ ' + mpSecsLeft(w.guessEndAt) + 's';
+    if (!changed) return;
+    var me = w.caught === room.you;
+    setBi($('mpGuessTitle'), me ? 'You Were Caught!' : 'WordMoku Was Caught!', me ? 'つかまっちゃった！' : 'ワードモクをつかまえた！');
+    if (me) {
+      setBi($('mpGuessSub'), "Pick the Citizens' word to steal the win!", '市民の言葉をえらんで、ぎゃくてん勝利をねらおう！');
+    } else {
+      setBi($('mpGuessSub'), mpName(w.caught) + " was a WordMoku! Now they're guessing the Citizens' word…",
+        mpName(w.caught) + 'はワードモクだった！今、市民の言葉を当てようとしています…');
+    }
+    var box = $('mpChoices');
+    box.innerHTML = '';
+    (me && w.choices ? w.choices : []).forEach(function(c, i) {
+      var b = document.createElement('button');
+      b.className = 'btn-vote-player';
+      b.innerHTML = '<span class="e">' + c.e + '</span><span>' + mpEsc(c.w) + '</span>' +
+        (c.j && c.j !== c.w ? '<span class="ja">' + mpEsc(c.j) + '</span>' : '');
+      b.addEventListener('click', function() {
+        playSound('tap');
+        box.querySelectorAll('button').forEach(function(x) { x.disabled = true; });
+        b.classList.add('voted-selected');
+        mpAct({ do: 'guess', pick: i });
+      });
+      box.appendChild(b);
+    });
+    $('btnMpSkipGuess').style.display = room.isHost && !me ? '' : 'none';
+  }
+
+  // ---------- 5. result ----------
+  function mpShowResult(changed) {
+    var room = mp.room, w = room.wolf, r = w.result;
+    if (!screenMpResult.classList.contains('active')) showScreen(screenMpResult);
+    if (changed && r) {
+      var caughtName = w.caught ? mpName(w.caught) : '';
+      var caughtWolf = w.caught && r.wolves.indexOf(w.caught) !== -1;
+      if (w.tie) {
+        $('mpResEmoji').textContent = '👑🐺';
+        setBi($('mpResTitle'), 'WordMoku Wins!', 'ワードモクの勝ち！');
+        setBi($('mpResSub'), 'The votes were tied, so nobody was caught!', '同じ数のとうひょうで、だれもつかまらなかった！');
+      } else if (!caughtWolf) {
+        $('mpResEmoji').textContent = '👑🐺';
+        setBi($('mpResTitle'), 'WordMoku Wins!', 'ワードモクの勝ち！');
+        setBi($('mpResSub'), 'Oh no! ' + caughtName + ' was an innocent Citizen! The WordMoku tricked everyone.',
+          'ざんねん！' + caughtName + 'はふつうの市民だった！ワードモクにだまされた…');
+      } else if (r.winner === 'wolf') {
+        $('mpResEmoji').textContent = '🐺✨';
+        setBi($('mpResTitle'), 'WordMoku Steals the Win!', 'ワードモクのぎゃくてん勝利！');
+        setBi($('mpResSub'), 'Incredible! ' + caughtName + " guessed the Citizens' word (" + r.citizenWord.w + ') correctly!',
+          'すごい！' + caughtName + 'が市民の言葉(' + r.citizenWord.j + ')を当てた！');
+      } else {
+        $('mpResEmoji').textContent = '🎉🦉';
+        setBi($('mpResTitle'), 'Citizens Win!', '市民の勝ち！');
+        if (r.pick === null) {
+          setBi($('mpResSub'), caughtName + " was caught and ran out of time to guess the Citizens' word (" + r.citizenWord.w + ').',
+            caughtName + 'をつかまえた！市民の言葉(' + r.citizenWord.j + ')は時間内に当てられなかった。');
+        } else {
+          setBi($('mpResSub'), caughtName + " was caught and guessed wrong! The Citizens' word was " + r.citizenWord.w + '. Great detective work!',
+            caughtName + 'をつかまえた！市民の言葉(' + r.citizenWord.j + ')ははずれ。名たんていだね！');
+        }
+      }
+      var iAmWolf = r.wolves.indexOf(room.you) !== -1;
+      var iWon = (r.winner === 'wolf') === iAmWolf;
+      $('mpResYou').textContent = (iAmWolf ? 'You were a WordMoku' : 'You were a Citizen') + (iWon ? ' — you win! 🎉' : ' — better luck next time!');
+
+      $('mpResCitizenWord').textContent = r.citizenWord.e + ' ' + wordBi(r.citizenWord.w, r.citizenWord.j);
+      $('mpResWolfWord').textContent = r.wolfWord.e + ' ' + wordBi(r.wolfWord.w, r.wolfWord.j);
+      $('mpResCitizens').textContent = mpNames(room.players.map(function(p) { return p.tag; }).filter(function(t) { return r.wolves.indexOf(t) === -1; }));
+      $('mpResWolves').textContent = mpNames(r.wolves);
+
+      var votes = $('mpResVotes'), count = {};
+      votes.innerHTML = '';
+      r.votes.forEach(function(v) { count[v.to] = (count[v.to] || 0) + 1; });
+      room.players.slice().sort(function(a, b) { return (count[b.tag] || 0) - (count[a.tag] || 0); }).forEach(function(p) {
+        var from = r.votes.filter(function(v) { return v.to === p.tag; }).map(function(v) { return mpName(v.from); });
+        var row = document.createElement('div');
+        row.className = 'mp-row' + (p.tag === room.you ? ' you' : '');
+        row.innerHTML = mpAvatar(p.tag) + '<span class="who">' + mpEsc(p.name) + (r.wolves.indexOf(p.tag) !== -1 ? ' 🐺' : '') +
+          '<small>' + (from.length ? '← ' + mpEsc(from.join(', ')) : 'No votes') + '</small></span>' +
+          '<span class="tag">' + (count[p.tag] || 0) + ' 🗳️</span>';
+        votes.appendChild(row);
+      });
+
+      if (!mp.recorded) {
+        mp.recorded = true;
+        recordMatchPlayed(r.winner === 'wolf' ? (caughtWolf ? 'wolf_reversal' : 'wolf') : 'citizens');
+      }
+    }
+    $('btnMpAgain').style.display = room.isHost ? '' : 'none';
+    $('mpResWait').textContent = room.isHost ? '' : 'Waiting for the host to play again…・ホストのもう一回を待っています…';
+  }
+
+  // ---------- buttons ----------
+  document.getElementById('btnOpenMp').addEventListener('click', function() { playSound('tap'); openMpMenu(); });
+  $('btnMpMenuBack').addEventListener('click', function() { playSound('tap'); mpStop(); showScreen(screenSetup); });
+  $('btnMpMake').addEventListener('click', function() { playSound('tap'); mpMake(); });
+  $('btnMpJoin').addEventListener('click', function() { playSound('tap'); mpJoin($('mpCodeInput').value); });
+  $('mpCodeInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') mpJoin(this.value); });
+  $('btnMpStart').addEventListener('click', function() {
+    if (!mp) return;
+    playSound('tap');
+    var room = mp.room, btn = this;
+    btn.disabled = true;
+    var req = room.joined
+      ? mpApi('POST', '/rooms/' + room.id + '/start', { topic: mp.settings.topic, wolves: mp.settings.wolves, minutes: mp.settings.minutes })
+      : mpApi('POST', '/rooms/' + room.id + '/join', {});
+    req.then(function(res) { btn.disabled = false; if (mp) { mp.lobbySig = null; mpSetRoom(res.room); } },
+      function(e) { btn.disabled = false; mpToast(mpErrText(e)); });
+  });
+  $('btnMpLeave').addEventListener('click', function() {
+    playSound('tap');
+    if (mp && mp.room.status === 'lobby') mpApi('POST', '/rooms/' + mp.id + '/leave', {}).catch(function() {});
+    openMpMenu();
+  });
+  $('btnMpReveal').addEventListener('click', function() {
+    if (!mp) return;
+    playSound(mp.revealed ? 'hide' : 'reveal');
+    mp.revealed = !mp.revealed;
+    mpShowWord(false);
+  });
+  $('btnMpReady').addEventListener('click', function() {
+    playSound('hide');
+    if (!mp) return;
+    mp.revealed = false;
+    mpAct({ do: 'ready' }, this);
+  });
+  $('btnMpSkipCheck').addEventListener('click', function() {
+    if (!window.confirm("Start the talk without waiting for everyone?\nみんなを待たずにはなしあいをはじめますか？")) return;
+    mpAct({ do: 'skip' }, this);
+  });
+  $('btnMpRollHint').addEventListener('click', function() { playSound('roulette'); mpRollHint(); });
+  $('btnMpPeek').addEventListener('click', function() {
+    if (!mp) return;
+    playSound(mp.peek ? 'hide' : 'reveal');
+    mp.peek = !mp.peek;
+    mpShowPeek();
+  });
+  $('btnMpVoteNow').addEventListener('click', function() {
+    if (!window.confirm('End the talk and vote now?\nはなしあいをおわりにして、とうひょうしますか？')) return;
+    mpAct({ do: 'skip' }, this);
+  });
+  $('btnMpCountNow').addEventListener('click', function() {
+    if (!window.confirm("Count the votes now? Votes that aren't in yet won't count.\nいますぐ開票しますか？まだのとうひょうは数えません。")) return;
+    mpAct({ do: 'skip' }, this);
+  });
+  $('btnMpSkipGuess').addEventListener('click', function() {
+    if (!window.confirm("Skip the WordMoku's guess? (The Citizens win.)\nワードモクの答えをスキップしますか？(市民の勝ち)")) return;
+    mpAct({ do: 'skip' }, this);
+  });
+  $('btnMpAgain').addEventListener('click', function() {
+    if (!mp) return;
+    playSound('tap');
+    var btn = this;
+    btn.disabled = true;
+    mpApi('POST', '/rooms/' + mp.id + '/again', {}).then(function(res) { btn.disabled = false; mpEnterRoom(res.room); },
+      function(e) { btn.disabled = false; mpToast(mpErrText(e)); });
+  });
+  $('btnMpResMenu').addEventListener('click', function() { playSound('tap'); openMpMenu(); });
+  window.addEventListener('moku:players', function() {
+    if (mp && mp.room.status === 'lobby') { mp.lobbySig = null; mpRenderLobby(); }
   });
 
   // --- BACKGROUND CANVAS (Moonlit night with subtle stars & glowing fireflies) ---

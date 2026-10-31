@@ -30,7 +30,7 @@
 | Moku Rhythm Cafe | `moku-rhythm.html` | リズム |
 | Moku Bento | `moku-bento.html` | お弁当づくりのキッチンラッシュ |
 | Flying Moku | `flying-moku.html` | 3Dの空中飛行 |
-| Moku Wolf | `moku-wolf.html` | パーティー(ワードウルフ、1台を回して遊ぶ) |
+| Moku Wolf | `moku-wolf.html` | パーティー(ワードウルフ、1台を回して遊ぶ+みんなのスマホで遊ぶ Multiplayer) |
 | Moku Watch 6 Lazy | `moku-watch-6-lazy.html` | 怠け者のスマートウォッチ |
 | Moku-rane | `moku-rane.html` | 3Dクレーンゲーム |
 | Moku Bridge | `moku-bridge.html` | ガラスの橋渡り(左右を選ぶ運試し+Mointショップ) |
