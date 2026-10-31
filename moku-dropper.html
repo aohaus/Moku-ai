@@ -158,8 +158,8 @@
   .rCard .rIcon { font-size: 24px; line-height: 1; }
   .rCard .rName { font-size: 13.5px; font-weight: 700; }
   .rCard .rVs { font-size: 11px; color: var(--ink-soft); font-weight: 600; }
-  .rCard .rStars { font-size: 13px; letter-spacing: 1px; color: #E5D2B3; }
-  .rCard .rStars b { color: #F2B731; font-weight: 400; }
+  .rCard .rStars { font-size: 12.5px; color: #C9B08E; font-weight: 600; }
+  .rCard .rStars b { color: var(--ink); font-weight: 700; }
   .rCard.grand { grid-column: 1 / -1; min-height: 70px; background: linear-gradient(180deg, #F2EEFF, #FFF); box-shadow: 0 0 0 2px #C9BEFF, 0 4px 0 #9C8EE8; }
   .rCard.locked { background: #F1E6D4; color: #B39A7B; box-shadow: 0 0 0 2px #E2D1B6; }
   .rCard.locked .rIcon { filter: grayscale(1); opacity: .5; }
@@ -174,17 +174,17 @@
   .rivalChip i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: 0; }
 
   /* result */
-  #resStars { display: flex; justify-content: center; gap: 10px; margin: 12px 0 4px; }
-  #resStars .st {
-    width: 52px; height: 52px; display: grid; place-items: center; font-size: 34px; color: #E9D9BF;
-    transform: scale(.4); opacity: 0; transition: transform .35s cubic-bezier(.2,1.6,.4,1), opacity .2s;
-  }
-  #resStars .st.on { color: #F2B731; text-shadow: 0 2px 0 #B9800F; }
-  #resStars .st.show { transform: scale(1); opacity: 1; }
-  #resStars .st.new { animation: starNew 1s ease-in-out .4s 2; }
-  @keyframes starNew { 50% { transform: scale(1.25) rotate(12deg); } }
-  .starKey { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; font-size: 11.5px; color: var(--ink-soft); font-weight: 600; line-height: 1.25; }
-  .starKey .on { color: var(--ink); }
+  /* 順位: 🥇 1st / 🥈 2nd / 🥉 3rd(星の表示は 2026-10-31 に廃止) */
+  #resPlace { margin: 12px auto 2px; display: inline-flex; align-items: center; gap: 10px; padding: 8px 22px 8px 14px; border-radius: 999px; background: #FFF; box-shadow: 0 0 0 3px #EAD3B0, 0 5px 0 #D9B98C; }
+  #resPlace.show { animation: popIn .45s cubic-bezier(.2,1.6,.4,1); }
+  #resPlace .md { font-size: 44px; line-height: 1; }
+  #resPlace .pn { font-size: 34px; font-weight: 700; letter-spacing: .02em; }
+  #resPlace.p1 { background: #FFF4C9; box-shadow: 0 0 0 3px #F2C14E, 0 5px 0 #C99418; }
+  #resPlace.p1 .pn { color: #A26A05; }
+  #resPlace.p2 { background: #F1F3F7; box-shadow: 0 0 0 3px #C3CAD6, 0 5px 0 #98A2B3; }
+  #resPlace.p2 .pn { color: #5A6578; }
+  #resPlace.p3 { background: #FBE8DA; box-shadow: 0 0 0 3px #E0A27A, 0 5px 0 #B87449; }
+  #resPlace.p3 .pn { color: #8F4B2B; }
   .statLine { margin-top: 10px; display: flex; justify-content: center; gap: 16px; font-size: 15px; font-weight: 600; }
   .statLine b { font-weight: 700; }
   .mointBox { margin-top: 12px; background: #FFF1CF; border-radius: 14px; padding: 9px 12px; text-align: left; font-size: 14px; }
@@ -284,7 +284,7 @@
 
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v1.0.0 · Updated Oct 31, 2026</div>
+<div id="buildInfo">v1.1.0 · Updated Oct 31, 2026</div>
 
 <!-- Title -->
 <div id="title">
@@ -321,7 +321,7 @@
       <div><span class="e">🔮</span><span>Land at the bottom and step into the <b>purple portal</b>.</span></div>
       <div><span class="e">🏁</span><span>In a race, be the first into the portal!</span></div>
       <div><span class="e">👆</span><span>Drag the screen to look around. Pinch (or scroll) to zoom. Double-tap to reset.</span></div>
-      <div><span class="e">⭐</span><span>Stars: reach the portal · no bonks · win the race (or beat the goal time).</span></div>
+      <div><span class="e">🥇</span><span>Each floor has two holes. Pick the closer one and race to 1st place!</span></div>
     </div>
     <div class="rivalRow" id="rivalRow"></div>
     <div class="btnRow"><button class="btn" id="howOk">Got it!</button></div>
@@ -346,8 +346,7 @@
   <div class="panel">
     <h2 id="resTitle">Round Clear!</h2>
     <div class="sub" id="resSub"></div>
-    <div id="resStars"><div class="st">★</div><div class="st">★</div><div class="st">★</div></div>
-    <div class="starKey" id="starKey"></div>
+    <div id="resPlace"></div>
     <div class="statLine"><span>⏱ <b id="resTime">0.0s</b></span><span>💥 <b id="resBonks">0</b> bonks</span></div>
     <div class="mointBox hidden" id="resMoint"></div>
     <div class="resNote hidden" id="resNote"></div>
@@ -382,63 +381,81 @@
 
   // ======================================================================
   // Save data(localStorage は try-catch で包む。CLAUDE.md §5)
-  // progress = { version, gameId, unlocked, stars: { round: bitmask }, best: { round: sec }, played, wins, bonks, mointClaims, updatedAt }
-  //   stars のビット: 1 = ポータルに着いた / 2 = ノーミス / 4 = レースで1位(練習ラウンドは目標タイム以内)
+  // progress = { version, gameId, unlocked, place: { round: いちばん良い順位 1〜6 }, best: { round: sec }, played, wins, bonks, mointClaims, updatedAt }
+  //   place: レースは 1 = 1st / 2 = 2nd / 3 = 3rd …、練習ラウンドはクリアしたら 1
+  //   (v1.0.0 の星 stars は 2026-10-31 に廃止。読み込み時に place へ移す: ビット4 = レースで1位、ビット1 = ゴール)
   // ======================================================================
   function readJSON(k) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
   function writeJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
   function loadProgress() {
     let p = readJSON(SAVE_KEY);
     if (!p || typeof p !== 'object' || p.version !== 1) p = {};
+    const place = p.place && typeof p.place === 'object' ? p.place : {};
+    if (p.stars && typeof p.stars === 'object') {
+      for (const k in p.stars) {
+        const b = p.stars[k] | 0, race = RD[k] && RD[k].cpu.length > 0;
+        if (place[k]) continue;
+        if (!race && (b & 1)) place[k] = 1;
+        else if (race && (b & 4)) place[k] = 1;
+      }
+    }
     return {
       version: 1, gameId: GAME_ID,
       unlocked: Math.max(1, Math.min(9, p.unlocked | 0)),
-      stars: p.stars && typeof p.stars === 'object' ? p.stars : {},
+      place,
       best: p.best && typeof p.best === 'object' ? p.best : {},
       played: p.played | 0, wins: p.wins | 0, bonks: p.bonks | 0,
       mointClaims: p.mointClaims && typeof p.mointClaims === 'object' ? p.mointClaims : {},
       updatedAt: p.updatedAt || null
     };
   }
-  let prog = loadProgress();
   function saveProgress() { prog.updatedAt = new Date().toISOString(); writeJSON(SAVE_KEY, prog); }
-  const bitsOf = n => ((n & 1) ? 1 : 0) + ((n & 2) ? 1 : 0) + ((n & 4) ? 1 : 0);
-  function totalStars() { let s = 0; for (const k in prog.stars) s += bitsOf(prog.stars[k] | 0); return s; }
+  const MEDAL = ['', '🥇', '🥈', '🥉'];
+  function placeLabel(n) { return (MEDAL[n] ? MEDAL[n] + ' ' : '') + ord(n); }
+  function ord(n) { return n + (['th', 'st', 'nd', 'rd'][(n % 100 > 10 && n % 100 < 14) ? 0 : (n % 10 < 4 ? n % 10 : 0)]); }
   let settings = readJSON(SETTINGS_KEY) || {};
   let muted = !!settings.muted;
 
   // ======================================================================
-  // Rivals = Moku Fight / Moku Chess のライバル(子どもの TIERS の強さをそのまま使う)
-  // err = 穴を狙う時のずれ、spd = 速さ、dodge = 動く障害物をよける強さ
+  // Rivals = Moku Fight / Moku Chess のライバル
+  // err = 穴を狙う時のずれ、spd = 歩く速さ、dodge = 動く障害物をよける強さ
+  // think = 上の床で穴に向かう前にもたもたする秒数(スタート直後・やり直しのたび)
+  // wait = 層を1つ通るたびに、次の穴を探して止まる秒数のめやす
+  // fall = 落ちる速さの上限(Moku = 1)。ライバルは羽をばたつかせて、ふわっとゆっくり落ちる
+  // 2026-10-31: 「CPUが速すぎる・強すぎる」との声で、子どもの TIERS(err 3〜.13 / spd .41〜.83)より弱くした
   // ======================================================================
   const RIVALS = [
-    { id: 'moyo',  name: 'Moyo',  tier: 'Super Easy', css: '#FF7FB0', c: 0xFF7FB0, err: 3,    spd: .41, dodge: 0 },
-    { id: 'ponta', name: 'Ponta', tier: 'Easy',       css: '#D9A35E', c: 0xD9A35E, err: 2.1,  spd: .53, dodge: 0 },
-    { id: 'kon',   name: 'Kon',   tier: 'Medium',     css: '#A78BFA', c: 0xA78BFA, err: 1.5,  spd: .64, dodge: 0 },
-    { id: 'nox',   name: 'Nox',   tier: 'Hard',       css: '#6F78E8', c: 0x6F78E8, err: .75,  spd: .71, dodge: .75 },
-    { id: 'goro',  name: 'Goro',  tier: 'Super Hard', css: '#F5C518', c: 0xF5C518, err: .13,  spd: .83, dodge: 1.35 }
+    { id: 'moyo',  name: 'Moyo',  tier: 'Super Easy', css: '#FF7FB0', c: 0xFF7FB0, err: 3.6, spd: .3,  dodge: 0,   think: 3.2, wait: .55, fall: .5 },
+    { id: 'ponta', name: 'Ponta', tier: 'Easy',       css: '#D9A35E', c: 0xD9A35E, err: 3.0, spd: .35, dodge: 0,   think: 2.7, wait: .45, fall: .55 },
+    { id: 'kon',   name: 'Kon',   tier: 'Medium',     css: '#A78BFA', c: 0xA78BFA, err: 2.4, spd: .4,  dodge: .2,  think: 2.2, wait: .35, fall: .62 },
+    { id: 'nox',   name: 'Nox',   tier: 'Hard',       css: '#6F78E8', c: 0x6F78E8, err: 1.8, spd: .46, dodge: .45, think: 1.7, wait: .3, fall: .62 },
+    { id: 'goro',  name: 'Goro',  tier: 'Super Hard', css: '#F5C518', c: 0xF5C518, err: 1.2, spd: .52, dodge: .7,  think: 1.3, wait: .25, fall: .68 }
   ];
   const ME_COLOR = 0xF2A63B, ME_CSS = '#F2A63B';
 
-  // Rounds: 子どもが決めた9ラウンド(層の数 n・すき間 g・障害物の出る確率 mv・相手 cpu)
-  // par = 練習ラウンドの目標タイム(3つ目の星)。win = 1位の Moint、first = 初クリアの Moint(1回きり)
+  // Rounds: 子どもが決めた9ラウンド(層の数 n・障害物の出る確率 mv・相手 cpu)
+  // 2026-10-31: 各フロアに穴を2つ(大きい穴 g と小さい穴 g2)。レースの相手は2人(Grand Race は5人)
+  // win = 1位の Moint、first = 初クリア(レースは初の1位)の Moint(1回きり)
   const RD = [
-    { t: 'Tutorial 1', icon: '🍔', theme: 'Hamburgers',  obs: 0, n: 5,  g: 5, mv: .3,  cpu: [],              par: 12, first: 20,
-      h: 'Walk into the hole and drop! Fall through the gaps without touching the floors. Then step into the purple portal.' },
-    { t: 'Tutorial 2', icon: '🍩', theme: 'Donuts',      obs: 1, n: 5,  g: 5, mv: .5,  cpu: [],              par: 12, first: 20,
+    { t: 'Tutorial 1', icon: '🍔', theme: 'Hamburgers',  obs: 0, n: 5,  g: 5, g2: 4, mv: .3,  cpu: [],              first: 20,
+      h: 'Walk into a hole and drop! Each floor has two holes. Fall through without touching the floors, then step into the purple portal.' },
+    { t: 'Tutorial 2', icon: '🍩', theme: 'Donuts',      obs: 1, n: 5,  g: 5, g2: 4, mv: .5,  cpu: [],              first: 20,
       h: 'Snacks move! Slide around them and time your drop.' },
-    { t: 'Tutorial 3', icon: '🍕', theme: 'Pizza',       obs: 2, n: 6,  g: 5, mv: .3,  cpu: [0],             par: 0,  first: 30, win: 30,
-      h: 'Race Moyo! First into the portal wins. Bonk a block and you go back to the top.' },
-    { t: 'Race 1',     icon: '🍦', theme: 'Ice Cream',   obs: 3, n: 8,  g: 5, mv: .2,  cpu: [0],             par: 0,  first: 50, win: 35 },
-    { t: 'Race 2',     icon: '🧨', theme: 'TNT',         obs: 4, n: 9,  g: 4, mv: .3,  cpu: [1],             par: 0,  first: 60, win: 40 },
-    { t: 'Race 3',     icon: '🌵', theme: 'Cacti',       obs: 5, n: 10, g: 4, mv: .35, cpu: [2],             par: 0,  first: 80, win: 45 },
-    { t: 'Race 4',     icon: '🌰', theme: 'Spiky Burs',  obs: 6, n: 11, g: 4, mv: .4,  cpu: [3],             par: 0,  first: 100, win: 50 },
-    { t: 'Race 5',     icon: '🍯', theme: 'Honey Blocks',obs: 7, n: 12, g: 3, mv: .4,  cpu: [4],             par: 0,  first: 150, win: 55 },
-    { t: 'Grand Race', icon: '👑', theme: 'Snack Mix',   obs: -1, n: 12, g: 4, mv: .4, cpu: [0, 1, 2, 3, 4], par: 0,  first: 300, win: 80,
+    { t: 'Tutorial 3', icon: '🍕', theme: 'Pizza',       obs: 2, n: 6,  g: 5, g2: 4, mv: .3,  cpu: [0, 1],          first: 30, win: 30,
+      h: 'Race Moyo and Ponta! First into the portal wins. Bonk a block and you go back to the top.' },
+    { t: 'Race 1',     icon: '🍦', theme: 'Ice Cream',   obs: 3, n: 8,  g: 5, g2: 4, mv: .2,  cpu: [0, 1],          first: 50, win: 35 },
+    { t: 'Race 2',     icon: '🧨', theme: 'TNT',         obs: 4, n: 9,  g: 5, g2: 3, mv: .3,  cpu: [1, 2],          first: 60, win: 40 },
+    { t: 'Race 3',     icon: '🌵', theme: 'Cacti',       obs: 5, n: 10, g: 5, g2: 3, mv: .35, cpu: [0, 2],          first: 80, win: 45 },
+    { t: 'Race 4',     icon: '🌰', theme: 'Spiky Burs',  obs: 6, n: 11, g: 4, g2: 3, mv: .35, cpu: [2, 3],          first: 100, win: 50 },
+    { t: 'Race 5',     icon: '🍯', theme: 'Honey Blocks',obs: 7, n: 12, g: 4, g2: 3, mv: .35, cpu: [3, 4],          first: 150, win: 55 },
+    { t: 'Grand Race', icon: '👑', theme: 'Snack Mix',   obs: -1, n: 12, g: 4, g2: 3, mv: .35, cpu: [0, 1, 2, 3, 4], first: 300, win: 80,
       h: 'The Grand Race! All five rivals are here. Be the first to reach the Hollow!' }
   ];
-  RD.forEach(r => { if (!r.h && r.cpu.length === 1) r.h = 'Race ' + RIVALS[r.cpu[0]].name + ' (' + RIVALS[r.cpu[0]].tier + ')! Watch out for the ' + r.theme.toLowerCase() + '.'; });
+  RD.forEach(r => {
+    if (!r.h && r.cpu.length === 2) r.h = 'Race ' + RIVALS[r.cpu[0]].name + ' and ' + RIVALS[r.cpu[1]].name + '! Watch out for the ' + r.theme.toLowerCase() + '.';
+  });
   const FINISH_MOINTS = 15, NO_BONK_MOINTS = 10, BEST_TIME_MOINTS = 10;
+  let prog = loadProgress();
 
   // ======================================================================
   // Sound(Web Audio で合成。iOS は最初のタップで resume)
@@ -789,24 +806,57 @@
   }
   const DOT = softDot();
 
+  // 各フロアの穴は2つ(2026-10-31〜)。大きい穴 A は子どもの版と同じく前の層から少しずつずれ、
+  // 小さい穴 B は A と重ならない所に置く(1マスすき間をあける。入らない時はくっつけて、小さくする)
+  function holeLayout(cf, rd, prev) {
+    const g = cf.g;
+    const ax = prev ? Math.max(0, Math.min(9 - g, prev.x + Math.round((rd() - 0.5) * 4))) : Math.floor((9 - g) / 2);
+    const az = prev ? Math.max(0, Math.min(9 - g, prev.z + Math.round((rd() - 0.5) * 4))) : Math.floor((9 - g) / 2);
+    const a = { x: ax, z: az, s: g };
+    for (const gap of [1, 0]) {
+      for (let s2 = cf.g2; s2 >= 2; s2--) {
+        const cand = [];
+        for (let x = 0; x <= 9 - s2; x++) for (let z = 0; z <= 9 - s2; z++) {
+          if (x + s2 + gap <= a.x || a.x + g + gap <= x || z + s2 + gap <= a.z || a.z + g + gap <= z) cand.push({ x, z, s: s2 });
+        }
+        if (cand.length) return [a, cand[Math.floor(rd() * cand.length)]];
+      }
+    }
+    return [a];
+  }
+  // 穴以外の 9×9 マスを、行ごとの横長の箱 → 同じ形の行をまとめた長方形にする(箱の数を少なく)
+  function floorRects(holes) {
+    const solid = (x, z) => !holes.some(h => x >= h.x && x < h.x + h.s && z >= h.z && z < h.z + h.s);
+    const out = []; let open = {};
+    for (let z = 0; z <= 9; z++) {
+      const runs = {};
+      if (z < 9) for (let x = 0; x < 9;) {
+        if (!solid(x, z)) { x++; continue; }
+        let e = x; while (e < 9 && solid(e, z)) e++;
+        runs[x + '-' + e] = [x, e]; x = e;
+      }
+      for (const k in open) if (!runs[k]) { const o = open[k]; out.push({ x0: o.x0, x1: o.x1, z0: o.z0, z1: z }); delete open[k]; }
+      for (const k in runs) if (!open[k]) open[k] = { x0: runs[k][0], x1: runs[k][1], z0: z };
+    }
+    return out;
+  }
+
   function build() {
     if (world) { scene.remove(world); disposeTree(world); }
     world = new T.Group(); scene.add(world);
     const cf = RD[round];
     let s = ((round + 1) * 7919) >>> 0; const rd = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
     obs = []; layers = []; movers = []; beams = [];
-    const g = cf.g; let gx = Math.floor((9 - g) / 2), gz = gx;
+    let A = null;
     for (let i = 0; i < cf.n; i++) {
       const y = -4 - i * 8;
-      if (i > 0) {
-        gx = Math.max(0, Math.min(9 - g, gx + Math.round((rd() - 0.5) * 4)));
-        gz = Math.max(0, Math.min(9 - g, gz + Math.round((rd() - 0.5) * 4)));
-      }
+      const holes = holeLayout(cf, rd, A); A = holes[0];
       const mats = rd() < 0.4 ? MAT.mossBox : MAT.plankBox;
-      const add = (a, b, c, d) => { box(a, b, c, d, y, mats); obs.push({ x0: a, x1: b, z0: c, z1: d, y0: y - 0.5, y1: y + 0.5 }); };
-      if (gx > 0) add(0, gx, 0, 9); if (gx + g < 9) add(gx + g, 9, 0, 9);
-      if (gz > 0) add(gx, gx + g, 0, gz); if (gz + g < 9) add(gx, gx + g, gz + g, 9);
-      layers.push({ y, cx: gx + g / 2, cz: gz + g / 2 });
+      floorRects(holes).forEach(q => {
+        box(q.x0, q.x1, q.z0, q.z1, y, mats);
+        obs.push({ x0: q.x0, x1: q.x1, z0: q.z0, z1: q.z1, y0: y - 0.5, y1: y + 0.5 });
+      });
+      layers.push({ y, holes: holes.map(h => ({ cx: h.x + h.s / 2, cz: h.z + h.s / 2, s: h.s })) });
       if (i < cf.n - 1 && rd() < cf.mv) {
         const kind = cf.obs >= 0 ? cf.obs : (rd() * 8 | 0);
         const m = mkObs(kind); m.position.y = y - 4; m.scale.setScalar(1.5); world.add(m);
@@ -880,7 +930,8 @@
     P.mesh = mkMoku(); world.add(P.mesh); racers.push(P);
     cf.cpu.forEach((k, i) => {
       const rv = RIVALS[k];
-      const r = { name: rv.name, rv, css: rv.css, x: 0.9 + (i % 2) * 0.8, z: 1.5 + i * 1.5, y: 5.9, vx: 0, vy: 0, vz: 0, dead: 0, face: Math.PI / 2, mesh: mkRival(rv) };
+      const r = { name: rv.name, rv, css: rv.css, x: 0.9 + (i % 2) * 0.8, z: 1.5 + i * 1.5, y: 5.9, vx: 0, vy: 0, vz: 0, dead: 0, face: Math.PI / 2, mesh: mkRival(rv),
+        hold: rv.think * (0.8 + Math.random() * 0.5) };
       world.add(r.mesh); racers.push(r);
     });
     hatId = undefined; refreshHat();
@@ -910,9 +961,9 @@
   }
 
   // ======================================================================
-  // Physics / AI(子どもの move() と ai() と同じ数字)
+  // Physics / AI(move() は子どもの数字のまま。ai() は 2026-10-31 に穴2つ・もたもたを足した)
   // ======================================================================
-  function respawn(r) { r.x = 1.2 + (Math.random() - 0.5); r.z = 4.5 + (Math.random() - 0.5) * 5; r.y = 5.9; r.vx = r.vy = r.vz = 0; r.dead = 0; r.tl = null; }
+  function respawn(r) { r.x = 1.2 + (Math.random() - 0.5); r.z = 4.5 + (Math.random() - 0.5) * 5; r.y = 5.9; r.vx = r.vy = r.vz = 0; r.dead = 0; r.tl = null; if (r.rv) r.hold = r.rv.think * (0.7 + Math.random() * 0.6); }
   function kill(r) {
     if (r.dead) return;
     r.dead = 0.9;
@@ -936,12 +987,24 @@
     }
     return false;
   }
-  function ai(r) {
-    if (r.y > 5.5) { const dx = 4.5 - r.x, dz = 4.5 - r.z, d = Math.hypot(dx, dz) || 1; return [dx / d, dz / d]; }
+  function ai(r, dt) {
+    if (r.y > 5.5) {
+      // スタート直後・やり直しのあとは、上の床で少しきょろきょろしてから穴へ
+      if (r.hold > 0) { r.hold -= dt; return [Math.sin(t * 2 + r.z) * 0.25, Math.cos(t * 1.7 + r.x) * 0.25]; }
+      const dx = 4.5 - r.x, dz = 4.5 - r.z, d = Math.hypot(dx, dz) || 1; return [dx / d, dz / d];
+    }
     const L = layers.find(l => l.y + 0.5 <= r.y - 0.4);
     if (!L) { const dx = PT.x - r.x, dz = PT.z - r.z, d = Math.hypot(dx, dz) || 1, k = Math.min(1, d * 1.5); return [dx / d * k, dz / d * k]; }
-    if (L !== r.tl) { r.tl = L; r.ox = (Math.random() * 2 - 1) * r.rv.err; r.oz = (Math.random() * 2 - 1) * r.rv.err; }
-    let dx = L.cx + r.ox - r.x, dz = L.cz + r.oz - r.z;
+    if (L !== r.tl) {
+      // いちばん近い穴をねらう(ずれは穴の大きさに合わせて少し小さく)
+      r.tl = L;
+      r.th = L.holes.reduce((b, h) => Math.hypot(h.cx - r.x, h.cz - r.z) < Math.hypot(b.cx - r.x, b.cz - r.z) ? h : b);
+      const e = r.rv.err * Math.min(1, r.th.s / 5) * 0.6;
+      r.ox = (Math.random() * 2 - 1) * e; r.oz = (Math.random() * 2 - 1) * e;
+      r.hold = r.rv.wait * Math.random() * 2;
+    }
+    let dx = r.th.cx + r.ox - r.x, dz = r.th.cz + r.oz - r.z;
+    if (r.hold > 0) { r.hold -= dt; dx *= 0.3; dz *= 0.3; }
     if (r.rv.dodge) for (const m of movers) {
       const p = m.m.position;
       if (p.y < r.y && p.y > r.y - 5 && Math.abs(p.x - r.x) < 3 && Math.abs(p.z - r.z) < 3) { dx += (r.x - p.x) * r.rv.dodge * 2; dz += (r.z - p.z) * r.rv.dodge * 2; }
@@ -952,7 +1015,7 @@
   function move(r, ix, iz, sp, dt) {
     const wasTop = r.y >= 5.85;
     r.vx += (ix * sp - r.vx) * Math.min(1, dt * 8); r.vz += (iz * sp - r.vz) * Math.min(1, dt * 8);
-    r.vy = Math.max(r.vy - 18 * dt, -11);
+    r.vy = Math.max(r.vy - 18 * dt, r.me ? -11 : -11 * r.rv.fall);
     r.x = Math.max(0.45, Math.min(8.55, r.x + r.vx * dt)); r.z = Math.max(0.45, Math.min(8.55, r.z + r.vz * dt)); r.y += r.vy * dt;
     if (!inHole(r) && r.y - 0.4 <= 5.5 && r.y > 5) { r.y = 5.9; r.vy = 0; }
     if (r.me && wasTop && r.y < 5.85) sfx.drop();
@@ -1017,7 +1080,6 @@
     $('banner').innerHTML = '<div class="' + (small ? 'small' : 'big') + '">' + text + '</div>';
     bannerTimer = setTimeout(() => { $('banner').innerHTML = ''; }, small ? 1700 : 900);
   }
-  function ord(n) { return n + (['th', 'st', 'nd', 'rd'][(n % 100 > 10 && n % 100 < 14) ? 0 : (n % 10 < 4 ? n % 10 : 0)]); }
   function standingsOrder() {
     return racers.slice().sort((a, b) => {
       const fa = fin.indexOf(a), fb = fin.indexOf(b);
@@ -1054,7 +1116,7 @@
     document.body.classList.remove('on-title');
     $('title').classList.add('hidden'); $('hud').classList.remove('hidden');
     $('hRound').textContent = RD[round].icon + ' ' + RD[round].t;
-    $('hTheme').textContent = RD[round].cpu.length ? (RD[round].cpu.length > 1 ? 'vs All 5 Rivals' : 'vs ' + RIVALS[RD[round].cpu[0]].name) : 'Practice · Goal ' + RD[round].par + 's';
+    $('hTheme').textContent = vsText(RD[round]);
     const h = $('hint'); h.textContent = RD[round].h || ''; h.style.opacity = RD[round].h ? 1 : 0;
     clearTimeout(h._t); h._t = setTimeout(() => { h.style.opacity = 0; }, 7000);
     state = 'count'; cd = 3.2; lastTick = 4;
@@ -1088,17 +1150,15 @@
     state = 'teleport'; setWind(0); sfx.portal();
     $('flash').style.background = '#C9B6FF'; $('flash').style.opacity = 0.8;
     setTimeout(() => { $('flash').style.opacity = 0; setTimeout(() => { $('flash').style.background = '#FFD9C7'; }, 400); }, 700);
-    banner(RD[round].cpu.length ? ord(fin.indexOf(P) + 1) + ' place!' : 'Teleporting…', true);
+    banner(RD[round].cpu.length ? placeLabel(fin.indexOf(P) + 1) + ' place!' : 'Teleporting…', true);
     resultTimer = setTimeout(showResult, 1100);
   }
   function mointsReady() { return !!(window.MokuMoint && MokuMoint.earn); }
   function showResult() {
     const cf = RD[round], race = cf.cpu.length > 0, place = fin.indexOf(P) + 1, won = !race || place === 1;
-    const prevBits = prog.stars[round] | 0;
-    let bits = 1;
-    if (tries === 0) bits |= 2;
-    if (race ? place === 1 : tm <= cf.par) bits |= 4;
-    prog.stars[round] = prevBits | bits;
+    const prevPlace = prog.place[round] | 0;
+    const placeNow = race ? place : 1;
+    if (!prevPlace || placeNow < prevPlace) prog.place[round] = placeNow;
     const prevBest = prog.best[round];
     const newBest = won && (!prevBest || tm < prevBest);
     if (newBest) prog.best[round] = Math.round(tm * 10) / 10;
@@ -1124,14 +1184,13 @@
     // panel
     $('resTitle').textContent = race ? (won ? (round === RD.length - 1 ? 'Great Tree Champion! 👑' : 'You win! 🎉') : 'You came ' + ord(place) + '!') : 'Round Clear! 🎉';
     $('resSub').textContent = cf.icon + ' ' + cf.t + (race ? ' · ' + ord(place) + ' of ' + (cf.cpu.length + 1) : '');
-    const keyTxt = ['Reached the portal', 'No bonks', race ? 'Won the race' : 'Under ' + cf.par + 's'];
-    $('starKey').innerHTML = keyTxt.map((s, i) => '<div class="' + (bits & (1 << i) ? 'on' : '') + '">' + s + '</div>').join('');
-    const stEls = $('resStars').children;
-    for (let i = 0; i < 3; i++) {
-      const el = stEls[i]; const on = (prog.stars[round] >> i) & 1, now = (bits >> i) & 1, isNew = now && !((prevBits >> i) & 1);
-      el.className = 'st' + (on ? ' on' : '') + (isNew ? ' new' : '');
-      setTimeout(() => { el.classList.add('show'); if (on) sfx.star(i); }, 250 + i * 260);
-    }
+    // 順位の表示(星は 2026-10-31 に廃止): 🥇 1st / 🥈 2nd / 🥉 3rd、練習ラウンドは CLEAR
+    const pl = $('resPlace');
+    pl.className = 'p' + (race ? Math.min(place, 4) : 1);
+    pl.innerHTML = race ? '<span class="md">' + (MEDAL[place] || '🏁') + '</span><span class="pn">' + ord(place) + '</span>'
+      : '<span class="md">✅</span><span class="pn">CLEAR</span>';
+    pl.classList.remove('show'); void pl.offsetWidth; pl.classList.add('show');
+    setTimeout(() => sfx.star(race ? Math.max(0, 3 - place) : 2), 250);
     $('resTime').textContent = tm.toFixed(1) + 's' + (newBest && prevBest ? ' ✨' : '');
     $('resBonks').textContent = tries;
     const mb = $('resMoint');
@@ -1175,9 +1234,16 @@
     else if (e.key === 'Enter' || e.key === ' ') { $(MENU[menuSel]).click(); e.preventDefault(); }
   }
   function nextRound() {
-    // 最初の「まだ星がそろっていない、開いているラウンド」。全部そろっていれば Grand Race
-    for (let i = 0; i < prog.unlocked; i++) if (bitsOf(prog.stars[i] | 0) < 3) return i;
+    // 最初の「まだ 1st(練習はクリア)を取っていない、開いているラウンド」。全部取っていれば Grand Race
+    for (let i = 0; i < prog.unlocked; i++) if ((prog.place[i] | 0) !== 1) return i;
     return Math.min(prog.unlocked, RD.length) - 1;
+  }
+  function racesWon() { let n = 0; RD.forEach((r, i) => { if (r.cpu.length && (prog.place[i] | 0) === 1) n++; }); return n; }
+  const RACE_TOTAL = RD.filter(r => r.cpu.length).length;
+  function vsText(r) {
+    if (!r.cpu.length) return 'Practice';
+    if (r.cpu.length > 2) return 'All 5 rivals';
+    return 'vs ' + r.cpu.map(k => RIVALS[k].name).join(' & ');
   }
   function renderOutfit() {
     if (!window.MokuMoint) return;
@@ -1197,13 +1263,13 @@
   function renderRounds() {
     const nx = nextRound();
     $('roundGrid').innerHTML = RD.map((r, i) => {
-      const locked = i >= prog.unlocked, b = prog.stars[i] | 0;
-      const vs = r.cpu.length ? (r.cpu.length > 1 ? 'All 5 rivals' : 'vs ' + RIVALS[r.cpu[0]].name) : 'Practice';
-      const st = [0, 1, 2].map(k => (b >> k) & 1 ? '<b>★</b>' : '★').join('');
+      const locked = i >= prog.unlocked, b = prog.place[i] | 0;
+      const vs = vsText(r);
+      const st = !b ? '–' : (r.cpu.length ? '<b>' + placeLabel(b) + '</b>' : '<b>✅ Clear</b>');
       return '<button class="rCard' + (i === RD.length - 1 ? ' grand' : '') + (locked ? ' locked' : '') + (i === nx && !locked ? ' next' : '') + '" data-i="' + i + '"' + (locked ? ' disabled' : '') + '>' +
         '<span class="rIcon">' + r.icon + '</span><span class="rName">' + r.t + '</span><span class="rVs">' + vs + '</span><span class="rStars">' + st + '</span></button>';
     }).join('');
-    $('starTotal').textContent = '⭐ ' + totalStars() + ' / ' + RD.length * 3;
+    $('starTotal').textContent = '🥇 ' + racesWon() + ' / ' + RACE_TOTAL + ' races won';
     $('roundGrid').querySelectorAll('.rCard').forEach(b => b.addEventListener('click', () => { sfx.tap(); start(+b.dataset.i); }));
   }
   $('mPlay').addEventListener('click', () => { audio(); sfx.go(); start(nextRound()); });
@@ -1273,7 +1339,7 @@
           let b = jz + (keys.s || keys.arrowdown ? 1 : 0) - (keys.w || keys.arrowup ? 1 : 0);
           const m = Math.hypot(a, b); if (m > 1) { a /= m; b /= m; }
           const c = Math.cos(yaw), s = Math.sin(yaw); ix = a * c + b * s; iz = -a * s + b * c;
-        } else { [ix, iz] = ai(r); sp = 6.5 * r.rv.spd; }
+        } else { [ix, iz] = ai(r, dt); sp = 6.5 * r.rv.spd; }
         move(r, ix, iz, sp, dt);
       }
       if (state === 'play' && !P.dead) setWind(P.y < 5.85 ? -P.vy / 11 : 0); else setWind(0);
