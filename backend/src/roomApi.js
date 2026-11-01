@@ -186,7 +186,8 @@ function createRoomApi(store, config) {
   async function markExpiry(room) {
     delete room.expiresAt;
     delete room.expired;
-    if (room.status !== "lobby" || room.players.length > 1) return room;
+    // Someone joined (even if they left again): the invite was taken up.
+    if (room.status !== "lobby" || room.players.length > 1 || room.someoneJoined) return room;
     const minutes = (await settings.get())["rooms.inviteExpiryMinutes"];
     const at = Date.parse(room.createdAt) + minutes * 60 * 1000;
     if (!Number.isFinite(at)) return room;
@@ -403,6 +404,7 @@ function createRoomApi(store, config) {
       if (room.status !== "lobby") return err(409, "already_started", "This game already started.");
       if (room.players.length >= maxPlayers(room)) return err(409, "room_full", "This room is full.");
       room.players.push(seat(user));
+      room.someoneJoined = true;   // no invite expiry from now on (markExpiry)
       return null;
     }, (room) => [indexRow(user.uid, room)]);
     if (res.error) return res.error;

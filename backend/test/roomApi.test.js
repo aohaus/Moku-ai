@@ -200,6 +200,10 @@ test("a lobby someone joined doesn't expire; the admin's setting changes the lim
   assert.equal(joined.expiresAt, null);
   t.tick(3 * 60 * 60 * 1000);
   assert.equal((await t.call("GET", `/rooms/${room.id}`, "aoi")).body.room.status, "lobby");
+  await t.call("POST", `/rooms/${room.id}/leave`, "ren", {});
+  const left = (await t.call("GET", `/rooms/${room.id}`, "aoi")).body.room;
+  assert.deepEqual([left.status, left.expiresAt], ["lobby", null], "a friend who joined and left still counts");
+  assert.equal((await t.call("POST", `/rooms/${room.id}/join`, "ren", {})).status, 200, "and can come back");
 
   await t.store.putSettings({ values: { "rooms.inviteExpiryMinutes": 10 } });
   t.tick(61 * 1000);   // past the settings cache
