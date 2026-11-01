@@ -21,6 +21,13 @@ Parameters:
   GitHubRepo:
     Type: String
     Default: aohaus/Moku-ai
+  GitHubRepoWithIds:
+    Type: String
+    Default: aohaus@991104/Moku-ai@1338191090
+    Description: >
+      The same repo as GitHub now writes it in the OIDC token's sub claim:
+      owner@<owner id>/repo@<repo id> (seen in CloudTrail on 2026-11-01).
+      The ids never change, even if the repo or account is renamed.
   BackendStackName:
     Type: String
     Default: moku-backend
@@ -67,9 +74,14 @@ Resources:
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
               StringLike:
+                # Both spellings of the repo GitHub uses in the token (plain name, and
+                # name@id). Exact values only: a wildcard on the owner would also
+                # match other accounts whose names start the same way.
                 token.actions.githubusercontent.com:sub:
                   - !Sub "repo:${GitHubRepo}:ref:refs/heads/main"
                   - !Sub "repo:${GitHubRepo}:environment:production"
+                  - !Sub "repo:${GitHubRepoWithIds}:ref:refs/heads/main"
+                  - !Sub "repo:${GitHubRepoWithIds}:environment:production"
       Policies:
         - PolicyName: sam-deploy
           PolicyDocument:

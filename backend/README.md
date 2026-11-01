@@ -81,6 +81,7 @@ aws cloudformation describe-stacks --region ap-southeast-5 --stack-name moku-git
 Actions → **Deploy backend** → **Run workflow**(Branch: `main`)。緑になり、Summary の表がすべて ✅ ならおしまい。
 
 - 初回のデプロイから、スタックの変更は `moku-cfn-exec` ロールで行われる(CloudFormation がスタックに覚える)。CloudShell から手で `sam deploy` しても、このロールが使われる。
+- `Could not assume role with OIDC: Not authorized to perform sts:AssumeRoleWithWebIdentity` で失敗した時は、GitHub が名乗った名前(トークンの `sub`)がロールの条件と合っていない。CloudShell で `aws cloudtrail lookup-events --region ap-southeast-5 --lookup-attributes AttributeKey=EventName,AttributeValue=AssumeRoleWithWebIdentity --max-results 3 --query "Events[].CloudTrailEvent" --output text | grep -o '"principalId":"[^"]*"'` を実行すると、名乗った名前が分かる(2026-11-01 には `repo:aohaus@991104/Moku-ai@1338191090:environment:production` という ID つきの形だった。テンプレートは ID なし・ID つきの両方を受け入れる)。
 - `AccessDenied` で失敗した時は、エラーに出ている操作をロールに足す。`moku-github-deploy` の権限なら Deploy のログ、`moku-cfn-exec` の権限ならスタックのイベント(CloudFormation コンソール)に出る。ロールは `.github/aws/deploy-roles.yaml` を直して手順1をもう一度実行すれば更新される。
 - **招待コード・AuthSecret を変える時**は、従来どおり CloudShell で下の `sam deploy --parameter-overrides …` を実行する。そのあとの自動デプロイは、その新しい値をそのまま使う。
 
