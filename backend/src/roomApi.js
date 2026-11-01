@@ -23,11 +23,14 @@ const { createSettings } = require("./settings");
 // 2–4 players, 3 games, and each player posts their board to
 // POST /rooms/{code}/state instead of answering riddles.
 //
-// A lobby that nobody joins within the admin's "invite expiry" (settings.js
-// rooms.inviteExpiryMinutes, 60 by default) is closed: the code and the
-// invites stop working. Nothing runs on a timer — a room is checked whenever
-// it is read (markExpiry), so a raised limit also reopens a lobby that was
-// only closed by the old one.
+// Time limits (admin settings, settings.js), all checked whenever a room is
+// read (markExpiry) — nothing runs on a timer, so a raised limit also reopens
+// what only the old one closed:
+//   - rooms.inviteExpiryMinutes (60): an invite nobody takes up within it
+//     disappears from that friend's list, and a lobby nobody joined at all
+//     closes (closedReason "expired").
+//   - rooms.lobbyMaxMinutes (120): a lobby that never starts closes
+//     (closedReason "idle"), even with players in it.
 //
 // And Moku Wolf Multiplayer (game "wolf", wolfParty.js): 3–10 players, the
 // server deals each one a secret word, and players act through
@@ -72,8 +75,15 @@ const seat = (u) => ({ uid: u.uid, name: u.displayName, tag: tagOf(u) });
 function isPlayer(room, uid) {
   return room.players.some((p) => p.uid === uid);
 }
+// When a friend was invited (invites from before 2026-11-01 have no "at":
+// the room's creation time stands in).
+function invitedAt(room, p) {
+  return p.at || Date.parse(room.createdAt) || 0;
+}
+// Invited and the invite still good (inviteCutoff is set by markExpiry on
+// every read: invites from before it have expired).
 function isInvited(room, uid) {
-  return room.invited.some((p) => p.uid === uid);
+  return room.invited.some((p) => p.uid === uid && !(room.inviteCutoff && invitedAt(room, p) < room.inviteCutoff));
 }
 
 function scores(room) {
@@ -97,7 +107,7 @@ function roomView(room, uid, t, states) {
       joined: isPlayer(room, uid),
       isHost: room.host === uid,
       players: room.players.map((p) => ({ name: p.name, tag: p.tag, host: p.uid === room.host, score: 0 })),
-      invited: room.invited.filter((p) => !isPlayer(room, p.uid)).map((p) => ({ name: p.name, tag: p.tag })),
+      invited: room.invited.filter((p) => !isPlayer(room, p.uid) && isInvited(room, p.uid)).map((p) => ({ name: p.name, tag: p.tag })),
       ...wolf.view(room, uid, tagByUid),
       next: room.next || null,
       closedReason: room.closedReason || null,
@@ -120,7 +130,7 @@ function roomView(room, uid, t, states) {
       joined: isPlayer(room, uid),
       isHost: room.host === uid,
       players: room.players.map((p) => ({ name: p.name, tag: p.tag, host: p.uid === room.host, score: totals[p.uid] || 0 })),
-      invited: room.invited.filter((p) => !isPlayer(room, p.uid)).map((p) => ({ name: p.name, tag: p.tag })),
+      invited: room.invited.filter((p) => !isPlayer(room, p.uid) && isInvited(room, p.uid)).map((p) => ({ name: p.name, tag: p.tag })),
       ...moyo.view(room, states, t),
       next: room.next || null,
       closedReason: room.closedReason || null,
@@ -146,7 +156,7 @@ function roomView(room, uid, t, states) {
     isHost: room.host === uid,
     count: room.count,
     players: room.players.map((p) => ({ name: p.name, tag: p.tag, host: p.uid === room.host, score: sc[p.uid] || 0 })),
-    invited: room.invited.filter((p) => !isPlayer(room, p.uid)).map((p) => ({ name: p.name, tag: p.tag })),
+    invited: room.invited.filter((p) => !isPlayer(room, p.uid) && isInvited(room, p.uid)).map((p) => ({ name: p.name, tag: p.tag })),
     riddles: started ? room.riddles : [],
     startAt: room.startAt || null,
     wins: Object.keys(room.wins || {}).map((q) => ({ q: Number(q), tag: tagByUid[room.wins[q].uid] || null, at: room.wins[q].at }))
@@ -186,18 +196,26 @@ function createRoomApi(store, config) {
   async function markExpiry(room) {
     delete room.expiresAt;
     delete room.expired;
-    // Someone joined (even if they left again): the invite was taken up.
-    if (room.status !== "lobby" || room.players.length > 1 || room.someoneJoined) return room;
-    const minutes = (await settings.get())["rooms.inviteExpiryMinutes"];
-    const at = Date.parse(room.createdAt) + minutes * 60 * 1000;
-    if (!Number.isFinite(at)) return room;
-    if (now() >= at) {
+    delete room.inviteCutoff;
+    const values = await settings.get();
+    const inviteMs = values["rooms.inviteExpiryMinutes"] * 60 * 1000;
+    const t = now();
+    room.inviteCutoff = t - inviteMs;
+    const created = Date.parse(room.createdAt);
+    if (room.status !== "lobby" || !Number.isFinite(created)) return room;
+    const close = (reason) => {
       room.status = "closed";
-      room.closedReason = "expired";
+      room.closedReason = reason;
       room.expired = true;
-    } else {
-      room.expiresAt = new Date(at).toISOString();
-    }
+      return room;
+    };
+    // Nobody joined (someone who joined and left again counts as joined).
+    const alone = room.players.length < 2 && !room.someoneJoined;
+    const aloneAt = alone ? created + inviteMs : Infinity;
+    const idleAt = created + values["rooms.lobbyMaxMinutes"] * 60 * 1000;
+    if (t >= aloneAt) return close("expired");
+    if (t >= idleAt) return close("idle");
+    room.expiresAt = new Date(Math.min(aloneAt, idleAt)).toISOString();
     return room;
   }
 
@@ -209,7 +227,9 @@ function createRoomApi(store, config) {
   }
   const closedError = (room) => room.closedReason === "expired"
     ? err(410, "room_expired", "No one joined in time, so this room closed.")
-    : err(410, "room_closed", "This room is closed.");
+    : room.closedReason === "idle"
+      ? err(410, "room_expired", "The game didn't start in time, so this room closed.")
+      : err(410, "room_closed", "This room is closed.");
   async function loadFor(user, id) {
     const room = await load(id);
     if (!room || !(isPlayer(room, user.uid) || isInvited(room, user.uid))) return null;
@@ -244,6 +264,7 @@ function createRoomApi(store, config) {
       room.version = base + 1;
       delete room.expiresAt;   // worked out on every read (markExpiry), never stored
       delete room.expired;
+      delete room.inviteCutoff;
       stamp(room);
       try {
         await store.saveRoom(room, base, extraRows(room));
@@ -421,8 +442,10 @@ function createRoomApi(store, config) {
       if (room.status === "closed") return closedError(room);
       if (room.status !== "lobby") return err(409, "already_started", "This game already started.");
       if (isPlayer(room, friend.uid) || isInvited(room, friend.uid)) return json(200, { room: roomView(room, user.uid, now(), {}) });
+      // Drop invites that ran out (an expired friend can be invited again).
+      room.invited = room.invited.filter((p) => isInvited(room, p.uid));
       if (room.invited.length >= MAX_INVITES) return err(409, "too_many_invites", "That's a lot of invites! Share the room code instead.");
-      room.invited.push(seat(friend));
+      room.invited.push({ ...seat(friend), at: now() });
       return null;
     }, (room) => [indexRow(friend.uid, room)]);
     if (res.error) return res.error;

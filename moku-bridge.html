@@ -479,7 +479,7 @@ button.chal-row:disabled { opacity: 0.6; }
 
 <div id="title-frame"></div>
 <a id="hub-link" href="index.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.6.1 · Updated Oct 31, 2026</div>
+<div id="buildInfo">v0.6.2 · Updated Nov 1, 2026</div>
 
 <!-- Item icons, reused by the HUD and the shop -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -2058,11 +2058,19 @@ button.chal-row:disabled { opacity: 0.6; }
 
   function outcomeText(c) {
     var name = esc(c.opponent.name);
-    if (c.status !== 'done') return c.yourTurn ? 'Your turn!' : 'Waiting for ' + name + '…';
+    if (c.status === 'expired') return 'Time ran out ⏰';
+    if (c.status !== 'done') return c.yourTurn ? 'Your turn!' + timeLeft(c) : 'Waiting for ' + name + '…';
     var score = ' (' + (c.yourResult ? c.yourResult.falls : '?') + ' vs ' + (c.theirResult ? c.theirResult.falls : '?') + ' falls)';
     if (c.winner === 'you') return 'You won! 🎉' + score;
     if (c.winner === 'them') return name + ' won' + score;
     return "It's a tie!" + score;
+  }
+  // " · 42 min left" while a challenge is waiting on you (the server sends expiresAt)
+  function timeLeft(c) {
+    var ms = Date.parse(c.expiresAt || '') - Date.now();
+    if (!(ms > 0)) return '';
+    var min = Math.ceil(ms / 60000);
+    return ' · ' + (min >= 120 ? Math.round(min / 60) + ' h' : min + ' min') + ' left';
   }
   function fallsText(n) { return n === 0 ? 'no falls' : n + ' fall' + (n === 1 ? '' : 's'); }
 
@@ -2076,7 +2084,8 @@ button.chal-row:disabled { opacity: 0.6; }
         st.sent = true; saveAll();
         return err.data.challenge;
       }
-      if (err.code === 'challenge_not_found') { st.sent = true; saveAll(); }   // gone: nothing left to send to
+      // gone, or time ran out: nothing left to send to
+      if (err.code === 'challenge_not_found' || err.code === 'challenge_expired') { st.sent = true; saveAll(); }
       throw err;
     });
   }
@@ -2121,6 +2130,7 @@ button.chal-row:disabled { opacity: 0.6; }
       refreshFriendBadge();
     }, function (err) {
       show('<div class="chal-line"><span>' + (err.code === 'challenge_not_found' ? 'This challenge is gone.' :
+        err.code === 'challenge_expired' ? 'Time ran out for this challenge. ⏰' :
         "Couldn't send your result yet. It will be sent when you open Challenges.") + '</span></div>');
     });
   }
@@ -2142,7 +2152,7 @@ button.chal-row:disabled { opacity: 0.6; }
     el.className = 'chal-row' + (turn ? ' turn' : '') + (c.winner === 'you' ? ' won' : '');
     el.innerHTML = avatarHTML(c.opponent.tag) +
       '<span class="who"><div class="nm">vs ' + esc(c.opponent.name) + '<small>#' + esc(c.opponent.tag) + '</small></div>' +
-      '<div class="st">' + (turn && c.theyPlayed ? 'Your turn! ' + esc(c.opponent.name) + ' already crossed.' : outcomeText(c)) + '</div></span>' +
+      '<div class="st">' + (turn && c.theyPlayed ? 'Your turn! ' + esc(c.opponent.name) + ' already crossed.' + timeLeft(c) : outcomeText(c)) + '</div></span>' +
       (turn ? '<span class="go">Play ▶</span>' : '');
     if (turn) el.onclick = function () { openChallenge(c.id, el); };
     return el;

@@ -37,7 +37,7 @@ async function setup() {
     });
     return { status: res.statusCode, body: JSON.parse(res.body) };
   }
-  return { store, users, call, tick: (ms) => (clock += ms) };
+  return { store, users, call, tick: (ms) => (clock += ms), now: () => clock };
 }
 
 async function newChallenge(t, from = "aoi", to = "ren", steps) {
@@ -137,4 +137,40 @@ test("one player can't have more than 20 open challenges", async () => {
   for (let i = 0; i < 20; i++) await newChallenge(t);
   assert.equal((await t.call("POST", "/challenges", "aoi", { game: "moku-bridge", opponentTag: t.users.sora.tag })).body.error, "too_many_challenges");
   assert.equal((await t.call("POST", "/challenges", "sora", { game: "moku-bridge", opponentTag: t.users.ren.tag })).body.error, "opponent_busy");
+});
+
+test("an open challenge runs out an hour after its last move (the admin can change it)", async () => {
+  const t = await setup();
+  const c = await newChallenge(t);
+  assert.ok(c.expiresAt, "an open challenge says when it runs out");
+  t.tick(30 * 60 * 1000);
+  await t.call("POST", `/challenges/${c.id}/result`, "aoi", { result: { falls: 2 } });   // a move: a fresh hour for Ren
+  t.tick(59 * 60 * 1000);
+  let ren = (await t.call("GET", "/challenges", "ren")).body;
+  assert.deepEqual([ren.yourTurn, ren.challenges[0].status], [1, "open"]);
+  t.tick(2 * 60 * 1000);
+  ren = (await t.call("GET", "/challenges", "ren")).body;
+  assert.deepEqual([ren.yourTurn, ren.challenges[0].status, ren.challenges[0].yourTurn], [0, "expired", false]);
+  const one = (await t.call("GET", `/challenges/${c.id}`, "ren")).body.challenge;
+  assert.deepEqual([one.status, one.yourTurn, one.winner], ["expired", false, null]);
+  const late = await t.call("POST", `/challenges/${c.id}/result`, "ren", { result: { falls: 0 } });
+  assert.deepEqual([late.status, late.body.error], [410, "challenge_expired"]);
+  assert.equal((await t.store.getChallenge(c.id)).status, "open", "nothing is rewritten: it is worked out on read");
+
+  // An expired challenge no longer counts toward the 20 open ones.
+  for (let i = 0; i < 19; i++) await newChallenge(t);
+  assert.equal((await t.call("POST", "/challenges", "aoi", { game: "moku-bridge", opponentTag: t.users.sora.tag })).status, 201);
+});
+
+test("the challenge expiry comes from the admin's setting; raising it reopens what only the old one closed", async () => {
+  const t = await setup();
+  const c = await newChallenge(t);
+  t.tick(61 * 60 * 1000);
+  assert.equal((await t.call("GET", `/challenges/${c.id}`, "ren")).body.challenge.status, "expired");
+  await t.store.putSettings({ values: { "challenges.expiryMinutes": 24 * 60 } });
+  t.tick(61 * 1000);   // past the settings cache
+  const again = (await t.call("GET", `/challenges/${c.id}`, "ren")).body.challenge;
+  assert.deepEqual([again.status, again.yourTurn], ["open", true]);
+  const long = await newChallenge(t, "sora", "ren");
+  assert.equal(long.expiresAt, new Date(t.now() + 24 * 60 * 60 * 1000).toISOString());
 });

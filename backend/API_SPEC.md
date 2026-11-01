@@ -328,7 +328,9 @@ PINはどこにも記録しない。DynamoDB の `ttl` で90日後に自動削�
 
 | key | 初期値 | 範囲 | 使う所 |
 | --- | --- | --- | --- |
-| `rooms.inviteExpiryMinutes` | 60(分) | 5〜1440 | Rooms: ロビーにホストしかいないまま、この時間がたつと部屋を閉じる |
+| `rooms.inviteExpiryMinutes` | 60(分) | 5〜1440 | Rooms: 招待は1人ずつ、この時間入らなければ消える。ロビーにホストしかいないまま、この時間たつと部屋を閉じる |
+| `rooms.lobbyMaxMinutes` | 120(分) | 10〜1440 | Rooms: 作ってからこの時間たっても始まらないロビーは閉じる(人が入っていても) |
+| `challenges.expiryMinutes` | 60(分) | 10〜20160 | Challenges: 最後の動きからこの時間、もう1人が結果を送らなければ時間切れ |
 
 ## `PUT /admin/settings`
 
@@ -422,6 +424,8 @@ PINはどこにも記録しない。DynamoDB の `ttl` で90日後に自動削�
 - `status`: `open` / `done`(2人の結果がそろった)。`winner`: `you` / `them` / `tie`(`done` まで `null`)。
 - `yourTurn`: まだ自分の結果を送っていない。
 
+- **時間切れ**(2026-11-01〜): `open` のチャレンジは、最後の変化(`updatedAt`。作った・どちらかが結果を送った)から管理画面の設定 `challenges.expiryMinutes`(初期値60分)で `status: "expired"` になる(`yourTurn: false`、`winner: null`)。そのあとの結果は `410 challenge_expired`。読むたびに判定する(保存はしない)。`open` の間は `expiresAt`(時間切れになる時刻)を返す。時間切れは「同時に進められる20件」に数えない。
+
 ## `POST /challenges`
 
 `{ "game": "moku-bridge", "opponentTag": "u4c5d6", "steps": 9 }` → **201** `{ "challenge": … }`(相手の一覧にもすぐ出る)。
@@ -460,7 +464,11 @@ PINはどこにも記録しない。DynamoDB の `ttl` で90日後に自動削�
 - **データ**: `pk ROOM#<コード> / sk STATE`(部屋)と、プレイヤー・招待された人それぞれの一覧用 `pk PLAYER#<uid> / sk ROOM#<コード>`(`roomId` と部屋の `key` だけ)。書く時は `version` が読んだ時と同じ時だけ書き、ぶつかったら読み直してやり直す(同時の正解は先に書けた方の勝ち、もう1人は `first: false`)。
 - **コード**: `ABCDEFGHJKMNPQRSTUVWXYZ`(I・L・O なし)の4文字。大文字小文字は区別しない。使用中なら別のコード。期限が切れた部屋のコードは使い回すので、一覧の行は部屋の `key` が同じ時だけ有効。
 - **期限**: 最後の変化から1日で消える(TTL。期限を過ぎたものは消える前でも `404`)。
-- **招待の期限**(2026-11-01〜): ロビーにホストしかいないまま、作ってから管理画面の設定 `rooms.inviteExpiryMinutes`(初期値60分)たつと閉じる(`status: "closed"`、`closedReason: "expired"`)。コードでも招待でも入れなくなり(`410 room_expired`)、一覧・ハブの Invites からも消える。だれか1人でも入ればこの期限はない(あとで抜けても。部屋に `someoneJoined` を記録)。タイマーは使わず、部屋を読むたびに判定する(保存はしない。設定を長くすれば、その時間までは開き直る)。期限が来た部屋は `?v=` のポーリングでも `changed: true` で返す。ロビーにホストだけの間は `expiresAt`(閉じる時刻)を返す。
+- **招待と部屋の期限**(2026-11-01〜、管理画面の設定。タイマーは使わず、部屋を読むたびに判定する。保存はしないので、設定を長くすれば開き直る):
+  - 招待は1人ずつ、招待した時刻(`invited[].at`。それより前の招待は部屋を作った時刻)から `rooms.inviteExpiryMinutes`(初期値60分)で切れる。切れた人には部屋が見えなくなり(`404`)、一覧・`invites` の数・ハブの Invites から消える。部屋は残り、もう一度招待すればまた60分。
+  - ロビーにホストしかいないまま(だれも入っていない。入ってあとで抜けた人がいれば `someoneJoined` で数える)、作ってから同じ時間たつと閉じる(`closedReason: "expired"`)。
+  - 人が入っていても、作ってから `rooms.lobbyMaxMinutes`(初期値120分)たっても始まらなければ閉じる(`closedReason: "idle"`)。
+  - 閉じた部屋は `410 room_expired`、`?v=` のポーリングにも `changed: true` で届く。ロビーの間は、次に閉じる時刻を `expiresAt` で返す。
 - **上限**: 1部屋6人(`room_full`)、招待は10人まで。1人が同時に入っている(ロビー・レース中の)部屋は10まで。
 
 ## 部屋の形(`room`)
@@ -476,7 +484,7 @@ PINはどこにも記録しない。DynamoDB の `ttl` で90日後に自動削�
 ```
 
 - `status`: `lobby` / `playing` / `done`(最後の問題が終わった)/ `closed`(ホストがロビーで抜けた、または招待の期限切れ)。
-- `closedReason`: `"expired"`(招待の期限切れ)/ `null`。`expiresAt`: ロビーにホストだけの間、閉じる時刻(ISO)。ほかは `null`。
+- `closedReason`: `"expired"`(だれも入らなかった)/ `"idle"`(始まらなかった)/ `null`。`expiresAt`: ロビーにホストだけの間、閉じる時刻(ISO)。ほかは `null`。
 - `invited`: 招待されてまだ入っていない人。`joined: false` なら自分は招待されただけ(`POST …/join` で入る)。
 - `next`: 終わった後にホストが「もう一回」で作った新しい部屋のコード(ほかの人のページはそこへ移る)。
 
