@@ -6,6 +6,8 @@ moku-word-riddles.html が起動時に読み込み、shared/moku-riddles.js が�
 Riddle Race のサーバーも同じものを使うので、書き換えたら:
   cp data/riddles-db.md backend/src/vendor/ && (cd backend && npm test)
 npm test は「読めない問題」「同じ ID・同じ答えの重複」があると失敗する(どこが悪いかを表示する)。
+そのまま PR をマージすれば、ひとりで遊ぶモードは GitHub Pages に、Riddle Race のサーバーは
+GitHub Actions の自動デプロイ(.github/workflows/deploy-backend.yml。テストに通った時だけ)で本番に入る。
 
 1問の書き方:
   ## ID: <英小文字・数字・- の ID。セーブのキーなので、一度出したら変えない>

@@ -330,7 +330,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
     - エンジンは [`shared/moku-riddles.js`](shared/moku-riddles.js)(`MokuRiddles`、UMD): `parse(md)`(読めない問題・重複は除いて `problems` / `duplicates` で報告)→ `load()` → `isCorrect()`。ゲームは起動時に `fetch('data/riddles-db.md', { cache: 'no-cache' })` で読み、本文を `mokuwr-riddles-db`(同期対象外のキー)にも残して、オフラインの時はそれを使う。
     - **Visual** は1行の書き方からカードの絵を自動で組み立てる(座標を手で書かない): ` / ` で行、` | ` で横に並べる、`(top)` `(x4)` `(backwards)` `(upside down)` などの動き、`[line]` `[box: WORD]`。文字は**全部同じ色**(色がネタバレにならないように)。`{WORD}` だけアクセント色(色そのものがヒントの時だけ)。
     - **絵文字の足し算(☀️ + 👓 など)は出さない**(`Pattern: emoji` は読み飛ばす)。2026-11-01 にそれまでの絵文字の問題40問を外し、文字の配置の問題に入れ替えた(解いた記録はセーブに残るが数えない)。
-    - Riddle Race のサーバーも同じものを使う(`backend/src/riddles.js` が `src/vendor/riddles-db.md` を読む)。書き換えたら `cp data/riddles-db.md shared/moku-riddles.js backend/src/vendor/` → `cd backend && npm test`(読めない問題・重複・コピー違いがあると失敗し、どの ID が悪いかを出す)→ バックエンドをデプロイ。
+    - Riddle Race のサーバーも同じものを使う(`backend/src/riddles.js` が `src/vendor/riddles-db.md` を読む)。書き換えたら `cp data/riddles-db.md shared/moku-riddles.js backend/src/vendor/` → `cd backend && npm test`(読めない問題・重複・コピー違いがあると失敗し、どの ID が悪いかを出す)→ PR をマージ。`backend/` が変わるので GitHub Actions(`.github/workflows/deploy-backend.yml`)が同じテストをしてから自動でデプロイする(手で `sam deploy` しなくてよい)。
     - 問題数は自由(ハブの「n / 全部」も自動)。
   - 出題の順(2026-10-31〜 ランダム): まだ見ていない問題 → スキップした問題 → 全部解いたら解いた問題。それぞれの中はシャッフル。
   - スマホ縦向き(幅 600px 以下)では、正解・答え合わせのシートを画面の下に寄せ、上のパズルのカードを隠さない。
