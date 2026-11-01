@@ -355,7 +355,7 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
 <body class="on-title">
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.8.0 · Updated Oct 25, 2026</div>
+<div id="buildInfo">v0.9.0 · Updated Nov 1, 2026</div>
 
 <div id="wrapper">
   <canvas id="c"></canvas>
@@ -399,6 +399,7 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
         <div class="titleMenuItem rivalCard" data-action="rival" data-rival="chef"><canvas width="200" height="200"></canvas><b>CHEF RAT</b><span>Kitchen Brawler · Long Reach</span><em></em></div>
         <div class="titleMenuItem rivalCard" data-action="rival" data-rival="moyo"><canvas width="200" height="200"></canvas><b>MOYO</b><span>Jelly Gummy · Bouncy</span><em></em></div>
         <div class="titleMenuItem rivalCard bossCard" data-action="rival" data-rival="goro" style="display:none"><canvas width="200" height="200"></canvas><b>GORO</b><span>Thunder Beast · Mid-Boss</span><em></em></div>
+        <div class="titleMenuItem rivalCard bossCard" data-action="rival" data-rival="koro" style="display:none"><canvas width="200" height="200"></canvas><b>KORO</b><span>Zoomies Pup · Hidden Boss</span><em></em></div>
       </div>
       <div class="titleMenuItem" data-action="back">Back</div>
     </nav>
@@ -506,7 +507,7 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
 
   // ---------- save data ----------
   function loadSave() {
-    var d = { version: 1, gameId: GAME_ID, wins: 0, losses: 0, draws: 0, streak: 0, bestStreak: 0, rival: 'kon', rivals: {}, xp: 0, moves: [], bossMet: false, bossPending: false, bossBeaten: false, unlocked: [], practiced: {}, mointClaims: {}, difficulty: 'normal', sound: true, updatedAt: null };
+    var d = { version: 1, gameId: GAME_ID, wins: 0, losses: 0, draws: 0, streak: 0, bestStreak: 0, rival: 'kon', rivals: {}, xp: 0, moves: [], bossMet: false, bossPending: false, bossBeaten: false, koroMet: false, koroPending: false, koroBeaten: false, unlocked: [], practiced: {}, mointClaims: {}, difficulty: 'normal', sound: true, updatedAt: null };
     try {
       var raw = localStorage.getItem(SAVE_KEY);
       if (raw) {
@@ -523,6 +524,8 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
   var save = loadSave();
   if (!Array.isArray(save.moves)) save.moves = [];
   if (!Array.isArray(save.unlocked)) save.unlocked = [];
+  // players who beat Goro before the hidden boss existed meet it on their next visit
+  if (save.bossBeaten && !save.koroMet) save.koroPending = true;
   if (['leaf', 'throw', 'counter'].every(function (id) { return save.moves.indexOf(id) !== -1; }) && save.moves.indexOf('storm') === -1) save.moves.push('storm');
 
   // ---------- audio (tiny WebAudio synth) ----------
@@ -679,6 +682,8 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
       overlay: ['multiply', '#b4a0d8'], banner: '#3a2a4a' },
     morning: { sky: ['#7fb6e6', '#b4d6ee', '#f4e2c8', '#ffd6a0', '#ffe0a8'], cloud: '255,250,240', sun: { x: 760, y: 110, r: 34, fill: '#fffbe6', glow: '255,240,200' }, late: true,
       overlay: ['source-over', 'rgba(255,240,210,0.10)'], banner: '#c0602a' },
+    park: { sky: ['#7fc2e8', '#a8d8ee', '#e8f0c8', '#ffe8a0', '#ffd88a'], cloud: '255,252,240', sun: { x: 180, y: 115, r: 36, fill: '#fffbe0', glow: '255,240,170' }, late: true,
+      overlay: ['source-over', 'rgba(255,240,180,0.10)'], banner: '#c99a10' },
     candy: { sky: ['#ffb3d1', '#ffc9e0', '#e8d0ff', '#c8f0e8', '#fff0c8'], cloud: '255,255,255', sun: { x: 250, y: 110, r: 30, fill: '#fff8fb', glow: '255,220,240' }, late: true,
       overlay: ['source-over', 'rgba(255,220,240,0.12)'], banner: '#e0609a' },
     storm: { sky: ['#161b29', '#262d45', '#3a405c', '#565672', '#706a80'], cloud: '70,78,105', sun: null, late: true,
@@ -1034,9 +1039,35 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
       P:  { startup: 10, recovery: 16 }
     })
   };
+  // Hidden boss: shows up after Goro is beaten.
+  CHARS.koro = {
+    name: 'KORO', title: 'Zoomies Pup', style: 'Hidden Boss', theme: 'park', boss: true, powerText: 'ZOOMIES MODE!',
+    walk: 4.3, back: 3.4, jumpV: -15.2, power: 1.05, defense: 0.85, scale: 1,
+    color: '#F5D90A', specialName: 'MEGA WOOF!',
+    combos: { AAB: 'PUPPY RUSH!', BP: 'WOOF TRAP!' },
+    proj: { kind: 'bark', speed: 9, r: 18 }, superProj: { kind: 'bigbark', speed: 8, r: 36 },
+    portrait: { dy: 62, s: 0.82, bg: ['#fff0a0', '#7cc95a'] }, titleScale: 1.3,
+    ai: { aggr: 1.25, jump: 1.1, proj: 1.1 },
+    loseTip: 'Koro zooms in fast! Guard (←) its dash tackle, then strike back while it catches its breath.',
+    attacks: attacks({
+      A:  { startup: 4, recovery: 8, dmg: 6, range: 62, yOff: 60 },
+      B:  { startup: 9, active: 6, recovery: 16, dmg: 11, range: 98, yOff: 50, lunge: 8 },
+      cB: { range: 104 },
+      jB: { range: 90, dmg: 10 },
+      P:  { startup: 9, recovery: 15 }
+    })
+  };
+  // the two bosses and how they are introduced on the challenger screen
+  var BOSSES = {
+    goro: { met: 'bossMet', pending: 'bossPending', beaten: 'bossBeaten', name: 'GORO — Thunder Beast',
+      desc: 'You beat Kon, Ponta and Nox... and someone noticed. A crackle of thunder fills the arena!' },
+    koro: { met: 'koroMet', pending: 'koroPending', beaten: 'koroBeaten', name: 'KORO — Zoomies Pup',
+      desc: 'Goro is down... then — WOOF! WOOF! A puppy crackling with static comes zooming into the arena!' }
+  };
+  function pendingBoss() { return save.bossPending ? 'goro' : save.koroPending ? 'koro' : null; }
   var RIVALS = ['kon', 'ponta', 'nox'];
   var NEW_RIVALS = ['ninja', 'chef', 'moyo'];
-  function rivalOpen(id) { return (game && game.demo && CHARS[id]) || RIVALS.indexOf(id) !== -1 || save.unlocked.indexOf(id) !== -1 || (id === 'goro' && save.bossMet); }
+  function rivalOpen(id) { return (game && game.demo && CHARS[id]) || RIVALS.indexOf(id) !== -1 || save.unlocked.indexOf(id) !== -1 || (id === 'goro' && save.bossMet) || (id === 'koro' && save.koroMet); }
   function unlockNextRival() {
     for (var i = 0; i < NEW_RIVALS.length; i++) {
       if (save.unlocked.indexOf(NEW_RIVALS[i]) === -1) { save.unlocked.push(NEW_RIVALS[i]); return NEW_RIVALS[i]; }
@@ -1414,7 +1445,7 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
   }
 
   var projectiles = [];
-  var TRAIL = { razor: 'leaf', storm: 'leaf', wisp: 'flame', foxfire: 'flame', quake: 'dust', sonic: 'sonic', screech: 'sonic', tball: 'spark', bolt: 'spark', shuriken: 'spark', starstorm: 'smoke', bun: 'steam', pan: 'steam', jelly: 'jelly', bigjelly: 'jelly' };
+  var TRAIL = { razor: 'leaf', storm: 'leaf', wisp: 'flame', foxfire: 'flame', quake: 'dust', sonic: 'sonic', screech: 'sonic', tball: 'spark', bolt: 'spark', shuriken: 'spark', starstorm: 'smoke', bun: 'steam', pan: 'steam', jelly: 'jelly', bigjelly: 'jelly', bark: 'sonic', bigbark: 'spark' };
   function spawnProjectile(f, isSuper) {
     var cfg = isSuper ? f.c.superProj : f.c.proj;
     var atk = isSuper
@@ -1480,6 +1511,7 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
     chef: { parts: ['steam', 'spark'], ring: '#cfe6ff', n: 16 },
     moyo: { parts: ['jelly', 'spark'], ring: '#ffb3d1', n: 16 },
     smoke: { parts: ['smoke'], ring: null, n: 14 },
+    koro: { parts: ['spark', 'spark'], ring: '#fff27a', n: 18 },
     dust: { parts: ['dust'], ring: null, n: 10 }
   };
   function burst(x, y, kind) {
@@ -2125,7 +2157,97 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
     c.restore();
   }
 
-  var DRAW = { moku: drawMoku, kon: drawKon, ponta: drawPonta, nox: drawNox, goro: drawGoro, ninja: drawNinja, chef: drawChef, moyo: drawMoyo };
+
+  // Koro: the hidden boss. An original static-charged puppy (kids' plush-toy idea):
+  // cream face, round yellow body, green-edged ears, tongue out, stubby wagging tail.
+  function drawKoro(c, f, P, time) {
+    var lp = P.legPhase * 5;
+    var wag = Math.sin(time * (f.powered ? 0.9 : 0.45)) * 0.35;
+    c.save();
+    c.translate(0, P.dy);
+    c.rotate(P.lean);
+    c.scale(P.sx, P.sy);
+    // stubby tail with a green band at its base
+    c.save(); c.translate(-34, -34); c.rotate(-0.7 + wag + P.tail * 0.4);
+    ell(c, -6, -16, 9, 17, -0.5, '#f5d90a');
+    ell(c, -10, -26, 6, 7, -0.5, '#ffe866');
+    ell(c, 0, -2, 11, 8, -0.5, '#8fd16a');
+    c.restore();
+    // back legs / paws
+    ell(c, -18 - lp * 0.6, -6, 10, 8, 0, '#efe2c8');
+    ell(c, 18 + lp * 0.6, -6, 10, 8, 0, '#f6ecd8');
+    // back paw
+    c.save(); c.translate(-14, -50); c.rotate(P.armB);
+    ell(c, 0, 10, 7, 12, 0, '#efe2c8'); ell(c, 0, 20, 7, 6, 0, '#e8dcc0');
+    c.restore();
+    // round yellow body like a cushion
+    var bg = c.createLinearGradient(0, -78, 0, 0);
+    bg.addColorStop(0, '#ffe866'); bg.addColorStop(1, '#e8c818');
+    ell(c, 0, -38, 38, 36, 0, bg);
+    ell(c, 10, -32, 20, 22, 0, 'rgba(255,250,220,0.45)');
+    // ears: tan with a green edge and a yellow inside
+    function ear(x1, y1, x2, y2, x3, y3) {
+      c.fillStyle = '#8fd16a'; c.beginPath(); c.moveTo(x1 - 3, y1 + 2); c.lineTo(x2, y2 - 4); c.lineTo(x3 + 3, y3 + 2); c.closePath(); c.fill();
+      c.fillStyle = '#e8c98a'; c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.lineTo(x3, y3); c.closePath(); c.fill();
+      var mx = (x1 + x3) / 2, my = (y1 + y3) / 2;
+      c.fillStyle = '#ffe866'; c.beginPath(); c.moveTo(mx + (x1 - mx) * 0.45, my + (y1 - my) * 0.45 - 4); c.lineTo(mx + (x2 - mx) * 0.6, my + (y2 - my) * 0.6); c.lineTo(mx + (x3 - mx) * 0.45, my + (y3 - my) * 0.45 - 4); c.closePath(); c.fill();
+    }
+    ear(-18, -108, -30, -150, 2, -118);
+    ear(18, -118, 44, -148, 40, -104);
+    // big cream head with tan patches and a white blaze
+    ell(c, 10, -90, 33, 29, 0, '#f6ecd8');
+    ell(c, -6, -100, 15, 13, -0.3, '#e8c98a');
+    ell(c, 27, -100, 15, 13, 0.3, '#e8c98a');
+    ell(c, 10, -98, 7, 18, 0, '#fffaf0');
+    // muzzle, open mouth, tongue
+    ell(c, 24, -78, 17, 12, 0, '#fffaf0');
+    var calm = P.eyes !== 'hurt' && P.eyes !== 'ko';
+    if (calm) {
+      ell(c, 24, -71, 10, 5, 0, '#8a2a2a');
+      ell(c, 25, -64, 6, 8, 0, '#f08a9a');
+      c.strokeStyle = '#d06a7a'; c.lineWidth = 1; c.beginPath(); c.moveTo(25, -68); c.lineTo(25, -60); c.stroke();
+    } else {
+      c.strokeStyle = '#6b5a3a'; c.lineWidth = 2; c.beginPath(); c.moveTo(16, -72); c.quadraticCurveTo(24, -68, 32, -72); c.stroke();
+    }
+    // little gold heart nose
+    c.fillStyle = '#d9b23a';
+    c.beginPath(); c.moveTo(36, -80); c.bezierCurveTo(30, -84, 30, -90, 34, -90); c.bezierCurveTo(36, -90, 36, -88, 36, -87);
+    c.bezierCurveTo(36, -88, 36, -90, 38, -90); c.bezierCurveTo(42, -90, 42, -84, 36, -80); c.fill();
+    // green eyes
+    if (P.eyes === 'angry') { ell(c, 0, -94, 8.5, 9.5, 0, '#a8e070'); ell(c, 22, -94, 8.5, 9.5, 0, '#a8e070'); }
+    drawEyes(c, P, 0, 22, -94, 5, '#1e2a14', '#ffffff', '#6b5a3a');
+    if (P.eyes === 'angry') {
+      c.strokeStyle = '#8a6a3a'; c.lineWidth = 2.6; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(-9, -107); c.lineTo(5, -103); c.stroke();
+      c.beginPath(); c.moveTo(31, -107); c.lineTo(17, -103); c.stroke();
+    }
+    ell(c, -6, -82, 4, 2.5, 0, 'rgba(255,150,170,0.4)');
+    // static crackles around the ears
+    if (f.state !== 'ko' && (time >> 3) % 3 === 0) {
+      c.strokeStyle = '#fff27a'; c.lineWidth = 2; c.lineCap = 'round';
+      [[-34, -136], [52, -134]].forEach(function (pt, i) {
+        var x = pt[0], y = pt[1] + (i ? 2 : 0);
+        c.beginPath(); c.moveTo(x, y); c.lineTo(x + 5, y + 6); c.lineTo(x - 1, y + 9); c.lineTo(x + 5, y + 16); c.stroke();
+      });
+    }
+    // front paw
+    c.save(); c.translate(26, -48); c.rotate(P.armF);
+    ell(c, 0, 10 * P.armLen, 7, 12 * P.armLen, 0, '#f6ecd8'); ell(c, 0, 20 * P.armLen, 7, 6, 0, '#efe2c8');
+    c.restore();
+    if (P.beak > 0) {
+      c.strokeStyle = 'rgba(255,245,170,0.9)'; c.lineWidth = 3; c.lineCap = 'round';
+      for (var s = 0; s < 3; s++) { c.beginPath(); c.moveTo(48, -80 + s * 8); c.lineTo(70, -86 + s * 8); c.stroke(); }
+    }
+    if (P.slash) {
+      // zoomies tackle: speed lines trailing behind
+      c.strokeStyle = 'rgba(255,240,140,0.85)'; c.lineWidth = 4; c.lineCap = 'round';
+      for (var q = 0; q < 4; q++) { c.beginPath(); c.moveTo(-50 - q * 6, -96 + q * 22); c.lineTo(-96 - q * 10, -96 + q * 22); c.stroke(); }
+      c.beginPath(); c.arc(16, -50, 84, -0.9, 0.7); c.stroke();
+    }
+    c.restore();
+  }
+
+  var DRAW = { koro: drawKoro, moku: drawMoku, kon: drawKon, ponta: drawPonta, nox: drawNox, goro: drawGoro, ninja: drawNinja, chef: drawChef, moyo: drawMoyo };
 
   function hexA(hex, a) {
     var n = parseInt(hex.slice(1), 16);
@@ -2236,6 +2358,21 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
           c.strokeStyle = st[1]; c.lineWidth = st[0]; c.lineJoin = 'round';
           c.beginPath(); pts.forEach(function (pt, k) { if (k) c.lineTo(pt[0], pt[1]); else c.moveTo(pt[0], pt[1]); }); c.stroke();
         });
+      } else if (p.kind === 'bark' || p.kind === 'bigbark') {
+        // a "WOOF!" shout with sound rings
+        var loudB = p.kind === 'bigbark', zb = loudB ? 1.8 : 1;
+        c.lineCap = 'round';
+        for (var rb = 0; rb < 3; rb++) {
+          c.strokeStyle = 'rgba(255,240,140,' + (0.9 - rb * 0.25).toFixed(2) + ')'; c.lineWidth = (4 - rb) * zb;
+          var from2 = dir > 0 ? -0.9 : Math.PI - 0.9;
+          c.beginPath(); c.arc(-dir * rb * 10 * zb, 0, (12 + rb * 8) * zb, from2, from2 + 1.8); c.stroke();
+        }
+        c.font = 'italic 900 ' + Math.round(16 * zb) + 'px -apple-system, "Segoe UI", Roboto, sans-serif';
+        c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.lineWidth = 4; c.strokeStyle = 'rgba(90,60,10,0.85)';
+        var wtxt = loudB ? 'WOOOF!!' : 'WOOF!';
+        c.strokeText(wtxt, -dir * 6, -2 + Math.sin(time * 0.5) * 2); c.fillStyle = '#fff27a'; c.fillText(wtxt, -dir * 6, -2 + Math.sin(time * 0.5) * 2);
+        c.textBaseline = 'alphabetic';
       } else if (p.kind === 'shuriken' || p.kind === 'starstorm') {
         var bigS = p.kind === 'starstorm';
         for (var gh = bigS ? 2 : 0; gh >= 0; gh--) {
@@ -2879,10 +3016,11 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
       if (game.p1Perfect) pay('Perfect round!', MOINT.perfect, true);
       if (save.streak >= 2) pay(save.streak + ' wins in a row', Math.min(MOINT.streakMax, (save.streak - 1) * MOINT.streakStep), true);
       var key = rival + ':' + diff;
-      if (rival === 'goro' && !save.mointClaims.boss) {
-        save.mointClaims.boss = true;
+      var bossKey = rival === 'goro' ? 'boss' : 'boss:' + rival;
+      if (BOSSES[rival] && !save.mointClaims[bossKey]) {
+        save.mointClaims[bossKey] = true;
         save.mointClaims[key] = true;
-        pay('First win vs ' + CHARS.goro.name + '! 🏆', MOINT.boss, false);
+        pay('First win vs ' + CHARS[rival].name + '! ' + (rival === 'koro' ? '🌟' : '🏆'), MOINT.boss, false);
       } else if (!save.mointClaims[key]) {
         save.mointClaims[key] = true;
         pay('First win vs ' + CHARS[rival].name + ' (' + DIFF[diff].label + ')', MOINT.firstWin[diff], false);
@@ -3008,7 +3146,7 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
 
   function powerUp(f) {
     f.powered = true;
-    game.superFreeze = 55; game.superOwner = f; game.superText = 'THUNDER MODE!';
+    game.superFreeze = 55; game.superOwner = f; game.superText = f.c.powerText || 'THUNDER MODE!';
     game.shake = 10;
     burst(f.x, f.y - 60, f.charId); burst(f.x, f.y - 60, 'block');
     sfx.special(); sfx.ko();
@@ -3054,7 +3192,7 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
     var gained = 0, learned = null, moint = null;
     if (!game.demo) {
       gained = res === 'win' ? (save.difficulty === 'hard' ? 150 : 100) : res === 'draw' ? 60 : 40;
-      if (res === 'win' && rival === 'goro') { gained += 100; save.bossBeaten = true; }
+      if (res === 'win' && BOSSES[rival]) { gained += 100; save[BOSSES[rival].beaten] = true; }
       save.xp += gained;
       var nm = nextMove();
       if (nm && save.xp >= nm.xp) { save.moves.push(nm.id); learned = nm; }
@@ -3066,6 +3204,8 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
       else save.draws++;
       // beating all three rivals once calls out the hidden mid-boss
       if (res === 'win' && !save.bossMet && bossTime()) save.bossPending = true;
+      // ...and beating Goro wakes up the hidden boss
+      if (res === 'win' && rival === 'goro' && !save.koroMet) save.koroPending = true;
       // every win brings a new guest rival into the arena
       if (res === 'win') game.newRival = unlockNextRival();
       moint = payMoints(res, rival, learned);
@@ -3076,6 +3216,7 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
     t.textContent = res === 'win' ? 'YOU WIN!' : res === 'lose' ? 'YOU LOSE...' : 'DRAW';
     t.className = res === 'win' ? 'win' : 'lose';
     var msg = res === 'win' && rival === 'goro' ? 'Moku defeated GORO the Thunder Beast! 🏆 Champion of the Sunset Arena!'
+      : res === 'win' && rival === 'koro' ? 'Moku calmed down KORO the Zoomies Pup! 🌟 True Champion of the Arena!'
       : res === 'win' ? 'Moku beat ' + p2.c.name + '! (CPU: ' + DIFF[save.difficulty].label + ')'
       : res === 'lose' ? p2.c.loseTip
       : 'An even match!';
@@ -3095,7 +3236,7 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
       setTimeout(function () { sfx.win(); }, 500);
     } else if (game.newRival) {
       setTimeout(showNewRival, 1200);
-    } else if (save.bossPending) {
+    } else if (pendingBoss()) {
       setTimeout(showChallenger, 1200);
     }
   }
@@ -3112,15 +3253,19 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
   // after the new-rival screen: the boss challenge if it is waiting, otherwise back to the result
   function afterNewRival() {
     game.newRival = null;
-    if (save.bossPending) showChallenger(); else showScreen('result');
+    if (pendingBoss()) showChallenger(); else showScreen('result');
   }
+  var challengerId = 'goro';
   function showChallenger() {
-    if (!save.bossPending || (game.mode !== 'title' && game.mode !== 'result')) return;
+    var id = pendingBoss();
+    if (!id || (game.mode !== 'title' && game.mode !== 'result')) return;
+    challengerId = id;
     document.getElementById('challengerName').textContent = '???';
+    document.getElementById('challengerDesc').textContent = BOSSES[id].desc;
     showScreen('challenger');
     sfx.special();
     setTimeout(function () {
-      if (currentScreen === 'challenger') { document.getElementById('challengerName').textContent = 'GORO — Thunder Beast'; sfx.ko(); }
+      if (currentScreen === 'challenger') { document.getElementById('challengerName').textContent = BOSSES[id].name; sfx.ko(); }
     }, 1400);
   }
 
@@ -3209,7 +3354,7 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
   function renderTitleArt(time) {
     if (currentScreen === 'challenger') {
       var cc = challengerCanvas.getContext('2d');
-      drawRivalIcon(cc, 'goro', 256, time);
+      drawRivalIcon(cc, challengerId, 256, time);
       if (document.getElementById('challengerName').textContent === '???') {
         cc.setTransform(1, 0, 0, 1, 0, 0);
         cc.globalCompositeOperation = 'source-atop';
@@ -3257,7 +3402,7 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
     document.body.classList.toggle('playing', m === 'playing');
     if (m === 'title') {
       showScreen('title'); refreshTitle(); setTheme(CHARS[currentRival()].theme);
-      if (save.bossPending) setTimeout(showChallenger, 300);
+      if (pendingBoss()) setTimeout(showChallenger, 300);
     }
     else if (m === 'playing') showScreen(null);
     else if (m === 'paused') showScreen('paused');
@@ -3308,16 +3453,16 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
       case 'resume': resume(); break;
       case 'quit': case 'title': setMode('title'); game.p1 = null; game.practice = null; break;
       case 'practice': startPractice(el.getAttribute('data-move')); break;
-      case 'later': if (game.newRival) showNewRival(); else if (save.bossPending) showChallenger(); else showScreen('result'); break;
+      case 'later': if (game.newRival) showNewRival(); else if (pendingBoss()) showChallenger(); else showScreen('result'); break;
       case 'newrival':
         save.rival = game.newRival; game.newRival = null; writeSave();
         startMatch(); break;
       case 'newrivallater': afterNewRival(); break;
       case 'boss':
-        save.bossMet = true; save.bossPending = false; save.rival = 'goro'; writeSave();
+        save[BOSSES[challengerId].met] = true; save[BOSSES[challengerId].pending] = false; save.rival = challengerId; writeSave();
         startMatch(); break;
       case 'bosslater':
-        save.bossMet = true; save.bossPending = false; writeSave();
+        save[BOSSES[challengerId].met] = true; save[BOSSES[challengerId].pending] = false; writeSave();
         setMode('title'); game.p1 = null; game.practice = null; break;
       case 'train':
         if (game.mode !== 'title') { setMode('title'); game.p1 = null; game.practice = null; }
@@ -3356,14 +3501,14 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
     renderTitleMoints();
     var played = save.wins + save.losses + save.draws;
     document.getElementById('titleRecord').textContent = played
-      ? 'Record ' + save.wins + 'W - ' + save.losses + 'L' + (save.bestStreak > 1 ? ' · Best streak ' + save.bestStreak : '') + (save.bossBeaten ? ' · 🏆 Champion' : '')
+      ? 'Record ' + save.wins + 'W - ' + save.losses + 'L' + (save.bestStreak > 1 ? ' · Best streak ' + save.bestStreak : '') + (save.koroBeaten ? ' · 🌟 True Champion' : save.bossBeaten ? ' · 🏆 Champion' : '')
       : '';
   }
   function refreshSelect() {
     var menu = screens.select.querySelector('.menu');
     selectCards.forEach(function (card) {
       var r = card.getAttribute('data-rival'), rec = save.rivals[r], open = rivalOpen(r), ch = CHARS[r];
-      if (r === 'goro') card.style.display = save.bossMet ? '' : 'none';
+      if (BOSSES[r]) card.style.display = rivalOpen(r) ? '' : 'none';
       card.classList.toggle('lockedCard', !open);
       card.setAttribute('data-action', open ? 'rival' : 'locked');
       card.querySelector('b').textContent = open ? ch.name : '???';
@@ -3403,6 +3548,7 @@ body.deck #pad, body.deck .actBtn { opacity: 1; }
     var demoRival = (location.search.match(/rival=(\w+)/) || [])[1];
     if (CHARS[demoRival] && demoRival !== 'moku') save.rival = demoRival;
     if (demoRival === 'goro') save.bossMet = true;
+    if (demoRival === 'koro') save.koroMet = true;
     startMatch();
   }
   requestAnimationFrame(frame);
