@@ -1186,7 +1186,7 @@ footer {
 #bottomNav {
   position: fixed;
   left: 0; right: 0; bottom: 0;
-  z-index: 10;
+  z-index: 32;   /* stays on top of the My Moku / Hollow / Achievements pages (30); under sheets and pickers */
   display: flex;
   justify-content: space-around;
   padding: 10px 8px calc(10px + env(safe-area-inset-bottom, 0px));
@@ -1276,6 +1276,9 @@ footer {
 
 /* ---------- My Moku page (#me) ---------- */
 html.me-open, html.me-open body { overflow: hidden; }
+/* The bottom menu stays on every page (it replaced the ✕ Close buttons), so leave room for it */
+#mePage, #hollowPage, #awardsPage { padding-bottom: calc(66px + env(safe-area-inset-bottom, 0px)); }
+.me-top h1:focus { outline: none; }
 #mePage {
   position: fixed;
   inset: 0;
@@ -1678,8 +1681,10 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
   inset: 0;
   z-index: 30;
   overflow-y: auto;
+  overflow-x: hidden;   /* never slide sideways under a finger (long medal rows wrap instead) */
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   color: #EDEEF6;
   background:
     radial-gradient(ellipse 70% 40% at 50% 0%, rgba(255,201,74,0.14), transparent 70%),
@@ -1704,8 +1709,9 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
 .awards-mrow.is-you { background: rgba(255,216,106,0.12); box-shadow: inset 0 0 0 1px rgba(255,216,106,0.45); }
 .awards-mrow .award-doll { width: 40px; height: 40px; }
 .awards-mrow .award-who b { font-size: 14px; }
-.awards-mcount { display: flex; flex-wrap: wrap; align-items: center; column-gap: 8px; row-gap: 1px; margin-top: 2px; font-size: 15px; line-height: 1.3; letter-spacing: -0.04em; }
-.awards-mcount span { word-break: break-all; }
+.awards-mcount { display: flex; flex-wrap: wrap; align-items: center; margin-top: 2px; font-size: 15px; line-height: 1.3; min-width: 0; }
+.awards-mcount i { font-style: normal; margin-right: -1px; }   /* one medal each, so a long row wraps onto the next line */
+.awards-mcount i.is-next { margin-left: 8px; }                  /* a little space before the next kind of medal */
 .awards-mcount small { font-size: 11px; font-weight: 700; letter-spacing: 0; color: rgba(237,238,246,0.5); }
 .awards-note { margin: 10px 2px 12px; font-size: 12.5px; font-weight: 600; color: rgba(237,238,246,0.55); }
 .awards-note:empty { display: none; }
@@ -1741,14 +1747,14 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
 .award-row.is-first .award-who b { font-size: 16px; }
 .award-row.is-first .award-val { font-size: 17px; }
 .award-row.is-first.is-you { box-shadow: inset 0 0 0 2px rgba(255,216,106,0.7); }
-.award-row.is-minor { min-height: 34px; padding: 4px 10px 4px 6px; gap: 8px; }
-.award-row.is-minor .award-medal { font-size: 15px; }
-.award-row.is-minor .award-doll { width: 24px; height: 24px; }
-.award-row.is-minor .award-who { display: flex; align-items: baseline; gap: 6px; }
-.award-row.is-minor .award-who b { font-size: 12.5px; }
-.award-row.is-minor .award-who small { font-size: 10px; }
-.award-row.is-minor .award-val { font-size: 12.5px; }
-.award-row.is-empty.is-minor { min-height: 28px; font-size: 11.5px; }
+.award-row.is-minor { min-height: 28px; padding: 3px 10px 3px 6px; gap: 7px; border-radius: 10px; }
+.award-row.is-minor .award-medal { width: 22px; font-size: 13px; }
+.award-row.is-minor .award-doll { width: 20px; height: 20px; }
+.award-row.is-minor .award-who b { font-size: 11.5px; }
+.award-row.is-minor .award-who small { display: none; }   /* 2nd / 3rd: just the name */
+.award-row.is-minor .award-you { font-size: 8.5px; padding: 0 5px; }
+.award-row.is-minor .award-val { font-size: 11.5px; }
+.award-row.is-empty.is-minor { min-height: 24px; font-size: 11px; }
 @media (max-width: 480px) {
   .hollow-plate { padding: 4px 7px 5px; max-width: 110px; }
   .hollow-plate b { font-size: 12.5px; }
@@ -1851,10 +1857,10 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
 </div>
 
 <nav id="bottomNav">
-  <button class="nav-item active" type="button"><span class="nav-icon">🏠</span>Home</button>
-  <button class="nav-item" type="button" data-open-page="awards"><span class="nav-icon">🏆</span>Achievements</button>
-  <button class="nav-item" type="button" data-open-page="hollow"><span class="nav-icon">🌳</span>Hollow</button>
-  <button class="nav-item" type="button" data-open-me><span class="nav-icon nav-doll" data-moku-doll aria-hidden="true"></span>My Moku</button>
+  <button class="nav-item active" type="button" data-nav-home aria-current="page"><span class="nav-icon">🏠</span>Home</button>
+  <button class="nav-item" type="button" data-open-page="awards" data-nav="awards"><span class="nav-icon">🏆</span>Achievements</button>
+  <button class="nav-item" type="button" data-open-page="hollow" data-nav="hollow"><span class="nav-icon">🌳</span>Hollow</button>
+  <button class="nav-item" type="button" data-open-me data-nav="me"><span class="nav-icon nav-doll" data-moku-doll aria-hidden="true"></span>My Moku</button>
 </nav>
 
 <!-- My Moku: the player's own page (hash #me). Close goes back to the hub.
@@ -1862,8 +1868,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
      Right: your records (bests, badges, games, players). -->
 <section id="mePage" aria-labelledby="meTitle" hidden>
   <header class="me-top">
-    <h1 id="meTitle">My Moku</h1>
-    <button class="me-close" id="meClose" type="button">✕ Close</button>
+    <h1 id="meTitle" tabindex="-1">My Moku</h1>
   </header>
   <div class="me-grid">
     <aside class="me-side">
@@ -1948,10 +1953,9 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
 <section id="hollowPage" aria-labelledby="hollowTitle" hidden>
   <header class="me-top">
     <div>
-      <h1 id="hollowTitle">The Hollow</h1>
+      <h1 id="hollowTitle" tabindex="-1">The Hollow</h1>
       <p class="hollow-sub" id="hollowSub">Everyone's Moku lives here.</p>
     </div>
-    <button class="me-close" id="hollowClose" type="button">✕ Close</button>
   </header>
   <div class="hollow-wrap">
     <!-- One cozy forest hollow the Mokus built themselves: walls patched
@@ -2007,10 +2011,9 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
 <section id="awardsPage" aria-labelledby="awardsTitle" hidden>
   <header class="me-top">
     <div>
-      <h1 id="awardsTitle">🏆 Achievements</h1>
+      <h1 id="awardsTitle" tabindex="-1">🏆 Achievements</h1>
       <p class="hollow-sub" id="awardsSub">The Top 3 in every game.</p>
     </div>
-    <button class="me-close" id="awardsClose" type="button">✕ Close</button>
   </header>
   <div class="awards-wrap">
     <!-- Medal Count: everyone's medals from all the games, most 🥇 first. It changes
@@ -3636,15 +3639,24 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
   // returns to where you came from (the hub, or My Moku for the Hollow).
   var hollowPage = document.getElementById('hollowPage');
   var PAGES = {
-    me: { el: mePage, close: 'meClose', show: function () { renderProgress(); } },
-    hollow: { el: hollowPage, close: 'hollowClose', show: function () { renderHollow(); loadFriends(true); } },
-    awards: { el: document.getElementById('awardsPage'), close: 'awardsClose', show: function () { renderAwards(); loadFriends(true); } }
+    me: { el: mePage, title: 'meTitle', show: function () { renderProgress(); } },
+    hollow: { el: hollowPage, title: 'hollowTitle', show: function () { renderHollow(); loadFriends(true); } },
+    awards: { el: document.getElementById('awardsPage'), title: 'awardsTitle', show: function () { renderAwards(); loadFriends(true); } }
   };
   var pageLastFocus = null;
   function hollowIsOpen() { return Boolean(hollowPage) && !hollowPage.hidden; }
   function openPageName() {
     for (var k in PAGES) if (PAGES[k].el && !PAGES[k].el.hidden) return k;
     return null;
+  }
+  // The bottom menu stays on top of every page and shows where you are
+  // (Home when no page is open). It replaced the pages' ✕ Close buttons.
+  function markNav(name) {
+    Array.prototype.forEach.call(document.querySelectorAll('#bottomNav .nav-item'), function (b) {
+      var on = name ? b.getAttribute('data-nav') === name : b.hasAttribute('data-nav-home');
+      b.classList.toggle('active', on);
+      if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
   }
   function showPage(name) {
     var pg = PAGES[name];
@@ -3658,7 +3670,8 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     document.documentElement.classList.add('me-open');
     pg.el.scrollTop = 0;
     pg.show();
-    document.getElementById(pg.close).focus();
+    markNav(name);
+    document.getElementById(pg.title).focus({ preventScroll: true });
   }
   function hidePages() {
     var cur = openPageName();
@@ -3668,10 +3681,15 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     stopWalking();
     PAGES[cur].el.hidden = true;
     document.documentElement.classList.remove('me-open');
+    markNav(null);
     if (pageLastFocus && pageLastFocus.focus) pageLastFocus.focus();
   }
   function openPage(name) {
-    if (location.hash !== '#' + name) history.pushState({ mokuPage: name }, '', '#' + name);
+    if (location.hash !== '#' + name) {
+      // Moving between pages swaps the entry, so Back (and Home) always lands on the hub
+      if (openPageName() && history.state && history.state.mokuPage) history.replaceState({ mokuPage: name }, '', '#' + name);
+      else history.pushState({ mokuPage: name }, '', '#' + name);
+    }
     showPage(name);
   }
   function closePage() {
@@ -3693,9 +3711,9 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
   window.MOKU_PROFILE_PAGE = { open: openMe, isOpen: meIsOpen };
   window.addEventListener('popstate', syncPagesToHash);
   window.addEventListener('hashchange', syncPagesToHash);
-  document.getElementById('meClose').addEventListener('click', closePage);
-  document.getElementById('hollowClose').addEventListener('click', closePage);
-  document.getElementById('awardsClose').addEventListener('click', closePage);
+  document.querySelector('#bottomNav [data-nav-home]').addEventListener('click', function () {
+    if (openPageName()) closePage();
+  });
   document.addEventListener('click', function (e) {
     var t = e.target.closest ? e.target.closest('[data-open-me],[data-open-page]') : null;
     if (t) openPage(t.getAttribute('data-open-page') || 'me');
@@ -3886,9 +3904,10 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
       var count = el('span', 'awards-mcount');
       var any = false;
       ['🥇', '🥈', '🥉'].forEach(function (m, i) {
-        if (!p.medals[i]) return;
-        any = true;
-        count.appendChild(el('span', null, new Array(p.medals[i] + 1).join(m)));
+        for (var k = 0; k < p.medals[i]; k++) {
+          count.appendChild(el('i', k === 0 && any ? 'is-next' : null, m));
+        }
+        if (p.medals[i]) any = true;
       });
       if (!any) count.appendChild(el('small', null, 'No medals yet. Go get one!'));
       count.setAttribute('aria-label', p.medals[0] + ' gold, ' + p.medals[1] + ' silver, ' + p.medals[2] + ' bronze');
