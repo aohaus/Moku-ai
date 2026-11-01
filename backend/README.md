@@ -13,6 +13,77 @@
 - **ExtraAllowedOrigin**: `https://dechatgpt.com`(2026-10-25〜。Cloudflare で `https://dechatgpt.com/Moku-ai/` から同じページを配信している。初期値に入っているので `sam deploy` だけで反映される。パスは付けず scheme+host だけ)
 - `AuthSecret` / `InviteCode` の値はリポジトリには書かない(保護者が保管)。
 
+## GitHub Actions で自動デプロイ(2026-11-01〜)
+
+`main` に `backend/` の変更が入る(PR をマージする)と、[`.github/workflows/deploy-backend.yml`](../.github/workflows/deploy-backend.yml) が自動で次を行う。CloudShell での手作業は、下の初回設定と、招待コード・AuthSecret を変える時だけになる。
+
+1. **Test**: `cd backend && npm test`。失敗したらデプロイしない。
+2. **Deploy**: `sam validate` → `sam deploy`(スタック `moku-backend`、`ap-southeast-5`)。`sam build` はしない(下の「デプロイ / 更新の手順」と同じ理由)。
+   - パラメータ(`AuthSecret` `InviteCode` `AllowedOrigin` `MaxUsers` …)は渡さない。既存のスタックでは、渡さなかったパラメータは**今の値のまま**になるので、秘密の値を GitHub に置く必要はない。
+   - そのため、`template.yaml` に**新しいパラメータを足す時は必ず `Default` を付ける**(初期値がないと自動デプロイが失敗する)。
+3. **Health check**: スタックが `*_COMPLETE` か、API が動いているかを確かめる。ログインが必要な5つのルート(`/players` `/admin/settings` `/matches` `/challenges` `/rooms`)がログインなしで `401` を返すか(`404` ならデプロイされていない)、公開サイト(`https://aohaus.github.io`)からの CORS の確認が `204` を返すか。1つでも違えば赤くなる。結果は Actions の実行画面の Summary に表で出る。
+- `backend/` を変えない PR(ゲームの HTML だけなど)では動かない。手で動かす時は GitHub の Actions → **Deploy backend** → **Run workflow**。
+- 同時に2つは動かない(後から来た方は前のデプロイが終わるまで待つ)。
+
+### 初回設定(1回だけ)
+
+GitHub Actions は AWS のアクセスキーを持たない。GitHub が発行する一時的な身分証(OIDC)で、決まったロールにだけなれる。そのロールを作る。
+
+**1. ロールを作る(CloudShell)**
+
+この AWS アカウントに GitHub の OIDC プロバイダーがもうあるか確かめる。
+
+```sh
+aws iam list-open-id-connect-providers
+```
+
+出力に `token.actions.githubusercontent.com` があれば、下の最後の行を `CreateOidcProvider=false` にする(なければそのまま)。
+
+```sh
+cd ~/Moku-ai && git pull
+aws cloudformation deploy --region ap-southeast-5 \
+  --template-file .github/aws/deploy-roles.yaml --stack-name moku-github-deploy \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --parameter-overrides CreateOidcProvider=true
+```
+
+できる物([`.github/aws/deploy-roles.yaml`](../.github/aws/deploy-roles.yaml)):
+
+| ロール | 使う人 | できること |
+| --- | --- | --- |
+| `moku-github-deploy` | GitHub Actions(`aohaus/Moku-ai` の `main` / `production` 環境だけ) | コードの zip を S3 に置く・`moku-backend` スタックの変更セットを作って実行する・下のロールを CloudFormation に渡す。これ以外は何もできない |
+| `moku-cfn-exec` | CloudFormation | `moku-backend` の中身(`moku-backend-*` の Lambda とそのロール・HTTP API・DynamoDB の `moku-accounts` / `moku-scores`)を作り変える |
+
+**2. ロールの ARN を確かめる(CloudShell)**
+
+```sh
+aws cloudformation describe-stacks --region ap-southeast-5 --stack-name moku-github-deploy \
+  --query "Stacks[0].Outputs[].[OutputKey,OutputValue]" --output table
+```
+
+**3. GitHub に登録する**
+
+リポジトリの **Settings → Environments → New environment** で `production` を作る。
+- **Deployment branches and tags** で `main` だけにする(ほかのブランチからデプロイできないように)。
+- 必要なら **Required reviewers** に自分を入れる(デプロイの前に毎回「承認」ボタンを押す運用になる)。
+
+その `production` 環境の **Environment secrets** に2つ足す。
+
+| Secret 名 | 値 | 中身 |
+| --- | --- | --- |
+| `AWS_DEPLOY_ROLE_ARN` | 手順2の `DeployRoleArn`(`arn:aws:iam::…:role/moku-github-deploy`) | GitHub Actions がなるロール |
+| `AWS_CFN_EXEC_ROLE_ARN` | 手順2の `CfnExecRoleArn`(`arn:aws:iam::…:role/moku-cfn-exec`) | CloudFormation が使うロール |
+
+`AuthSecret`・`InviteCode`・管理者の PIN は GitHub に**登録しない**(上のとおり、デプロイでは今の値がそのまま使われる)。
+
+**4. 動かしてみる**
+
+Actions → **Deploy backend** → **Run workflow**(Branch: `main`)。緑になり、Summary の表がすべて ✅ ならおしまい。
+
+- 初回のデプロイから、スタックの変更は `moku-cfn-exec` ロールで行われる(CloudFormation がスタックに覚える)。CloudShell から手で `sam deploy` しても、このロールが使われる。
+- `AccessDenied` で失敗した時は、エラーに出ている操作をロールに足す。`moku-github-deploy` の権限なら Deploy のログ、`moku-cfn-exec` の権限ならスタックのイベント(CloudFormation コンソール)に出る。ロールは `.github/aws/deploy-roles.yaml` を直して手順1をもう一度実行すれば更新される。
+- **招待コード・AuthSecret を変える時**は、従来どおり CloudShell で下の `sam deploy --parameter-overrides …` を実行する。そのあとの自動デプロイは、その新しい値をそのまま使う。
+
 ## デプロイ / 更新の手順(AWS CloudShell を使う)
 
 パソコンへのインストールは不要。AWS コンソール上部の `>_` アイコンから CloudShell を開くと、AWS CLI と SAM CLI が入っている。

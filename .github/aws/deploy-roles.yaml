@@ -1,0 +1,182 @@
+# One-time setup for .github/workflows/deploy-backend.yml (backend/README.md
+# 「GitHub Actions で自動デプロイ」). Deploy it once from CloudShell:
+#
+#   aws cloudformation deploy --region ap-southeast-5 \
+#     --template-file .github/aws/deploy-roles.yaml --stack-name moku-github-deploy \
+#     --capabilities CAPABILITY_NAMED_IAM
+#
+# Two roles, so GitHub never holds broad AWS rights:
+#   - moku-github-deploy: what the workflow becomes (via GitHub's OIDC token, no
+#     access keys). It may only upload the code bundle, run change sets on the
+#     moku-backend stack, and hand CloudFormation the role below.
+#   - moku-cfn-exec: what CloudFormation uses to change the stack's resources
+#     (the Lambda functions, their roles, the HTTP API, the two DynamoDB tables).
+# Only workflows from aohaus/Moku-ai on main or in the "production" environment
+# can take the GitHub role.
+
+AWSTemplateFormatVersion: "2010-09-09"
+Description: GitHub Actions deploy roles for the Moku backend (moku-backend stack)
+
+Parameters:
+  GitHubRepo:
+    Type: String
+    Default: aohaus/Moku-ai
+  BackendStackName:
+    Type: String
+    Default: moku-backend
+  CreateOidcProvider:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "true"
+    Description: >
+      "false" if this AWS account already has the GitHub OIDC provider
+      (token.actions.githubusercontent.com) from another project.
+
+Conditions:
+  MakeOidcProvider: !Equals [!Ref CreateOidcProvider, "true"]
+
+Resources:
+  GitHubOidcProvider:
+    Type: AWS::IAM::OIDCProvider
+    Condition: MakeOidcProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+      ThumbprintList:
+        - 6938fd4d98bab03faadb97b34396831e3780aea1
+        - 1c58a3a8518e8759bf075b76b750d4f2df264fcd
+
+  GitHubDeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: moku-github-deploy
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              # !Ref of the new provider (its ARN) makes CloudFormation create it first.
+              Federated: !If
+                - MakeOidcProvider
+                - !Ref GitHubOidcProvider
+                - !Sub "arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com"
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+              StringLike:
+                token.actions.githubusercontent.com:sub:
+                  - !Sub "repo:${GitHubRepo}:ref:refs/heads/main"
+                  - !Sub "repo:${GitHubRepo}:environment:production"
+      Policies:
+        - PolicyName: sam-deploy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: Stacks
+                Effect: Allow
+                Action:
+                  - cloudformation:CreateChangeSet
+                  - cloudformation:DeleteChangeSet
+                  - cloudformation:DescribeChangeSet
+                  - cloudformation:ExecuteChangeSet
+                  - cloudformation:DescribeStacks
+                  - cloudformation:DescribeStackEvents
+                  - cloudformation:DescribeStackResource
+                  - cloudformation:DescribeStackResources
+                  - cloudformation:ListStackResources
+                  - cloudformation:GetTemplate
+                  - cloudformation:GetTemplateSummary
+                Resource:
+                  - !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${BackendStackName}/*"
+                  - !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/aws-sam-cli-managed-default/*"
+                  - !Sub "arn:aws:cloudformation:${AWS::Region}:aws:transform/Serverless-2016-10-31"
+              - Sid: TemplateChecks
+                Effect: Allow
+                Action:
+                  - cloudformation:ValidateTemplate
+                  - cloudformation:GetTemplateSummary
+                Resource: "*"
+              - Sid: CodeBucket
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:ListBucket
+                  - s3:GetBucketLocation
+                Resource:
+                  - arn:aws:s3:::aws-sam-cli-managed-default-samclisourcebucket-*
+                  - arn:aws:s3:::aws-sam-cli-managed-default-samclisourcebucket-*/*
+              - Sid: HandRoleToCloudFormation
+                Effect: Allow
+                Action: iam:PassRole
+                Resource: !GetAtt CfnExecRole.Arn
+                Condition:
+                  StringEquals:
+                    iam:PassedToService: cloudformation.amazonaws.com
+
+  CfnExecRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: moku-cfn-exec
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudformation.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: moku-backend-resources
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: Functions
+                Effect: Allow
+                Action: lambda:*
+                Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${BackendStackName}-*"
+              - Sid: FunctionRoles
+                Effect: Allow
+                Action:
+                  - iam:CreateRole
+                  - iam:DeleteRole
+                  - iam:GetRole
+                  - iam:UpdateRole
+                  - iam:UpdateAssumeRolePolicy
+                  - iam:TagRole
+                  - iam:UntagRole
+                  - iam:PassRole
+                  - iam:AttachRolePolicy
+                  - iam:DetachRolePolicy
+                  - iam:PutRolePolicy
+                  - iam:GetRolePolicy
+                  - iam:DeleteRolePolicy
+                  - iam:ListRolePolicies
+                  - iam:ListAttachedRolePolicies
+                Resource: !Sub "arn:aws:iam::${AWS::AccountId}:role/${BackendStackName}-*"
+              - Sid: HttpApi
+                Effect: Allow
+                Action: apigateway:*
+                Resource: !Sub "arn:aws:apigateway:${AWS::Region}::/*"
+              - Sid: Tables
+                Effect: Allow
+                Action: dynamodb:*
+                Resource:
+                  - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/moku-scores"
+                  - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/moku-scores/*"
+                  - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/moku-accounts"
+                  - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/moku-accounts/*"
+              - Sid: ReadCodeBundle
+                Effect: Allow
+                Action: s3:GetObject
+                Resource: arn:aws:s3:::aws-sam-cli-managed-default-samclisourcebucket-*/*
+
+Outputs:
+  DeployRoleArn:
+    Description: GitHub secret AWS_DEPLOY_ROLE_ARN
+    Value: !GetAtt GitHubDeployRole.Arn
+  CfnExecRoleArn:
+    Description: GitHub secret AWS_CFN_EXEC_ROLE_ARN
+    Value: !GetAtt CfnExecRole.Arn

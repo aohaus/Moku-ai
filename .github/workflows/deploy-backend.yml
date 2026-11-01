@@ -1,0 +1,140 @@
+# Deploys the AWS SAM backend (backend/, stack moku-backend in ap-southeast-5)
+# whenever main changes it — the same `sam deploy` the parent used to run in
+# CloudShell — then checks the live API.
+#
+# One-time setup (IAM roles + GitHub secrets): backend/README.md
+# 「GitHub Actions で自動デプロイ」. Until the secrets exist the deploy job fails
+# at "Configure AWS credentials" and nothing is changed in AWS.
+#
+# No `sam build` on purpose (backend/README.md): the Lambda runtime already has
+# @aws-sdk, and CodeUri "." ships backend/ as it is in git.
+#
+# Parameters (AuthSecret, InviteCode, AllowedOrigin, MaxUsers …) are not passed:
+# for an existing stack `sam deploy` keeps every parameter it isn't given at its
+# current value, so the secrets never have to be in GitHub. A NEW template
+# parameter without a Default would fail here — give new parameters a Default.
+
+name: Deploy backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/deploy-backend.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write   # GitHub's OIDC token → short-lived AWS credentials (no access keys stored)
+
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: false   # never stop a CloudFormation update halfway
+
+env:
+  AWS_REGION: ap-southeast-5
+  STACK_NAME: moku-backend
+
+jobs:
+  test:
+    name: Test (npm test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install and test
+        working-directory: backend
+        run: |
+          npm install --no-audit --no-fund
+          npm test
+
+  deploy:
+    name: Deploy (sam deploy)
+    needs: test
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      # A fresh checkout: no node_modules from the test job ends up in the Lambda zip.
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: moku-backend-deploy-${{ github.run_id }}
+
+      - name: Validate template
+        working-directory: backend
+        run: sam validate --region "$AWS_REGION"
+
+      - name: Deploy
+        working-directory: backend
+        env:
+          CFN_EXEC_ROLE_ARN: ${{ secrets.AWS_CFN_EXEC_ROLE_ARN }}
+        run: |
+          sam deploy \
+            --stack-name "$STACK_NAME" \
+            --region "$AWS_REGION" \
+            --resolve-s3 \
+            --capabilities CAPABILITY_IAM \
+            --role-arn "$CFN_EXEC_ROLE_ARN" \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset
+
+      - name: Health check
+        run: |
+          set -u
+          read -r STATUS UPDATED < <(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region "$AWS_REGION" \
+            --query "Stacks[0].[StackStatus,LastUpdatedTime]" --output text)
+          API=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region "$AWS_REGION" \
+            --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" --output text)
+          echo "Stack: $STATUS (updated $UPDATED)"
+          echo "API:   $API"
+          case "$STATUS" in *_COMPLETE) ;; *) echo "::error::Stack is $STATUS"; exit 1 ;; esac
+
+          {
+            echo "### Backend deploy"
+            echo ""
+            echo "- Stack: \`$STATUS\` (updated $UPDATED UTC)"
+            echo "- API: $API"
+            echo ""
+            echo "| Check | Expected | Got |"
+            echo "| --- | --- | --- |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          FAILED=0
+          # check <label> <expected status> <curl args…>. Retries a few times:
+          # a just-updated API can answer 5xx for a moment.
+          check() {
+            local label=$1 want=$2; shift 2
+            local got=000
+            for i in 1 2 3 4 5; do
+              got=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$@" || echo 000)
+              [ "$got" = "$want" ] && break
+              sleep 5
+            done
+            if [ "$got" = "$want" ]; then mark="✅"; else mark="❌"; FAILED=1; echo "::error::$label: expected $want, got $got"; fi
+            echo "$label → $got (want $want)"
+            echo "| $mark $label | $want | $got |" >> "$GITHUB_STEP_SUMMARY"
+          }
+
+          # Routes that need a login answer 401 when they exist (404 = not deployed).
+          check "GET /players (accounts)"      401 "$API/players"
+          check "GET /admin/settings (admin)"  401 "$API/admin/settings"
+          check "GET /matches (Moku Chess)"    401 "$API/matches"
+          check "GET /challenges (Moku Bridge)" 401 "$API/challenges"
+          check "GET /rooms (party games)"     401 "$API/rooms"
+          # The game pages can still call the API from the public site (CORS).
+          check "CORS preflight from aohaus.github.io" 204 -X OPTIONS "$API/players" \
+            -H "Origin: https://aohaus.github.io" -H "Access-Control-Request-Method: GET" \
+            -H "Access-Control-Request-Headers: authorization"
+
+          exit $FAILED
