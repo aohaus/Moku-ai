@@ -1186,7 +1186,7 @@ footer {
 #bottomNav {
   position: fixed;
   left: 0; right: 0; bottom: 0;
-  z-index: 10;
+  z-index: 32;   /* stays on top of the My Moku / Hollow / Achievements pages (30); under sheets and pickers */
   display: flex;
   justify-content: space-around;
   padding: 10px 8px calc(10px + env(safe-area-inset-bottom, 0px));
@@ -1276,6 +1276,9 @@ footer {
 
 /* ---------- My Moku page (#me) ---------- */
 html.me-open, html.me-open body { overflow: hidden; }
+/* The bottom menu stays on every page (it replaced the ✕ Close buttons), so leave room for it */
+#mePage, #hollowPage, #awardsPage { padding-bottom: calc(66px + env(safe-area-inset-bottom, 0px)); }
+.me-top h1:focus { outline: none; }
 #mePage {
   position: fixed;
   inset: 0;
@@ -1854,10 +1857,10 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
 </div>
 
 <nav id="bottomNav">
-  <button class="nav-item active" type="button"><span class="nav-icon">🏠</span>Home</button>
-  <button class="nav-item" type="button" data-open-page="awards"><span class="nav-icon">🏆</span>Achievements</button>
-  <button class="nav-item" type="button" data-open-page="hollow"><span class="nav-icon">🌳</span>Hollow</button>
-  <button class="nav-item" type="button" data-open-me><span class="nav-icon nav-doll" data-moku-doll aria-hidden="true"></span>My Moku</button>
+  <button class="nav-item active" type="button" data-nav-home aria-current="page"><span class="nav-icon">🏠</span>Home</button>
+  <button class="nav-item" type="button" data-open-page="awards" data-nav="awards"><span class="nav-icon">🏆</span>Achievements</button>
+  <button class="nav-item" type="button" data-open-page="hollow" data-nav="hollow"><span class="nav-icon">🌳</span>Hollow</button>
+  <button class="nav-item" type="button" data-open-me data-nav="me"><span class="nav-icon nav-doll" data-moku-doll aria-hidden="true"></span>My Moku</button>
 </nav>
 
 <!-- My Moku: the player's own page (hash #me). Close goes back to the hub.
@@ -1865,8 +1868,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
      Right: your records (bests, badges, games, players). -->
 <section id="mePage" aria-labelledby="meTitle" hidden>
   <header class="me-top">
-    <h1 id="meTitle">My Moku</h1>
-    <button class="me-close" id="meClose" type="button">✕ Close</button>
+    <h1 id="meTitle" tabindex="-1">My Moku</h1>
   </header>
   <div class="me-grid">
     <aside class="me-side">
@@ -1951,10 +1953,9 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
 <section id="hollowPage" aria-labelledby="hollowTitle" hidden>
   <header class="me-top">
     <div>
-      <h1 id="hollowTitle">The Hollow</h1>
+      <h1 id="hollowTitle" tabindex="-1">The Hollow</h1>
       <p class="hollow-sub" id="hollowSub">Everyone's Moku lives here.</p>
     </div>
-    <button class="me-close" id="hollowClose" type="button">✕ Close</button>
   </header>
   <div class="hollow-wrap">
     <!-- One cozy forest hollow the Mokus built themselves: walls patched
@@ -2010,10 +2011,9 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
 <section id="awardsPage" aria-labelledby="awardsTitle" hidden>
   <header class="me-top">
     <div>
-      <h1 id="awardsTitle">🏆 Achievements</h1>
+      <h1 id="awardsTitle" tabindex="-1">🏆 Achievements</h1>
       <p class="hollow-sub" id="awardsSub">The Top 3 in every game.</p>
     </div>
-    <button class="me-close" id="awardsClose" type="button">✕ Close</button>
   </header>
   <div class="awards-wrap">
     <!-- Medal Count: everyone's medals from all the games, most 🥇 first. It changes
@@ -3639,15 +3639,24 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
   // returns to where you came from (the hub, or My Moku for the Hollow).
   var hollowPage = document.getElementById('hollowPage');
   var PAGES = {
-    me: { el: mePage, close: 'meClose', show: function () { renderProgress(); } },
-    hollow: { el: hollowPage, close: 'hollowClose', show: function () { renderHollow(); loadFriends(true); } },
-    awards: { el: document.getElementById('awardsPage'), close: 'awardsClose', show: function () { renderAwards(); loadFriends(true); } }
+    me: { el: mePage, title: 'meTitle', show: function () { renderProgress(); } },
+    hollow: { el: hollowPage, title: 'hollowTitle', show: function () { renderHollow(); loadFriends(true); } },
+    awards: { el: document.getElementById('awardsPage'), title: 'awardsTitle', show: function () { renderAwards(); loadFriends(true); } }
   };
   var pageLastFocus = null;
   function hollowIsOpen() { return Boolean(hollowPage) && !hollowPage.hidden; }
   function openPageName() {
     for (var k in PAGES) if (PAGES[k].el && !PAGES[k].el.hidden) return k;
     return null;
+  }
+  // The bottom menu stays on top of every page and shows where you are
+  // (Home when no page is open). It replaced the pages' ✕ Close buttons.
+  function markNav(name) {
+    Array.prototype.forEach.call(document.querySelectorAll('#bottomNav .nav-item'), function (b) {
+      var on = name ? b.getAttribute('data-nav') === name : b.hasAttribute('data-nav-home');
+      b.classList.toggle('active', on);
+      if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
   }
   function showPage(name) {
     var pg = PAGES[name];
@@ -3661,7 +3670,8 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     document.documentElement.classList.add('me-open');
     pg.el.scrollTop = 0;
     pg.show();
-    document.getElementById(pg.close).focus();
+    markNav(name);
+    document.getElementById(pg.title).focus({ preventScroll: true });
   }
   function hidePages() {
     var cur = openPageName();
@@ -3671,10 +3681,15 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     stopWalking();
     PAGES[cur].el.hidden = true;
     document.documentElement.classList.remove('me-open');
+    markNav(null);
     if (pageLastFocus && pageLastFocus.focus) pageLastFocus.focus();
   }
   function openPage(name) {
-    if (location.hash !== '#' + name) history.pushState({ mokuPage: name }, '', '#' + name);
+    if (location.hash !== '#' + name) {
+      // Moving between pages swaps the entry, so Back (and Home) always lands on the hub
+      if (openPageName() && history.state && history.state.mokuPage) history.replaceState({ mokuPage: name }, '', '#' + name);
+      else history.pushState({ mokuPage: name }, '', '#' + name);
+    }
     showPage(name);
   }
   function closePage() {
@@ -3696,9 +3711,9 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
   window.MOKU_PROFILE_PAGE = { open: openMe, isOpen: meIsOpen };
   window.addEventListener('popstate', syncPagesToHash);
   window.addEventListener('hashchange', syncPagesToHash);
-  document.getElementById('meClose').addEventListener('click', closePage);
-  document.getElementById('hollowClose').addEventListener('click', closePage);
-  document.getElementById('awardsClose').addEventListener('click', closePage);
+  document.querySelector('#bottomNav [data-nav-home]').addEventListener('click', function () {
+    if (openPageName()) closePage();
+  });
   document.addEventListener('click', function (e) {
     var t = e.target.closest ? e.target.closest('[data-open-me],[data-open-page]') : null;
     if (t) openPage(t.getAttribute('data-open-page') || 'me');
