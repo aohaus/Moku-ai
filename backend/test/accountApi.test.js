@@ -414,3 +414,37 @@ test("errors: anyone can report; same error is grouped; admin ranks, triages, de
   assert.equal((await call("GET", "/admin/errors", null, admin)).body.errors.length, 2);
   assert.equal((await call("PATCH", "/admin/errors/0000000000000000", { status: "fix" }, admin)).status, 404);
 });
+
+
+test("admin settings: defaults, changes with limits, back to default, logged", async () => {
+  const { call, register, makeAdmin } = setup();
+  const admin = await makeAdmin();
+  const kid = (await register("aoi")).body.token;
+  assert.equal((await call("GET", "/admin/settings", null, kid)).status, 403);
+  assert.equal((await call("PUT", "/admin/settings", { values: {} }, kid)).status, 403);
+
+  const first = (await call("GET", "/admin/settings", null, admin)).body;
+  const expiry = first.settings.find((s) => s.key === "rooms.inviteExpiryMinutes");
+  assert.deepEqual([expiry.value, expiry.default, expiry.isDefault, expiry.unit], [60, 60, true, "分"]);
+  assert.equal(first.updatedAt, null);
+
+  for (const bad of [4, 1441, 30.5, "30"]) {
+    const r = await call("PUT", "/admin/settings", { values: { "rooms.inviteExpiryMinutes": bad } }, admin);
+    assert.deepEqual([r.status, r.body.error, r.body.key], [400, "invalid_setting", "rooms.inviteExpiryMinutes"], String(bad));
+  }
+  assert.equal((await call("PUT", "/admin/settings", { values: { nope: 1 } }, admin)).body.error, "invalid_setting");
+
+  const changed = (await call("PUT", "/admin/settings", { values: { "rooms.inviteExpiryMinutes": 30 } }, admin)).body;
+  const now30 = changed.settings.find((s) => s.key === "rooms.inviteExpiryMinutes");
+  assert.deepEqual([now30.value, now30.isDefault, changed.updatedBy], [30, false, "admin"]);
+  assert.equal((await call("GET", "/admin/settings", null, admin)).body.settings[0].value, 30);
+
+  const reset = (await call("PUT", "/admin/settings", { values: { "rooms.inviteExpiryMinutes": null } }, admin)).body;
+  assert.equal(reset.settings[0].isDefault, true);
+
+  const logs = (await call("GET", "/admin/logs?days=1", null, admin)).body.logs.filter((l) => l.type === "admin_settings");
+  assert.deepEqual(logs.map((l) => l.detail.changes[0]).sort((a, b) => a.from - b.from), [
+    { key: "rooms.inviteExpiryMinutes", from: 30, to: 60 },
+    { key: "rooms.inviteExpiryMinutes", from: 60, to: 30 },
+  ]);
+});

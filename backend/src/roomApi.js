@@ -4,6 +4,7 @@ const { TAG_RE, err, parseBody, tagOf, makeAuthenticate, findOpponent } = requir
 const MokuRiddles = require("./vendor/moku-riddles");
 const moyo = require("./moyoParty");
 const wolf = require("./wolfParty");
+const { createSettings } = require("./settings");
 
 // Riddle Race rooms (API_SPEC.md "Rooms"): several logged-in players solve the
 // same Moku Word Riddles at the same time. A host opens a room (a 4-letter
@@ -21,6 +22,12 @@ const wolf = require("./wolfParty");
 // The same rooms also host Moyomoyo Multiplayer (game "moyomoyo", moyoParty.js):
 // 2–4 players, 3 games, and each player posts their board to
 // POST /rooms/{code}/state instead of answering riddles.
+//
+// A lobby that nobody joins within the admin's "invite expiry" (settings.js
+// rooms.inviteExpiryMinutes, 60 by default) is closed: the code and the
+// invites stop working. Nothing runs on a timer — a room is checked whenever
+// it is read (markExpiry), so a raised limit also reopens a lobby that was
+// only closed by the old one.
 //
 // And Moku Wolf Multiplayer (game "wolf", wolfParty.js): 3–10 players, the
 // server deals each one a secret word, and players act through
@@ -93,6 +100,8 @@ function roomView(room, uid, t, states) {
       invited: room.invited.filter((p) => !isPlayer(room, p.uid)).map((p) => ({ name: p.name, tag: p.tag })),
       ...wolf.view(room, uid, tagByUid),
       next: room.next || null,
+      closedReason: room.closedReason || null,
+      expiresAt: room.expiresAt || null,
       version: room.version,
       createdAt: room.createdAt,
       updatedAt: room.updatedAt,
@@ -114,6 +123,8 @@ function roomView(room, uid, t, states) {
       invited: room.invited.filter((p) => !isPlayer(room, p.uid)).map((p) => ({ name: p.name, tag: p.tag })),
       ...moyo.view(room, states, t),
       next: room.next || null,
+      closedReason: room.closedReason || null,
+      expiresAt: room.expiresAt || null,
       version: room.version,
       createdAt: room.createdAt,
       updatedAt: room.updatedAt,
@@ -142,6 +153,8 @@ function roomView(room, uid, t, states) {
       .sort((a, b) => a.q - b.q),
     race: RACE,
     next: room.next || null,
+    closedReason: room.closedReason || null,
+    expiresAt: room.expiresAt || null,
     version: room.version,
     createdAt: room.createdAt,
     updatedAt: room.updatedAt,
@@ -153,6 +166,7 @@ function createRoomApi(store, config) {
   const {
     authSecret, now = () => Date.now(), newKey = () => crypto.randomBytes(8).toString("hex"), code = newCode, pick = pickRiddles,
     newSeed = () => crypto.randomBytes(4).toString("hex"), randInt = (n) => crypto.randomInt(n),
+    settings = createSettings(store, { now }),
   } = config;
   if (!authSecret || authSecret.length < 32) {
     throw new Error("AUTH_SECRET must be at least 32 characters");
@@ -166,12 +180,36 @@ function createRoomApi(store, config) {
   }
   const indexRow = (uid, room) => ({ uid, roomId: room.id, key: room.key, ttl: room.ttl });
 
+  // A lobby with only the host in it closes when the invite expiry runs out
+  // (only on this copy: the stored room isn't rewritten). expiresAt tells
+  // the host's page when that will be.
+  async function markExpiry(room) {
+    delete room.expiresAt;
+    delete room.expired;
+    // Someone joined (even if they left again): the invite was taken up.
+    if (room.status !== "lobby" || room.players.length > 1 || room.someoneJoined) return room;
+    const minutes = (await settings.get())["rooms.inviteExpiryMinutes"];
+    const at = Date.parse(room.createdAt) + minutes * 60 * 1000;
+    if (!Number.isFinite(at)) return room;
+    if (now() >= at) {
+      room.status = "closed";
+      room.closedReason = "expired";
+      room.expired = true;
+    } else {
+      room.expiresAt = new Date(at).toISOString();
+    }
+    return room;
+  }
+
   // A room that is still there (TTL deletes can lag a day or two).
   async function load(id) {
     const room = await store.getRoom(id);
     if (!room || (room.ttl && room.ttl <= Math.floor(now() / 1000))) return null;
-    return room;
+    return markExpiry(room);
   }
+  const closedError = (room) => room.closedReason === "expired"
+    ? err(410, "room_expired", "No one joined in time, so this room closed.")
+    : err(410, "room_closed", "This room is closed.");
   async function loadFor(user, id) {
     const room = await load(id);
     if (!room || !(isPlayer(room, user.uid) || isInvited(room, user.uid))) return null;
@@ -204,10 +242,12 @@ function createRoomApi(store, config) {
       const stop = change(room);
       if (stop) return { error: stop, room };
       room.version = base + 1;
+      delete room.expiresAt;   // worked out on every read (markExpiry), never stored
+      delete room.expired;
       stamp(room);
       try {
         await store.saveRoom(room, base, extraRows(room));
-        return { room };
+        return { room: await markExpiry(room) };
       } catch (e) {
         if (e.code !== "conflict") throw e;
       }
@@ -257,7 +297,7 @@ function createRoomApi(store, config) {
       return err(409, "too_many_rooms", "Finish a game before opening a new room.");
     }
     const room = await newRoom(user, game, count, [seat(user)]);
-    return json(201, { room: roomView(room, user.uid, now(), {}) });
+    return json(201, { room: roomView(await markExpiry(room), user.uid, now(), {}) });
   }
 
   // Rooms you are in or were invited to that haven't finished, for one game
@@ -290,7 +330,7 @@ function createRoomApi(store, config) {
       return json(200, { changed: true, room: roomView(settled.room, user.uid, t, {}) });
     }
     const t = now();
-    if (query && query.v !== undefined && String(room.version) === String(query.v)) return json(200, { changed: false, now: t });
+    if (!room.expired && query && query.v !== undefined && String(room.version) === String(query.v)) return json(200, { changed: false, now: t });
     const states = gameOf(room) === "moyomoyo" && room.status === "done" ? await statesOf(room) : {};
     return json(200, { changed: true, room: roomView(room, user.uid, t, states) });
   }
@@ -360,9 +400,11 @@ function createRoomApi(store, config) {
   async function join(user, id) {
     const res = await update(id, (room) => {
       if (isPlayer(room, user.uid)) return json(200, { room: roomView(room, user.uid, now(), {}) });
+      if (room.status === "closed") return closedError(room);
       if (room.status !== "lobby") return err(409, "already_started", "This game already started.");
       if (room.players.length >= maxPlayers(room)) return err(409, "room_full", "This room is full.");
       room.players.push(seat(user));
+      room.someoneJoined = true;   // no invite expiry from now on (markExpiry)
       return null;
     }, (room) => [indexRow(user.uid, room)]);
     if (res.error) return res.error;
@@ -376,6 +418,7 @@ function createRoomApi(store, config) {
     const friend = found.opponent;
     const res = await update(id, (room) => {
       if (!isPlayer(room, user.uid)) return gone();
+      if (room.status === "closed") return closedError(room);
       if (room.status !== "lobby") return err(409, "already_started", "This game already started.");
       if (isPlayer(room, friend.uid) || isInvited(room, friend.uid)) return json(200, { room: roomView(room, user.uid, now(), {}) });
       if (room.invited.length >= MAX_INVITES) return err(409, "too_many_invites", "That's a lot of invites! Share the room code instead.");

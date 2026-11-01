@@ -171,7 +171,46 @@ test("invites show up in the friend's list; the host leaving closes the lobby", 
   assert.equal((await t.call("GET", "/rooms", "ren")).body.invites, 0);
   await t.call("POST", `/rooms/${room.id}/leave`, "aoi", {});
   assert.equal((await t.call("GET", "/rooms", "ren")).body.rooms.length, 0, "a closed room is gone");
-  assert.equal((await t.call("POST", `/rooms/${room.id}/join`, "sora", {})).body.error, "already_started");
+  assert.equal((await t.call("POST", `/rooms/${room.id}/join`, "sora", {})).body.error, "room_closed");
+});
+
+test("a lobby nobody joins closes after the invite expiry (60 minutes by default)", async () => {
+  const t = await setup();
+  const room = (await t.call("POST", "/rooms", "aoi", {})).body.room;
+  assert.equal(room.expiresAt, new Date(t.now() + 60 * 60 * 1000).toISOString());
+  await t.call("POST", `/rooms/${room.id}/invite`, "aoi", { tag: t.users.ren.tag });
+  t.tick(59 * 60 * 1000);
+  assert.equal((await t.call("GET", "/rooms", "ren")).body.invites, 1, "still open after 59 minutes");
+
+  t.tick(2 * 60 * 1000);
+  const v = (await t.store.getRoom(room.id)).version;
+  const polled = (await t.call("GET", `/rooms/${room.id}`, "aoi", undefined, { v: String(v) })).body;
+  assert.equal(polled.changed, true, "a page polling with ?v= hears about it");
+  assert.deepEqual([polled.room.status, polled.room.closedReason], ["closed", "expired"]);
+  assert.equal((await t.call("GET", "/rooms", "ren")).body.invites, 0, "the invite is gone");
+  const join = await t.call("POST", `/rooms/${room.id}/join`, "sora", {});
+  assert.deepEqual([join.status, join.body.error], [410, "room_expired"]);
+  assert.equal((await t.store.getRoom(room.id)).status, "lobby", "nothing is rewritten: it is worked out on read");
+});
+
+test("a lobby someone joined doesn't expire; the admin's setting changes the limit", async () => {
+  const t = await setup();
+  const room = (await t.call("POST", "/rooms", "aoi", {})).body.room;
+  const joined = (await t.call("POST", `/rooms/${room.id}/join`, "ren", {})).body.room;
+  assert.equal(joined.expiresAt, null);
+  t.tick(3 * 60 * 60 * 1000);
+  assert.equal((await t.call("GET", `/rooms/${room.id}`, "aoi")).body.room.status, "lobby");
+  await t.call("POST", `/rooms/${room.id}/leave`, "ren", {});
+  const left = (await t.call("GET", `/rooms/${room.id}`, "aoi")).body.room;
+  assert.deepEqual([left.status, left.expiresAt], ["lobby", null], "a friend who joined and left still counts");
+  assert.equal((await t.call("POST", `/rooms/${room.id}/join`, "ren", {})).status, 200, "and can come back");
+
+  await t.store.putSettings({ values: { "rooms.inviteExpiryMinutes": 10 } });
+  t.tick(61 * 1000);   // past the settings cache
+  const short = (await t.call("POST", "/rooms", "sora", {})).body.room;
+  assert.equal(short.expiresAt, new Date(t.now() + 10 * 60 * 1000).toISOString());
+  t.tick(11 * 60 * 1000);
+  assert.equal((await t.call("GET", `/rooms/${short.id}`, "sora")).body.room.closedReason, "expired");
 });
 
 test("a room holds 6 players", async () => {
