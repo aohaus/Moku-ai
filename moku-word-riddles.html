@@ -368,6 +368,20 @@ body.on-title #playScreen { display: none; }
   background: rgba(70,35,20,0.45);
 }
 .overlay.show { display: flex; animation: fadeIn .2s ease; }
+/* スマホ(縦長)では正解・答え合わせのシートを画面の下に寄せて、上のパズルのカードを隠さない */
+@media (max-width: 600px) and (orientation: portrait) {
+  #solvedOverlay, #revealOverlay {
+    align-items: flex-end;
+    padding: 12px 12px calc(env(safe-area-inset-bottom, 0px) + 12px);
+    background: rgba(70,35,20,0.28);
+  }
+  #solvedOverlay .sheet, #revealOverlay .sheet { padding: 16px 16px 14px; border-radius: 20px; }
+  #solvedOverlay .sheet h2, #revealOverlay .sheet h2 { font-size: 24px; }
+  #solvedTiles, #revealTiles { margin-top: 10px !important; }
+  #solvedWhy, #revealWhy { margin-top: 10px; padding: 8px 10px; font-size: 13.5px; }
+  #solvedOverlay .rewards { margin-top: 10px; }
+  #solvedOverlay .bigBtn { margin-top: 12px; }
+}
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 .sheet {
   width: 100%; max-width: 380px;
@@ -547,7 +561,7 @@ body.racing #helpRow, body.racing #hudScore, body.racing #roundDots { display: n
 
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.2.3 · Updated Nov 1, 2026</div>
+<div id="buildInfo">v0.3.0 · Updated Nov 1, 2026</div>
 
 <!-- ---------- title ---------- -->
 <div id="titleScreen">
@@ -715,8 +729,9 @@ body.racing #helpRow, body.racing #hudScore, body.racing #roundDots { display: n
 </div>
 <div id="toast"></div>
 
-<!-- riddles-data: 100問の問題データと答えの判定は shared/moku-riddles.js(Riddle Race でサーバーも同じ判定を使う) -->
-<script src="shared/moku-riddles.js?v=20261031c"></script>
+<!-- 問題データは data/riddles-db.md(Markdown)。shared/moku-riddles.js がパース・レイアウト・判定をする
+     (Riddle Race でサーバーも同じものを使う)。問題を足す時は Markdown だけを書き換える。 -->
+<script src="shared/moku-riddles.js?v=20261101"></script>
 
 <!-- ================================================================
      game(旧案の game.js にあたる部分)
@@ -736,7 +751,8 @@ body.racing #helpRow, body.racing #hudScore, body.racing #roundDots { display: n
   var LEVEL_NAMES = { 1: 'EASY', 2: 'MEDIUM', 3: 'TRICKY' };
   var LEVEL_COLORS = { 1: 'var(--easy)', 2: 'var(--medium)', 3: 'var(--tricky)' };
   var RIDDLES = MokuRiddles.RIDDLES;
-  var COLORS = { ink: '#3B2A20', red: '#D9534F', blue: '#3C7DD9', green: '#4E9A4A', orange: '#E8832A', purple: '#8A5BD1', brown: '#8B5A2B', soft: '#B9A48C' };
+  // 文字は原則すべて ink(色がネタバレにならないように)。accent は Markdown で {…} にした所だけ。
+  var COLORS = { ink: '#3B2A20', accent: '#D9534F', red: '#D9534F', blue: '#3C7DD9', green: '#4E9A4A', orange: '#E8832A', purple: '#8A5BD1', brown: '#8B5A2B', soft: '#B9A48C' };
 
   function $(id) { return document.getElementById(id); }
   var body = document.body;
@@ -762,7 +778,11 @@ body.racing #helpRow, body.racing #hudScore, body.racing #roundDots { display: n
     };
   }
   var progress = loadProgress();
-  function save() { progress.updatedAt = new Date().toISOString(); writeJSON(SAVE_KEY, progress); }
+  function save() {
+    progress.updatedAt = new Date().toISOString();
+    if (RIDDLES.length) progress.count = solvedCount();   // ハブ用: 今ある問題のうち解いた数(消えた問題は数えない)
+    writeJSON(SAVE_KEY, progress);
+  }
   function solvedCount() { return RIDDLES.filter(function (r) { return progress.solved[r.id]; }).length; }
 
   // ---------- Moint(shared/moku-moint.js。読めなかった時も同じキーで動く) ----------
@@ -1148,6 +1168,8 @@ body.racing #helpRow, body.racing #hudScore, body.racing #roundDots { display: n
       }).join('') + '</span>';
     }).join('');
     $('titleTiles').innerHTML = tiles;
+    if (!riddlesReady) { renderMoints(); renderOutfit(); return; }
+    $('playBtn').disabled = false;
     var n = solvedCount();
     $('playBtn').textContent = n > 0 && n < RIDDLES.length ? '▶ Continue' : '▶ Play';
     $('titleProgress').textContent = n === RIDDLES.length
@@ -1250,8 +1272,7 @@ body.racing #helpRow, body.racing #hudScore, body.racing #roundDots { display: n
       if (!v || !/^[a-z]{4}$/i.test(v)) return;
       history.replaceState(null, '', location.pathname + location.hash);
       if (!onlineReady()) return;
-      openRaceMenu();
-      joinRoom(v);
+      whenRiddles(function () { openRaceMenu(); joinRoom(v); });
     }
     if (document.readyState === 'complete') setTimeout(go, 0); else window.addEventListener('load', go);
   })();
@@ -1645,8 +1666,46 @@ body.racing #helpRow, body.racing #hudScore, body.racing #roundDots { display: n
   $('finalMenu').addEventListener('click', function () { sfx.tap(); openRaceMenu(); });
   window.addEventListener('moku:players', function () { if (race) { race.lobbySig = null; race.chipSig = null; } });
 
+  // ---------- riddles: data/riddles-db.md ----------
+  // 毎回サーバーに新しいか確かめて読む(cache: 'no-cache')。取れた本文は端末にも残し、
+  // オフラインやファイルを直接開いた時はそれを使う(同期対象外のキー: クラウドセーブに入れない)。
+  var DB_URL = 'data/riddles-db.md', DB_CACHE_KEY = 'mokuwr-riddles-db';
+  var riddlesReady = false, riddlesWaiters = [];
+  function whenRiddles(fn) { if (riddlesReady) fn(); else riddlesWaiters.push(fn); }
+  function useRiddleText(text) {
+    MokuRiddles.load(text);
+    if (!RIDDLES.length) return false;
+    riddlesReady = true;
+    if (progress.total !== RIDDLES.length) { progress.total = RIDDLES.length; save(); }   // ハブの「n / 全部」用
+    renderTitle();
+    riddlesWaiters.splice(0).forEach(function (fn) { fn(); });
+    return true;
+  }
+  function loadRiddles() {
+    $('playBtn').disabled = true;
+    $('playBtn').textContent = 'Loading riddles…';
+    fetch(DB_URL, { cache: 'no-cache' }).then(function (res) {
+      if (!res.ok) throw new Error('http ' + res.status);
+      return res.text();
+    }).then(function (text) {
+      if (!useRiddleText(text)) throw new Error('no riddles');
+      try { localStorage.setItem(DB_CACHE_KEY, text); } catch (e) {}
+    }).catch(function () {
+      var cached = null;
+      try { cached = localStorage.getItem(DB_CACHE_KEY); } catch (e) {}
+      if (cached && useRiddleText(cached)) return;
+      $('playBtn').disabled = false;
+      $('playBtn').textContent = '↻ Try Again';
+      $('titleProgress').textContent = 'We couldn’t load the riddles. Check your connection.';
+    });
+  }
+
   // ---------- events ----------
-  $('playBtn').addEventListener('click', function () { sfx.tap(); startRound(); });
+  $('playBtn').addEventListener('click', function () {
+    sfx.tap();
+    if (!riddlesReady) { loadRiddles(); return; }
+    startRound();
+  });
   $('howBtn').addEventListener('click', function () { sfx.tap(); $('howOverlay').classList.add('show'); });
   $('howClose').addEventListener('click', function () { sfx.tap(); $('howOverlay').classList.remove('show'); });
   $('menuBtn').addEventListener('click', function () { sfx.tap(); if (race) openRaceMenu(); else toTitle(); });
@@ -1675,6 +1734,7 @@ body.racing #helpRow, body.racing #hudScore, body.racing #roundDots { display: n
   });
 
   renderTitle();
+  loadRiddles();
 })();
 </script>
 </body>

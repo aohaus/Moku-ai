@@ -5,7 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const { createRoomApi } = require("../src/roomApi");
 const { createMemoryStore } = require("../src/memoryStore");
-const MokuRiddles = require("../src/vendor/moku-riddles");
+const MokuRiddles = require("../src/riddles");
 const token = require("../src/token");
 
 const SECRET = "test-secret-test-secret-test-secret-00";
@@ -22,7 +22,7 @@ async function setup({ codes } = {}) {
     now: () => clock,
     newKey: () => String(++keys).padStart(16, "0"),
     code: () => (codeList && codeList.length ? codeList.shift() : "R" + "ABCDEFGH"[codeN++ % 8] + "ZZ"),
-    pick: (n) => ["bicycle", "sunglasses", "i-understand", "rainbow", "tennis", "starfish", "forget-it", "popcorn", "sunset", "big-deal"].slice(0, n),
+    pick: (n) => ["bicycle", "airport", "i-understand", "high-five", "tennis", "underground", "forget-it", "sunflower", "sunset", "big-deal"].slice(0, n),
   });
   const users = {};
   for (const [loginId, uid, role] of [
@@ -57,26 +57,66 @@ async function raceOf3(t, count = 5) {
   return started.body.room;
 }
 
-test("the vendor copy of moku-riddles.js matches shared/", () => {
-  const shared = fs.readFileSync(path.join(__dirname, "../../shared/moku-riddles.js"), "utf8");
-  const vendor = fs.readFileSync(path.join(__dirname, "../src/vendor/moku-riddles.js"), "utf8");
-  assert.ok(shared === vendor, "backend/src/vendor/moku-riddles.js differs: cp shared/moku-riddles.js backend/src/vendor/");
+test("the vendor copies of moku-riddles.js and riddles-db.md match shared/ and data/", () => {
+  for (const [src, copy, cmd] of [
+    ["../../shared/moku-riddles.js", "../src/vendor/moku-riddles.js", "cp shared/moku-riddles.js backend/src/vendor/"],
+    ["../../data/riddles-db.md", "../src/vendor/riddles-db.md", "cp data/riddles-db.md backend/src/vendor/"],
+  ]) {
+    const a = fs.readFileSync(path.join(__dirname, src), "utf8");
+    const b = fs.readFileSync(path.join(__dirname, copy), "utf8");
+    assert.ok(a === b, `backend/src/vendor copy differs: ${cmd}`);
+  }
 });
 
-test("riddle data: 100 riddles, unique ids, and no wrong choice counts as right", () => {
+test("riddle data: every riddle in riddles-db.md reads, no duplicates, no wrong choice counts as right", () => {
+  const parsed = MokuRiddles.parse(fs.readFileSync(path.join(__dirname, "../../data/riddles-db.md"), "utf8"));
+  assert.deepEqual(parsed.problems, [], "fix these riddles in data/riddles-db.md");
+  assert.deepEqual(parsed.duplicates, [], "these IDs (or their answers) are in data/riddles-db.md twice");
   const R = MokuRiddles.RIDDLES;
-  assert.equal(R.length, 100);
-  assert.equal(new Set(R.map((r) => r.id)).size, 100);
+  assert.ok(R.length >= 100, `only ${R.length} riddles`);
+  assert.equal(new Set(R.map((r) => r.id)).size, R.length);
   for (const r of R) {
+    assert.match(r.id, /^[a-z0-9-]+$/);
     assert.ok([1, 2, 3].includes(r.level), r.id);
     assert.equal(r.choices.length, 3, r.id);
     assert.ok(r.art.length > 0 && r.clue && r.why, r.id);
     assert.ok(MokuRiddles.isCorrect(r.id, r.answer.toUpperCase()), r.id);
     for (const c of r.choices) assert.ok(!MokuRiddles.isCorrect(r.id, c), `${r.id}: "${c}" is a choice but counts as right`);
+    for (const p of r.art) assert.ok(!p.c || p.c === "ink", `${r.id}: one ink color (use {…} for the accent)`);
   }
-  assert.ok(MokuRiddles.isCorrect("bow-tie", "Bow-Tie!"));
-  assert.ok(!MokuRiddles.isCorrect("bow-tie", ""));
-  assert.ok(!MokuRiddles.isCorrect("nope", "bow tie"));
+  assert.ok(MokuRiddles.isCorrect("high-five", "High-Five!"));
+  assert.ok(!MokuRiddles.isCorrect("high-five", ""));
+  assert.ok(!MokuRiddles.isCorrect("nope", "high five"));
+});
+
+test("riddle engine: Markdown fields, the Visual layout words, and what it refuses", () => {
+  const md = [
+    "# title", "",
+    "## ID: 12", "- **Pattern**: quantity", "- **Visual**: Get it (x4) (v5)", "- **Answer**: Forget it", "- **Hint**: Four gets", "",
+    "## ID: 13", "- **Visual**: T-O-W-N (vertical stack)", "- **Answer**: downtown", "",
+    "## ID: 14", "- **Visual**: DAY surrounded by M-I-D", "- **Answer**: midday", "- **Level**: easy", "",
+    "## ID: 15", "- **Visual**: father / [stairs]", "- **Answer**: stepfather", "",
+    "## ID: 16", "- **Visual**: LIFE (wobbly)", "- **Answer**: afterlife", "",
+    "## ID: 17", "- **Pattern**: emoji", "- **Visual**: ☀️ + 👓", "- **Answer**: sunglasses", "",
+    "## ID: 18", "- **Visual**: GET IT | GET IT | GET IT | GET IT", "- **Answer**: forget it", "",
+  ].join("\n");
+  const p = MokuRiddles.parse(md);
+  assert.deepEqual(p.riddles.map((r) => r.id), ["12", "13", "14"]);
+  assert.deepEqual(p.duplicates, ["18"], "the same answer twice");
+  assert.equal(p.problems.length, 2);
+  assert.match(p.problems[0], /15.*unknown item \[stairs\]/);
+  assert.match(p.problems[1], /16.*unknown modifier "wobbly"/);
+  const [a, b, c] = p.riddles;
+  assert.deepEqual([a.answer, a.level, a.clue, a.art.length], ["forget it", 2, "Four gets", 4]);
+  assert.deepEqual([b.art[0].t, b.art[0].vert], ["TOWN", 1]);
+  assert.deepEqual(c.art[0].parts, [["MI", "ink"], ["DAY", "accent"], ["D", "ink"]]);
+  assert.equal(c.level, 1);
+  const art = (v) => MokuRiddles.layout(v, []);
+  assert.deepEqual(art("CHAIR (top)").map((x) => [x.t, x.y]), [["CHAIR", 16]]);
+  assert.deepEqual(art("[line] / GROUND").map((x) => (x.line ? "line" : x.t)), ["line", "GROUND"]);
+  assert.equal(art("PACK (backwards)")[0].t, "KCAP");
+  assert.deepEqual(art("ICE^3").map((x) => x.t), ["ICE", "3"]);
+  assert.equal(art("[box: LUNCH]")[0].box.length, 2);
 });
 
 test("rooms need a login; a friend joins with the code and sees the lobby", async () => {
@@ -106,7 +146,7 @@ test("only the host starts, with at least 2 players; nobody joins after the star
   assert.equal((await t.call("POST", `/rooms/${room.id}/start`, "ren", {})).body.error, "not_host");
   const s = (await t.call("POST", `/rooms/${room.id}/start`, "aoi", {})).body.room;
   assert.equal(s.status, "playing");
-  assert.deepEqual(s.riddles, ["bicycle", "sunglasses", "i-understand", "rainbow", "tennis"]);
+  assert.deepEqual(s.riddles, ["bicycle", "airport", "i-understand", "high-five", "tennis"]);
   assert.equal(s.startAt, t.now() + COUNTDOWN_MS);
   assert.equal((await t.call("POST", `/rooms/${room.id}/join`, "sora", {})).body.error, "already_started");
 });
@@ -120,7 +160,7 @@ test("the first right answer wins the riddle; late and wrong answers don't", asy
   t.tick(COUNTDOWN_MS + 3000);
   const wrong = await t.call("POST", `/rooms/${room.id}/answer`, "ren", { q: 0, answer: "motorcycle" });
   assert.deepEqual([wrong.body.correct, wrong.body.first], [false, false]);
-  const ahead = await t.call("POST", `/rooms/${room.id}/answer`, "ren", { q: 1, answer: "sunglasses" });
+  const ahead = await t.call("POST", `/rooms/${room.id}/answer`, "ren", { q: 1, answer: "airport" });
   assert.equal(ahead.body.first, false, "only the riddle on screen counts");
   const win = await t.call("POST", `/rooms/${room.id}/answer`, "sora", { q: 0, answer: "Bi Cycle" });
   assert.deepEqual([win.body.correct, win.body.first], [true, true]);
@@ -132,7 +172,7 @@ test("the first right answer wins the riddle; late and wrong answers don't", asy
   assert.deepEqual(scores, { AOI: 0, REN: 0, SORA: 1 });
   // Next riddle after the reveal gap.
   t.tick(GAP_MS);
-  assert.equal((await t.call("POST", `/rooms/${room.id}/answer`, "aoi", { q: 1, answer: "sunglasses" })).body.first, true);
+  assert.equal((await t.call("POST", `/rooms/${room.id}/answer`, "aoi", { q: 1, answer: "airport" })).body.first, true);
 });
 
 test("the timeline: time runs out, the race ends, and polling only sends changes", async () => {

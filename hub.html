@@ -2276,9 +2276,14 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
            localStorage.getItem('moku:' + prefix + ':' + card) !== null;
   }
 
-  var RIDDLE_TOTAL = 100;
+  // 問題の数は data/riddles-db.md 次第なので、ゲームが読み込んだ時に progress.total に残す
+  function riddleTotal() {
+    var p = readJSON('moku:moku-word-riddles:progress');
+    return p && p.total > 0 ? p.total : 100;
+  }
   function riddlesSolved() {
     var p = readJSON('moku:moku-word-riddles:progress');
+    if (p && typeof p.count === 'number') return p.count;
     return p && p.solved && typeof p.solved === 'object' ? Object.keys(p.solved).length : 0;
   }
   // Moku Dropper の順位(progress.place = { round: いちばん良い順位 })。レースは round 2〜8 の7本。
@@ -2850,10 +2855,9 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
       name: 'Moku Word Riddles',
       card: 'mwr',
       gameId: 'moku-word-riddles',
-      // RIDDLE_TOTAL = shared/moku-riddles.js の RIDDLES の数(問題を足したらここも)
       isCompleted: function () {
         if (isExplicitlyMarked('completed', 'mwr')) return true;
-        return riddlesSolved() >= RIDDLE_TOTAL;
+        return riddlesSolved() >= riddleTotal();
       },
       isPlayed: function () {
         if (isExplicitlyMarked('played', 'mwr')) return true;
@@ -2862,12 +2866,12 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
       },
       progress: function () {
         if (this.isCompleted()) return 1;
-        return Math.min(1, riddlesSolved() / RIDDLE_TOTAL);
+        return Math.min(1, riddlesSolved() / riddleTotal());
       },
       badge: function () {
         var p = readJSON('moku:moku-word-riddles:progress');
         if (!p || !this.isPlayed()) return null;
-        var solved = riddlesSolved() + ' / ' + RIDDLE_TOTAL + ' Solved';
+        var solved = riddlesSolved() + ' / ' + riddleTotal() + ' Solved';
         return p.bestRound > 0 ? solved + ' · Best ' + p.bestRound + ' pts' : solved;
       }
     },
@@ -2953,7 +2957,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     mw6: { title: 'Laziest Watch', read: function () { var p = readJSON('moku:moku-watch-6-lazy:progress'); return p && p.lazy; }, fmt: function (n) { return num(n) + '% lazy'; } },
     mbr: { title: 'Luckiest Steps', read: function () { var p = readJSON('moku:moku-bridge:progress'); return p && p.bestLucky; }, fmt: function (n) { return n + ' in a row 🍀'; } },
     mch: { title: 'Strongest CPU Beaten', read: function () { var p = readJSON('moku:moku-chess:progress'); return p && p.best; }, fmt: function (n) { return 'Lv.' + n + ' / 10'; } },
-    mwr: { title: 'Riddles Solved', read: riddlesSolved, fmt: function (n) { return n + ' / ' + RIDDLE_TOTAL + ' 🧩'; } },
+    mwr: { title: 'Riddles Solved', read: riddlesSolved, fmt: function (n) { return n + ' / ' + riddleTotal() + ' 🧩'; } },
     mdp: { title: 'Races Won', read: dropperWins, fmt: function (n) { return n + ' / ' + DROPPER_RACES.length + ' 🥇'; } }
   };
   function myRecords() {
@@ -3110,7 +3114,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
            multi: { how: 'Play a Friend: play chess online with a friend, one move at a time.' } },
     mwr: { name: 'Moku Word Riddles', gameId: 'moku-word-riddles', genre: 'Word Puzzle', cta: 'Solve', hi: '#C4D04A', lo: '#56601A', newUntil: '2026-12-01',
            tag: 'CYCLE CYCLE = BICYCLE!',
-           desc: 'Picture word riddles! Look where the words are, how big they are, and how many there are, then find the hidden English word. 100 riddles from Easy to Tricky.',
+           desc: 'Picture word riddles! Look where the words are, how big they are, and how many there are, then find the hidden English word. Over 100 riddles from Easy to Tricky.',
            moint: { cap: true, how: 'Solve a riddle: +10 (+5 more with no hints on the first try). Solve all 5 in a round: +20. Riddle Race: +5 for each riddle you win, +10 for finishing, +30 for 1st place. Spend Moints on Hints, Choices and Skips.' },
            multi: { how: 'Riddle Race: up to 6 friends get the same riddles at the same time. The first right answer wins each one!' } },
     mdp: { name: 'Moku Dropper', gameId: 'moku-dropper', genre: '3D Drop Race', cta: 'Drop', hi: '#A79BFF', lo: '#3F3590', newUntil: '2026-12-01',

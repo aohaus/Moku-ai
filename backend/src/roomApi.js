@@ -1,7 +1,7 @@
 const crypto = require("crypto");
 const { json } = require("./response");
 const { TAG_RE, err, parseBody, tagOf, makeAuthenticate, findOpponent } = require("./playCommon");
-const MokuRiddles = require("./vendor/moku-riddles");
+const MokuRiddles = require("./riddles");
 const moyo = require("./moyoParty");
 const wolf = require("./wolfParty");
 const { createSettings } = require("./settings");

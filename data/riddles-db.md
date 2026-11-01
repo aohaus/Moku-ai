@@ -1,0 +1,1041 @@
+# Moku Word Riddles — Riddle Database
+
+<!--
+このファイルが Moku Word Riddles の問題データのすべて。問題を足す・直す時はこのファイルだけ書き換える(コードは触らない)。
+moku-word-riddles.html が起動時に読み込み、shared/moku-riddles.js がパース・レイアウト・判定をする。
+Riddle Race のサーバーも同じものを使うので、書き換えたら:
+  cp data/riddles-db.md backend/src/vendor/ && (cd backend && npm test)
+npm test は「読めない問題」「同じ ID・同じ答えの重複」があると失敗する(どこが悪いかを表示する)。
+
+1問の書き方:
+  ## ID: <英小文字・数字・- の ID。セーブのキーなので、一度出したら変えない>
+  - **Level**: easy / medium / tricky
+  - **Pattern**: position / quantity / size / sound / inside / typography … (分類のメモ。emoji は出題しない)
+  - **Visual**: カードに描く内容(下の書き方)
+  - **Answer**: 正解
+  - **Also**: ほかに正解にする答え(カンマ区切り。省略可)
+  - **Hint**: 💡 Hint で出す意味のヒント(英語)
+  - **Why**: 正解のあとに出す説明(英語。省略すると「The answer is …!」)
+  - **Choices**: 🔤 Choices の4択に混ぜるハズレ3つ(省略すると他の問題の答えから選ぶ)
+
+Visual の書き方:
+  " / " で上から下への行、" | " で同じ行の左から右に並べる。
+  文字は全部同じ色。{WORD} だけアクセント色(色そのものがヒントの時だけ使う)。ICE^3 の ^ は右上の小さい文字。
+  [line] 横線 / [box] 空の枠 / [box: LUNCH] 枠の中に文字
+  文字のあとの ( ) で動き・位置(カンマで複数):
+    top, bottom, left, right, top left, top right, bottom left, bottom right
+    xN(N個並べる: DAY (x7)) / vertical(縦に1文字ずつ) / upside down / sideways(下から上に読む)
+    backwards(逆さ文字) / big / small / tiny / stretched(字間を広げる) / tilted(少し傾ける)
+    growing(右上へ大きくなる) / rising(右上へ) / shrinking(小さくなる) / falling(落ちる)
+    bumpy(上下にがたがた) / jumbled(文字を混ぜる) / cross(十字に交差)
+  例: AIR / PORT    CYCLE | CYCLE    GET IT (x4)    CHAIR (top)    [box] | THINK    HA{HAND}ND
+-->
+
+## ID: treehouse
+- **Level**: medium
+- **Pattern**: inside
+- **Visual**: TR{HOUSE}EE
+- **Answer**: treehouse
+- **Also**: tree house
+- **Hint**: A little home built up in the branches.
+- **Why**: HOUSE is in the TREE = TREEHOUSE
+- **Choices**: birdhouse, greenhouse, tree trunk
+
+## ID: spelling-bee
+- **Level**: easy
+- **Pattern**: sound
+- **Visual**: SPELLING B
+- **Answer**: spelling bee
+- **Also**: spellingbee
+- **Hint**: A contest where you spell words out loud.
+- **Why**: SPELLING + B (sounds like BEE) = SPELLING BEE
+- **Choices**: honeybee, word game, bumblebee
+
+## ID: bicycle
+- **Level**: medium
+- **Pattern**: quantity
+- **Visual**: CYCLE | CYCLE
+- **Answer**: bicycle
+- **Also**: bike
+- **Hint**: It has two wheels and you pedal it.
+- **Why**: BI means two. Two CYCLEs = BICYCLE!
+- **Choices**: motorcycle, tricycle, unicycle
+
+## ID: tricycle
+- **Level**: medium
+- **Pattern**: quantity
+- **Visual**: CYCLE / CYCLE / CYCLE
+- **Answer**: tricycle
+- **Hint**: Little kids ride it. It has three wheels.
+- **Why**: TRI means three. Three CYCLEs = TRICYCLE!
+- **Choices**: bicycle, triangle, unicycle
+
+## ID: downtown
+- **Level**: medium
+- **Pattern**: direction
+- **Visual**: TOWN (vertical)
+- **Answer**: downtown
+- **Also**: down town
+- **Hint**: The busy middle of a city.
+- **Why**: TOWN goes DOWN the card = DOWNTOWN
+- **Choices**: uptown, countdown, town hall
+
+## ID: high-chair
+- **Level**: medium
+- **Pattern**: position
+- **Visual**: CHAIR (top)
+- **Answer**: high chair
+- **Also**: highchair
+- **Hint**: A tall seat for a baby at the table.
+- **Why**: The CHAIR is way up HIGH = HIGH CHAIR
+- **Choices**: armchair, rocking chair, chairlift
+
+## ID: upside-down
+- **Level**: medium
+- **Pattern**: typography
+- **Visual**: DOWN (upside down)
+- **Answer**: upside down
+- **Also**: upsidedown
+- **Hint**: When the top is at the bottom.
+- **Why**: The word DOWN is flipped UPSIDE DOWN!
+- **Choices**: sit down, inside out, downstairs
+
+## ID: backpack
+- **Level**: medium
+- **Pattern**: typography
+- **Visual**: PACK (backwards)
+- **Answer**: backpack
+- **Also**: back pack
+- **Hint**: You carry your school books in it.
+- **Why**: PACK is written BACKwards = BACKPACK
+- **Choices**: lunch box, school bag, pack it
+
+## ID: banana-split
+- **Level**: medium
+- **Pattern**: split
+- **Visual**: BAN (tilted) | ANA (tilted)
+- **Answer**: banana split
+- **Also**: bananasplit
+- **Hint**: A yummy ice cream treat with fruit.
+- **Why**: The word BANANA is SPLIT in two = BANANA SPLIT
+- **Choices**: banana bread, banana peel, half banana
+
+## ID: waterfall
+- **Level**: medium
+- **Pattern**: direction
+- **Visual**: WATER (falling)
+- **Answer**: waterfall
+- **Also**: water fall
+- **Hint**: Water tumbling down from a cliff.
+- **Why**: The letters of WATER FALL down = WATERFALL
+- **Choices**: rainfall, waterslide, raindrop
+
+## ID: crossroads
+- **Level**: medium
+- **Pattern**: position
+- **Visual**: ROAD (cross)
+- **Answer**: crossroads
+- **Also**: cross roads, crossroad
+- **Hint**: A place where two streets meet.
+- **Why**: ROAD crosses ROAD = CROSSROADS
+- **Choices**: roadwork, side road, crosswalk
+
+## ID: man-overboard
+- **Level**: medium
+- **Pattern**: position
+- **Visual**: MAN / BOARD
+- **Answer**: man overboard
+- **Also**: man over board
+- **Hint**: Someone fell off the ship! Shout it!
+- **Why**: MAN is OVER the BOARD = MAN OVERBOARD
+- **Choices**: man on board, boatman, skateboard
+
+## ID: inside
+- **Level**: medium
+- **Pattern**: inside
+- **Visual**: [box: SIDE]
+- **Answer**: inside
+- **Also**: in side
+- **Hint**: The opposite of outside.
+- **Why**: SIDE is IN the box = INSIDE
+- **Choices**: outside, sideways, inbox
+
+## ID: outside
+- **Level**: medium
+- **Pattern**: inside
+- **Visual**: [box] | SIDE
+- **Answer**: outside
+- **Also**: out side
+- **Hint**: Where you play in the fresh air.
+- **Why**: SIDE is OUT of the box = OUTSIDE
+- **Choices**: inside, sideways, offside
+
+## ID: small-talk
+- **Level**: medium
+- **Pattern**: size
+- **Visual**: talk (tiny)
+- **Answer**: small talk
+- **Also**: smalltalk, little talk
+- **Hint**: Chatting about little things, like the weather.
+- **Why**: The word TALK is SMALL = SMALL TALK
+- **Choices**: whisper, chit chat, tiny voice
+
+## ID: growing-up
+- **Level**: medium
+- **Pattern**: size
+- **Visual**: GROWING (growing)
+- **Answer**: growing up
+- **Also**: grow up, growingup
+- **Hint**: Getting older and taller.
+- **Why**: GROWING goes UP and gets bigger = GROWING UP
+- **Choices**: getting big, stand up, growing tall
+
+## ID: broken-heart
+- **Level**: medium
+- **Pattern**: split
+- **Visual**: HE (tilted) | ART (tilted)
+- **Answer**: broken heart
+- **Also**: heartbroken, heart broken
+- **Hint**: How you feel when something very sad happens.
+- **Why**: The word HEART is broken in two = BROKEN HEART
+- **Choices**: heartbeat, half heart, sweetheart
+
+## ID: sit-down
+- **Level**: medium
+- **Pattern**: position
+- **Visual**: SIT (bottom)
+- **Answer**: sit down
+- **Also**: sitdown
+- **Hint**: What the teacher says when it is time to start.
+- **Why**: SIT is way DOWN low = SIT DOWN
+- **Choices**: stand up, sit still, lie down
+
+## ID: stand-up
+- **Level**: medium
+- **Pattern**: direction
+- **Visual**: STAND (sideways)
+- **Answer**: stand up
+- **Also**: standup
+- **Hint**: Get up from your chair!
+- **Why**: STAND reads going UP = STAND UP
+- **Choices**: sit down, stand still, wake up
+
+## ID: go-for-it
+- **Level**: medium
+- **Pattern**: sound
+- **Visual**: GO 4 IT
+- **Answer**: go for it
+- **Also**: go 4 it
+- **Hint**: Do it! Try your best!
+- **Why**: 4 sounds like FOR: GO 4 IT = GO FOR IT
+- **Choices**: go get it, let it go, go four it
+
+## ID: before
+- **Level**: medium
+- **Pattern**: sound
+- **Visual**: B4
+- **Answer**: before
+- **Also**: b4
+- **Hint**: The opposite of after.
+- **Why**: B + 4 sounds like BE-FOUR = BEFORE
+- **Choices**: bee, b four, behind
+
+## ID: too-late
+- **Level**: medium
+- **Pattern**: sound
+- **Visual**: 2 LATE
+- **Answer**: too late
+- **Also**: 2 late
+- **Hint**: When you miss the bus by one minute.
+- **Why**: 2 sounds like TOO: 2 LATE = TOO LATE
+- **Choices**: two late, so late, late again
+
+## ID: i-see-you
+- **Level**: medium
+- **Pattern**: sound
+- **Visual**: I C U
+- **Answer**: i see you
+- **Also**: i see u, icu
+- **Hint**: What you say when you play peekaboo!
+- **Why**: C sounds like SEE and U sounds like YOU = I SEE YOU
+- **Choices**: i spy, see you, eyes on you
+
+## ID: tennis
+- **Level**: medium
+- **Pattern**: sound
+- **Visual**: 10 S
+- **Answer**: tennis
+- **Hint**: A game with a racket, a ball and a net.
+- **Why**: 10 + S = TEN-S = TENNIS!
+- **Choices**: tens, ping pong, badminton
+
+## ID: forgive
+- **Level**: medium
+- **Pattern**: sound
+- **Visual**: 4 GIVE
+- **Answer**: forgive
+- **Also**: 4give
+- **Hint**: To stop being angry when someone says sorry.
+- **Why**: 4 sounds like FOR: 4 GIVE = FORGIVE
+- **Choices**: four gifts, give up, for you
+
+## ID: forever
+- **Level**: medium
+- **Pattern**: sound
+- **Visual**: 4EVER
+- **Answer**: forever
+- **Also**: 4ever, for ever
+- **Hint**: For all time, with no end.
+- **Why**: 4 + EVER = FOREVER
+- **Choices**: for now, every, four times
+
+## ID: backwards
+- **Level**: medium
+- **Pattern**: typography
+- **Visual**: BACKWARDS (backwards)
+- **Answer**: backwards
+- **Also**: backward
+- **Hint**: Walking with your back in front.
+- **Why**: BACKWARDS is written backwards!
+- **Choices**: upside down, inside out, sideways
+
+## ID: long-ago
+- **Level**: medium
+- **Pattern**: position
+- **Visual**: A | [line] | GO
+- **Answer**: long ago
+- **Also**: longago
+- **Hint**: A very, very long time before now.
+- **Why**: A ……… GO with a LONG gap = LONG AGO
+- **Choices**: long way, go away, a long road
+
+## ID: lunchbox
+- **Level**: medium
+- **Pattern**: inside
+- **Visual**: [box: LUNCH]
+- **Answer**: lunchbox
+- **Also**: lunch box
+- **Hint**: You carry your food to school in it.
+- **Why**: LUNCH is in a BOX = LUNCHBOX
+- **Choices**: lunchtime, backpack, sandwich
+
+## ID: leftovers
+- **Level**: medium
+- **Pattern**: position
+- **Visual**: OVERS (left)
+- **Answer**: leftovers
+- **Also**: left overs, leftover
+- **Hint**: The food you did not finish, saved for later.
+- **Why**: OVERS is on the LEFT = LEFTOVERS
+- **Choices**: left side, turnovers, go over
+
+## ID: double-trouble
+- **Level**: medium
+- **Pattern**: quantity
+- **Visual**: TROUBLE / TROUBLE
+- **Answer**: double trouble
+- **Hint**: Two times the problems!
+- **Why**: TROUBLE two times = DOUBLE TROUBLE
+- **Choices**: big trouble, two troubles, no trouble
+
+## ID: shrinking
+- **Level**: medium
+- **Pattern**: size
+- **Visual**: SHRINK (shrinking)
+- **Answer**: shrinking
+- **Also**: shrink, shrinks
+- **Hint**: Getting smaller and smaller.
+- **Why**: SHRINK gets smaller and smaller = SHRINKING
+- **Choices**: growing, tiny, melting
+
+## ID: bumpy-road
+- **Level**: medium
+- **Pattern**: typography
+- **Visual**: ROAD (bumpy)
+- **Answer**: bumpy road
+- **Also**: bumpy ride
+- **Hint**: A ride that shakes you up and down.
+- **Why**: ROAD goes up, down, up, down = BUMPY ROAD
+- **Choices**: crossroads, dirt road, rocky ride
+
+## ID: scrambled-eggs
+- **Level**: medium
+- **Pattern**: typography
+- **Visual**: EGGS (jumbled)
+- **Answer**: scrambled eggs
+- **Also**: scrambled egg
+- **Hint**: A yummy breakfast made in a pan.
+- **Why**: EGGS with the letters all mixed up = SCRAMBLED EGGS
+- **Choices**: fried eggs, egg roll, mixed nuts
+
+## ID: sunrise
+- **Level**: medium
+- **Pattern**: direction
+- **Visual**: SUN (rising)
+- **Answer**: sunrise
+- **Also**: sun rise
+- **Hint**: When the morning begins.
+- **Why**: SUN is going up (RISE) = SUNRISE
+- **Choices**: sunset, sunshine, morning star
+
+## ID: sunset
+- **Level**: medium
+- **Pattern**: direction
+- **Visual**: SUN (falling)
+- **Answer**: sunset
+- **Also**: sun set, sundown
+- **Hint**: When the sky turns orange in the evening.
+- **Why**: SUN is going down (SET) = SUNSET
+- **Choices**: sunrise, moonrise, nighttime
+
+## ID: side-by-side
+- **Level**: medium
+- **Pattern**: position
+- **Visual**: SIDE | SIDE
+- **Answer**: side by side
+- **Hint**: Right next to each other.
+- **Why**: SIDE is BY (next to) SIDE = SIDE BY SIDE
+- **Choices**: two sides, sideways, inside out
+
+## ID: over-and-over
+- **Level**: medium
+- **Pattern**: quantity
+- **Visual**: OVER / OVER / OVER / OVER
+- **Answer**: over and over
+- **Also**: over and over again
+- **Hint**: Again and again and again.
+- **Why**: OVER and OVER and OVER = OVER AND OVER
+- **Choices**: four times, game over, over there
+
+## ID: ice-cream
+- **Level**: medium
+- **Pattern**: sound
+- **Visual**: I SCREAM
+- **Answer**: ice cream
+- **Also**: icecream
+- **Hint**: A cold, sweet treat in a cone. Say it out loud!
+- **Why**: I SCREAM sounds like ICE CREAM!
+- **Choices**: i shout, ice cube, scream
+
+## ID: i-understand
+- **Level**: tricky
+- **Pattern**: position
+- **Visual**: STAND / I
+- **Answer**: i understand
+- **Also**: understand
+- **Hint**: What you say when you get it.
+- **Why**: I is UNDER STAND = I UNDERSTAND
+- **Choices**: i stand up, standing by, stand under
+
+## ID: once-upon-a-time
+- **Level**: tricky
+- **Pattern**: position
+- **Visual**: ONCE / A TIME
+- **Answer**: once upon a time
+- **Also**: once upon time
+- **Hint**: How many fairy tales begin.
+- **Why**: ONCE is UPON A TIME = ONCE UPON A TIME
+- **Choices**: one more time, time after time, once a day
+
+## ID: reading-between-the-lines
+- **Level**: tricky
+- **Pattern**: position
+- **Visual**: [line] / READING / [line]
+- **Answer**: reading between the lines
+- **Also**: read between the lines, reading between lines
+- **Hint**: Finding the secret meaning a story does not say out loud.
+- **Why**: READING is BETWEEN THE LINES!
+- **Choices**: reading a book, lined paper, line by line
+
+## ID: three-blind-mice
+- **Level**: tricky
+- **Pattern**: missing
+- **Visual**: M  CE / M  CE / M  CE
+- **Answer**: three blind mice
+- **Also**: 3 blind mice
+- **Hint**: A nursery rhyme about little animals that cannot see.
+- **Why**: Three MICE with no I (eye) = THREE BLIND MICE
+- **Choices**: three little mice, missing letters, cheese thieves
+
+## ID: paradise
+- **Level**: tricky
+- **Pattern**: sound
+- **Visual**: DICE (tilted) | DICE (tilted)
+- **Answer**: paradise
+- **Also**: pair of dice, pairadice
+- **Hint**: A perfect, happy place.
+- **Why**: A PAIR of DICE sounds like PARADISE!
+- **Choices**: double dice, dice game, lucky roll
+
+## ID: forget-it
+- **Level**: tricky
+- **Pattern**: quantity
+- **Visual**: GET IT (x4)
+- **Answer**: forget it
+- **Also**: forgetit
+- **Hint**: What you say when it does not matter anymore.
+- **Why**: FOUR "GET IT"s = FOR-GET IT = FORGET IT
+- **Choices**: get it all, forgot it, get it four
+
+## ID: big-deal
+- **Level**: tricky
+- **Pattern**: size
+- **Visual**: DEAL (big)
+- **Answer**: big deal
+- **Also**: bigdeal
+- **Hint**: Something very important… or is it?
+- **Why**: The word DEAL is BIG = BIG DEAL
+- **Choices**: good deal, big cards, deal or no deal
+
+## ID: jack-in-the-box
+- **Level**: tricky
+- **Pattern**: inside
+- **Visual**: [box: JACK]
+- **Answer**: jack in the box
+- **Also**: jack in a box, jack-in-the-box
+- **Hint**: A toy that pops up when you turn the handle.
+- **Why**: JACK is IN THE BOX = JACK IN THE BOX
+- **Choices**: toy box, jack box, surprise box
+
+## ID: think-outside-the-box
+- **Level**: tricky
+- **Pattern**: inside
+- **Visual**: [box] | THINK
+- **Answer**: think outside the box
+- **Also**: thinking outside the box, think out of the box
+- **Hint**: Have a new, creative idea!
+- **Why**: THINK is OUTSIDE THE BOX!
+- **Choices**: think again, think inside, box idea
+
+## ID: hand-in-hand
+- **Level**: tricky
+- **Pattern**: inside
+- **Visual**: HA{HAND}ND
+- **Answer**: hand in hand
+- **Hint**: Holding each other’s hands as you walk.
+- **Why**: HAND is IN HAND: HA[HAND]ND = HAND IN HAND
+- **Choices**: handshake, two hands, high five
+
+## ID: head-over-heels
+- **Level**: tricky
+- **Pattern**: position
+- **Visual**: HEAD / HEELS
+- **Answer**: head over heels
+- **Hint**: Very, very happy… or in love!
+- **Why**: HEAD is OVER HEELS = HEAD OVER HEELS
+- **Choices**: heads up, upside down, high heels
+
+## ID: pie-in-the-sky
+- **Level**: tricky
+- **Pattern**: inside
+- **Visual**: SK{PIE}Y
+- **Answer**: pie in the sky
+- **Hint**: A wish that will probably never come true.
+- **Why**: PIE is IN the SKY = PIE IN THE SKY
+- **Choices**: apple pie, cloud cake, sky high
+
+## ID: last-minute
+- **Level**: tricky
+- **Pattern**: position
+- **Visual**: HOUR / HOUR / HOUR / MINUTE
+- **Answer**: last minute
+- **Also**: the last minute, at the last minute
+- **Hint**: Just before it is too late!
+- **Why**: MINUTE comes LAST = LAST MINUTE
+- **Choices**: one minute, hourglass, first hour
+
+## ID: tea-for-two
+- **Level**: tricky
+- **Pattern**: sound
+- **Visual**: TEA 4 2
+- **Answer**: tea for two
+- **Also**: tea 4 2
+- **Hint**: A tea party for a pair of friends.
+- **Why**: 4 = FOR and 2 = TWO: TEA 4 2 = TEA FOR TWO
+- **Choices**: tea party, forty two, two teas
+
+## ID: see-you-later
+- **Level**: tricky
+- **Pattern**: sound
+- **Visual**: C U L8R
+- **Answer**: see you later
+- **Also**: see ya later, see u later, cul8r
+- **Hint**: What you say when you leave.
+- **Why**: C = SEE, U = YOU, L8R = LATER: SEE YOU LATER
+- **Choices**: call you later, see you soon, goodbye
+
+## ID: ice-cube
+- **Level**: tricky
+- **Pattern**: math
+- **Visual**: ICE^3
+- **Answer**: ice cube
+- **Also**: icecube, ice cubed
+- **Hint**: A little frozen block in your drink.
+- **Why**: The little 3 means CUBED in math: ICE CUBED = ICE CUBE!
+- **Choices**: ice three, snowflake, ice cream
+
+## ID: excellent
+- **Level**: tricky
+- **Pattern**: sound
+- **Visual**: XLNT
+- **Answer**: excellent
+- **Hint**: Super, super good!
+- **Why**: Say the letters: X-L-N-T = EXCELLENT!
+- **Choices**: extra, extra large, next
+
+## ID: split-second
+- **Level**: tricky
+- **Pattern**: split
+- **Visual**: SEC (tilted) | OND (tilted)
+- **Answer**: split second
+- **Also**: splitsecond
+- **Hint**: A super short moment.
+- **Why**: The word SECOND is SPLIT = SPLIT SECOND
+- **Choices**: second half, one second, split time
+
+## ID: search-high-and-low
+- **Level**: tricky
+- **Pattern**: position
+- **Visual**: SEARCH (top left) | SEARCH (bottom right)
+- **Answer**: search high and low
+- **Also**: high and low
+- **Hint**: Look everywhere for something.
+- **Why**: SEARCH is HIGH AND LOW = SEARCH HIGH AND LOW
+- **Choices**: hide and seek, look around, search party
+
+## ID: fish-out-of-water
+- **Level**: tricky
+- **Pattern**: inside
+- **Visual**: [box: WATER] | FISH (top right)
+- **Answer**: fish out of water
+- **Also**: a fish out of water
+- **Hint**: How you feel in a strange new place.
+- **Why**: FISH is OUT OF the WATER!
+- **Choices**: flying fish, fishbowl, swimming fish
+
+## ID: breakfast
+- **Level**: tricky
+- **Pattern**: split
+- **Visual**: FA (tilted) | ST (tilted)
+- **Answer**: breakfast
+- **Also**: break fast
+- **Hint**: The first meal of the day.
+- **Why**: FAST is broken (BREAK) = BREAK-FAST = BREAKFAST!
+- **Choices**: fast food, lunch, broken plate
+
+## ID: underground
+- **Level**: easy
+- **Pattern**: position
+- **Visual**: [line] / GROUND
+- **Answer**: underground
+- **Also**: under ground
+- **Hint**: Down below, where the moles and the subway trains are.
+- **Why**: GROUND is UNDER the line = UNDERGROUND
+- **Choices**: playground, background, ground floor
+
+## ID: airport
+- **Level**: easy
+- **Pattern**: position
+- **Visual**: AIR / PORT
+- **Answer**: airport
+- **Also**: air port
+- **Hint**: Where airplanes take off and land.
+- **Why**: AIR on top + PORT under it = AIRPORT
+- **Choices**: airplane, seaport, passport
+
+## ID: midday
+- **Level**: medium
+- **Pattern**: inside
+- **Visual**: DAY surrounded by M-I-D
+- **Answer**: midday
+- **Also**: mid day, noon
+- **Hint**: The middle of the day, when the sun is high.
+- **Why**: DAY is in the middle of MID = MIDDAY
+- **Choices**: daytime, sunday, birthday
+
+## ID: backstage
+- **Level**: medium
+- **Pattern**: typography
+- **Visual**: STAGE (backwards)
+- **Answer**: backstage
+- **Also**: back stage
+- **Hint**: The secret place behind the stage at a show.
+- **Why**: STAGE is written BACKwards = BACKSTAGE
+- **Choices**: on stage, stage left, curtain call
+
+## ID: sunflower
+- **Level**: easy
+- **Pattern**: position
+- **Visual**: SUN / FLOWER
+- **Answer**: sunflower
+- **Also**: sun flower
+- **Hint**: A tall yellow flower that turns to face the sun.
+- **Why**: SUN shines over the FLOWER = SUNFLOWER
+- **Choices**: sunshine, flowerpot, sunset
+
+## ID: mind-over-matter
+- **Level**: tricky
+- **Pattern**: position
+- **Visual**: MIND / MATTER
+- **Answer**: mind over matter
+- **Hint**: When your brain is stronger than the problem.
+- **Why**: MIND is OVER MATTER = MIND OVER MATTER
+- **Choices**: never mind, brain power, matter of fact
+
+## ID: fortnight
+- **Level**: tricky
+- **Pattern**: quantity
+- **Visual**: NIGHT (x4)
+- **Answer**: fortnight
+- **Also**: four nights
+- **Hint**: Two weeks. Say "four night" fast!
+- **Why**: FOUR NIGHTs sounds like FORTNIGHT (that means two weeks)!
+- **Choices**: goodnight, midnight, tonight
+
+## ID: seven-days
+- **Level**: easy
+- **Pattern**: quantity
+- **Visual**: DAY (x7)
+- **Answer**: seven days
+- **Also**: 7 days, a week, one week
+- **Hint**: How long is one week?
+- **Why**: Seven DAYs = SEVEN DAYS (one week)!
+- **Choices**: weekend, daytime, every day
+
+## ID: for-you
+- **Level**: easy
+- **Pattern**: sound
+- **Visual**: 4 U
+- **Answer**: for you
+- **Also**: 4 u, four you
+- **Hint**: What you say when you give someone a present.
+- **Why**: 4 sounds like FOR and U sounds like YOU = FOR YOU
+- **Choices**: thank you, four years, to you
+
+## ID: i-owe-you
+- **Level**: medium
+- **Pattern**: sound
+- **Visual**: I O U
+- **Answer**: i owe you
+- **Also**: iou, i owe u
+- **Hint**: A promise to pay back later.
+- **Why**: Say the letters: I-O-U = I OWE YOU
+- **Choices**: i love you, oh you, i see you
+
+## ID: easy
+- **Level**: medium
+- **Pattern**: sound
+- **Visual**: EZ
+- **Answer**: easy
+- **Hint**: Not hard at all!
+- **Why**: Say the letters: E-Z = EASY!
+- **Choices**: zebra, crazy, lazy
+
+## ID: energy
+- **Level**: medium
+- **Pattern**: sound
+- **Visual**: NRG
+- **Answer**: energy
+- **Hint**: What you need to run and jump all day.
+- **Why**: Say the letters: N-R-G = ENERGY!
+- **Choices**: angry, engine, hungry
+
+## ID: great
+- **Level**: medium
+- **Pattern**: sound
+- **Visual**: GR8
+- **Answer**: great
+- **Also**: gr8
+- **Hint**: Super good!
+- **Why**: GR + 8 (EIGHT) = GREAT!
+- **Choices**: grate, grapes, green
+
+## ID: cutie
+- **Level**: medium
+- **Pattern**: sound
+- **Visual**: QT
+- **Answer**: cutie
+- **Also**: cutey, qt
+- **Hint**: Someone who is very cute.
+- **Why**: Say the letters: Q-T = CUTIE!
+- **Choices**: quiet, kitty, queen
+
+## ID: anyone
+- **Level**: medium
+- **Pattern**: sound
+- **Visual**: NE1
+- **Answer**: anyone
+- **Also**: any one, anybody
+- **Hint**: "Does ___ want a cookie?"
+- **Why**: N-E + 1 (ONE) = ANY-ONE = ANYONE!
+- **Choices**: no one, everyone, someone
+
+## ID: you-are-too-good
+- **Level**: medium
+- **Pattern**: sound
+- **Visual**: U R 2 GOOD
+- **Answer**: you are too good
+- **Also**: you're too good, youre too good, u r 2 good
+- **Hint**: What you say to a friend who always wins!
+- **Why**: U = YOU, R = ARE, 2 = TOO: YOU ARE TOO GOOD
+- **Choices**: you are so good, two good, good for you
+
+## ID: oh-i-see
+- **Level**: medium
+- **Pattern**: sound
+- **Visual**: O I C
+- **Answer**: oh i see
+- **Also**: o i see, oic
+- **Hint**: What you say when you finally understand.
+- **Why**: O = OH, I = I, C = SEE: OH I SEE
+- **Choices**: i see you, oh no, ice
+
+## ID: top-secret
+- **Level**: medium
+- **Pattern**: position
+- **Visual**: SECRET (top)
+- **Answer**: top secret
+- **Also**: topsecret
+- **Hint**: Something nobody else is allowed to know!
+- **Why**: SECRET is at the TOP = TOP SECRET
+- **Choices**: big secret, secret code, high secret
+
+## ID: high-five
+- **Level**: easy
+- **Pattern**: position
+- **Visual**: FIVE (top)
+- **Answer**: high five
+- **Also**: high 5, highfive
+- **Hint**: Slap hands up in the air when you win!
+- **Why**: FIVE is way up HIGH = HIGH FIVE
+- **Choices**: give me five, top five, five fingers
+
+## ID: highway
+- **Level**: medium
+- **Pattern**: position
+- **Visual**: WAY (top)
+- **Answer**: highway
+- **Also**: high way
+- **Hint**: A big, fast road for cars.
+- **Why**: WAY is up HIGH = HIGHWAY
+- **Choices**: subway, top way, hallway
+
+## ID: high-school
+- **Level**: medium
+- **Pattern**: position
+- **Visual**: SCHOOL (top)
+- **Answer**: high school
+- **Also**: highschool
+- **Hint**: The school big kids go to after middle school.
+- **Why**: SCHOOL is way up HIGH = HIGH SCHOOL
+- **Choices**: top school, school bus, schoolyard
+
+## ID: upstairs
+- **Level**: easy
+- **Pattern**: position
+- **Visual**: STAIRS (top)
+- **Answer**: upstairs
+- **Also**: up stairs, up the stairs
+- **Hint**: Where your bedroom might be.
+- **Why**: STAIRS is UP at the top = UPSTAIRS
+- **Choices**: downstairs, staircase, top step
+
+## ID: downstairs
+- **Level**: easy
+- **Pattern**: position
+- **Visual**: STAIRS (bottom)
+- **Answer**: downstairs
+- **Also**: down stairs, down the stairs
+- **Hint**: Go down here for breakfast in the kitchen.
+- **Why**: STAIRS is DOWN at the bottom = DOWNSTAIRS
+- **Choices**: upstairs, staircase, bottom step
+
+## ID: downhill
+- **Level**: medium
+- **Pattern**: position
+- **Visual**: HILL (bottom)
+- **Answer**: downhill
+- **Also**: down hill, down the hill
+- **Hint**: The fun way to ride your bike: wheee!
+- **Why**: HILL is DOWN at the bottom = DOWNHILL
+- **Choices**: uphill, hilltop, ant hill
+
+## ID: underwear
+- **Level**: easy
+- **Pattern**: position
+- **Visual**: [line] / WEAR
+- **Answer**: underwear
+- **Also**: under wear
+- **Hint**: You wear it under your clothes. Hee hee!
+- **Why**: WEAR is UNDER the line = UNDERWEAR
+- **Choices**: sweater, raincoat, swimwear
+
+## ID: underdog
+- **Level**: tricky
+- **Pattern**: position
+- **Visual**: [line] / DOG
+- **Answer**: underdog
+- **Also**: under dog
+- **Hint**: The player everyone thinks will lose… but might win!
+- **Why**: DOG is UNDER the line = UNDERDOG
+- **Choices**: hot dog, puppy, top dog
+
+## ID: undercover-agent
+- **Level**: tricky
+- **Pattern**: position
+- **Visual**: COVER / AGENT
+- **Answer**: undercover agent
+- **Also**: undercover, under cover agent, secret agent
+- **Hint**: A spy who hides who they really are.
+- **Why**: AGENT is UNDER COVER = UNDERCOVER AGENT
+- **Choices**: cover story, book cover, police officer
+
+## ID: youre-under-arrest
+- **Level**: tricky
+- **Pattern**: position
+- **Visual**: ARREST / YOU'RE
+- **Answer**: you're under arrest
+- **Also**: youre under arrest, you are under arrest
+- **Hint**: What the police say when they catch the bad guy.
+- **Why**: YOU'RE is UNDER ARREST = YOU'RE UNDER ARREST
+- **Choices**: stop right there, you are free, rest your arms
+
+## ID: all-over-the-world
+- **Level**: tricky
+- **Pattern**: position
+- **Visual**: ALL / WORLD
+- **Answer**: all over the world
+- **Also**: all around the world, over the world
+- **Hint**: In every country, everywhere!
+- **Why**: ALL is OVER THE WORLD = ALL OVER THE WORLD
+- **Choices**: world map, whole world, around the block
+
+## ID: travel-overseas
+- **Level**: tricky
+- **Pattern**: sound
+- **Visual**: TRAVEL / C C C C C C
+- **Answer**: travel overseas
+- **Also**: travel over seas, traveling overseas
+- **Hint**: Going to a faraway country by plane or ship. The C's sound like something…
+- **Why**: TRAVEL is OVER the C's (SEAS) = TRAVEL OVERSEAS
+- **Choices**: see the world, sea travel, cc travel
+
+## ID: history-repeats-itself
+- **Level**: tricky
+- **Pattern**: quantity
+- **Visual**: HISTORY / HISTORY / HISTORY
+- **Answer**: history repeats itself
+- **Also**: history repeats
+- **Hint**: Things that happened before happen again.
+- **Why**: HISTORY again and again = HISTORY REPEATS ITSELF
+- **Choices**: history class, old stories, three histories
+
+## ID: one-in-a-million
+- **Level**: tricky
+- **Pattern**: inside
+- **Visual**: MIL{1}LION
+- **Answer**: one in a million
+- **Also**: 1 in a million, one in million
+- **Hint**: Super special. There's nobody like you!
+- **Why**: ONE (1) is IN A MILLION = ONE IN A MILLION
+- **Choices**: a million dollars, number one, one million
+
+## ID: two-peas-in-a-pod
+- **Level**: tricky
+- **Pattern**: inside
+- **Visual**: P{PEAS PEAS}OD
+- **Answer**: two peas in a pod
+- **Also**: 2 peas in a pod, peas in a pod
+- **Hint**: Two friends who are very alike.
+- **Why**: Two PEAS IN A POD = TWO PEAS IN A POD
+- **Choices**: green beans, pea soup, two of a kind
+
+## ID: cloud-nine
+- **Level**: tricky
+- **Pattern**: quantity
+- **Visual**: CLOUD (x9)
+- **Answer**: cloud nine
+- **Also**: on cloud nine, cloud 9, on cloud 9
+- **Hint**: Where you are when you feel super, super happy.
+- **Why**: Nine CLOUDs = (on) CLOUD NINE!
+- **Choices**: rainy day, sky high, nine lives
+
+## ID: seven-seas
+- **Level**: tricky
+- **Pattern**: quantity
+- **Visual**: SEA (x7)
+- **Answer**: seven seas
+- **Also**: the seven seas, 7 seas
+- **Hint**: Pirates sail across all of these!
+- **Why**: Seven SEAs = THE SEVEN SEAS
+- **Choices**: deep blue sea, sea shells, ocean waves
+
+## ID: step-by-step
+- **Level**: medium
+- **Pattern**: position
+- **Visual**: STEP | STEP
+- **Answer**: step by step
+- **Also**: step-by-step
+- **Hint**: Slowly, one little part at a time.
+- **Why**: STEP is BY (next to) STEP = STEP BY STEP
+- **Choices**: two steps, staircase, side by side
+
+## ID: back-to-back
+- **Level**: medium
+- **Pattern**: typography
+- **Visual**: BACK | BACK (backwards)
+- **Answer**: back to back
+- **Also**: back-to-back
+- **Hint**: Standing with your backs touching.
+- **Why**: BACK and KCAB face away from each other = BACK TO BACK
+- **Choices**: backpack, come back, face to face
+
+## ID: face-to-face
+- **Level**: medium
+- **Pattern**: typography
+- **Visual**: FACE | FACE (backwards)
+- **Answer**: face to face
+- **Also**: face-to-face
+- **Hint**: Looking right at each other.
+- **Why**: FACE and ECAF look at each other = FACE TO FACE
+- **Choices**: back to back, two faces, funny face
+
+## ID: afternoon
+- **Level**: medium
+- **Pattern**: position
+- **Visual**: NOON | AFTER
+- **Answer**: afternoon
+- **Also**: after noon
+- **Hint**: The time after lunch and before dinner.
+- **Why**: AFTER comes after NOON = AFTERNOON
+- **Choices**: midnight, morning, noon time
+
+## ID: backspace
+- **Level**: medium
+- **Pattern**: typography
+- **Visual**: SPACE (backwards)
+- **Answer**: backspace
+- **Also**: back space
+- **Hint**: The key you press to erase a letter.
+- **Why**: SPACE is written BACKwards = BACKSPACE
+- **Choices**: outer space, space bar, delete
+
+## ID: backyard
+- **Level**: medium
+- **Pattern**: typography
+- **Visual**: YARD (backwards)
+- **Answer**: backyard
+- **Also**: back yard
+- **Hint**: The grassy place behind your house.
+- **Why**: YARD is written BACKwards = BACKYARD
+- **Choices**: front yard, garden, playground
+
+## ID: talk-back
+- **Level**: medium
+- **Pattern**: typography
+- **Visual**: TALK (backwards)
+- **Answer**: talk back
+- **Also**: talkback, talking back
+- **Hint**: Answering a grown-up in a rude way. Oops!
+- **Why**: TALK is written BACKwards = TALK BACK
+- **Choices**: small talk, walk back, talk show

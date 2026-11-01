@@ -36,7 +36,7 @@
 | Moku-rane | `moku-rane.html` | 3Dクレーンゲーム |
 | Moku Bridge | `moku-bridge.html` | ガラスの橋渡り(左右を選ぶ運試し+Mointショップ) |
 | Moku Chess | `moku-chess.html` | 3D盤のチェス(Moku Fight のライバルが10段階のCPU) |
-| Moku Word Riddles | `moku-word-riddles.html` | 英語のレバス・パズル100問(文字の配置・大きさ・数から単語を当てる)+早押しの Riddle Race |
+| Moku Word Riddles | `moku-word-riddles.html` | 英語のレバス・パズル(問題は `data/riddles-db.md` に Markdown で追記するだけ)+早押しの Riddle Race |
 | Moku Dropper | `moku-dropper.html` | 3Dドロッパー(大きな木の幹の中を落ちてポータルへ。ライバルとレース) |
 | Mokuball | `mokuball.html` | サッカー/ピンボール風(ハブ未公開) |
 

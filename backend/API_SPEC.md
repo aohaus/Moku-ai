@@ -454,7 +454,7 @@ PINはどこにも記録しない。DynamoDB の `ttl` で90日後に自動削�
 
 ログインした2〜6人が**同時に**同じ Moku Word Riddles を解く早押しレース(`src/roomApi.js`、Lambda は `MatchFunction` を `/matches` `/challenges` と共用)。ホストが部屋を作り、友達は4文字のコードを入れるか招待から入る。みんなで1問ずつ進み、**サーバーに最初に届いた正解**がその問題の勝ち。勝った問題の数が多い人が優勝。
 
-- **問題と判定**: 問題のデータと答えの判定(`isCorrect`)は `shared/moku-riddles.js`(Lambda には `src/vendor/` のコピー。違うと `npm test` が失敗)。サーバーは開始時に全100問からランダムに `count` 問(5 か 10)を選ぶ。
+- **問題と判定**: 問題のデータは `data/riddles-db.md`、読み込みと答えの判定(`isCorrect`)は `shared/moku-riddles.js`(Lambda には両方とも `src/vendor/` のコピー。`src/riddles.js` が読み込む。違うと `npm test` が失敗)。サーバーは開始時に全問からランダムに `count` 問(5 か 10)を選ぶ。
 - **進み方(タイムライン)**: `startAt` と `wins` だけから、ページとサーバーが同じ関数 `MokuRiddles.raceTimeline(room, now)` で今の場面を出す。サーバーが部屋を進める処理はない(書き込みは参加・開始・最初の正解の時だけ)。
   - 開始の4秒後(`COUNTDOWN_MS`)に1問目。1問は最大45秒(`LIMIT_MS`)。誰かが正解するか時間切れで、5秒(`GAP_MS`)答えを見せてから次の問題。値は部屋の `race` にも入っている。
   - 答えを受け付けるのは、今出ている問題(`question` の場面の `q`)だけ。カウントダウン中・答えを見せている間・先の問題は `first: false, late: true`。
