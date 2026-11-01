@@ -206,7 +206,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
   - 経緯: 同じアカウントで2台(またはハブを開いただけでも `moku:stats:streak` などが変わる)を使うと、以前は毎回「どちらを残す?」になり、Cloud を選ぶとその端末でクリアした記録や Moint が消えていた。
 - **ログアウト**: クラウドへ保存してから、その端末のMoku進捗を消す(兄弟で1台のiPadを共有する想定)。オフラインで保存できない時は「進捗を端末に残したままログアウト」を選べる。
 - **My Moku 画面**(2026-10-25〜。旧「プロフィール」モーダルとハブ上部のカード類を1つにまとめた、プレイヤー自身のページ):
-  - **開き方**: `hub.html#me`。ハブ上部の帯(着せ替えた Moku・「My Moku ›」ボタン)/下部ナビの My Moku タブ / `index.html` のアカウントチップ(`hub.html#me` へ移動)。古いリンク `hub.html#profile` も開く。✕ Close(またはブラウザの戻る・Esc)でハブに戻る。ゲスト(ゲートのない開発環境など)でも開ける。
+  - **開き方**: `hub.html#me`。ハブ上部の帯(着せ替えた Moku・「My Moku ›」ボタン)/下部ナビの My Moku タブ / `index.html` のアカウントチップ(`hub.html#me` へ移動)。古いリンク `hub.html#profile` も開く。下部メニューの 🏠 Home(またはブラウザの戻る・Esc)でハブに戻る。ゲスト(ゲートのない開発環境など)でも開ける。
   - **ハブ上部の帯**(`.me-strip`): 着せ替えた Moku+「Hello, <名前>!」+Lv/XP+Completed+Moint 残高・Daily・Closet+My Moku ボタン。旧プロフィールカードと「My Moints」カードを1枚にした。
   - **レイアウト**: 幅 820px 以上(横向き iPad・PC)は2列(左 330px 固定・スクロールしても残る/右は記録)。それ未満は1列。最大幅 1000px。
     - 左: 着せ替えた Moku(押すと Moku Closet)・表示名+`#u` タグ・Lv/XP/Completed・Moint 残高と Daily。その下にクラウド保存の状態+Save now / Change PIN / Log Out(/ 🛠 Admin)+Player ID(ゲストは ☁️ Log In)。
@@ -223,7 +223,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
   - **Moku を押す(マウスなら乗せる)と** 吹き出しで、その人の Lv と主な記録(最大4件。My Bests → バッジの数 → 最近遊んだゲームの一言サマリー)と更新時刻。記録がまだない人は「No highlights yet…」。
   - **データ**: ほかの人は `GET /players`(`MokuAccount.loadPlayers()` / `getPlayers()`、取れたら window に `moku:players` イベント)。各プレイヤーの公開カード `card = { level, outfit, highlights, updatedAt }` は、その人のハブがクラウドへ保存するたびに `window.MOKU_PUBLIC_CARD()` で作って `PUT /save` に添える(`backend/API_SPEC.md`)。サーバーは短い文字列とIDだけ残す。セーブの中身はほかの人に見せない。カードはその人が次にハブで保存した時から出る(それまでは素の Moku と「No highlights yet」)。自分の Moku はこの端末から直接描く。
   - Player ID は出さない。オンラインの判定は従来どおり(5分以内のアクセス。開いているページが2分おきに `GET /auth/me`)。ログインしていない時は自分だけ+「Log in to see your friends' Mokus here.」。
-  - ✕ Close・戻る・Esc で前の画面へ(ハブ、または My Moku から来たら My Moku)。
+  - 下部メニューの 🏠 Home・戻る・Esc でハブへ。
 - **Hollow のオントロジー拡張 `hollow.html`**(2026-10-30〜、初期版。ハブの Hollow の「✨ Hidden Links」から開く): 部屋・Moku・吹き出し・Choose Mokus はハブの `#hollow` と同じ(CSS と `buildHollowScene()` / `hollowLayout()` はハブからコピー。**片方を直したらもう片方も**)。その上に次を足した。
   - **意味ネットワーク** [`shared/moku-ontology.js`](shared/moku-ontology.js)(`MokuOntology`、UMD。ブラウザでも Lambda でも同じ結果。テストは `backend/test/sharedModules.test.js`): 3層の小さなグラフ。もの(ゲーム `GAMES` と Closet の服 `ITEM_RULES`)→ 特徴(`TRAITS` 22個。Strategy / Patience / Sweets …)→ 6つの鳥の家族(`SPIRITS`: Brave Hearts / Quiet Thinkers / Forest Friends / Treasure Hunters / Party Birds / Cozy Cooks)。特徴どうしの「相性がいい」辺(`RELATED`。Strategy〜Puzzles など)もある。入力は**サーバーが今も配っている公開カードだけ**(`records` のゲーム・`highlights` のゲーム・`outfit`・`level`)なので、バックエンドの変更はない。自分だけはこの端末から、遊んだゲーム(`moku:played:*`・`moku:<gameId>:*`)・Moint 残高・Closet の数も足す。服の値段の合計が高い = Style、Moint を貯めている = Collecting(Moint の使い方)。
   - **世界観の自動醸成**: `ambience()` が部屋にいる Moku(自分は2倍)から、光の色・木の色味・苔の量・ホタルの数・飾り(`DECOR`。チェスのナイト・釣りざお・クッキーの皿・楽譜など17種、`hollow.html` の `DECOR_ART` が SVG で描く)を決める。部屋は記憶を持つ(`moku:hollow:world`、1日1回 `remember()`。前日までを8割残して今日を2割足す)。訪れた日が増えるほど過去が強く残り、飾りの数が増える(最初2個、3日ごとに1個、最大5個)。記憶は友達のカードが届いてから付ける(読み込み途中の自分だけの部屋を覚えない)。新しく増えた飾りに NEW(`moku:hollow:decor-seen`)。`moku:hollow:` は同期で両方変わってもこの端末の値を使う(§10)。
@@ -233,10 +233,11 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
   - 次の候補: ハブの `#hollow` と1つにまとめる / マッチ・チャレンジの対戦履歴を辺に足す。
 - **Achievements**(`hub.html#awards`、2026-10-26〜。下部ナビの左から2番目「🏆 Achievements」。それまでは Coming soon で押せなかった): ゲームごとに「難関の記録」を1つ決め、全プレイヤーの Top 3 を出す画面。
   - **記録**(大きいほど上。`hub.html` の `RECORDS`、`GAMES` と同じ card キー): Angry Mokumoku / Moku Drop / Moku Bento / Moku Rhythm Cafe / Moku Future Run = High Score、Moyomoyo = Marathon High Score、MK Mobile = Strongest Player(持っている選手の Sp+Sh+Def の最大)、Battle Royal = Battle Level、Shiri of Moku = Stages Cleared、Moku City = City Level、Moku-rane = Prizes Won、Moku Fishing Pond = Fish Caught、Moku Kart = Grand Prix Trophies、Flying Moku = Acorns Found、Moku Wolf = Rounds Played、Moku Fight = Wins、Moku Watch 6 Lazy = Laziest Watch、Moku Bridge = Luckiest Steps、Moku Chess = Strongest CPU Beaten(勝ったCPUの最高レベル)、Moku Word Riddles = Riddles Solved(自力で解いた問題の数)、Moku Dropper = Races Won(1位を取ったレースの数、最大7)。新しいタイトルは `RECORDS` に1つ足す。
-  - **表示**: ゲームごとのカード(アイコン・名前・記録の名前)に 🥇🥈🥉 の3人(着せ替えた Moku の顔・表示名・`#u` タグ・記録)。同じ記録は同じ順位。**1位の行は大きく**(金色の帯、Moku の顔・名前・記録が大きい)、2位・3位・空きの行は小さく1行(2026-10-31〜)。自分が4位以下なら「⋮」の下に自分の行(小さい方)と「Beat ○○ to move up!」。1位なら「You are No. 1! 👑」。記録がまだないゲームは1行(「No records yet. Be the first!」)で、記録のあるゲームを上に並べる。幅 700px 以上は2列。全部のゲームを出す(「All Games / Games I Play」の切り替えは 2026-10-31 にやめた)。
-  - **Medal Count**(2026-10-31〜、ゲームのカードの上): 全ゲームのメダルを人ごとに数え、金の多い順(同じなら銀、銅の順)に並べる。メダルは数だけ絵文字を並べる(金5個なら 🥇🥇🥇🥇🥇、銀3個なら 🥈🥈🥈)。自分はメダルがなくても出す(「No medals yet. Go get one!」)。表彰台のような「終わった感」を出さないよう、順位の数字や台は付けず、「● LIVE」と「It changes every time someone plays. Go grab a medal!」で、いつでも動く途中経過として見せる。
+  - **表示**: ゲームごとのカード(アイコン・名前・記録の名前)に 🥇🥈🥉 の3人(着せ替えた Moku の顔・表示名・`#u` タグ・記録)。同じ記録は同じ順位。**1位の行は大きく**(金色の帯、Moku の顔・名前・記録が大きい)、2位・3位・空きの行は小さく1行(2026-10-31〜。2026-11-01 にもう一回り小さくし、2位・3位は `#u` タグを出さず名前だけ)。自分が4位以下なら「⋮」の下に自分の行(小さい方)と「Beat ○○ to move up!」。1位なら「You are No. 1! 👑」。記録がまだないゲームは1行(「No records yet. Be the first!」)で、記録のあるゲームを上に並べる。幅 700px 以上は2列。全部のゲームを出す(「All Games / Games I Play」の切り替えは 2026-10-31 にやめた)。
+  - **Medal Count**(2026-10-31〜、ゲームのカードの上): 全ゲームのメダルを人ごとに数え、金の多い順(同じなら銀、銅の順)に並べる。メダルは数だけ絵文字を並べる(金5個なら 🥇🥇🥇🥇🥇、銀3個なら 🥈🥈🥈)。1個ずつの要素にして、行の幅を超えたら次の行へ折り返す(同じ色のメダルが2行にまたがってもよい)。画面は横にずれない(`#awardsPage` は `overflow-x: hidden`)。自分はメダルがなくても出す(「No medals yet. Go get one!」)。表彰台のような「終わった感」を出さないよう、順位の数字や台は付けず、「● LIVE」と「It changes every time someone plays. Go grab a medal!」で、いつでも動く途中経過として見せる。
   - **データ**: Hollow と同じ公開カードに `records = { gameId: 数 }` を足した(`window.MOKU_PUBLIC_CARD()`。サーバーは正の数だけ整数で残す。`backend/API_SPEC.md`)。ほかの人の記録はその人が次にハブで保存した時から出る。自分の記録はこの端末から直接読む。管理者アカウントは Players と同じく出ない。
-  - ✕ Close・戻る・Esc でハブへ。
+  - 下部メニューの 🏠 Home・戻る・Esc でハブへ。
+- **下部メニュー**(2026-11-01〜): 🏠 Home / 🏆 Achievements / 🌳 Hollow / My Moku の4つは、My Moku・Hollow・Achievements の画面の上にも**いつも出ている**(`#bottomNav` の `z-index: 32`、画面は 30。シート・Choose Mokus・Closet などはその上)。今いる画面のボタンが光る(`markNav()`、ハブでは Home)。そのかわり3つの画面の右上の「✕ Close」はなくした。画面から画面へ移る時は履歴を置き換えるので、ブラウザの戻る・Home はいつもハブへ戻る。3つの画面の下には、メニューの高さぶんの余白がある。
 
 ## 11. 引き継ぎコード(2026-10-24〜)
 
