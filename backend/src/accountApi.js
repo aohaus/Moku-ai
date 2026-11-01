@@ -3,6 +3,7 @@ const { json } = require("./response");
 const token = require("./token");
 const MokuOntology = require("./vendor/moku-ontology");
 const { hashPin, verifyPin, burnPinCheck, isWeakPin } = require("./pin");
+const settings = require("./settings");
 
 // Accounts + cloud save for Moku Series (see API_SPEC.md "Accounts").
 // The routing/validation here is storage-agnostic: `store` is either
@@ -485,6 +486,23 @@ function createAccountApi(store, config) {
     return json(200, { ok: true });
   }
 
+  // Settings (settings.js): GET shows each one with its default, PUT changes them.
+  async function adminGetSettings() {
+    return json(200, settings.view(await store.getSettings()));
+  }
+
+  // { values: { "<key>": number | null } } — null puts a setting back to its default.
+  async function adminPutSettings(admin, body, device) {
+    const stored = await store.getSettings();
+    const res = settings.applyPatch(stored, body.values);
+    if (res.error) return err(400, "invalid_setting", res.error.message, { key: res.error.key });
+    if (!res.changes.length) return json(200, settings.view(stored));
+    const saved = { values: res.overrides, updatedAt: new Date(now()).toISOString(), updatedBy: admin.loginId };
+    await store.putSettings(saved);
+    await record("admin_settings", admin, { by: admin.loginId, changes: res.changes }, device);
+    return json(200, settings.view(saved));
+  }
+
   async function adminListErrors() {
     const errors = (await store.listErrors()).sort(errorRank);
     return json(200, { errors });
@@ -633,7 +651,7 @@ function createAccountApi(store, config) {
       const adminError = /^\/admin\/errors\/([0-9a-f]{16})$/.exec(path);
       const adminRoute =
         route === "GET /admin/users" || route === "POST /admin/users" || route === "GET /admin/logs" ||
-        route === "GET /admin/errors" ||
+        route === "GET /admin/errors" || route === "GET /admin/settings" || route === "PUT /admin/settings" ||
         ((adminUser || adminError) && (method === "PATCH" || method === "DELETE"));
       if (!authed.includes(route) && !adminRoute) return err(404, "not_found", "not found");
 
@@ -645,6 +663,7 @@ function createAccountApi(store, config) {
         if (route === "GET /admin/users") return await adminListUsers();
         if (route === "GET /admin/logs") return await adminListLogs(event.queryStringParameters || {});
         if (route === "GET /admin/errors") return await adminListErrors();
+        if (route === "GET /admin/settings") return await adminGetSettings();
         if (adminError && method === "DELETE") {
           await store.deleteError(adminError[1]);
           return json(200, { deleted: adminError[1] });
@@ -653,6 +672,7 @@ function createAccountApi(store, config) {
         const adminBody = parseBody(event);
         if (!adminBody) return err(400, "invalid_json", "invalid JSON body");
         if (route === "POST /admin/users") return await createAccount(adminBody, user, device);
+        if (route === "PUT /admin/settings") return await adminPutSettings(user, adminBody, device);
         if (adminError) return await adminUpdateError(adminError[1], adminBody);
         return await adminUpdateUser(user, decodeURIComponent(adminUser[1]), adminBody, device);
       }

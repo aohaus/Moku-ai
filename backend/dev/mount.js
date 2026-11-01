@@ -36,7 +36,7 @@ module.exports = function mountDevAccounts(app) {
 
   // shared/moku-errors.js posts JSON as text/plain (keeps the request "simple").
   app.post("/errors", require("express").text({ type: "text/plain" }));
-  app.all(["/auth/:action", "/save", "/players", "/players/kin", "/admin/users", "/admin/users/:loginId", "/admin/logs", "/admin/errors", "/admin/errors/:sig", "/errors"], async (req, res) => {
+  app.all(["/auth/:action", "/save", "/players", "/players/kin", "/admin/users", "/admin/users/:loginId", "/admin/logs", "/admin/errors", "/admin/errors/:sig", "/admin/settings", "/errors"], async (req, res) => {
     const result = await handler({
       requestContext: { http: { method: req.method } },
       rawPath: req.path,

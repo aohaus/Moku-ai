@@ -269,6 +269,10 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
   - 設定変更: `pin_change`(本人)・`admin_create` / `admin_update`(変えた項目と変更前のID・表示名)/ `admin_delete`。
   - 各行に端末(iPad など。User-Agent から判定)。**PINは記録しない。**
   - 保存: DynamoDB の同じテーブルに日ごとのパーティション(`pk = LOG#<UTCの日付>`)。`ttl` 属性で90日後に自動削除。1日あたり最大500件まで取得。
+- **ゲームの設定**(`/admin/settings`、管理画面の「⚙️ 設定」タブ、2026-11-01〜): 時間・回数などの決まりの数字を**コードに書かず**、保護者が初期値から変えられるようにする仕組み。
+  - 設定は [`backend/src/settings.js`](backend/src/settings.js) の `SCHEMA` に1つずつ書く(`key`・グループ・日本語の名前と説明・単位・初期値・最小/最大)。管理画面のフォームは `SCHEMA` から自動で作るので、**設定を足す時は `SCHEMA` に1行足して、使う所で `(await settings.get())["<key>"]` を読むだけ**。
+  - 保存は同じテーブルの `pk CONFIG / sk SETTINGS` に、初期値と違う値だけ。「初期値に戻す」で消える。変更はアクセスログに `admin_settings`(前→後)。ゲームの API は60秒キャッシュするので、変更は最大1分で効く。
+  - 今ある設定: `rooms.inviteExpiryMinutes`(招待の有効時間、初期値60分、5〜1440分。§14 の部屋)。
 - **エラーの確認**(`/errors` `/admin/errors`、2026-10-25〜):
   - **収集**: [`shared/moku-errors.js`](shared/moku-errors.js) を**全ページの `<head>` の先頭**(`<meta charset>` の直後、ほかのどのスクリプトよりも前)で読み込む。予期しないエラー・Promise の未処理エラー・`<script>` の読み込み失敗(three.js の CDN など)を `POST /errors` へ送る。1回のページ表示で最大5件、同じエラーは1回だけ。cross-origin の「Script error.」・ブラウザ拡張・ResizeObserver の警告は送らない。セーブデータやPINは送らない。ログイン中ならトークンを本文に入れ、誰が影響を受けたかだけ分かるようにする(本文は text/plain の JSON にして CORS のプリフライトを出さない)。`aohaus.github.io`・`dechatgpt.com`・`localhost:3000` 以外では何もしない。
   - **まとめ方**: ページ+エラー文+ファイル+行が同じなら1件(`pk = ERR`、`sk` = シグネチャ)。回数・影響した人(ID)・最初/最後の日時・最後の端末/User-Agent/ゲームのバージョン(`#buildInfo`)/スタックを保持。最後の発生から60日で `ttl` により自動削除。
@@ -368,6 +372,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
   - どこまで進んだかは `startAt` と `wins` から `MokuRiddles.raceTimeline()` で出す(ページとサーバーが同じ関数)。サーバーの時刻との差は返事の `now` で直す。ページは `GET /rooms/{id}?v=` を1秒おき(ロビーは2秒、終わった後は3秒)に見る。
   - 終わったら順位(同点は同じ順位)と Moint。ホストの「Play Again」で同じメンバーの新しい部屋ができ、ほかの人の画面も自動でそこへ移る(元の部屋の `next`)。
   - 途中で ◀ Menu で抜けても、Riddle Race の画面の一覧から戻れる。
+  - **招待の期限**(2026-11-01〜、Riddle Race / Moyomoyo / Moku Wolf の部屋すべて): ロビーにホストしかいないまま、管理画面の「招待の有効時間」(§12、初期値60分)たつと部屋を閉じる。コード・招待で入れなくなり(「No one joined in time, so this room closed.」)、ハブの Invites からも消える。ホストの画面もロビーからメニューに戻る。だれか入ればこの期限はない。部屋を読むたびに判定する(タイマーなし)。
 - **Moyomoyo の Multiplayer**(2026-10-31〜、v1.5.0。同じ `/rooms` の `game: "moyomoyo"`。仕様は `backend/API_SPEC.md` の「Moyomoyo Multiplayer」、サーバーは `src/moyoParty.js`): 2〜4人がそれぞれの端末で Moyo Quest と同じ盤面を同時に遊び、**3試合のスコアの合計**で順位を決める。
   - **方式**: サーバーは中継と審判だけ(お邪魔のリアルタイム処理はしない)。盤面は各端末が動かし、約0.8秒おきに `POST /rooms/{code}/state` で自分の盤面(スコア・生きているか・90文字の盤面・送った攻撃)を送り、返事で全員の分を受け取る。お邪魔は予告トレイに入って次のグミが出る時に落ちるので、1秒ほど遅れても分からない。WebSocket(接続の管理表・iPhone で画面を切り替えた時のつなぎ直しが必要)や端末どうしの直接通信(スマホの回線ではつながらないことが多い)より軽く、既存の部屋・ポーリングの仕組みをそのまま使える。
   - **公平**: 試合ごとにサーバーが配る `seed` で、全員が同じ順番のグミ(`MokuRandom`、Lv.3 と同じ4色+レインボー)。

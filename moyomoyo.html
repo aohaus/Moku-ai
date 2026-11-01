@@ -566,7 +566,7 @@ body.on-mp #mp-screen { display: flex; }
 </div>
 <div id="mp-toast"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v1.5.1 · Updated Oct 31, 2026</div>
+<div id="buildInfo">v1.5.2 · Updated Nov 1, 2026</div>
 <div id="game-layout">
   <div id="wrapper">
     <canvas id="c"></canvas>
@@ -2994,7 +2994,7 @@ function mpSetRoom(room) {
   if (!mp || room.key !== mp.key) return;
   mp.room = room;
   mp.offset = room.now - Date.now();
-  if (room.status === 'closed') { mpToast('The host closed the room.'); openMpMenu(); return; }
+  if (room.status === 'closed') { mpToast(room.closedReason === 'expired' ? 'No one joined in time, so the room closed.' : 'The host closed the room.'); openMpMenu(); return; }
   if (room.status === 'lobby') { if (mp.view !== 'lobby') mpShowScreen('lobby'); mpRenderLobby(); return; }
   if (room.status === 'playing') {
     if (mp.view !== 'game') mpEnterGame();

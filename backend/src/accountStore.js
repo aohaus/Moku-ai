@@ -20,6 +20,7 @@ const { doc } = require("./db");
 //   pk "ROOM#<code>",     sk "STATE"    a Riddle Race room (roomApi.js)
 //   pk "PLAYER#<uid>",    sk "ROOM#<code>"   a room that player is in or was invited to
 //   pk "ROOM#<code>",     sk "P#<uid>"   a Moyomoyo player's board in that room (moyoParty.js)
+//   pk "CONFIG",          sk "SETTINGS"  admin settings that differ from their defaults (settings.js)
 // (plus the log and error items further down). Match items carry `ttl`.
 
 const TABLE = process.env.ACCOUNTS_TABLE_NAME;
@@ -390,6 +391,22 @@ async function deleteError(sig) {
   await doc.send(new DeleteCommand({ TableName: TABLE, Key: errKey(sig) }));
 }
 
+// ---------- admin settings (settings.js) ----------
+
+const SETTINGS_KEY = { pk: "CONFIG", sk: "SETTINGS" };
+
+// { values, updatedAt, updatedBy } or null when the admin never changed anything.
+async function getSettings() {
+  const res = await doc.send(new GetCommand({ TableName: TABLE, Key: SETTINGS_KEY }));
+  if (!res.Item) return null;
+  const { pk, sk, ...record } = res.Item;
+  return record;
+}
+
+async function putSettings(record) {
+  await doc.send(new PutCommand({ TableName: TABLE, Item: { ...SETTINGS_KEY, ...record } }));
+}
+
 // ---------- online matches (matchApi.js) ----------
 
 const matchKey = (id) => ({ pk: `MATCH#${id}`, sk: "STATE" });
@@ -634,6 +651,7 @@ async function listRoomStates(roomId) {
 module.exports = {
   getUser, createUser, updateUser, getSave, putSave, listUsers, listSaves, deleteUser, renameUser,
   addLog, listLogs, recordError, listErrors, updateError, deleteError,
+  getSettings, putSettings,
   createMatch, getMatch, saveMatch, listPlayerMatches,
   createChallenge, getChallenge, saveChallenge, listPlayerChallenges,
   createRoom, getRoom, saveRoom, listPlayerRooms, putRoomState, listRoomStates,

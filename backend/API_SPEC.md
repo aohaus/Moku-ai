@@ -321,6 +321,23 @@ PINはどこにも記録しない。DynamoDB の `ttl` で90日後に自動削�
 
 **200** `{ "deleted": "<sig>" }`。同じエラーがまた起きれば `new` で作り直される。
 
+## `GET /admin/settings`(2026-11-01〜)
+
+管理画面の「⚙️ 設定」。コードに数字を書かず、保護者が変えられるゲームの設定(`src/settings.js` の `SCHEMA`)。
+**200** `{ "settings": [ { "key", "group", "label", "help", "type": "int", "unit", "default", "min", "max", "value", "isDefault" } ], "updatedAt", "updatedBy" }`(一度も変えていなければ `updatedAt: null`)。
+
+| key | 初期値 | 範囲 | 使う所 |
+| --- | --- | --- | --- |
+| `rooms.inviteExpiryMinutes` | 60(分) | 5〜1440 | Rooms: ロビーにホストしかいないまま、この時間がたつと部屋を閉じる |
+
+## `PUT /admin/settings`
+
+`{ "values": { "rooms.inviteExpiryMinutes": 30 } }`(`null` で初期値に戻す)→ **200**(`GET` と同じ形)。
+`400 invalid_setting`(知らない key・範囲の外・整数でない。`key` を添える)。変わった時だけ保存し、アクセスログに `admin_settings`(`detail.changes = [ { key, from, to } ]`)。
+
+- 保存先は同じテーブルの `pk CONFIG / sk SETTINGS`。**初期値と違う値だけ**を持つ(`{ values, updatedAt, updatedBy }`)ので、設定を足しても古いデータの移し替えはいらない。
+- ゲームの API(`MatchFunction`)は60秒キャッシュして読むので、変更は最大1分で効く。読めない時は初期値。
+
 # Matches(オンライン対戦、2026-10-30〜)
 
 ログインした2人のオンライン対戦。最初は Moku Chess で、手紙チェスのように持ち時間はない(`src/matchApi.js`、Lambda は `MatchFunction`)。
@@ -443,6 +460,7 @@ PINはどこにも記録しない。DynamoDB の `ttl` で90日後に自動削�
 - **データ**: `pk ROOM#<コード> / sk STATE`(部屋)と、プレイヤー・招待された人それぞれの一覧用 `pk PLAYER#<uid> / sk ROOM#<コード>`(`roomId` と部屋の `key` だけ)。書く時は `version` が読んだ時と同じ時だけ書き、ぶつかったら読み直してやり直す(同時の正解は先に書けた方の勝ち、もう1人は `first: false`)。
 - **コード**: `ABCDEFGHJKMNPQRSTUVWXYZ`(I・L・O なし)の4文字。大文字小文字は区別しない。使用中なら別のコード。期限が切れた部屋のコードは使い回すので、一覧の行は部屋の `key` が同じ時だけ有効。
 - **期限**: 最後の変化から1日で消える(TTL。期限を過ぎたものは消える前でも `404`)。
+- **招待の期限**(2026-11-01〜): ロビーにホストしかいないまま、作ってから管理画面の設定 `rooms.inviteExpiryMinutes`(初期値60分)たつと閉じる(`status: "closed"`、`closedReason: "expired"`)。コードでも招待でも入れなくなり(`410 room_expired`)、一覧・ハブの Invites からも消える。だれか1人でも入ればこの期限はない。タイマーは使わず、部屋を読むたびに判定する(保存はしない。設定を長くすれば、その時間までは開き直る)。期限が来た部屋は `?v=` のポーリングでも `changed: true` で返す。ロビーにホストだけの間は `expiresAt`(閉じる時刻)を返す。
 - **上限**: 1部屋6人(`room_full`)、招待は10人まで。1人が同時に入っている(ロビー・レース中の)部屋は10まで。
 
 ## 部屋の形(`room`)
@@ -457,7 +475,8 @@ PINはどこにも記録しない。DynamoDB の `ttl` で90日後に自動削�
   "next": null, "version": 4, "createdAt": "…", "updatedAt": "…", "now": 1793420007000 }
 ```
 
-- `status`: `lobby` / `playing` / `done`(最後の問題が終わった)/ `closed`(ホストがロビーで抜けた)。
+- `status`: `lobby` / `playing` / `done`(最後の問題が終わった)/ `closed`(ホストがロビーで抜けた、または招待の期限切れ)。
+- `closedReason`: `"expired"`(招待の期限切れ)/ `null`。`expiresAt`: ロビーにホストだけの間、閉じる時刻(ISO)。ほかは `null`。
 - `invited`: 招待されてまだ入っていない人。`joined: false` なら自分は招待されただけ(`POST …/join` で入る)。
 - `next`: 終わった後にホストが「もう一回」で作った新しい部屋のコード(ほかの人のページはそこへ移る)。
 
@@ -481,7 +500,7 @@ PINはどこにも記録しない。DynamoDB の `ttl` で90日後に自動削�
 ## `POST /rooms/{code}/join`
 
 本文なし。コードを知っていれば誰でも入れる(招待はいらない)。もう入っていれば今の部屋を返すだけ。
-→ **200** `{ "room": … }` / `409 already_started` / `room_full` / `404 room_not_found`
+→ **200** `{ "room": … }` / `409 already_started` / `room_full` / `410 room_expired`(招待の期限切れ)/ `room_closed`(ホストが閉じた)/ `404 room_not_found`
 
 ## `POST /rooms/{code}/invite`
 

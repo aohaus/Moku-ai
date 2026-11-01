@@ -275,6 +275,18 @@ Resources:
             ApiId: !Ref MokuScoresApi
             Path: /admin/errors/{sig}
             Method: DELETE
+        AdminGetSettings:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /admin/settings
+            Method: GET
+        AdminPutSettings:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MokuScoresApi
+            Path: /admin/settings
+            Method: PUT
         AdminCreateUser:
           Type: HttpApi
           Properties:

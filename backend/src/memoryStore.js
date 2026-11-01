@@ -19,6 +19,7 @@ function createMemoryStore() {
   const rooms = new Map();
   const playerRooms = new Map(); // uid -> Map(roomId -> row)
   const roomStates = new Map();  // roomId -> Map(uid -> Moyomoyo player row)
+  let settings = null;           // admin settings (settings.js)
 
   function putRoomRows(rows) {
     for (const { uid, ...row } of rows) {
@@ -88,6 +89,12 @@ function createMemoryStore() {
     async updateError(sig, fields) {
       if (!errors.has(sig)) throw codedError("not_found");
       Object.assign(errors.get(sig), fields);
+    },
+    async getSettings() {
+      return settings ? JSON.parse(JSON.stringify(settings)) : null;
+    },
+    async putSettings(record) {
+      settings = JSON.parse(JSON.stringify(record));
     },
     async deleteError(sig) {
       errors.delete(sig);
