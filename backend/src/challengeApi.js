@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const { json } = require("./response");
 const { err, parseBody, makeAuthenticate, findOpponent } = require("./playCommon");
+const { createSettings } = require("./settings");
 
 // "Same puzzle" challenges between two logged-in players (API_SPEC.md
 // "Challenges"). The server deals one puzzle (a seed the game turns into its
@@ -10,6 +11,11 @@ const { err, parseBody, makeAuthenticate, findOpponent } = require("./playCommon
 // First game: Moku Bridge — the same new glass bridge for both; fewer falls
 // wins. Results come from the page (a casual game for invited kids; nothing
 // here can prove how someone played).
+//
+// An open challenge nobody moves on within the admin's challenges.expiryMinutes
+// (settings.js, 60 by default) after its last change (made, or one player
+// crossed) runs out: status "expired", no winner, and a late result is
+// refused. Worked out on every read, nothing runs on a timer.
 //
 // Players are keyed by uid; only display names and #u tags leave the server.
 // Until you have sent your own result, the friend's result is hidden.
@@ -68,11 +74,12 @@ function challengeView(ch, uid) {
     yourResult: mine,
     theirResult: mine ? ch.results[them] || null : null,
     theyPlayed: !!ch.results[them],
-    yourTurn: !mine,
+    yourTurn: ch.status !== "expired" && !mine,
     winner: ch.status === "done" ? (ch.winner === "tie" ? "tie" : ch.winner === you ? "you" : "them") : null,
     version: ch.version,
     createdAt: ch.createdAt,
     updatedAt: ch.updatedAt,
+    expiresAt: ch.expiresAt || null,
   };
 }
 
@@ -80,13 +87,16 @@ function challengeView(ch, uid) {
 function indexItems(ch) {
   return ["from", "to"].map((side) => {
     const view = challengeView(ch, ch[side].uid);
-    const { seed, params, ...row } = view;
+    const { seed, params, expiresAt, ...row } = view;
     return { uid: ch[side].uid, challengeId: ch.id, ...row, ttl: ch.ttl };
   });
 }
 
 function createChallengeApi(store, config) {
-  const { authSecret, now = () => Date.now(), newId = () => crypto.randomBytes(8).toString("hex"), seed = newSeed } = config;
+  const {
+    authSecret, now = () => Date.now(), newId = () => crypto.randomBytes(8).toString("hex"), seed = newSeed,
+    settings = createSettings(store, { now }),
+  } = config;
   if (!authSecret || authSecret.length < 32) {
     throw new Error("AUTH_SECRET must be at least 32 characters");
   }
@@ -98,8 +108,27 @@ function createChallengeApi(store, config) {
     ch.ttl = Math.floor(t / 1000) + TTL_SEC;
   }
 
+  // A challenge (or a list row: it has status and updatedAt too) as it is
+  // now: an open one past the expiry turns "expired" (on this copy only),
+  // and a still-open one gets expiresAt.
+  async function markExpiry(ch) {
+    if (ch.status !== "open") return ch;
+    const minutes = (await settings.get())["challenges.expiryMinutes"];
+    const at = Date.parse(ch.updatedAt) + minutes * 60 * 1000;
+    if (!Number.isFinite(at)) return ch;
+    if (now() >= at) {
+      ch.status = "expired";
+      ch.yourTurn = false;
+    } else {
+      ch.expiresAt = new Date(at).toISOString();
+    }
+    return ch;
+  }
+
   async function openCount(uid) {
-    return (await store.listPlayerChallenges(uid)).filter((r) => r.status === "open").length;
+    const rows = await store.listPlayerChallenges(uid);
+    for (const r of rows) await markExpiry(r);
+    return rows.filter((r) => r.status === "open").length;
   }
 
   async function loadOwn(user, id) {
@@ -107,7 +136,7 @@ function createChallengeApi(store, config) {
     if (!ch || !sideOf(ch, user.uid)) return null;
     // TTL deletes can lag a day or two; an expired challenge is gone.
     if (ch.ttl && ch.ttl <= Math.floor(now() / 1000)) return null;
-    return ch;
+    return markExpiry(ch);
   }
 
   async function create(user, body) {
@@ -140,11 +169,12 @@ function createChallengeApi(store, config) {
     };
     stamp(ch);
     await store.createChallenge(ch, indexItems(ch));
-    return json(201, { challenge: challengeView(ch, user.uid) });
+    return json(201, { challenge: challengeView(await markExpiry(ch), user.uid) });
   }
 
   async function list(user) {
     const rows = (await store.listPlayerChallenges(user.uid)).map(({ uid, challengeId, ttl, ...row }) => ({ id: challengeId, ...row }));
+    for (const r of rows) await markExpiry(r);
     // Your turn first, then waiting for the friend, then done; newest first in each.
     const rank = (r) => (r.status === "open" && r.yourTurn ? 0 : r.status === "open" ? 1 : 2);
     rows.sort((a, b) => rank(a) - rank(b) || (b.updatedAt || "").localeCompare(a.updatedAt || ""));
@@ -163,9 +193,11 @@ function createChallengeApi(store, config) {
     if (!ch) return err(404, "challenge_not_found", "This challenge is gone.");
     const you = sideOf(ch, user.uid), them = you === "from" ? "to" : "from";
     if (ch.results[you]) return err(409, "already_played", "You already played this one.", { challenge: challengeView(ch, user.uid) });
+    if (ch.status === "expired") return err(410, "challenge_expired", "Time ran out for this challenge.", { challenge: challengeView(ch, user.uid) });
     const result = GAMES[ch.game].result(body.result);
     if (!result) return err(400, "invalid_result", "That result isn't right.");
     const updated = { ...ch, results: { ...ch.results, [you]: result }, version: ch.version + 1 };
+    delete updated.expiresAt;   // worked out on every read (markExpiry), never stored
     if (updated.results[them]) {
       const c = GAMES[ch.game].compare(updated.results.from, updated.results.to);
       updated.status = "done";
@@ -179,7 +211,7 @@ function createChallengeApi(store, config) {
       // The friend's result landed at the same moment: add ours on top of it.
       return sendResult(user, id, body);
     }
-    return json(200, { challenge: challengeView(updated, user.uid) });
+    return json(200, { challenge: challengeView(await markExpiry(updated), user.uid) });
   }
 
   return async function handler(event) {

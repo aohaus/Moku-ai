@@ -193,24 +193,61 @@ test("a lobby nobody joins closes after the invite expiry (60 minutes by default
   assert.equal((await t.store.getRoom(room.id)).status, "lobby", "nothing is rewritten: it is worked out on read");
 });
 
-test("a lobby someone joined doesn't expire; the admin's setting changes the limit", async () => {
+test("a lobby someone joined doesn't close at the invite expiry (only when it never starts); the admin's settings change both", async () => {
   const t = await setup();
   const room = (await t.call("POST", "/rooms", "aoi", {})).body.room;
   const joined = (await t.call("POST", `/rooms/${room.id}/join`, "ren", {})).body.room;
-  assert.equal(joined.expiresAt, null);
-  t.tick(3 * 60 * 60 * 1000);
+  assert.equal(joined.expiresAt, new Date(t.now() + 120 * 60 * 1000).toISOString(), "only the 2-hour lobby limit is left");
+  t.tick(90 * 60 * 1000);
   assert.equal((await t.call("GET", `/rooms/${room.id}`, "aoi")).body.room.status, "lobby");
   await t.call("POST", `/rooms/${room.id}/leave`, "ren", {});
   const left = (await t.call("GET", `/rooms/${room.id}`, "aoi")).body.room;
-  assert.deepEqual([left.status, left.expiresAt], ["lobby", null], "a friend who joined and left still counts");
+  assert.equal(left.status, "lobby", "a friend who joined and left still counts as joined");
   assert.equal((await t.call("POST", `/rooms/${room.id}/join`, "ren", {})).status, 200, "and can come back");
 
-  await t.store.putSettings({ values: { "rooms.inviteExpiryMinutes": 10 } });
+  t.tick(31 * 60 * 1000);   // 121 minutes: the lobby never started
+  const idle = (await t.call("GET", `/rooms/${room.id}`, "aoi")).body.room;
+  assert.deepEqual([idle.status, idle.closedReason], ["closed", "idle"]);
+  const late = await t.call("POST", `/rooms/${room.id}/join`, "sora", {});
+  assert.deepEqual([late.status, late.body.error], [410, "room_expired"]);
+
+  await t.store.putSettings({ values: { "rooms.inviteExpiryMinutes": 10, "rooms.lobbyMaxMinutes": 30 } });
   t.tick(61 * 1000);   // past the settings cache
   const short = (await t.call("POST", "/rooms", "sora", {})).body.room;
   assert.equal(short.expiresAt, new Date(t.now() + 10 * 60 * 1000).toISOString());
   t.tick(11 * 60 * 1000);
   assert.equal((await t.call("GET", `/rooms/${short.id}`, "sora")).body.room.closedReason, "expired");
+});
+
+test("each invite runs out on its own: the friend's list drops it, the room stays", async () => {
+  const t = await setup();
+  const room = (await t.call("POST", "/rooms", "aoi", {})).body.room;
+  await t.call("POST", `/rooms/${room.id}/join`, "ren", {});          // the room is in use
+  await t.call("POST", `/rooms/${room.id}/invite`, "aoi", { tag: t.users.sora.tag });
+  t.tick(59 * 60 * 1000);
+  assert.equal((await t.call("GET", "/rooms", "sora")).body.invites, 1);
+  t.tick(2 * 60 * 1000);
+  assert.equal((await t.call("GET", "/rooms", "sora")).body.invites, 0, "Sora's invite ran out");
+  assert.equal((await t.call("GET", `/rooms/${room.id}`, "sora")).status, 404, "and the room is no longer Sora's to see");
+  const host = (await t.call("GET", `/rooms/${room.id}`, "aoi")).body.room;
+  assert.deepEqual([host.status, host.invited.length, host.players.length], ["lobby", 0, 2]);
+
+  // Inviting again starts a fresh hour.
+  await t.call("POST", `/rooms/${room.id}/invite`, "aoi", { tag: t.users.sora.tag });
+  assert.equal((await t.call("GET", "/rooms", "sora")).body.invites, 1);
+  assert.equal((await t.store.getRoom(room.id)).invited.length, 1, "the old invite was swept out");
+});
+
+test("invites from before invite times existed count from the room's creation", async () => {
+  const t = await setup();
+  const room = (await t.call("POST", "/rooms", "aoi", {})).body.room;
+  await t.call("POST", `/rooms/${room.id}/join`, "ren", {});
+  const stored = await t.store.getRoom(room.id);
+  stored.invited.push({ uid: "c2c2c2c2c2c2c2c2", name: "SORA", tag: t.users.sora.tag });   // no "at"
+  await t.store.saveRoom(stored, stored.version, [{ uid: "c2c2c2c2c2c2c2c2", roomId: room.id, key: stored.key, ttl: stored.ttl }]);
+  assert.equal((await t.call("GET", "/rooms", "sora")).body.invites, 1);
+  t.tick(61 * 60 * 1000);
+  assert.equal((await t.call("GET", "/rooms", "sora")).body.invites, 0);
 });
 
 test("a room holds 6 players", async () => {

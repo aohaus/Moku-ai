@@ -2792,7 +2792,7 @@ header {
     var stageBefore = mp.stage;
     mp.room = room;
     mp.offset = room.now - Date.now();
-    if (room.status === 'closed') { mpToast(room.closedReason === 'expired' ? 'No one joined in time, so the room closed.' : 'The host closed the room.'); openMpMenu(); return; }
+    if (room.status === 'closed') { mpToast(room.closedReason === 'expired' ? 'No one joined in time, so the room closed.' : room.closedReason === 'idle' ? "The game didn't start in time, so the room closed." : 'The host closed the room.'); openMpMenu(); return; }
     if (room.status === 'lobby') {
       mp.stage = 'lobby';
       if (!screenMpLobby.classList.contains('active')) showScreen(screenMpLobby);
