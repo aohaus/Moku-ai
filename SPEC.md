@@ -320,13 +320,20 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
   - 使い道: タイトル画面の Board Shop で盤の着せ替え(Forest Oak は無料、Spring Meadow 200 / Cherry Blossom 250 / Sunset Sky 300 / Snowy Birch 350 / Candy Shop 450)。持っている盤と選んだ盤は同じ progress の `boards` / `board`。
   - CPU は10段階(Lv.1 Moyo / 2 Chef Rat / 3 Ponta / 4 Ninja Rat / 5 Kon / 6 Nox / 7 Goro / 8 Sage Kon / 9 King Nox / 10 Thunder King Goro。8〜10 は Moku Fight のキャラの「師範」版で、顔に王冠と後光)。最初は Lv.1〜3 が遊べ、Lv.n に勝つと Lv.n+1 が開く(`progress.best` = 勝った最高レベル)。Lv.1〜4 だけ 💡 Hint と ↩ Undo が使える(初心者の練習用。高いレベルの初勝利ボーナスを Undo で取れないように)。
   - 対局中の盤面は `moku:moku-chess:game`(初期局面からの手順 UCI の配列)に毎手保存し、タイトル画面の「Continue」で再開できる。終局で消す。
-- **Moku Word Riddles**(2026-10-31〜、v0.2.0): 英語のレバス・パズル100問(Easy 41 / Medium 38 / Tricky 21)。1ラウンド5問、正解画面と結果画面に内訳、結果画面とタイトル画面に今日の分 n / 500。
+- **Moku Word Riddles**(2026-10-31〜、v0.3.0): 英語のレバス・パズル(2026-11-01 時点で102問、Easy 10 / Medium 59 / Tricky 33)。1ラウンド5問、正解画面と結果画面に内訳、結果画面とタイトル画面に今日の分 n / 500。
   - 毎回(上限 500/日): 正解 +10、ヒントなし・1回目で正解 +5、5問すべて自力で解いたラウンド +20。リプレイ(全問解いた後)の正解も同じ。
   - Riddle Race(§14、同じ上限の中): 勝った問題 ×5 + 最後まで +10 + 1位(同点も)+30。1レース1回だけ(`progress.race.paid` = 部屋の `key` → 忘れてよい時刻、3日)。
   - 1回きり: 初回のお試し用に 30(`welcomeGift`、上限の外)。
   - 使い道(上限と関係ない): 💡 Hint 10(意味のヒント+文字数のタイル+各単語の頭文字)→ 🔤 Choices 15(4択)→ ⏭ Skip 30(答えを見て次へ。その問題は後でもう一度出る)。
-  - 記録は `moku:moku-word-riddles:progress` = `{ version: 1, solved: { id: 1 }, skipped: { id: 1 }, totalScore, bestRound, rounds, played, welcomeGift, race: { paid, played, won } }`。問題データと答えの判定は [`shared/moku-riddles.js`](shared/moku-riddles.js)(`MokuRiddles`、UMD。サーバーも同じ判定を使う。`id` はセーブのキーなので変えない)。問題を足したら `hub.html` の `RIDDLE_TOTAL` も直し、`cp shared/moku-riddles.js backend/src/vendor/`。
+  - 記録は `moku:moku-word-riddles:progress` = `{ version: 1, solved: { id: 1 }, skipped: { id: 1 }, totalScore, bestRound, rounds, played, welcomeGift, race: { paid, played, won } }`。`total`(今ある問題の数)と `count`(そのうち解いた数。消えた問題は数えない)はハブ用に、ゲームが問題を読み込んだ時・保存のたびに書く。
+  - **問題データは Markdown**(2026-11-01〜): [`data/riddles-db.md`](data/riddles-db.md) だけが問題の置き場所。**問題を足す・直す時はこのファイルだけ書き換え、コードは触らない**(書き方はファイル先頭のコメント)。1問 = `## ID: <id>` + `Level` / `Pattern` / `Visual` / `Answer` / `Also` / `Hint` / `Why` / `Choices`。`id` はセーブのキーなので変えない。
+    - エンジンは [`shared/moku-riddles.js`](shared/moku-riddles.js)(`MokuRiddles`、UMD): `parse(md)`(読めない問題・重複は除いて `problems` / `duplicates` で報告)→ `load()` → `isCorrect()`。ゲームは起動時に `fetch('data/riddles-db.md', { cache: 'no-cache' })` で読み、本文を `mokuwr-riddles-db`(同期対象外のキー)にも残して、オフラインの時はそれを使う。
+    - **Visual** は1行の書き方からカードの絵を自動で組み立てる(座標を手で書かない): ` / ` で行、` | ` で横に並べる、`(top)` `(x4)` `(backwards)` `(upside down)` などの動き、`[line]` `[box: WORD]`。文字は**全部同じ色**(色がネタバレにならないように)。`{WORD}` だけアクセント色(色そのものがヒントの時だけ)。
+    - **絵文字の足し算(☀️ + 👓 など)は出さない**(`Pattern: emoji` は読み飛ばす)。2026-11-01 にそれまでの絵文字の問題40問を外し、文字の配置の問題に入れ替えた(解いた記録はセーブに残るが数えない)。
+    - Riddle Race のサーバーも同じものを使う(`backend/src/riddles.js` が `src/vendor/riddles-db.md` を読む)。書き換えたら `cp data/riddles-db.md shared/moku-riddles.js backend/src/vendor/` → `cd backend && npm test`(読めない問題・重複・コピー違いがあると失敗し、どの ID が悪いかを出す)→ バックエンドをデプロイ。
+    - 問題数は自由(ハブの「n / 全部」も自動)。
   - 出題の順(2026-10-31〜 ランダム): まだ見ていない問題 → スキップした問題 → 全部解いたら解いた問題。それぞれの中はシャッフル。
+  - スマホ縦向き(幅 600px 以下)では、正解・答え合わせのシートを画面の下に寄せ、上のパズルのカードを隠さない。
 - **Moku Dropper**(2026-10-31〜、v1.1.0): 子どもが作った「Moku Dropper 3D」をシリーズ用に作り直した 3D のドロッパー(three.js r128)。The Hollow の大きな木の幹の中(9×9の縦穴)を、木の床・苔の土の層の穴を通って落ち、根元の紫のポータルに入る。床や動くおやつに当たると上からやり直し。
   - ラウンド: Tutorial 1〜3 → Race 1〜5 → Grand Race。障害物はハンバーガー / ドーナツ / ピザ / アイス / TNT / サボテン / イガ(子どもの Spike balls)/ はちみつブロック / Grand Race は全部。CPU は Moku Fight のライバル5人(Moyo Super Easy / Ponta Easy / Kon Medium / Nox Hard / Goro Super Hard)。
   - v1.1.0(2026-10-31、遊んでみた声から): ①CPU を弱く・遅く(`RIVALS` の `spd` `err` を弱め、上の床でもたもたする `think`、層ごとに迷う `wait`、ふわっと遅く落ちる `fall` = Moku の 0.5〜0.68 倍)。②各フロアに穴を2つ(大きい穴 `g` 4〜5 と小さい穴 `g2` 3〜4。`holeLayout()` / `floorRects()`。CPU は近い方の穴をねらう)。③レースの相手は2人(Tutorial 3 / Race 1 = Moyo & Ponta、Race 2 = Ponta & Kon、Race 3 = Moyo & Kon、Race 4 = Kon & Nox、Race 5 = Nox & Goro。Grand Race は5人)。④星をやめて順位だけ(結果画面に 🥇 1st / 🥈 2nd / 🥉 3rd、練習ラウンドは ✅ CLEAR)。めやす: Race 1 の Moyo / Ponta は 19〜31秒、Race 5 の Goro は 16秒前後。

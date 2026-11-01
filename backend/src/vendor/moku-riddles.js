@@ -1,22 +1,41 @@
 /*
- * Moku Word Riddles — the riddle data (100 rebus puzzles) and the answer check.
+ * Moku Word Riddles — the riddle engine: reads the riddle list from Markdown
+ * (data/riddles-db.md), lays out each puzzle from its one-line "Visual", and
+ * checks answers. The riddles themselves live only in the Markdown file:
+ * adding one never needs a code change.
  *
- * UMD: the browser gets window.MokuRiddles (moku-word-riddles.html), Node gets
- * require() (backend/src/roomApi.js judges Riddle Race answers with the same
- * check). Lambda only ships backend/, so a copy lives in backend/src/vendor/:
- * edit this file, then `cp shared/moku-riddles.js backend/src/vendor/`
- * (npm test fails when they differ).
+ * UMD: the browser gets window.MokuRiddles (moku-word-riddles.html fetches
+ * data/riddles-db.md and calls MokuRiddles.load(text)); Node gets require()
+ * (backend/src/riddles.js loads its copy for Riddle Race, which judges answers
+ * with the same isCorrect). Lambda only ships backend/, so copies live in
+ * backend/src/vendor/: edit shared/moku-riddles.js and data/riddles-db.md, then
+ *   cp shared/moku-riddles.js backend/src/vendor/ && cp data/riddles-db.md backend/src/vendor/
+ * (npm test fails when they differ, and when a riddle doesn't parse).
  *
- * One riddle = { id, level: 1 Easy / 2 Medium / 3 Tricky, answer, alts, clue,
- *   why (shown after), choices (3 wrong answers for the Choices hint), art }.
- * Never change an id: it is the key in saves (solved / skipped) and rooms.
+ * A riddle in the Markdown:
+ *   ## ID: bicycle
+ *   - **Level**: medium              easy / medium / tricky (default medium)
+ *   - **Pattern**: quantity          a label for people; "emoji" entries are skipped
+ *   - **Visual**: CYCLE | CYCLE      what the card shows (below)
+ *   - **Answer**: bicycle
+ *   - **Also**: bike                 other answers that count (comma separated)
+ *   - **Hint**: It has two wheels and you pedal it.
+ *   - **Why**: BI means two. Two CYCLEs = BICYCLE!     (shown after; optional)
+ *   - **Choices**: motorcycle, tricycle, unicycle      (3 wrong answers; optional)
  *
- * art pieces: { t: text, x, y: center in % of the card, s: size in % of the
- *   card width, c: color, r: rotate (deg), emoji, vert (one letter per line),
- *   op (a soft "+"), sp: letter spacing (em) }
- *   { line: width %, x, y }                a thick line
- *   { box: [width %, height %], x, y }     an empty frame
- *   { parts: [[text, color], …], x, y, s } one word in several colors
+ * Visual: rows from top to bottom split by " / ", items in a row split by " | ".
+ *   An item is text with optional (modifiers), or [line] / [box] / [box: TEXT].
+ *   In text, {WORD} is drawn in the accent color (only when the color is the
+ *   point) and ^ raises what follows (ICE^3). Everything else is one ink color.
+ *   Modifiers (comma separated): top, bottom, left, right, top left … ;
+ *   xN (N copies); vertical; upside down; sideways (reads upward); backwards;
+ *   big, small, tiny; stretched; tilted; growing, rising, shrinking, falling,
+ *   bumpy, jumbled, cross.
+ *   Also understood: "WORD placed at top", "DAY surrounded by M-I-D", T-O-W-N,
+ *   "vertical stack", "reversed", "stretched horizontally", "zigzag", a trailing (v12).
+ *
+ * Card coordinates: x, y = center in % of the card; s = font size in % of the
+ * card width. The card is 16:10, so one width-% is 1.6 height-%.
  */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
@@ -24,540 +43,12 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  // ---------- helpers for the art ----------
-  function isWord(t) { return /^[A-Z0-9 !]+$/.test(t); }
-  function side(t, x, color) {
-    return isWord(t)
-      ? { t: t, x: x < 50 ? x - 1 : x + 1, y: 50, s: t.length > 5 ? 9 : t.length > 4 ? 11 : t.length > 3 ? 12 : 15, c: color || 'blue' }
-      : { t: t, emoji: 1, x: x, y: 50, s: 20 };
-  }
-  // A + B, e.g. ☀️ + 👓 = SUNGLASSES
-  function plus(a, b, ca, cb) {
-    return [side(a, 27, ca), { t: '+', op: 1, x: 50, y: 50, s: 10 }, side(b, 73, cb)];
-  }
-  // A short line of letters/numbers in the middle, e.g. B4
-  function word(t, s, c) { return [{ t: t, x: 50, y: 50, s: s, c: c || 'ink' }]; }
+  var LEVELS = { easy: 1, medium: 2, tricky: 3, '1': 1, '2': 2, '3': 3 };
+  var CHAR_W = 0.64;      // average letter width (Fredoka 700) in font sizes
+  var Y_PER_S = 1.6;      // one unit of font size, in height-%
 
-  var RIDDLES = [
-    // ================= Easy: picture + picture =================
-    { id: 'sunglasses', level: 1, answer: 'sunglasses', alts: ['sun glasses'],
-      clue: 'You wear them on a bright, sunny day.',
-      why: 'SUN ☀️ + GLASSES 👓 = SUNGLASSES',
-      choices: ['sunflower', 'sunshine', 'eyeglasses'],
-      art: plus('☀️', '👓') },
-    { id: 'starfish', level: 1, answer: 'starfish', alts: ['star fish'],
-      clue: 'It lives in the sea and has five arms.',
-      why: 'STAR ⭐ + FISH 🐟 = STARFISH',
-      choices: ['goldfish', 'shooting star', 'jellyfish'],
-      art: plus('⭐', '🐟') },
-    { id: 'rainbow', level: 1, answer: 'rainbow', alts: ['rain bow'],
-      clue: 'Look up at the sky after the rain!',
-      why: 'RAIN 🌧️ + BOW 🎀 = RAINBOW',
-      choices: ['raincoat', 'umbrella', 'ribbon'],
-      art: plus('🌧️', '🎀') },
-    { id: 'butterfly', level: 1, answer: 'butterfly', alts: ['butter fly'],
-      clue: 'A pretty bug with big, colorful wings.',
-      why: 'BUTTER 🧈 + FLY = BUTTERFLY',
-      choices: ['dragonfly', 'ladybug', 'butter knife'],
-      art: [{ t: '🧈', emoji: 1, x: 25, y: 50, s: 20 }, { t: '+', op: 1, x: 46, y: 50, s: 10 }, { t: 'FLY', x: 72, y: 50, s: 16, c: 'blue' }] },
-    { id: 'popcorn', level: 1, answer: 'popcorn', alts: ['pop corn'],
-      clue: 'A crunchy snack at the movies.',
-      why: 'POP! + CORN 🌽 = POPCORN',
-      choices: ['cornflakes', 'lollipop', 'cupcake'],
-      art: [{ t: 'POP!', x: 26, y: 50, s: 15, c: 'red', r: -8 }, { t: '+', op: 1, x: 51, y: 50, s: 10 }, { t: '🌽', emoji: 1, x: 74, y: 50, s: 20 }] },
-    { id: 'night-owl', level: 1, answer: 'night owl', alts: ['nightowl'],
-      clue: 'Someone who stays up late… like Moku!',
-      why: 'NIGHT 🌙 + OWL 🦉 = NIGHT OWL. Moku is a night owl too!',
-      choices: ['moon bird', 'sleepy owl', 'good night'],
-      art: plus('🌙', '🦉') },
-    { id: 'football', level: 1, answer: 'football', alts: ['foot ball'],
-      clue: 'A game where you kick a ball.',
-      why: 'FOOT 🦶 + BALL ⚽ = FOOTBALL',
-      choices: ['footprint', 'basketball', 'kickball'],
-      art: plus('🦶', '⚽') },
-    { id: 'treehouse', level: 1, answer: 'treehouse', alts: ['tree house'],
-      clue: 'A little home built up in the branches.',
-      why: 'The HOUSE is up in a TREE = TREEHOUSE',
-      choices: ['birdhouse', 'greenhouse', 'tree trunk'],
-      art: [{ t: '🌳', emoji: 1, x: 50, y: 60, s: 30 }, { t: 'HOUSE', x: 50, y: 30, s: 9, c: 'red' }] },
-    { id: 'snowman', level: 1, answer: 'snowman', alts: ['snow man'],
-      clue: 'He is made of snow and has a carrot nose.',
-      why: 'SNOW ❄️ + MAN 👨 = SNOWMAN',
-      choices: ['snowball', 'snowflake', 'ice man'],
-      art: plus('❄️', '👨') },
-    { id: 'cupcake', level: 1, answer: 'cupcake', alts: ['cup cake'],
-      clue: 'A little cake you can hold in your hand.',
-      why: 'CUP ☕ + CAKE 🎂 = CUPCAKE',
-      choices: ['pancake', 'teacup', 'birthday cake'],
-      art: plus('☕', '🎂') },
-    { id: 'pancake', level: 1, answer: 'pancake', alts: ['pan cake', 'pancakes'],
-      clue: 'Flat, round and yummy with syrup for breakfast.',
-      why: 'PAN 🍳 + CAKE 🎂 = PANCAKE',
-      choices: ['cupcake', 'fried egg', 'cheesecake'],
-      art: plus('🍳', '🎂') },
-    { id: 'sunflower', level: 1, answer: 'sunflower', alts: ['sun flower'],
-      clue: 'A tall yellow flower that looks at the sun.',
-      why: 'SUN ☀️ + FLOWER 🌸 = SUNFLOWER',
-      choices: ['sunshine', 'flowerpot', 'daisy'],
-      art: plus('☀️', '🌸') },
-    { id: 'firefly', level: 1, answer: 'firefly', alts: ['fire fly'],
-      clue: 'A little bug that glows at night.',
-      why: 'FIRE 🔥 + FLY = FIREFLY',
-      choices: ['dragonfly', 'campfire', 'butterfly'],
-      art: plus('🔥', 'FLY') },
-    { id: 'dragonfly', level: 1, answer: 'dragonfly', alts: ['dragon fly'],
-      clue: 'A bug with four long, see-through wings.',
-      why: 'DRAGON 🐉 + FLY = DRAGONFLY',
-      choices: ['firefly', 'flying dragon', 'butterfly'],
-      art: plus('🐉', 'FLY') },
-    { id: 'earring', level: 1, answer: 'earring', alts: ['ear ring', 'earrings'],
-      clue: 'Something shiny you wear on your ear.',
-      why: 'EAR 👂 + RING 💍 = EARRING',
-      choices: ['necklace', 'ringtone', 'earmuffs'],
-      art: plus('👂', '💍') },
-    { id: 'keyboard', level: 1, answer: 'keyboard', alts: ['key board'],
-      clue: 'You type on it.',
-      why: 'KEY 🔑 + BOARD = KEYBOARD',
-      choices: ['keyhole', 'skateboard', 'piano'],
-      art: plus('🔑', 'BOARD', null, 'brown') },
-    { id: 'honeybee', level: 1, answer: 'honeybee', alts: ['honey bee'],
-      clue: 'A busy bug that makes something sweet.',
-      why: 'HONEY 🍯 + BEE 🐝 = HONEYBEE',
-      choices: ['beehive', 'bumblebee', 'honeycomb'],
-      art: plus('🍯', '🐝') },
-    { id: 'catfish', level: 1, answer: 'catfish', alts: ['cat fish'],
-      clue: 'A fish with whiskers!',
-      why: 'CAT 🐱 + FISH 🐟 = CATFISH',
-      choices: ['goldfish', 'kitten', 'swordfish'],
-      art: plus('🐱', '🐟') },
-    { id: 'goldfish', level: 1, answer: 'goldfish', alts: ['gold fish'],
-      clue: 'A small orange pet fish.',
-      why: 'GOLD + FISH 🐟 = GOLDFISH',
-      choices: ['catfish', 'gold coin', 'starfish'],
-      art: plus('GOLD', '🐟', 'orange') },
-    { id: 'doghouse', level: 1, answer: 'doghouse', alts: ['dog house'],
-      clue: 'A little home in the yard for a pet.',
-      why: 'DOG 🐶 + HOUSE 🏠 = DOGHOUSE',
-      choices: ['birdhouse', 'hot dog', 'puppy'],
-      art: plus('🐶', '🏠') },
-    { id: 'hot-dog', level: 1, answer: 'hot dog', alts: ['hotdog'],
-      clue: 'A sausage in a bun.',
-      why: 'HOT 🌶️ + DOG 🐶 = HOT DOG',
-      choices: ['chili', 'puppy', 'hamburger'],
-      art: plus('🌶️', '🐶') },
-    { id: 'bookworm', level: 1, answer: 'bookworm', alts: ['book worm'],
-      clue: 'Someone who loves to read.',
-      why: 'BOOK 📚 + WORM = BOOKWORM',
-      choices: ['bookshelf', 'caterpillar', 'notebook'],
-      art: plus('📚', 'WORM', null, 'green') },
-    { id: 'toothbrush', level: 1, answer: 'toothbrush', alts: ['tooth brush'],
-      clue: 'You use it every morning and every night.',
-      why: 'TOOTH 🦷 + BRUSH 🖌️ = TOOTHBRUSH',
-      choices: ['toothpaste', 'paintbrush', 'hairbrush'],
-      art: plus('🦷', '🖌️') },
-    { id: 'raincoat', level: 1, answer: 'raincoat', alts: ['rain coat'],
-      clue: 'You wear it on a wet day.',
-      why: 'RAIN 🌧️ + COAT 🧥 = RAINCOAT',
-      choices: ['umbrella', 'rainbow', 'jacket'],
-      art: plus('🌧️', '🧥') },
-    { id: 'sandcastle', level: 1, answer: 'sandcastle', alts: ['sand castle'],
-      clue: 'You build it at the beach.',
-      why: 'SAND + CASTLE 🏰 = SANDCASTLE',
-      choices: ['sandbox', 'castle', 'beach ball'],
-      art: plus('SAND', '🏰', 'brown') },
-    { id: 'ladybug', level: 1, answer: 'ladybug', alts: ['lady bug', 'ladybird'],
-      clue: 'A little red bug with black spots.',
-      why: 'LADY + BUG 🐛 = LADYBUG',
-      choices: ['butterfly', 'beetle', 'caterpillar'],
-      art: plus('LADY', '🐛', 'purple') },
-    { id: 'cowboy', level: 1, answer: 'cowboy', alts: ['cow boy'],
-      clue: 'He rides a horse and wears a big hat.',
-      why: 'COW 🐮 + BOY 👦 = COWBOY',
-      choices: ['farmer', 'cowbell', 'horse rider'],
-      art: plus('🐮', '👦') },
-    { id: 'watermelon', level: 1, answer: 'watermelon', alts: ['water melon'],
-      clue: 'A big green fruit. It is red and juicy inside.',
-      why: 'WATER 💧 + MELON 🍈 = WATERMELON',
-      choices: ['melon', 'raindrop', 'grapes'],
-      art: plus('💧', '🍈') },
-    { id: 'pineapple', level: 1, answer: 'pineapple', alts: ['pine apple'],
-      clue: 'A spiky fruit from a warm place.',
-      why: 'PINE 🌲 + APPLE 🍎 = PINEAPPLE',
-      choices: ['apple pie', 'pine tree', 'apple tree'],
-      art: plus('🌲', '🍎') },
-    { id: 'moonlight', level: 1, answer: 'moonlight', alts: ['moon light'],
-      clue: 'The soft glow in the night sky.',
-      why: 'MOON 🌙 + LIGHT 💡 = MOONLIGHT',
-      choices: ['sunlight', 'flashlight', 'night light'],
-      art: plus('🌙', '💡') },
-    { id: 'carpet', level: 1, answer: 'carpet', alts: ['car pet'],
-      clue: 'It covers the floor of a room.',
-      why: 'CAR 🚗 + PET = CARPET',
-      choices: ['car wash', 'pet shop', 'pet car'],
-      art: plus('🚗', 'PET', null, 'orange') },
-    { id: 'horseshoe', level: 1, answer: 'horseshoe', alts: ['horse shoe'],
-      clue: 'A U-shaped piece of metal for a horse’s foot. It is lucky!',
-      why: 'HORSE 🐴 + SHOE 👟 = HORSESHOE',
-      choices: ['horse ride', 'sneakers', 'boots'],
-      art: plus('🐴', '👟') },
-    { id: 'bow-tie', level: 1, answer: 'bow tie', alts: ['bowtie'],
-      clue: 'Moku wears one under his chin!',
-      why: 'BOW 🎀 + TIE 👔 = BOW TIE',
-      choices: ['necktie', 'ribbon', 'rainbow'],
-      art: plus('🎀', '👔') },
-    { id: 'lighthouse', level: 1, answer: 'lighthouse', alts: ['light house'],
-      clue: 'A tall tower by the sea that shines for ships.',
-      why: 'LIGHT 💡 + HOUSE 🏠 = LIGHTHOUSE',
-      choices: ['light bulb', 'doghouse', 'flashlight'],
-      art: plus('💡', '🏠') },
-    { id: 'eggplant', level: 1, answer: 'eggplant', alts: ['egg plant', 'aubergine'],
-      clue: 'A purple vegetable.',
-      why: 'EGG 🥚 + PLANT 🌱 = EGGPLANT',
-      choices: ['egg salad', 'houseplant', 'eggshell'],
-      art: plus('🥚', '🌱') },
-    { id: 'bear-hug', level: 1, answer: 'bear hug', alts: ['bearhug'],
-      clue: 'A big, tight, warm squeeze.',
-      why: 'BEAR 🐻 + HUG 🤗 = BEAR HUG',
-      choices: ['teddy bear', 'big hug', 'honey bear'],
-      art: plus('🐻', '🤗') },
-    { id: 'seahorse', level: 1, answer: 'seahorse', alts: ['sea horse'],
-      clue: 'A tiny sea animal with a head like a horse.',
-      why: 'SEA 🌊 + HORSE 🐴 = SEAHORSE',
-      choices: ['starfish', 'racehorse', 'wave rider'],
-      art: plus('🌊', '🐴') },
-    { id: 'eyeball', level: 1, answer: 'eyeball', alts: ['eye ball'],
-      clue: 'The round part of your eye.',
-      why: 'EYE 👁️ + BALL 🏀 = EYEBALL',
-      choices: ['basketball', 'eyebrow', 'eyelash'],
-      art: plus('👁️', '🏀') },
-    { id: 'snowball', level: 1, answer: 'snowball', alts: ['snow ball'],
-      clue: 'Make one and throw it in winter!',
-      why: 'SNOW ❄️ + BALL ⚾ = SNOWBALL',
-      choices: ['snowman', 'baseball', 'snowflake'],
-      art: plus('❄️', '⚾') },
-    { id: 'cupboard', level: 1, answer: 'cupboard', alts: ['cup board'],
-      clue: 'Where you keep plates and cups. Say it out loud!',
-      why: 'CUP ☕ + BOARD = CUPBOARD',
-      choices: ['keyboard', 'cup holder', 'table'],
-      art: plus('☕', 'BOARD', null, 'brown') },
-    { id: 'spelling-bee', level: 1, answer: 'spelling bee', alts: ['spellingbee'],
-      clue: 'A contest where you spell words out loud.',
-      why: 'SPELLING + BEE 🐝 = SPELLING BEE',
-      choices: ['honeybee', 'word game', 'bumblebee'],
-      art: [{ t: 'SPELLING', x: 33, y: 50, s: 9, c: 'purple' }, { t: '+', op: 1, x: 62, y: 50, s: 9 }, { t: '🐝', emoji: 1, x: 80, y: 50, s: 18 }] },
-
-    // ================= Medium: where are the words? =================
-    { id: 'bicycle', level: 2, answer: 'bicycle', alts: ['bike'],
-      clue: 'It has two wheels and you pedal it.',
-      why: 'BI means two. Two CYCLEs = BICYCLE!',
-      choices: ['motorcycle', 'tricycle', 'unicycle'],
-      art: [{ t: 'CYCLE', x: 29, y: 50, s: 13, c: 'blue' }, { t: 'CYCLE', x: 71, y: 50, s: 13, c: 'blue' }] },
-    { id: 'tricycle', level: 2, answer: 'tricycle', alts: [],
-      clue: 'Little kids ride it. It has three wheels.',
-      why: 'TRI means three. Three CYCLEs = TRICYCLE!',
-      choices: ['bicycle', 'triangle', 'unicycle'],
-      art: [{ t: 'CYCLE', x: 50, y: 24, s: 10, c: 'green' }, { t: 'CYCLE', x: 50, y: 50, s: 10, c: 'green' }, { t: 'CYCLE', x: 50, y: 76, s: 10, c: 'green' }] },
-    { id: 'downtown', level: 2, answer: 'downtown', alts: ['down town'],
-      clue: 'The busy middle of a city.',
-      why: 'TOWN is going DOWN = DOWNTOWN',
-      choices: ['uptown', 'countdown', 'town hall'],
-      art: [{ t: 'TOWN', vert: 1, x: 50, y: 50, s: 9, c: 'purple' }, { t: '⬇', x: 64, y: 50, s: 9, c: 'soft' }] },
-    { id: 'high-chair', level: 2, answer: 'high chair', alts: ['highchair'],
-      clue: 'A tall seat for a baby at the table.',
-      why: 'The CHAIR is way up HIGH = HIGH CHAIR',
-      choices: ['armchair', 'rocking chair', 'chairlift'],
-      art: [{ t: 'CHAIR', x: 50, y: 15, s: 10, c: 'brown' }, { t: '⬆', x: 50, y: 48, s: 10, c: 'soft' }, { t: '⬆', x: 50, y: 78, s: 10, c: 'soft' }] },
-    { id: 'upside-down', level: 2, answer: 'upside down', alts: ['upsidedown'],
-      clue: 'When the top is at the bottom.',
-      why: 'The word DOWN is flipped UPSIDE DOWN!',
-      choices: ['sit down', 'inside out', 'downstairs'],
-      art: [{ t: 'DOWN', x: 50, y: 50, s: 18, c: 'orange', r: 180 }] },
-    { id: 'backpack', level: 2, answer: 'backpack', alts: ['back pack'],
-      clue: 'You carry your school books in it.',
-      why: 'PACK is written BACKwards = BACKPACK',
-      choices: ['lunch box', 'school bag', 'pack it'],
-      art: [{ t: 'KCAP', x: 50, y: 50, s: 18, c: 'green' }, { t: '◀', x: 50, y: 78, s: 6, c: 'soft' }] },
-    { id: 'banana-split', level: 2, answer: 'banana split', alts: ['bananasplit'],
-      clue: 'A yummy ice cream treat with fruit.',
-      why: 'The word BANANA is SPLIT in two = BANANA SPLIT',
-      choices: ['banana bread', 'banana peel', 'half banana'],
-      art: [{ t: 'BAN', x: 30, y: 50, s: 15, c: 'orange', r: -6 }, { t: 'ANA', x: 72, y: 50, s: 15, c: 'orange', r: 6 }] },
-    { id: 'waterfall', level: 2, answer: 'waterfall', alts: ['water fall'],
-      clue: 'Water tumbling down from a cliff.',
-      why: 'The letters of WATER FALL down = WATERFALL',
-      choices: ['rainfall', 'waterslide', 'raindrop'],
-      art: [{ t: 'W', x: 30, y: 18, s: 11, c: 'blue' }, { t: 'A', x: 40, y: 32, s: 11, c: 'blue', r: 15 }, { t: 'T', x: 48, y: 48, s: 11, c: 'blue', r: 35 },
-            { t: 'E', x: 55, y: 64, s: 11, c: 'blue', r: 60 }, { t: 'R', x: 60, y: 82, s: 11, c: 'blue', r: 95 }] },
-    { id: 'crossroads', level: 2, answer: 'crossroads', alts: ['cross roads', 'crossroad'],
-      clue: 'A place where two streets meet.',
-      why: 'ROAD crosses ROAD = CROSSROADS',
-      choices: ['roadwork', 'side road', 'crosswalk'],
-      art: [{ t: 'R', x: 33, y: 50, s: 11 }, { t: 'O', x: 45, y: 50, s: 11, c: 'red' }, { t: 'A', x: 57, y: 50, s: 11 }, { t: 'D', x: 69, y: 50, s: 11 },
-            { t: 'R', x: 45, y: 31, s: 11 }, { t: 'A', x: 45, y: 69, s: 11 }, { t: 'D', x: 45, y: 88, s: 11 }] },
-    { id: 'man-overboard', level: 2, answer: 'man overboard', alts: ['man over board'],
-      clue: 'Someone fell off the ship! Shout it!',
-      why: 'MAN is OVER the BOARD = MAN OVERBOARD',
-      choices: ['man on board', 'boatman', 'skateboard'],
-      art: [{ t: 'MAN', x: 50, y: 32, s: 13, c: 'blue' }, { t: 'BOARD', x: 50, y: 68, s: 13, c: 'brown' }] },
-    { id: 'inside', level: 2, answer: 'inside', alts: ['in side'],
-      clue: 'The opposite of outside.',
-      why: 'SIDE is IN the box = INSIDE',
-      choices: ['outside', 'sideways', 'inbox'],
-      art: [{ box: [44, 56], x: 50, y: 50 }, { t: 'SIDE', x: 50, y: 50, s: 10, c: 'green' }] },
-    { id: 'outside', level: 2, answer: 'outside', alts: ['out side'],
-      clue: 'Where you play in the fresh air.',
-      why: 'SIDE is OUT of the box = OUTSIDE',
-      choices: ['inside', 'sideways', 'offside'],
-      art: [{ box: [36, 56], x: 36, y: 50 }, { t: 'SIDE', x: 78, y: 50, s: 9, c: 'green' }] },
-    { id: 'small-talk', level: 2, answer: 'small talk', alts: ['smalltalk', 'little talk'],
-      clue: 'Chatting about little things, like the weather.',
-      why: 'The word TALK is SMALL = SMALL TALK',
-      choices: ['whisper', 'chit chat', 'tiny voice'],
-      art: [{ t: 'talk', x: 50, y: 50, s: 4.5, c: 'ink' }] },
-    { id: 'growing-up', level: 2, answer: 'growing up', alts: ['grow up', 'growingup'],
-      clue: 'Getting older and taller.',
-      why: 'GROWING goes UP and gets bigger = GROWING UP',
-      choices: ['getting big', 'stand up', 'growing tall'],
-      art: [{ t: 'G', x: 18, y: 84, s: 5, c: 'green' }, { t: 'R', x: 27, y: 76, s: 6, c: 'green' }, { t: 'O', x: 37, y: 67, s: 7, c: 'green' },
-            { t: 'W', x: 48, y: 57, s: 8, c: 'green' }, { t: 'I', x: 58, y: 46, s: 9, c: 'green' }, { t: 'N', x: 68, y: 34, s: 10.5, c: 'green' },
-            { t: 'G', x: 81, y: 20, s: 12, c: 'green' }] },
-    { id: 'broken-heart', level: 2, answer: 'broken heart', alts: ['heartbroken', 'heart broken'],
-      clue: 'How you feel when something very sad happens.',
-      why: 'The word HEART is broken in two = BROKEN HEART',
-      choices: ['heartbeat', 'half heart', 'sweetheart'],
-      art: [{ t: 'HE', x: 36, y: 47, s: 16, c: 'red', r: -10 }, { t: 'ART', x: 65, y: 54, s: 16, c: 'red', r: 9 }] },
-    { id: 'sit-down', level: 2, answer: 'sit down', alts: ['sitdown'],
-      clue: 'What the teacher says when it is time to start.',
-      why: 'SIT is way DOWN low = SIT DOWN',
-      choices: ['stand up', 'sit still', 'lie down'],
-      art: [{ t: '⬇', x: 50, y: 22, s: 9, c: 'soft' }, { t: '⬇', x: 50, y: 50, s: 9, c: 'soft' }, { t: 'SIT', x: 50, y: 84, s: 12, c: 'blue' }] },
-    { id: 'stand-up', level: 2, answer: 'stand up', alts: ['standup'],
-      clue: 'Get up from your chair!',
-      why: 'STAND reads going UP = STAND UP',
-      choices: ['sit down', 'stand still', 'wake up'],
-      art: [{ t: 'STAND', x: 50, y: 50, s: 11, c: 'purple', r: -90 }] },
-    { id: 'go-for-it', level: 2, answer: 'go for it', alts: ['go 4 it'],
-      clue: 'Do it! Try your best!',
-      why: '4 sounds like FOR: GO 4 IT = GO FOR IT',
-      choices: ['go get it', 'let it go', 'go four it'],
-      art: word('GO 4 IT', 15, 'green') },
-    { id: 'before', level: 2, answer: 'before', alts: ['b4'],
-      clue: 'The opposite of after.',
-      why: 'B + 4 sounds like BE-FOUR = BEFORE',
-      choices: ['bee', 'b four', 'behind'],
-      art: word('B4', 26, 'orange') },
-    { id: 'too-late', level: 2, answer: 'too late', alts: ['2 late'],
-      clue: 'When you miss the bus by one minute.',
-      why: '2 sounds like TOO: 2 LATE = TOO LATE',
-      choices: ['two late', 'so late', 'late again'],
-      art: word('2 LATE', 16, 'red') },
-    { id: 'i-see-you', level: 2, answer: 'i see you', alts: ['i see u', 'icu'],
-      clue: 'What you say when you play peekaboo!',
-      why: 'C sounds like SEE and U sounds like YOU = I SEE YOU',
-      choices: ['i spy', 'see you', 'eyes on you'],
-      art: word('I C U', 18, 'blue') },
-    { id: 'tennis', level: 2, answer: 'tennis', alts: [],
-      clue: 'A game with a racket, a ball and a net.',
-      why: '10 + S = TEN-S = TENNIS!',
-      choices: ['tens', 'ping pong', 'badminton'],
-      art: word('10 S', 20, 'green') },
-    { id: 'forgive', level: 2, answer: 'forgive', alts: ['4give'],
-      clue: 'To stop being angry when someone says sorry.',
-      why: '4 sounds like FOR: 4 GIVE = FORGIVE',
-      choices: ['four gifts', 'give up', 'for you'],
-      art: word('4 GIVE', 16, 'purple') },
-    { id: 'forever', level: 2, answer: 'forever', alts: ['4ever', 'for ever'],
-      clue: 'For all time, with no end.',
-      why: '4 + EVER = FOREVER',
-      choices: ['for now', 'every', 'four times'],
-      art: word('4EVER', 20, 'red') },
-    { id: 'spaceship', level: 2, answer: 'spaceship', alts: ['space ship'],
-      clue: 'It flies to the moon and the stars.',
-      why: 'S P A C E (with lots of space!) + SHIP 🚢 = SPACESHIP',
-      choices: ['airplane', 'spaceman', 'cruise ship'],
-      art: [{ t: 'S P A C E', x: 34, y: 50, s: 8, c: 'purple', sp: 0.3 }, { t: '+', op: 1, x: 66, y: 50, s: 8 }, { t: '🚢', emoji: 1, x: 82, y: 50, s: 16 }] },
-    { id: 'backwards', level: 2, answer: 'backwards', alts: ['backward'],
-      clue: 'Walking with your back in front.',
-      why: 'BACKWARDS is written backwards!',
-      choices: ['upside down', 'inside out', 'sideways'],
-      art: word('SDRAWKCAB', 11, 'blue') },
-    { id: 'long-ago', level: 2, answer: 'long ago', alts: ['longago'],
-      clue: 'A very, very long time before now.',
-      why: 'A ……… GO with a LONG gap = LONG AGO',
-      choices: ['long way', 'go away', 'a long road'],
-      art: [{ t: 'A', x: 14, y: 50, s: 15, c: 'orange' }, { line: 52, x: 48, y: 52 }, { t: 'GO', x: 84, y: 50, s: 15, c: 'orange' }] },
-    { id: 'lunchbox', level: 2, answer: 'lunchbox', alts: ['lunch box'],
-      clue: 'You carry your food to school in it.',
-      why: 'LUNCH is in a BOX = LUNCHBOX',
-      choices: ['lunchtime', 'backpack', 'sandwich'],
-      art: [{ box: [54, 58], x: 50, y: 50 }, { t: 'LUNCH', x: 50, y: 50, s: 9, c: 'orange' }] },
-    { id: 'leftovers', level: 2, answer: 'leftovers', alts: ['left overs', 'leftover'],
-      clue: 'The food you did not finish, saved for later.',
-      why: 'OVERS is on the LEFT = LEFTOVERS',
-      choices: ['left side', 'turnovers', 'go over'],
-      art: [{ t: 'OVERS', x: 20, y: 50, s: 10, c: 'brown' }, { t: '◀', x: 20, y: 78, s: 6, c: 'soft' }] },
-    { id: 'double-trouble', level: 2, answer: 'double trouble', alts: [],
-      clue: 'Two times the problems!',
-      why: 'TROUBLE two times = DOUBLE TROUBLE',
-      choices: ['big trouble', 'two troubles', 'no trouble'],
-      art: [{ t: 'TROUBLE', x: 50, y: 32, s: 11, c: 'red' }, { t: 'TROUBLE', x: 50, y: 68, s: 11, c: 'red' }] },
-    { id: 'shrinking', level: 2, answer: 'shrinking', alts: ['shrink', 'shrinks'],
-      clue: 'Getting smaller and smaller.',
-      why: 'SHRINK gets smaller and smaller = SHRINKING',
-      choices: ['growing', 'tiny', 'melting'],
-      art: [{ t: 'S', x: 16, y: 50, s: 17, c: 'blue' }, { t: 'H', x: 33, y: 50, s: 13.5, c: 'blue' }, { t: 'R', x: 48, y: 50, s: 10.5, c: 'blue' },
-            { t: 'I', x: 59, y: 50, s: 8, c: 'blue' }, { t: 'N', x: 68, y: 50, s: 6, c: 'blue' }, { t: 'K', x: 76, y: 50, s: 4.5, c: 'blue' }] },
-    { id: 'bumpy-road', level: 2, answer: 'bumpy road', alts: ['bumpy ride'],
-      clue: 'A ride that shakes you up and down.',
-      why: 'ROAD goes up, down, up, down = BUMPY ROAD',
-      choices: ['crossroads', 'dirt road', 'rocky ride'],
-      art: [{ t: 'R', x: 26, y: 36, s: 14, c: 'brown', r: -10 }, { t: 'O', x: 42, y: 64, s: 14, c: 'brown', r: 8 },
-            { t: 'A', x: 58, y: 36, s: 14, c: 'brown', r: -8 }, { t: 'D', x: 74, y: 64, s: 14, c: 'brown', r: 10 }] },
-    { id: 'scrambled-eggs', level: 2, answer: 'scrambled eggs', alts: ['scrambled egg'],
-      clue: 'A yummy breakfast made in a pan.',
-      why: 'EGGS with the letters all mixed up = SCRAMBLED EGGS',
-      choices: ['fried eggs', 'egg roll', 'mixed nuts'],
-      art: [{ t: 'G', x: 30, y: 38, s: 14, c: 'orange', r: -25 }, { t: 'S', x: 46, y: 66, s: 14, c: 'orange', r: 20 },
-            { t: 'E', x: 60, y: 34, s: 14, c: 'orange', r: 15 }, { t: 'G', x: 73, y: 62, s: 14, c: 'orange', r: -160 }] },
-    { id: 'sunrise', level: 2, answer: 'sunrise', alts: ['sun rise'],
-      clue: 'When the morning begins.',
-      why: 'The SUN is going up (RISE) = SUNRISE',
-      choices: ['sunset', 'sunshine', 'morning star'],
-      art: [{ t: '☀️', emoji: 1, x: 50, y: 40, s: 18 }, { t: '⬆', x: 70, y: 42, s: 9, c: 'soft' }, { line: 86, x: 50, y: 80 }] },
-    { id: 'sunset', level: 2, answer: 'sunset', alts: ['sun set', 'sundown'],
-      clue: 'When the sky turns orange in the evening.',
-      why: 'The SUN is going down (SET) = SUNSET',
-      choices: ['sunrise', 'moonrise', 'nighttime'],
-      art: [{ t: '⬇', x: 70, y: 40, s: 9, c: 'soft' }, { t: '☀️', emoji: 1, x: 50, y: 66, s: 18 }, { line: 86, x: 50, y: 76 }] },
-    { id: 'side-by-side', level: 2, answer: 'side by side', alts: [],
-      clue: 'Right next to each other.',
-      why: 'SIDE is BY (next to) SIDE = SIDE BY SIDE',
-      choices: ['two sides', 'sideways', 'inside out'],
-      art: [{ t: 'SIDE', x: 32, y: 50, s: 14, c: 'purple' }, { t: 'SIDE', x: 68, y: 50, s: 14, c: 'purple' }] },
-    { id: 'over-and-over', level: 2, answer: 'over and over', alts: ['over and over again'],
-      clue: 'Again and again and again.',
-      why: 'OVER and OVER and OVER = OVER AND OVER',
-      choices: ['four times', 'game over', 'over there'],
-      art: [{ t: 'OVER', x: 50, y: 18, s: 8, c: 'green' }, { t: 'OVER', x: 50, y: 39, s: 8, c: 'green' },
-            { t: 'OVER', x: 50, y: 60, s: 8, c: 'green' }, { t: 'OVER', x: 50, y: 81, s: 8, c: 'green' }] },
-    { id: 'ice-cream', level: 2, answer: 'ice cream', alts: ['icecream'],
-      clue: 'A cold, sweet treat in a cone. Say it out loud!',
-      why: 'I SCREAM sounds like ICE CREAM!',
-      choices: ['i shout', 'ice cube', 'scream'],
-      art: word('I SCREAM', 14, 'red') },
-
-    // ================= Tricky: phrases =================
-    { id: 'i-understand', level: 3, answer: 'i understand', alts: ['understand'],
-      clue: 'What you say when you get it.',
-      why: 'I is UNDER STAND = I UNDERSTAND',
-      choices: ['i stand up', 'standing by', 'stand under'],
-      art: [{ t: 'STAND', x: 50, y: 34, s: 14, c: 'purple' }, { t: 'I', x: 50, y: 70, s: 14, c: 'red' }] },
-    { id: 'once-upon-a-time', level: 3, answer: 'once upon a time', alts: ['once upon time'],
-      clue: 'How many fairy tales begin.',
-      why: 'ONCE is UPON A TIME = ONCE UPON A TIME',
-      choices: ['one more time', 'time after time', 'once a day'],
-      art: [{ t: 'ONCE', x: 50, y: 34, s: 13, c: 'purple' }, { t: 'A TIME', x: 50, y: 68, s: 13, c: 'brown' }] },
-    { id: 'reading-between-the-lines', level: 3, answer: 'reading between the lines', alts: ['read between the lines', 'reading between lines'],
-      clue: 'Finding the secret meaning a story does not say out loud.',
-      why: 'READING is BETWEEN THE LINES!',
-      choices: ['reading a book', 'lined paper', 'line by line'],
-      art: [{ line: 70, x: 50, y: 28 }, { t: 'READING', x: 50, y: 50, s: 12, c: 'blue' }, { line: 70, x: 50, y: 72 }] },
-    { id: 'three-blind-mice', level: 3, answer: 'three blind mice', alts: ['3 blind mice'],
-      clue: 'A nursery rhyme about little animals that cannot see.',
-      why: 'Three MICE with no I (eye) = THREE BLIND MICE',
-      choices: ['three little mice', 'missing letters', 'cheese thieves'],
-      art: [{ t: 'M  CE', x: 50, y: 24, s: 10, c: 'brown' }, { t: 'M  CE', x: 50, y: 50, s: 10, c: 'brown' }, { t: 'M  CE', x: 50, y: 76, s: 10, c: 'brown' }] },
-    { id: 'paradise', level: 3, answer: 'paradise', alts: ['pair of dice', 'pairadice'],
-      clue: 'A perfect, happy place.',
-      why: 'A PAIR of DICE sounds like PARADISE!',
-      choices: ['double dice', 'dice game', 'lucky roll'],
-      art: [{ t: 'DICE', x: 30, y: 50, s: 14, c: 'red', r: -6 }, { t: 'DICE', x: 70, y: 50, s: 14, c: 'red', r: 6 }] },
-    { id: 'forget-it', level: 3, answer: 'forget it', alts: ['forgetit'],
-      clue: 'What you say when it does not matter anymore.',
-      why: 'FOUR "GET IT"s = FOR-GET IT = FORGET IT',
-      choices: ['get it all', 'forgot it', 'get it four'],
-      art: [{ t: 'GET IT', x: 29, y: 32, s: 9, c: 'green' }, { t: 'GET IT', x: 71, y: 32, s: 9, c: 'green' },
-            { t: 'GET IT', x: 29, y: 68, s: 9, c: 'green' }, { t: 'GET IT', x: 71, y: 68, s: 9, c: 'green' }] },
-    { id: 'big-deal', level: 3, answer: 'big deal', alts: ['bigdeal'],
-      clue: 'Something very important… or is it?',
-      why: 'The word DEAL is BIG = BIG DEAL',
-      choices: ['good deal', 'big cards', 'deal or no deal'],
-      art: [{ t: 'DEAL', x: 50, y: 52, s: 30, c: 'orange' }] },
-    { id: 'jack-in-the-box', level: 3, answer: 'jack in the box', alts: ['jack in a box', 'jack-in-the-box'],
-      clue: 'A toy that pops up when you turn the handle.',
-      why: 'JACK is IN THE BOX = JACK IN THE BOX',
-      choices: ['toy box', 'jack box', 'surprise box'],
-      art: [{ box: [50, 58], x: 50, y: 50 }, { t: 'JACK', x: 50, y: 50, s: 11, c: 'red' }] },
-    { id: 'think-outside-the-box', level: 3, answer: 'think outside the box', alts: ['thinking outside the box', 'think out of the box'],
-      clue: 'Have a new, creative idea!',
-      why: 'THINK is OUTSIDE THE BOX!',
-      choices: ['think again', 'think inside', 'box idea'],
-      art: [{ box: [36, 56], x: 30, y: 50 }, { t: 'THINK', x: 74, y: 50, s: 9, c: 'blue' }] },
-    { id: 'hand-in-hand', level: 3, answer: 'hand in hand', alts: [],
-      clue: 'Holding each other’s hands as you walk.',
-      why: 'HAND is IN HAND: HA[HAND]ND = HAND IN HAND',
-      choices: ['handshake', 'two hands', 'high five'],
-      art: [{ parts: [['HA', 'ink'], ['HAND', 'red'], ['ND', 'ink']], x: 50, y: 50, s: 14 }] },
-    { id: 'head-over-heels', level: 3, answer: 'head over heels', alts: [],
-      clue: 'Very, very happy… or in love!',
-      why: 'HEAD is OVER HEELS = HEAD OVER HEELS',
-      choices: ['heads up', 'upside down', 'high heels'],
-      art: [{ t: 'HEAD', x: 50, y: 32, s: 13, c: 'purple' }, { t: 'HEELS', x: 50, y: 68, s: 13, c: 'red' }] },
-    { id: 'pie-in-the-sky', level: 3, answer: 'pie in the sky', alts: [],
-      clue: 'A wish that will probably never come true.',
-      why: 'PIE is up IN THE SKY = PIE IN THE SKY',
-      choices: ['apple pie', 'cloud cake', 'sky high'],
-      art: [{ t: '☁️', emoji: 1, x: 20, y: 30, s: 15 }, { t: 'PIE', x: 50, y: 24, s: 12, c: 'orange' }, { t: '☁️', emoji: 1, x: 80, y: 30, s: 15 }, { line: 86, x: 50, y: 84 }] },
-    { id: 'last-minute', level: 3, answer: 'last minute', alts: ['the last minute', 'at the last minute'],
-      clue: 'Just before it is too late!',
-      why: 'MINUTE comes LAST = LAST MINUTE',
-      choices: ['one minute', 'hourglass', 'first hour'],
-      art: [{ t: 'HOUR', x: 50, y: 18, s: 8, c: 'soft' }, { t: 'HOUR', x: 50, y: 39, s: 8, c: 'soft' },
-            { t: 'HOUR', x: 50, y: 60, s: 8, c: 'soft' }, { t: 'MINUTE', x: 50, y: 82, s: 9, c: 'red' }] },
-    { id: 'tea-for-two', level: 3, answer: 'tea for two', alts: ['tea 4 2'],
-      clue: 'A tea party for a pair of friends.',
-      why: '4 = FOR and 2 = TWO: TEA 4 2 = TEA FOR TWO',
-      choices: ['tea party', 'forty two', 'two teas'],
-      art: word('TEA 4 2', 15, 'green') },
-    { id: 'see-you-later', level: 3, answer: 'see you later', alts: ['see ya later', 'see u later', 'cul8r'],
-      clue: 'What you say when you leave.',
-      why: 'C = SEE, U = YOU, L8R = LATER: SEE YOU LATER',
-      choices: ['call you later', 'see you soon', 'goodbye'],
-      art: word('C U L8R', 15, 'blue') },
-    { id: 'ice-cube', level: 3, answer: 'ice cube', alts: ['icecube', 'ice cubed'],
-      clue: 'A little frozen block in your drink.',
-      why: 'The little 3 means CUBED in math: ICE CUBED = ICE CUBE!',
-      choices: ['ice three', 'snowflake', 'ice cream'],
-      art: [{ t: 'ICE', x: 46, y: 54, s: 17, c: 'blue' }, { t: '3', x: 65, y: 36, s: 7, c: 'blue' }] },
-    { id: 'excellent', level: 3, answer: 'excellent', alts: [],
-      clue: 'Super, super good!',
-      why: 'Say the letters: X-L-N-T = EXCELLENT!',
-      choices: ['extra', 'extra large', 'next'],
-      art: word('XLNT', 20, 'purple') },
-    { id: 'split-second', level: 3, answer: 'split second', alts: ['splitsecond'],
-      clue: 'A super short moment.',
-      why: 'The word SECOND is SPLIT = SPLIT SECOND',
-      choices: ['second half', 'one second', 'split time'],
-      art: [{ t: 'SEC', x: 32, y: 50, s: 14, c: 'blue', r: -6 }, { t: 'OND', x: 70, y: 50, s: 14, c: 'blue', r: 6 }] },
-    { id: 'search-high-and-low', level: 3, answer: 'search high and low', alts: ['high and low'],
-      clue: 'Look everywhere for something.',
-      why: 'SEARCH is HIGH AND LOW = SEARCH HIGH AND LOW',
-      choices: ['hide and seek', 'look around', 'search party'],
-      art: [{ t: 'SEARCH', x: 26, y: 16, s: 9, c: 'orange' }, { t: 'SEARCH', x: 74, y: 84, s: 9, c: 'orange' }] },
-    { id: 'fish-out-of-water', level: 3, answer: 'fish out of water', alts: ['a fish out of water'],
-      clue: 'How you feel in a strange new place.',
-      why: 'The FISH is OUT OF the WATER!',
-      choices: ['flying fish', 'fishbowl', 'swimming fish'],
-      art: [{ box: [48, 50], x: 38, y: 56 }, { t: 'WATER', x: 38, y: 56, s: 8, c: 'blue' }, { t: '🐟', emoji: 1, x: 82, y: 26, s: 14, r: -20 }] },
-    { id: 'breakfast', level: 3, answer: 'breakfast', alts: ['break fast'],
-      clue: 'The first meal of the day.',
-      why: 'FAST is broken (BREAK) = BREAK-FAST = BREAKFAST!',
-      choices: ['fast food', 'lunch', 'broken plate'],
-      art: [{ t: 'FA', x: 37, y: 46, s: 17, c: 'red', r: -12 }, { t: 'ST', x: 64, y: 56, s: 17, c: 'red', r: 10 }] }
-  ];
-
+  var RIDDLES = [];       // filled by load(); the same array object stays (pages keep a reference)
   var byId = {};
-  RIDDLES.forEach(function (r) { byId[r.id] = r; });
 
   function norm(s) { return String(s || '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]/g, ''); }
   function accepted(r) { return [r.answer].concat(r.alts || []).map(norm); }
@@ -565,6 +56,277 @@
   function isCorrect(id, answer) {
     var r = byId[id], v = norm(answer);
     return !!(r && v && accepted(r).indexOf(v) >= 0);
+  }
+  function hash(str) {
+    var h = 2166136261;
+    for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return h >>> 0;
+  }
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+  function round(v) { return Math.round(v * 10) / 10; }
+
+  // ================= Visual → art pieces =================
+  var POS = {
+    top: { y: 16 }, bottom: { y: 84 }, left: { x: 18 }, right: { x: 82 },
+    'top left': { x: 24, y: 16 }, 'top right': { x: 76, y: 16 }, 'bottom left': { x: 24, y: 84 }, 'bottom right': { x: 76, y: 84 }
+  };
+  var SHAPES = ['growing', 'rising', 'shrinking', 'falling', 'bumpy', 'jumbled', 'cross'];
+  var FLAGS = ['vertical', 'upside down', 'sideways', 'backwards', 'big', 'small', 'tiny', 'stretched', 'tilted'];
+  var ALIASES = { 'vertical stack': 'vertical', reversed: 'backwards', reverse: 'backwards', 'stretched horizontally': 'stretched',
+    'at top': 'top', 'at bottom': 'bottom', huge: 'big', 'zigzag': 'bumpy', 'mixed up': 'jumbled', 'scrambled': 'jumbled' };
+
+  // "ICE^3", "HA{HAND}ND" → { parts: [[text, accent?]…], sup, plain }
+  function parseText(raw) {
+    var sup = '', t = raw;
+    var caret = t.indexOf('^');
+    if (caret >= 0) { sup = t.slice(caret + 1); t = t.slice(0, caret); }
+    var parts = [], re = /\{([^}]*)\}/g, last = 0, m;
+    while ((m = re.exec(t))) {
+      if (m.index > last) parts.push([t.slice(last, m.index), false]);
+      parts.push([m[1], true]);
+      last = re.lastIndex;
+    }
+    if (last < t.length) parts.push([t.slice(last), false]);
+    return { parts: parts, sup: sup, plain: parts.map(function (p) { return p[0]; }).join('') };
+  }
+
+  // One item: "WORD (mod, mod)" / "[line]" / "[box: WORD]" → { kind, text, mods, pos, n, shape }
+  function parseItem(raw, problems) {
+    var str = raw.trim();
+    var m = /^\[(line|horizontal line|box)(?::\s*(.+))?\]$/i.exec(str);
+    if (m) return { kind: /box/i.test(m[1]) ? 'box' : 'line', text: m[2] ? parseText(m[2].trim()) : null, mods: {} };
+    if (/^\[/.test(str)) { problems.push('unknown item ' + str); return null; }
+    var item = { kind: 'text', mods: {}, n: 1, pos: null, shape: null };
+    var placed = /^(.*?)\s+placed at (top left|top right|bottom left|bottom right|top|bottom|left|right)$/i.exec(str);
+    if (placed) { str = placed[1]; item.pos = placed[2].toLowerCase(); }
+    var around = /^(.*?)\s+surrounded by\s+(.+)$/i.exec(str);
+    if (around) {
+      var outer = around[2].replace(/-/g, ''), half = Math.ceil(outer.length / 2);
+      str = outer.slice(0, half) + '{' + around[1] + '}' + outer.slice(half);
+    }
+    var mm = /^(.*?)\s*\(([^()]*)\)\s*$/.exec(str);
+    if (mm && mm[1]) {
+      str = mm[1];
+      mm[2].split(',').forEach(function (mod) {
+        mod = mod.trim().toLowerCase().replace(/\s+/g, ' ');
+        if (!mod) return;
+        if (/zigzag/.test(mod)) mod = 'zigzag';
+        mod = ALIASES[mod] || mod;
+        var x = /^x\s*(\d+)$/.exec(mod);
+        if (x) item.n = clamp(Number(x[1]), 1, 12);
+        else if (POS[mod]) item.pos = mod;
+        else if (SHAPES.indexOf(mod) >= 0) item.shape = mod;
+        else if (FLAGS.indexOf(mod) >= 0) item.mods[mod] = true;
+        else problems.push('unknown modifier "' + mod + '"');
+      });
+    }
+    if (/^([A-Za-z]-)+[A-Za-z]$/.test(str)) str = str.replace(/-/g, '');   // T-O-W-N
+    item.text = parseText(str);
+    if (item.mods.backwards) {
+      item.text = parseText(item.text.plain.split('').reverse().join(''));
+    }
+    if (!item.text.plain.trim()) { problems.push('empty item'); return null; }
+    return item;
+  }
+
+  // Letter widths in font sizes (Fredoka 700): narrow I and 1, wide M and W.
+  function ems(t, sp) {
+    var w = 0;
+    for (var i = 0; i < t.length; i++) {
+      var ch = t[i];
+      w += (/[Iil1|!'.,:;]/.test(ch) ? 0.3 : /[MWmw]/.test(ch) ? 0.86 : ch === ' ' ? 0.3 : CHAR_W) + (sp || 0);
+    }
+    return Math.max(w, 0.5);
+  }
+  function textWidth(t, s, sp) { return ems(t, sp) * s; }
+  function fitSize(t, maxW, maxS, sp) { return Math.min(maxS, maxW / ems(t, sp)); }
+
+  // A single line of text (with accent parts and a raised ^) centered at x, y.
+  function textPieces(tx, x, y, s, extra) {
+    var out = [], piece = { x: round(x), y: round(y), s: round(s) };
+    if (tx.parts.length === 1 && !tx.parts[0][1]) piece.t = tx.parts[0][0];
+    else piece.parts = tx.parts.map(function (p) { return [p[0], p[1] ? 'accent' : 'ink']; });
+    for (var k in extra) piece[k] = extra[k];
+    out.push(piece);
+    if (tx.sup) {
+      var w = textWidth(tx.plain, s, extra && extra.sp);
+      out.push({ t: tx.sup, x: round(x + w / 2 + s * 0.12), y: round(y - s * Y_PER_S * 0.42), s: round(s * 0.45) });
+    }
+    return out;
+  }
+
+  // Letters one by one along a shape (WATER falling, SHRINK shrinking …) inside a box.
+  function shapePieces(item, box) {
+    var letters = item.text.plain.replace(/\s+/g, '').split(''), n = letters.length, out = [];
+    var w = box.w, h = box.h, x0 = box.x - w / 2, y0 = box.y - h / 2;
+    function at(i, x, y, s, r) { var p = { t: letters[i], x: round(x), y: round(y), s: round(s) }; if (r) p.r = Math.round(r); out.push(p); }
+    var f = n > 1 ? 1 / (n - 1) : 0, i, s;
+    var span = Math.min(1, n * 0.17);   // short words stay together instead of spreading over the whole card
+    switch (item.shape) {
+      case 'growing':
+      case 'rising':
+        for (i = 0; i < n; i++) {
+          s = item.shape === 'growing' ? 5 + 7 * i * f : 12;
+          at(i, box.x + w * 0.76 * span * (i * f - 0.5), box.y + h * 0.72 * span * (0.5 - i * f), Math.min(s, w / n * 1.2));
+        }
+        break;
+      case 'falling':
+        for (i = 0; i < n; i++) at(i, box.x + w * 0.32 * span * (i * f - 0.5), box.y + h * 0.72 * span * (i * f - 0.5), Math.min(11, h / n / Y_PER_S * 1.3), i ? 95 * Math.pow(i * f, 1.3) : 0);
+        break;
+      case 'shrinking': {
+        var sizes = [], total = 0, k = Math.pow(0.27, f || 1);
+        for (i = 0; i < n; i++) { sizes.push(17 * Math.pow(k, i)); total += sizes[i] * 0.78; }
+        var scale = Math.min(1, w * 0.9 / total), cx = box.x - total * scale / 2;
+        for (i = 0; i < n; i++) { s = sizes[i] * scale; at(i, cx + s * 0.39, box.y, s); cx += s * 0.78; }
+        break;
+      }
+      case 'bumpy':
+        s = Math.min(14, w * 0.8 / n / CHAR_W / 1.2);
+        for (i = 0; i < n; i++) at(i, x0 + w * (0.5 + (i - (n - 1) / 2) / (n + 1) * 1.1), box.y + (i % 2 ? 14 : -14), s, i % 2 ? 9 : -9);
+        break;
+      case 'jumbled': {
+        var order = letters.map(function (ch, j) { return j; }).sort(function (a, b) { return (hash(letters.join('') + a) % 97) - (hash(letters.join('') + b) % 97); });
+        if (order.every(function (o, j) { return o === j; })) order.reverse();
+        var turns = [-25, 20, 15, -160, -10, 30, 12, -20];
+        s = Math.min(14, w * 0.8 / n / CHAR_W / 1.1);
+        for (i = 0; i < n; i++) at(order[i], x0 + w * (0.5 + (i - (n - 1) / 2) / (n + 1) * 1.15), box.y + (i % 2 ? 14 : -12), s, turns[i % turns.length]);
+        break;
+      }
+      case 'cross': {
+        s = Math.min(11, w * 0.8 / n / CHAR_W / 1.4, h * 0.8 / n / Y_PER_S / 1.15);
+        var stepX = s * CHAR_W * 1.6, stepY = s * Y_PER_S * 1.15, sx = box.x - stepX * (n - 1) / 2 + stepX * 0.5;
+        for (i = 0; i < n; i++) at(i, sx + stepX * i, box.y, s);
+        for (i = 0; i < n; i++) if (i !== 1) at(i, sx + stepX, box.y + stepY * (i - 1), s);
+        break;
+      }
+    }
+    return out;
+  }
+
+  // Lay out one item inside its cell { x, y, w, h } (all in card %).
+  function itemPieces(item, cell, single, idx) {
+    if (item.kind === 'line') return [{ line: round(cell.w * (single ? 0.75 : 0.8)), x: round(cell.x), y: round(cell.y) }];
+    if (item.kind === 'box') {
+      var bw = Math.min(cell.w * 0.85, 52), bh = Math.min(cell.h * 0.85, 60);
+      var out = [{ box: [round(bw), round(bh)], x: round(cell.x), y: round(cell.y) }];
+      if (item.text) out = out.concat(textPieces(item.text, cell.x, cell.y, fitSize(item.text.plain, bw * 0.75, bh * 0.45 / Y_PER_S)));
+      return out;
+    }
+    var m = item.mods, tx = item.text;
+    if (item.pos) {
+      var p = POS[item.pos];
+      cell = { x: p.x !== undefined ? p.x : cell.x, y: p.y !== undefined ? p.y : cell.y,
+        w: p.x !== undefined ? 40 : Math.min(cell.w, 80), h: p.y !== undefined ? 26 : cell.h };
+    }
+    if (item.shape) return shapePieces(item, cell);
+    if (item.n > 1) {
+      var cols = item.n <= 3 ? item.n : item.n === 4 ? 2 : item.n <= 6 ? 3 : item.n <= 8 ? 4 : 3;
+      var rows = Math.ceil(item.n / cols), cw = cell.w / cols, ch = cell.h / rows, list = [];
+      var cs = Math.min(fitSize(tx.plain, cw * 0.86, 14), ch * 0.62 / Y_PER_S);
+      for (var k = 0; k < item.n; k++) {
+        var r = Math.floor(k / cols), inRow = Math.min(cols, item.n - r * cols), c = k - r * cols;
+        list = list.concat(textPieces(tx, cell.x + (c - (inRow - 1) / 2) * cw, cell.y + (r - (rows - 1) / 2) * ch, cs));
+      }
+      return list;
+    }
+    var extra = {}, s;
+    var maxS = Math.min(single ? 26 : 18, cell.h * 0.72 / Y_PER_S);
+    if (m.vertical) {
+      var len = tx.plain.length;
+      s = Math.min(maxS, cell.h * 0.88 / (len * 1.0 + (len - 1) * 0.6) / Y_PER_S, cell.w * 0.8 / CHAR_W);
+      return [{ t: tx.plain, vert: 1, x: round(cell.x), y: round(cell.y), s: round(s) }];
+    }
+    if (m.stretched) extra.sp = 0.55;
+    if (m.sideways) {
+      s = Math.min(maxS * 1.2, fitSize(tx.plain, cell.h * 0.9 / Y_PER_S, 30), cell.w * 0.6 / Y_PER_S);
+      extra.r = -90;
+    } else {
+      s = fitSize(tx.plain + (tx.sup ? ' ' : ''), cell.w * 0.9, maxS, extra.sp);
+    }
+    if (m.big) s = Math.min(fitSize(tx.plain, cell.w * 0.95, 34), s * 1.6);
+    if (m['upside down']) extra.r = 180;
+    if (m.tilted) extra.r = idx % 2 ? 7 : -7;
+    if (m.small) s *= 0.6;
+    if (m.tiny) s = Math.min(s, 4.5);
+    return textPieces(tx, cell.x, cell.y, s, extra);
+  }
+
+  // "AIR / PORT" → art pieces. problems collects anything it couldn't read.
+  function layout(visual, problems) {
+    var rows = String(visual).replace(/\s*\(v\d+\)\s*$/i, '').split(/\s+\/\s+/).map(function (row) {
+      return row.split(/\s+\|\s+/).map(function (it) { return parseItem(it, problems); }).filter(Boolean);
+    }).filter(function (r) { return r.length; });
+    var R = rows.length, gap = R > 1 ? Math.min(36, 64 / (R - 1)) : 0, art = [], idx = 0;
+    rows.forEach(function (row, ri) {
+      var y = 50 + (ri - (R - 1) / 2) * gap, h = R > 1 ? gap : 80, n = row.length, cw = 92 / n;
+      row.forEach(function (item, j) {
+        var cell = { x: 4 + cw * (j + 0.5), y: y, w: cw, h: h };
+        art = art.concat(itemPieces(item, cell, R === 1 && n === 1, idx++));
+      });
+    });
+    if (!art.length) problems.push('nothing to show');
+    return art;
+  }
+
+  // ================= Markdown → riddles =================
+  // Returns { riddles, problems: ["ID x: …"], duplicates: [ids] }. Riddles that
+  // don't read cleanly are left out (and listed in problems); the same id or
+  // the same answer a second time is left out too (duplicates).
+  function parse(md) {
+    var riddles = [], problems = [], duplicates = [], seenId = {}, seenAnswer = {};
+    String(md || '').replace(/\r/g, '').split(/^##\s+/m).slice(1).forEach(function (block) {
+      var lines = block.split('\n'), title = lines[0].trim();
+      var idm = /^ID\s*:\s*(.+)$/i.exec(title);
+      var id = String(idm ? idm[1] : title).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      var f = {};
+      lines.slice(1).forEach(function (line) {
+        var m = /^\s*[-*]\s*\*\*([^*]+)\*\*\s*:\s*(.*)$/.exec(line);
+        if (m) f[m[1].trim().toLowerCase()] = m[2].trim();
+      });
+      if (!id) return;
+      var where = 'ID ' + id + ': ';
+      if (/emoji|picture/i.test(f.pattern || '')) return;   // word puzzles only
+      var visual = (f.visual || '').replace(/\s*\(v\d+\)\s*$/i, '');
+      if (!visual) { problems.push(where + 'no Visual'); return; }
+      if (!f.answer) { problems.push(where + 'no Answer'); return; }
+      var mine = [];
+      var art = layout(visual, mine);
+      if (mine.length) { problems.push(where + mine.join(', ')); return; }
+      var answer = f.answer.replace(/\s+/g, ' ').toLowerCase();
+      if (seenId[id] || seenAnswer[norm(answer)]) { duplicates.push(id); return; }
+      seenId[id] = seenAnswer[norm(answer)] = true;
+      var list = function (v) { return (v || '').split(',').map(function (x) { return x.trim().toLowerCase(); }).filter(Boolean); };
+      riddles.push({
+        id: id,
+        level: LEVELS[(f.level || '').toLowerCase()] || 2,
+        pattern: f.pattern || '',
+        visual: visual,
+        answer: answer,
+        alts: list(f.also || f.alts),
+        clue: f.hint || f.clue || 'Look closely at the words!',
+        why: f.why || '',
+        choices: list(f.choices),
+        art: art
+      });
+    });
+    return { riddles: riddles, problems: problems, duplicates: duplicates };
+  }
+
+  // Use these riddles (the Markdown text, or parse()'s riddles). Fills in what
+  // a riddle left out: Why, and Choices (other answers, picked the same way every time).
+  function load(src) {
+    var list = typeof src === 'string' ? parse(src).riddles : src;
+    RIDDLES.length = 0;
+    byId = {};
+    list.forEach(function (r) { RIDDLES.push(r); byId[r.id] = r; });
+    RIDDLES.forEach(function (r) {
+      if (!r.why) r.why = 'The answer is ' + r.answer.toUpperCase() + '!';
+      if (r.choices.length >= 3) { r.choices = r.choices.slice(0, 3); return; }
+      var others = RIDDLES.filter(function (o) { return o !== r && accepted(r).indexOf(norm(o.answer)) < 0 && r.choices.indexOf(o.answer) < 0; })
+        .sort(function (a, b) { return hash(r.id + a.id) - hash(r.id + b.id); });
+      while (r.choices.length < 3 && others.length) r.choices.push(others.shift().answer);
+    });
+    return RIDDLES;
   }
 
   // ---------- Riddle Race (backend/src/roomApi.js, API_SPEC.md "Rooms") ----------
@@ -596,6 +358,7 @@
 
   return {
     RIDDLES: RIDDLES, get: function (id) { return byId[id] || null; }, norm: norm, accepted: accepted, isCorrect: isCorrect,
+    parse: parse, layout: layout, load: load,
     RACE: RACE, raceTimeline: raceTimeline
   };
 });
