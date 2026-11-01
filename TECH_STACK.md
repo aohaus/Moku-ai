@@ -123,6 +123,7 @@ cd backend && npm test   # バックエンドのテスト
 8. three.js を使うページは作り直し時に geometry / material / texture を `dispose()`。
 9. 世界観は温かい絵本調。ネオン・サイバー・過度なダークは禁止(ハブのダークネイビーは例外)。
 10. 過去の経緯は `git log --full-history -- <file>`(古い履歴が merge で省略されるため)。
+11. 2週に1回の定期レビューは `REVIEW_TEMPLATE.md`、記録は `reviews/`(CLAUDE.md §8)。
 
 ## 7. 規模の目安(2026-11-01)
 
