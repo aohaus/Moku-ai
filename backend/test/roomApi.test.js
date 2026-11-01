@@ -229,8 +229,14 @@ test("each invite runs out on its own: the friend's list drops it, the room stay
   t.tick(2 * 60 * 1000);
   assert.equal((await t.call("GET", "/rooms", "sora")).body.invites, 0, "Sora's invite ran out");
   assert.equal((await t.call("GET", `/rooms/${room.id}`, "sora")).status, 404, "and the room is no longer Sora's to see");
-  const host = (await t.call("GET", `/rooms/${room.id}`, "aoi")).body.room;
+  const v = (await t.store.getRoom(room.id)).version;
+  const polled = (await t.call("GET", `/rooms/${room.id}`, "aoi", undefined, { v: String(v) })).body;
+  assert.equal(polled.changed, true, "the lobby polling with ?v= hears that the invite ran out");
+  const host = polled.room;
   assert.deepEqual([host.status, host.invited.length, host.players.length], ["lobby", 0, 2]);
+  assert.equal((await t.store.getRoom(room.id)).invited.length, 0, "swept out for good");
+  const next = (await t.call("GET", `/rooms/${room.id}`, "aoi", undefined, { v: String(host.version) })).body;
+  assert.equal(next.changed, false, "and quiet again after that");
 
   // Inviting again starts a fresh hour.
   await t.call("POST", `/rooms/${room.id}/invite`, "aoi", { tag: t.users.sora.tag });

@@ -333,8 +333,18 @@ function createRoomApi(store, config) {
   }
 
   async function get(user, id, query) {
-    const room = await loadFor(user, id);
+    let room = await loadFor(user, id);
     if (!room) return gone();
+    // An invite ran out: sweep it out with a real write, so the version moves
+    // and lobby pages polling with ?v= hear about it (and can invite again).
+    if (room.status === "lobby" && room.invited.some((p) => !isInvited(room, p.uid))) {
+      const swept = await update(id, (r) => {
+        if (r.status !== "lobby" || r.invited.every((p) => isInvited(r, p.uid))) return json(200, {});
+        r.invited = r.invited.filter((p) => isInvited(r, p.uid));
+        return null;
+      });
+      if (swept.room) room = swept.room;
+    }
     if (gameOf(room) === "moyomoyo" && room.status === "playing") {
       // A game in progress: always send everyone's boards (they change every second).
       const states = await statesOf(room);
