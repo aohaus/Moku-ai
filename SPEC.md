@@ -320,13 +320,14 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
   - 使い道: タイトル画面の Board Shop で盤の着せ替え(Forest Oak は無料、Spring Meadow 200 / Cherry Blossom 250 / Sunset Sky 300 / Snowy Birch 350 / Candy Shop 450)。持っている盤と選んだ盤は同じ progress の `boards` / `board`。
   - CPU は10段階(Lv.1 Moyo / 2 Chef Rat / 3 Ponta / 4 Ninja Rat / 5 Kon / 6 Nox / 7 Goro / 8 Sage Kon / 9 King Nox / 10 Thunder King Goro。8〜10 は Moku Fight のキャラの「師範」版で、顔に王冠と後光)。最初は Lv.1〜3 が遊べ、Lv.n に勝つと Lv.n+1 が開く(`progress.best` = 勝った最高レベル)。Lv.1〜4 だけ 💡 Hint と ↩ Undo が使える(初心者の練習用。高いレベルの初勝利ボーナスを Undo で取れないように)。
   - 対局中の盤面は `moku:moku-chess:game`(初期局面からの手順 UCI の配列)に毎手保存し、タイトル画面の「Continue」で再開できる。終局で消す。
-- **Moku Word Riddles**(2026-10-31〜、v0.3.0): 英語のレバス・パズル(2026-11-01 時点で102問、Easy 10 / Medium 59 / Tricky 33)。1ラウンド5問、正解画面と結果画面に内訳、結果画面とタイトル画面に今日の分 n / 500。
+- **Moku Word Riddles**(2026-10-31〜、v0.4.0): 英語のレバス・パズル(2026-11-03 時点で300問、Easy 32 / Medium 168 / Tricky 100。11-03 に、前後の単語をつなげるだけではない問題を198問足した。作問の指針は `data/RIDDLES_GUIDE.md`)。1ラウンド5問、正解画面と結果画面に内訳、結果画面とタイトル画面に今日の分 n / 500。
   - 毎回(上限 500/日): 正解 +10、ヒントなし・1回目で正解 +5、5問すべて自力で解いたラウンド +20。リプレイ(全問解いた後)の正解も同じ。
   - Riddle Race(§14、同じ上限の中): 勝った問題 ×5 + 最後まで +10 + 1位(同点も)+30。1レース1回だけ(`progress.race.paid` = 部屋の `key` → 忘れてよい時刻、3日)。
   - 1回きり: 初回のお試し用に 30(`welcomeGift`、上限の外)。
   - 使い道(上限と関係ない): 💡 Hint 10(意味のヒント+文字数のタイル+各単語の頭文字)→ 🔤 Choices 15(4択)→ ⏭ Skip 30(答えを見て次へ。その問題は後でもう一度出る)。
   - 記録は `moku:moku-word-riddles:progress` = `{ version: 1, solved: { id: 1 }, skipped: { id: 1 }, totalScore, bestRound, rounds, played, welcomeGift, race: { paid, played, won } }`。`total`(今ある問題の数)と `count`(そのうち解いた数。消えた問題は数えない)はハブ用に、ゲームが問題を読み込んだ時・保存のたびに書く。
-  - **問題データは Markdown**(2026-11-01〜): [`data/riddles-db.md`](data/riddles-db.md) だけが問題の置き場所。**問題を足す・直す時はこのファイルだけ書き換え、コードは触らない**(書き方はファイル先頭のコメント)。1問 = `## ID: <id>` + `Level` / `Pattern` / `Visual` / `Answer` / `Also` / `Hint` / `Why` / `Choices`。`id` はセーブのキーなので変えない。
+  - **問題データは Markdown**(2026-11-01〜): [`data/riddles-db.md`](data/riddles-db.md) だけが問題の置き場所。**問題を足す・直す時はこのファイルだけ書き換え、コードは触らない**(書き方はファイル先頭のコメント)。1問 = `## ID: <id>` + `Level` / `Pattern` / `Visual` / `Answer` / `Also` / `Hint` / `Why` / `Choices` / `Example`。`id` はセーブのキーなので変えない。**どんな問題を入れるか**(仕掛けがあること・前後の単語をつなげるだけの問題は足さない・子ども向け・覚える価値のあるフレーズ・ねらい(IELTS 7 を意識した語彙の練習))は [`data/RIDDLES_GUIDE.md`](data/RIDDLES_GUIDE.md)。
+    - **意味と用例**(2026-11-03〜、v0.4.0): 正解のシートと Riddle Race の答え合わせに、`Why`(仕掛けの説明)の下に 💡 意味(`Hint`)と用例(`Example`。答えのフレーズを太字)を出す。イディオムを当てても意味が分からないまま終わらないように。`Example` は全問必須で、答え(か `Also`)がそのまま入っていることを `npm test` が確かめる。
     - エンジンは [`shared/moku-riddles.js`](shared/moku-riddles.js)(`MokuRiddles`、UMD): `parse(md)`(読めない問題・重複は除いて `problems` / `duplicates` で報告)→ `load()` → `isCorrect()`。ゲームは起動時に `fetch('data/riddles-db.md', { cache: 'no-cache' })` で読み、本文を `mokuwr-riddles-db`(同期対象外のキー)にも残して、オフラインの時はそれを使う。
     - **Visual** は1行の書き方からカードの絵を自動で組み立てる(座標を手で書かない): ` / ` で行、` | ` で横に並べる、`(top)` `(x4)` `(backwards)` `(upside down)` などの動き、`[line]` `[box: WORD]`。文字は**全部同じ色**(色がネタバレにならないように)。`{WORD}` だけアクセント色(色そのものがヒントの時だけ)。
     - **絵文字の足し算(☀️ + 👓 など)は出さない**(`Pattern: emoji` は読み飛ばす)。2026-11-01 にそれまでの絵文字の問題40問を外し、文字の配置の問題に入れ替えた(解いた記録はセーブに残るが数えない)。

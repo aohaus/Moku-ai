@@ -83,6 +83,9 @@ test("riddle data: every riddle in riddles-db.md reads, no duplicates, no wrong 
     assert.ok(MokuRiddles.isCorrect(r.id, r.answer.toUpperCase()), r.id);
     for (const c of r.choices) assert.ok(!MokuRiddles.isCorrect(r.id, c), `${r.id}: "${c}" is a choice but counts as right`);
     for (const p of r.art) assert.ok(!p.c || p.c === "ink", `${r.id}: one ink color (use {…} for the accent)`);
+    // Every riddle shows how the phrase is used (data/RIDDLES_GUIDE.md), and the sentence really uses it.
+    const said = MokuRiddles.norm(r.example);
+    assert.ok(r.example && MokuRiddles.accepted(r).some((ans) => said.includes(ans)), `${r.id}: Example must use the answer`);
   }
   assert.ok(MokuRiddles.isCorrect("high-five", "High-Five!"));
   assert.ok(!MokuRiddles.isCorrect("high-five", ""));
