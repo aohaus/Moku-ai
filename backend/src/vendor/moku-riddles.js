@@ -22,6 +22,7 @@
  *   - **Hint**: It has two wheels and you pedal it.
  *   - **Why**: BI means two. Two CYCLEs = BICYCLE!     (shown after; optional)
  *   - **Choices**: motorcycle, tricycle, unicycle      (3 wrong answers; optional)
+ *   - **Example**: I ride my bicycle to the park.     (a sentence using the answer, shown after)
  *
  * Visual: rows from top to bottom split by " / ", items in a row split by " | ".
  *   An item is text with optional (modifiers), or [line] / [box] / [box: TEXT].
@@ -305,6 +306,7 @@
         alts: list(f.also || f.alts),
         clue: f.hint || f.clue || 'Look closely at the words!',
         why: f.why || '',
+        example: f.example || '',
         choices: list(f.choices),
         art: art
       });
