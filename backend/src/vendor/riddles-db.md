@@ -2206,3 +2206,1076 @@ Visual の書き方:
 - **Why**: A LITTLE RED HOOD = LITTLE RED RIDING HOOD
 - **Example**: Little Red Riding Hood took a basket to her grandma.
 - **Choices**: red cape, robin hood, big bad wolf
+
+## ID: bird-in-the-hand
+- **Level**: tricky
+- **Pattern**: inside
+- **Visual**: HA{BIRD}ND
+- **Answer**: a bird in the hand
+- **Also**: bird in the hand
+- **Hint**: Something you already have is better than something you might get.
+- **Why**: BIRD is IN the HAND = A BIRD IN THE HAND
+- **Example**: A bird in the hand is worth two in the bush.
+- **Choices**: bird nest, hand in hand, birdhouse
+
+## ID: singing-in-the-rain
+- **Level**: medium
+- **Pattern**: inside
+- **Visual**: RA{SING}IN
+- **Answer**: singing in the rain
+- **Also**: sing in the rain
+- **Hint**: Happy music even on a wet day.
+- **Why**: SING is IN the RAIN = SINGING IN THE RAIN
+- **Example**: We were singing in the rain with our umbrellas.
+- **Choices**: rainbow, rainy day, raindrop
+
+## ID: money-in-the-bank
+- **Level**: medium
+- **Pattern**: inside
+- **Visual**: BA{MONEY}NK
+- **Answer**: money in the bank
+- **Hint**: Saved coins that are kept safe.
+- **Why**: MONEY is IN the BANK = MONEY IN THE BANK
+- **Example**: I keep my birthday money in the bank.
+- **Choices**: piggy bank, bank card, pocket money
+
+## ID: needle-in-a-haystack
+- **Level**: tricky
+- **Pattern**: inside
+- **Visual**: HAY{NEEDLE}STACK
+- **Answer**: a needle in a haystack
+- **Also**: needle in a haystack
+- **Hint**: Something very, very hard to find.
+- **Why**: NEEDLE is IN the HAYSTACK = A NEEDLE IN A HAYSTACK
+- **Example**: Finding my earring on the beach was like looking for a needle in a haystack.
+- **Choices**: sewing kit, hay ride, farm work
+
+## ID: stuck-in-the-middle
+- **Level**: tricky
+- **Pattern**: inside
+- **Visual**: MID{STUCK}DLE
+- **Answer**: stuck in the middle
+- **Hint**: Caught between two sides.
+- **Why**: STUCK is IN THE MIDDLE = STUCK IN THE MIDDLE
+- **Example**: I was stuck in the middle of the back seat.
+- **Choices**: middle school, stuck up, sticky
+
+## ID: in-love
+- **Level**: medium
+- **Pattern**: inside
+- **Visual**: [box: LOVE]
+- **Answer**: in love
+- **Also**: fall in love, fell in love
+- **Hint**: A very strong, happy feeling for someone.
+- **Why**: LOVE is IN the box = IN LOVE
+- **Example**: In the story, the prince fell in love with the princess.
+- **Choices**: lovely, love letter, best friend
+
+## ID: in-trouble
+- **Level**: medium
+- **Pattern**: inside
+- **Visual**: [box: TROUBLE]
+- **Answer**: in trouble
+- **Hint**: Uh-oh! Someone is going to be told off.
+- **Why**: TROUBLE is IN the box = IN TROUBLE
+- **Example**: Uh-oh, I'm in trouble for breaking the vase!
+- **Choices**: double trouble, no problem, trouble maker
+
+## ID: in-charge
+- **Level**: tricky
+- **Pattern**: inside
+- **Visual**: [box: CHARGE]
+- **Answer**: in charge
+- **Hint**: The one who makes the rules for now.
+- **Why**: CHARGE is IN the box = IN CHARGE
+- **Example**: The teacher put me in charge of the class pet.
+- **Choices**: charger, battery, the boss
+
+## ID: inbox
+- **Level**: medium
+- **Pattern**: inside
+- **Visual**: [box: IN]
+- **Answer**: inbox
+- **Also**: in box
+- **Hint**: Where your new emails arrive.
+- **Why**: IN is in a BOX = INBOX
+- **Example**: I have a new email in my inbox.
+- **Choices**: lunchbox, mailbox, toy box
+
+## ID: sold-out
+- **Level**: medium
+- **Pattern**: inside
+- **Visual**: [box] | SOLD
+- **Answer**: sold out
+- **Hint**: There are no more left to buy.
+- **Why**: SOLD is OUT of the box = SOLD OUT
+- **Example**: The cookies were sold out before lunch!
+- **Choices**: for sale, shopping, all gone
+
+## ID: watch-out
+- **Level**: easy
+- **Pattern**: inside
+- **Visual**: [box] | WATCH
+- **Answer**: watch out
+- **Also**: look out
+- **Hint**: Be careful! Something is coming!
+- **Why**: WATCH is OUT of the box = WATCH OUT
+- **Example**: Watch out for the puddle!
+- **Choices**: wristwatch, watch tv, stop
+
+## ID: work-out
+- **Level**: medium
+- **Pattern**: inside
+- **Visual**: [box] | WORK
+- **Answer**: work out
+- **Also**: workout, working out
+- **Hint**: Exercise to get strong.
+- **Why**: WORK is OUT of the box = WORK OUT
+- **Example**: My dad likes to work out at the gym.
+- **Choices**: homework, hard work, run
+
+## ID: way-out
+- **Level**: medium
+- **Pattern**: inside
+- **Visual**: [box] | WAY
+- **Answer**: way out
+- **Also**: the way out
+- **Hint**: The exit! How to leave.
+- **Why**: WAY is OUT of the box = WAY OUT
+- **Example**: Where is the way out of this maze?
+- **Choices**: highway, one way, front door
+
+## ID: out-of-this-world
+- **Level**: tricky
+- **Pattern**: inside
+- **Visual**: [box: THIS WORLD] | YUM (top right)
+- **Answer**: out of this world
+- **Hint**: Amazing! So good it can't be from here.
+- **Why**: YUM is OUT OF THIS WORLD!
+- **Example**: Grandma's apple pie is out of this world!
+- **Choices**: all over the world, outer space, world map
+
+## ID: over-the-rainbow
+- **Level**: tricky
+- **Pattern**: position
+- **Visual**: SOMEWHERE / RAINBOW
+- **Answer**: somewhere over the rainbow
+- **Also**: over the rainbow
+- **Hint**: A famous dreamy song from The Wizard of Oz.
+- **Why**: SOMEWHERE is OVER THE RAINBOW
+- **Example**: We sang "Somewhere Over the Rainbow" in music class.
+- **Choices**: end of the rainbow, rainy day, pot of gold
+
+## ID: under-pressure
+- **Level**: tricky
+- **Pattern**: position
+- **Visual**: PRESSURE / ME
+- **Answer**: under pressure
+- **Hint**: When there is a lot of stress and not much time.
+- **Why**: ME is UNDER PRESSURE = UNDER PRESSURE
+- **Example**: It's hard to think under pressure.
+- **Choices**: high pressure, pressed, in a hurry
+
+## ID: under-control
+- **Level**: tricky
+- **Pattern**: position
+- **Visual**: CONTROL / IT
+- **Answer**: under control
+- **Also**: it's under control, it is under control
+- **Hint**: Everything is OK. I can handle it.
+- **Why**: IT is UNDER CONTROL = UNDER CONTROL
+- **Example**: Don't worry, everything is under control.
+- **Choices**: remote control, out of control, game controller
+
+## ID: everything-under-the-sun
+- **Level**: tricky
+- **Pattern**: position
+- **Visual**: SUN / EVERYTHING
+- **Answer**: everything under the sun
+- **Hint**: Every kind of thing you can think of.
+- **Why**: EVERYTHING is UNDER THE SUN
+- **Example**: That shop sells everything under the sun.
+- **Choices**: sunshine, everything is fine, sun hat
+
+## ID: underline
+- **Level**: easy
+- **Pattern**: position
+- **Visual**: TEXT / [line]
+- **Answer**: underline
+- **Also**: underlined, under line
+- **Hint**: A line you draw below a word.
+- **Why**: A line UNDER the word = UNDERLINE
+- **Example**: Underline the title with a ruler.
+- **Choices**: headline, outline, line up
+
+## ID: upper-hand
+- **Level**: tricky
+- **Pattern**: position
+- **Visual**: HAND (top)
+- **Answer**: the upper hand
+- **Also**: upper hand
+- **Hint**: When you are winning and in control.
+- **Why**: HAND is UP at the top = THE UPPER HAND
+- **Example**: With two goals, we had the upper hand.
+- **Choices**: high five, hand up, second hand
+
+## ID: high-hopes
+- **Level**: tricky
+- **Pattern**: position
+- **Visual**: HOPES (top)
+- **Answer**: high hopes
+- **Hint**: Wishing for something really good.
+- **Why**: HOPES are up HIGH = HIGH HOPES
+- **Example**: We have high hopes for our team this year.
+- **Choices**: hopeless, good luck, big dreams
+
+## ID: high-tide
+- **Level**: medium
+- **Pattern**: position
+- **Visual**: TIDE (top)
+- **Answer**: high tide
+- **Hint**: When the sea comes up the beach.
+- **Why**: TIDE is up HIGH = HIGH TIDE
+- **Example**: At high tide, the water covers the rocks.
+- **Choices**: low tide, big wave, seashore
+
+## ID: high-score
+- **Level**: easy
+- **Pattern**: position
+- **Visual**: SCORE (top)
+- **Answer**: high score
+- **Also**: highscore, high scores
+- **Hint**: The best number of points in a game.
+- **Why**: SCORE is up HIGH = HIGH SCORE
+- **Example**: I got a new high score!
+- **Choices**: scoreboard, top score, game over
+
+## ID: top-floor
+- **Level**: easy
+- **Pattern**: position
+- **Visual**: FLOOR (top)
+- **Answer**: top floor
+- **Hint**: The highest level of a building.
+- **Why**: FLOOR is at the TOP = TOP FLOOR
+- **Example**: We live on the top floor.
+- **Choices**: ground floor, rooftop, upstairs
+
+## ID: ground-floor
+- **Level**: medium
+- **Pattern**: position
+- **Visual**: FLOOR (bottom)
+- **Answer**: ground floor
+- **Also**: first floor
+- **Hint**: The level of a building at the street.
+- **Why**: FLOOR is at the bottom, on the GROUND = GROUND FLOOR
+- **Example**: The cafe is on the ground floor.
+- **Choices**: top floor, basement, downstairs
+
+## ID: uppercase
+- **Level**: medium
+- **Pattern**: typography
+- **Visual**: CASE (top)
+- **Answer**: uppercase
+- **Also**: upper case, capital letters
+- **Hint**: BIG letters like A, B and C.
+- **Why**: Capital letters UP at the top = UPPERCASE
+- **Example**: Write your name in uppercase letters.
+- **Choices**: lowercase, suitcase, bookcase
+
+## ID: lowercase
+- **Level**: medium
+- **Pattern**: typography
+- **Visual**: case (bottom)
+- **Answer**: lowercase
+- **Also**: lower case, small letters
+- **Hint**: Small letters like a, b and c.
+- **Why**: Small letters DOWN LOW = LOWERCASE
+- **Example**: Write the word in lowercase letters.
+- **Choices**: uppercase, pencil case, small talk
+
+## ID: middle-name
+- **Level**: medium
+- **Pattern**: position
+- **Visual**: TOM | NAME | LEE
+- **Answer**: middle name
+- **Hint**: The name between your first and last name.
+- **Why**: NAME is in the MIDDLE = MIDDLE NAME
+- **Example**: My middle name is Rose.
+- **Choices**: nickname, last name, name tag
+
+## ID: corner-store
+- **Level**: medium
+- **Pattern**: position
+- **Visual**: STORE (bottom right)
+- **Answer**: corner store
+- **Also**: corner shop
+- **Hint**: A small shop on the street corner.
+- **Why**: STORE is in the CORNER = CORNER STORE
+- **Example**: We bought milk at the corner store.
+- **Choices**: toy store, four corners, supermarket
+
+## ID: big-cheese
+- **Level**: tricky
+- **Pattern**: size
+- **Visual**: CHEESE (big)
+- **Answer**: big cheese
+- **Also**: the big cheese
+- **Hint**: The most important person in charge.
+- **Why**: CHEESE is BIG = BIG CHEESE
+- **Example**: The principal is the big cheese at our school.
+- **Choices**: cheeseburger, say cheese, blue cheese
+
+## ID: small-print
+- **Level**: tricky
+- **Pattern**: size
+- **Visual**: print (tiny)
+- **Answer**: small print
+- **Also**: fine print
+- **Hint**: Tiny words at the bottom of a paper. Read them carefully!
+- **Why**: PRINT is SMALL = SMALL PRINT
+- **Example**: Read the small print before you sign.
+- **Choices**: printer, footprint, big letters
+
+## ID: little-by-little
+- **Level**: medium
+- **Pattern**: size
+- **Visual**: little (tiny) | little (tiny)
+- **Answer**: little by little
+- **Also**: bit by bit
+- **Hint**: Slowly, a tiny bit at a time.
+- **Why**: LITTLE is BY (next to) LITTLE = LITTLE BY LITTLE
+- **Example**: Little by little, my tower got taller.
+- **Choices**: a little bit, step by step, side by side
+
+## ID: long-face
+- **Level**: tricky
+- **Pattern**: size
+- **Visual**: FACE (stretched)
+- **Answer**: long face
+- **Also**: a long face, why the long face
+- **Hint**: A sad look.
+- **Why**: FACE is stretched LONG = LONG FACE
+- **Example**: Why the long face? Did you lose your toy?
+- **Choices**: funny face, face to face, big smile
+
+## ID: big-heart
+- **Level**: easy
+- **Pattern**: size
+- **Visual**: HEART (big)
+- **Answer**: big heart
+- **Also**: a big heart
+- **Hint**: Someone very kind and caring.
+- **Why**: HEART is BIG = BIG HEART
+- **Example**: My grandma has a big heart.
+- **Choices**: broken heart, heartbeat, sweetheart
+
+## ID: a-little-help
+- **Level**: medium
+- **Pattern**: size
+- **Visual**: help (tiny)
+- **Answer**: a little help
+- **Also**: little help
+- **Hint**: Just a small amount of help.
+- **Why**: HELP is LITTLE = A LITTLE HELP
+- **Example**: Can I get a little help with this box?
+- **Choices**: helper, help me, first aid
+
+## ID: short-and-sweet
+- **Level**: medium
+- **Pattern**: size
+- **Visual**: sweet (small)
+- **Answer**: short and sweet
+- **Hint**: Quick and nice, not too long.
+- **Why**: SWEET is SHORT = SHORT AND SWEET
+- **Example**: Keep your speech short and sweet.
+- **Choices**: sweet tooth, candy, short story
+
+## ID: five-senses
+- **Level**: medium
+- **Pattern**: quantity
+- **Visual**: SENSE (x5)
+- **Answer**: five senses
+- **Also**: the five senses, 5 senses
+- **Hint**: Seeing, hearing, smelling, tasting and touching.
+- **Why**: Five SENSEs = FIVE SENSES
+- **Example**: We use our five senses to learn about the world.
+- **Choices**: common sense, five fingers, nonsense
+
+## ID: three-cheers
+- **Level**: medium
+- **Pattern**: quantity
+- **Visual**: CHEER (x3)
+- **Answer**: three cheers
+- **Also**: 3 cheers
+- **Hint**: Hip hip hooray! Hip hip hooray! Hip hip hooray!
+- **Why**: Three CHEERs = THREE CHEERS
+- **Example**: Three cheers for the winning team!
+- **Choices**: cheer up, cheerleader, cheers
+
+## ID: two-cents
+- **Level**: tricky
+- **Pattern**: quantity
+- **Visual**: CENT | CENT
+- **Answer**: my two cents
+- **Also**: two cents, 2 cents
+- **Hint**: Your own small idea or opinion.
+- **Why**: Two CENTs = (MY) TWO CENTS
+- **Example**: Can I add my two cents? Let's play tag!
+- **Choices**: pocket money, piggy bank, one dollar
+
+## ID: triple-jump
+- **Level**: medium
+- **Pattern**: quantity
+- **Visual**: JUMP (x3)
+- **Answer**: triple jump
+- **Hint**: A sport: hop, step and jump into the sand.
+- **Why**: Three JUMPs = TRIPLE JUMP
+- **Example**: She won the triple jump at sports day.
+- **Choices**: long jump, jump rope, high jump
+
+## ID: four-leaf-clover
+- **Level**: medium
+- **Pattern**: quantity
+- **Visual**: LEAF (x4)
+- **Answer**: four-leaf clover
+- **Also**: four leaf clover, 4 leaf clover
+- **Hint**: A lucky green plant that is hard to find.
+- **Why**: Four LEAFs = FOUR-LEAF CLOVER
+- **Example**: I found a four-leaf clover in the park!
+- **Choices**: leaf pile, falling leaves, flower
+
+## ID: twice-as-nice
+- **Level**: medium
+- **Pattern**: quantity
+- **Visual**: NICE | NICE
+- **Answer**: twice as nice
+- **Hint**: Two times better!
+- **Why**: NICE two times = TWICE AS NICE
+- **Example**: Two scoops of ice cream are twice as nice!
+- **Choices**: very nice, think twice, nice try
+
+## ID: three-strikes
+- **Level**: medium
+- **Pattern**: quantity
+- **Visual**: STRIKE (x3)
+- **Answer**: three strikes
+- **Also**: three strikes and you're out, 3 strikes
+- **Hint**: In baseball, this means you're out!
+- **Why**: Three STRIKEs = THREE STRIKES
+- **Example**: Three strikes and you're out!
+- **Choices**: home run, strike out, lucky three
+
+## ID: ducks-in-a-row
+- **Level**: tricky
+- **Pattern**: position
+- **Visual**: DUCK | DUCK | DUCK | DUCK
+- **Answer**: ducks in a row
+- **Also**: get your ducks in a row
+- **Hint**: Getting everything ready and in order.
+- **Why**: DUCKs all IN A ROW = DUCKS IN A ROW
+- **Example**: Get your ducks in a row before the trip.
+- **Choices**: rubber duck, duck pond, sitting duck
+
+## ID: follow-the-leader
+- **Level**: medium
+- **Pattern**: position
+- **Visual**: LEADER | ME | ME | ME
+- **Answer**: follow the leader
+- **Hint**: A game where everyone copies the first person.
+- **Why**: ME, ME, ME FOLLOW THE LEADER
+- **Example**: We played follow the leader in the yard.
+- **Choices**: team leader, simon says, line up
+
+## ID: calm-down
+- **Level**: medium
+- **Pattern**: direction
+- **Visual**: CALM (vertical)
+- **Answer**: calm down
+- **Hint**: Take a deep breath and relax.
+- **Why**: CALM goes DOWN = CALM DOWN
+- **Example**: Take a deep breath and calm down.
+- **Choices**: slow down, sit down, cool off
+
+## ID: climb-up
+- **Level**: easy
+- **Pattern**: direction
+- **Visual**: CLIMB (rising)
+- **Answer**: climb up
+- **Also**: climbing up
+- **Hint**: Going higher on a tree or a hill.
+- **Why**: CLIMB goes UP = CLIMB UP
+- **Example**: Let's climb up the hill.
+- **Choices**: climb down, rock climbing, step up
+
+## ID: give-up
+- **Level**: medium
+- **Pattern**: direction
+- **Visual**: GIVE (rising)
+- **Answer**: give up
+- **Also**: giving up
+- **Hint**: To stop trying. (Don't do it!)
+- **Why**: GIVE goes UP = GIVE UP
+- **Example**: Don't give up, you can do it!
+- **Choices**: give away, forgive, try again
+
+## ID: speed-up
+- **Level**: medium
+- **Pattern**: direction
+- **Visual**: SPEED (rising)
+- **Answer**: speed up
+- **Hint**: Go faster!
+- **Why**: SPEED goes UP = SPEED UP
+- **Example**: Speed up, we're going to miss the bus!
+- **Choices**: slow down, speed bump, hurry
+
+## ID: fall-apart
+- **Level**: tricky
+- **Pattern**: direction
+- **Visual**: APART (falling)
+- **Answer**: fall apart
+- **Also**: falling apart, fell apart
+- **Hint**: Break into pieces.
+- **Why**: APART is FALLING = FALL APART
+- **Example**: My old shoes are starting to fall apart.
+- **Choices**: far apart, fall down, broken
+
+## ID: fall-asleep
+- **Level**: medium
+- **Pattern**: direction
+- **Visual**: ASLEEP (falling)
+- **Answer**: fall asleep
+- **Also**: falling asleep, fell asleep
+- **Hint**: Start sleeping.
+- **Why**: ASLEEP is FALLING = FALL ASLEEP
+- **Example**: I fall asleep fast after swimming.
+- **Choices**: wide awake, wake up, sleepy
+
+## ID: fall-behind
+- **Level**: medium
+- **Pattern**: direction
+- **Visual**: BEHIND (falling)
+- **Answer**: fall behind
+- **Also**: falling behind
+- **Hint**: Get slower than everyone else.
+- **Why**: BEHIND is FALLING = FALL BEHIND
+- **Example**: If you don't practice, you'll fall behind.
+- **Choices**: left behind, behind you, fall down
+
+## ID: rise-and-shine
+- **Level**: medium
+- **Pattern**: direction
+- **Visual**: SHINE (rising)
+- **Answer**: rise and shine
+- **Hint**: What you say to wake someone up in the morning!
+- **Why**: SHINE is RISING = RISE AND SHINE
+- **Example**: Rise and shine! It's time for school.
+- **Choices**: sunshine, good night, sunrise
+
+## ID: back-and-forth
+- **Level**: medium
+- **Pattern**: typography
+- **Visual**: FORTH | FORTH (backwards)
+- **Answer**: back and forth
+- **Also**: forth and back
+- **Hint**: Going one way and then the other way.
+- **Why**: FORTH and HTROF go BACK AND FORTH
+- **Example**: The swing went back and forth.
+- **Choices**: back to back, go back, so on
+
+## ID: turn-the-tables
+- **Level**: tricky
+- **Pattern**: typography
+- **Visual**: TABLES (upside down)
+- **Answer**: turn the tables
+- **Also**: turned the tables
+- **Hint**: To change from losing to winning.
+- **Why**: TABLES are turned over = TURN THE TABLES
+- **Example**: Our team was losing, but we managed to turn the tables and win!
+- **Choices**: set the table, times tables, upside down
+
+## ID: flip-flop
+- **Level**: medium
+- **Pattern**: typography
+- **Visual**: FLOP | FLOP (upside down)
+- **Answer**: flip-flop
+- **Also**: flip flop, flip-flops, flip flops
+- **Hint**: A rubber sandal you wear at the beach.
+- **Why**: FLOP and a flipped FLOP = FLIP-FLOP
+- **Example**: I lost one flip-flop at the beach.
+- **Choices**: sneaker, flip book, flapjack
+
+## ID: topsy-turvy
+- **Level**: tricky
+- **Pattern**: typography
+- **Visual**: TOPSY | TURVY (upside down)
+- **Answer**: topsy-turvy
+- **Also**: topsy turvy
+- **Hint**: All mixed up and upside down.
+- **Why**: TURVY is upside down = TOPSY-TURVY
+- **Example**: After the party, the room was topsy-turvy.
+- **Choices**: upside down, inside out, higgledy-piggledy
+
+## ID: look-both-ways
+- **Level**: medium
+- **Pattern**: typography
+- **Visual**: LOOK | LOOK (backwards)
+- **Answer**: look both ways
+- **Hint**: What to do before you cross the road.
+- **Why**: LOOK one way and LOOK the other way = LOOK BOTH WAYS
+- **Example**: Always look both ways at the crosswalk.
+- **Choices**: look up, look out, both sides
+
+## ID: chin-up
+- **Level**: medium
+- **Pattern**: direction
+- **Visual**: CHIN (sideways)
+- **Answer**: chin up
+- **Also**: keep your chin up
+- **Hint**: Stay brave and don't be sad!
+- **Why**: CHIN goes UP = CHIN UP
+- **Example**: Chin up! You'll do better next time.
+- **Choices**: cheer up, chin chin, stand up
+
+## ID: hands-up
+- **Level**: easy
+- **Pattern**: direction
+- **Visual**: HANDS (sideways)
+- **Answer**: hands up
+- **Also**: put your hands up, hand up
+- **Hint**: Raise your arms high!
+- **Why**: HANDS go UP = HANDS UP
+- **Example**: Hands up if you know the answer!
+- **Choices**: high five, hand in hand, raise
+
+## ID: line-up
+- **Level**: easy
+- **Pattern**: direction
+- **Visual**: LINE (sideways)
+- **Answer**: line up
+- **Also**: lining up
+- **Hint**: Stand one behind the other.
+- **Why**: LINE goes UP = LINE UP
+- **Example**: Please line up at the door.
+- **Choices**: bottom line, underline, stand up
+
+## ID: be-happy
+- **Level**: easy
+- **Pattern**: sound
+- **Visual**: B HAPPY
+- **Answer**: be happy
+- **Also**: b happy
+- **Hint**: Smile and don't worry!
+- **Why**: B sounds like BE: B HAPPY = BE HAPPY
+- **Example**: Don't worry, be happy!
+- **Choices**: bee happy, so happy, happy bee
+
+## ID: why-not
+- **Level**: medium
+- **Pattern**: sound
+- **Visual**: Y NOT
+- **Answer**: why not
+- **Also**: y not
+- **Hint**: "Sure, let's do it!"
+- **Why**: Y sounds like WHY: Y NOT = WHY NOT
+- **Example**: Want to play? Sure, why not!
+- **Choices**: yes or no, why me, not now
+
+## ID: excuse-me
+- **Level**: tricky
+- **Pattern**: sound
+- **Visual**: XQZ ME
+- **Answer**: excuse me
+- **Also**: xqz me
+- **Hint**: A polite way to get someone's attention.
+- **Why**: X-Q-Z sounds like EX-CUSE: XQZ ME = EXCUSE ME
+- **Example**: Excuse me, where is the library?
+- **Choices**: thank you, kiss me, x marks
+
+## ID: tonight
+- **Level**: medium
+- **Pattern**: sound
+- **Visual**: 2 NITE
+- **Answer**: tonight
+- **Also**: 2nite, to night
+- **Hint**: This evening, after the sun goes down.
+- **Why**: 2 = TO + NITE (NIGHT) = TONIGHT
+- **Example**: We are having pizza tonight.
+- **Choices**: two nights, goodnight, midnight
+
+## ID: today
+- **Level**: easy
+- **Pattern**: sound
+- **Visual**: 2 DAY
+- **Answer**: today
+- **Also**: 2day, to day
+- **Hint**: This day, right now.
+- **Why**: 2 = TO + DAY = TODAY
+- **Example**: Today is my birthday!
+- **Choices**: two days, tomorrow, sunday
+
+## ID: tomorrow
+- **Level**: easy
+- **Pattern**: sound
+- **Visual**: 2 MORROW
+- **Answer**: tomorrow
+- **Also**: 2morrow, to morrow
+- **Hint**: The day after today.
+- **Why**: 2 = TO + MORROW = TOMORROW
+- **Example**: See you tomorrow!
+- **Choices**: yesterday, today, morning
+
+## ID: together
+- **Level**: medium
+- **Pattern**: sound
+- **Visual**: 2 GETHER
+- **Answer**: together
+- **Also**: 2gether, to gether
+- **Hint**: With each other, not alone.
+- **Why**: 2 = TO + GETHER = TOGETHER
+- **Example**: Let's clean up together.
+- **Choices**: get there, two of us, forget
+
+## ID: for-real
+- **Level**: medium
+- **Pattern**: sound
+- **Visual**: 4 REAL
+- **Answer**: for real
+- **Also**: 4 real
+- **Hint**: "Really? Is that true?"
+- **Why**: 4 sounds like FOR: 4 REAL = FOR REAL
+- **Example**: You saw a whale? For real?
+- **Choices**: four reels, really, for sure
+
+## ID: forward
+- **Level**: medium
+- **Pattern**: sound
+- **Visual**: 4 WARD
+- **Answer**: forward
+- **Also**: 4ward
+- **Hint**: The way in front of you.
+- **Why**: 4 sounds like FOR: 4 WARD = FORWARD
+- **Example**: Take one step forward.
+- **Choices**: backward, four words, foreword
+
+## ID: seesaw
+- **Level**: medium
+- **Pattern**: sound
+- **Visual**: C SAW
+- **Answer**: seesaw
+- **Also**: see saw, see-saw
+- **Hint**: A playground board that goes up and down.
+- **Why**: C sounds like SEE: C SAW = SEESAW
+- **Example**: We played on the seesaw at the park.
+- **Choices**: swing, slide, sea saw
+
+## ID: peas
+- **Level**: medium
+- **Pattern**: sound
+- **Visual**: P P P
+- **Answer**: peas
+- **Also**: p's
+- **Hint**: Little green balls you eat with dinner.
+- **Why**: Lots of P's sounds like PEAS!
+- **Example**: Please eat your peas.
+- **Choices**: beans, peace, peppers
+
+## ID: eyes
+- **Level**: medium
+- **Pattern**: sound
+- **Visual**: I I
+- **Answer**: eyes
+- **Also**: i's
+- **Hint**: You see with them.
+- **Why**: Two I's sounds like EYES!
+- **Example**: Close your eyes and make a wish.
+- **Choices**: ice, i see you, aye aye
+
+## ID: ten-to-one
+- **Level**: tricky
+- **Pattern**: sound
+- **Visual**: 10 2 1
+- **Answer**: ten to one
+- **Also**: 10 to 1, ten to 1
+- **Hint**: A time on the clock: 12:50.
+- **Why**: 10 2 (TO) 1 = TEN TO ONE
+- **Example**: It's ten to one, so lunch is almost over.
+- **Choices**: one to ten, ten past one, one o'clock
+
+## ID: nine-to-five
+- **Level**: tricky
+- **Pattern**: sound
+- **Visual**: 9 2 5
+- **Answer**: nine to five
+- **Also**: 9 to 5
+- **Hint**: The hours of a usual work day.
+- **Why**: 9 2 (TO) 5 = NINE TO FIVE
+- **Example**: My mom works from nine to five.
+- **Choices**: high five, five to nine, take five
+
+## ID: easy-peasy
+- **Level**: medium
+- **Pattern**: sound
+- **Visual**: EZ PZ
+- **Answer**: easy peasy
+- **Also**: easy peasy lemon squeezy, ezpz
+- **Hint**: Super, super easy!
+- **Why**: Say the letters: E-Z P-Z = EASY PEASY
+- **Example**: This puzzle is easy peasy!
+- **Choices**: peas, piece of cake, lazy
+
+## ID: late-for-school
+- **Level**: medium
+- **Pattern**: sound
+- **Visual**: L8 4 SCHOOL
+- **Answer**: late for school
+- **Also**: l8 4 school
+- **Hint**: When the bell rings and you're not there yet!
+- **Why**: L8 = LATE, 4 = FOR: LATE FOR SCHOOL
+- **Example**: Hurry up, or you'll be late for school!
+- **Choices**: after school, school bus, too late
+
+## ID: wait-a-minute
+- **Level**: medium
+- **Pattern**: sound
+- **Visual**: W8 A MIN
+- **Answer**: wait a minute
+- **Also**: wait a min, w8 a min
+- **Hint**: "Hold on, just a moment!"
+- **Why**: W8 = WAIT, MIN = MINUTE: WAIT A MINUTE
+- **Example**: Wait a minute, I forgot my hat!
+- **Choices**: last minute, wait for me, one minute
+
+## ID: see-eye-to-eye
+- **Level**: tricky
+- **Pattern**: sound
+- **Visual**: C | EYE | 2 | EYE
+- **Answer**: see eye to eye
+- **Hint**: To agree with someone.
+- **Why**: C = SEE, 2 = TO: SEE EYE TO EYE
+- **Example**: My brother and I don't always see eye to eye.
+- **Choices**: eye to eye, face to face, i see you
+
+## ID: a-to-z
+- **Level**: medium
+- **Pattern**: sound
+- **Visual**: A 2 Z
+- **Answer**: from a to z
+- **Also**: a to z
+- **Hint**: Everything, from the start to the end.
+- **Why**: A 2 (TO) Z = FROM A TO Z
+- **Example**: This book has animals from A to Z.
+- **Choices**: abc, alphabet, a to b
+
+## ID: zero-to-hero
+- **Level**: tricky
+- **Pattern**: sound
+- **Visual**: 0 2 HERO
+- **Answer**: zero to hero
+- **Also**: from zero to hero
+- **Hint**: From nobody special to a star!
+- **Why**: 0 = ZERO, 2 = TO: ZERO TO HERO
+- **Example**: He went from zero to hero when he scored the last goal.
+- **Choices**: superhero, number one, hero
+
+## ID: all-for-one
+- **Level**: tricky
+- **Pattern**: sound
+- **Visual**: 1 4 ALL / ALL 4 1
+- **Answer**: one for all and all for one
+- **Also**: one for all, all for one and one for all
+- **Hint**: The famous team promise of the Three Musketeers.
+- **Why**: 1 = ONE, 4 = FOR: ONE FOR ALL, ALL FOR ONE
+- **Example**: The three friends shouted, "One for all and all for one!"
+- **Choices**: all in all, one by one, free for all
+
+## ID: break-the-ice
+- **Level**: tricky
+- **Pattern**: split
+- **Visual**: I (tilted) | CE (tilted)
+- **Answer**: break the ice
+- **Also**: breaking the ice
+- **Hint**: Do something fun so new people feel friendly.
+- **Why**: The word ICE is broken = BREAK THE ICE
+- **Example**: We played a name game to break the ice.
+- **Choices**: ice cube, icy, ice cream
+
+## ID: piece-of-cake
+- **Level**: tricky
+- **Pattern**: split
+- **Visual**: C (tilted) | AK (tilted) | E (tilted)
+- **Answer**: a piece of cake
+- **Also**: piece of cake
+- **Hint**: Something very easy.
+- **Why**: CAKE in pieces = A PIECE OF CAKE
+- **Example**: The math test was a piece of cake!
+- **Choices**: cupcake, birthday cake, cake pop
+
+## ID: split-the-bill
+- **Level**: medium
+- **Pattern**: split
+- **Visual**: BI (tilted) | LL (tilted)
+- **Answer**: split the bill
+- **Also**: split the check
+- **Hint**: Everyone pays some of the cost.
+- **Why**: The word BILL is split = SPLIT THE BILL
+- **Example**: We split the bill for the pizza.
+- **Choices**: pay the bill, banana split, duck bill
+
+## ID: cross-eyed
+- **Level**: medium
+- **Pattern**: position
+- **Visual**: EYE (cross)
+- **Answer**: cross-eyed
+- **Also**: cross eyed
+- **Hint**: Looking at your own nose with both eyes. Silly face!
+- **Why**: EYE crosses itself = CROSS-EYED
+- **Example**: He made a funny cross-eyed face.
+- **Choices**: eye to eye, eyeball, blink
+
+## ID: cross-the-street
+- **Level**: medium
+- **Pattern**: position
+- **Visual**: STREET (cross)
+- **Answer**: cross the street
+- **Also**: crossing the street
+- **Hint**: Walk to the other side of the road.
+- **Why**: STREET crosses itself = CROSS THE STREET
+- **Example**: Hold my hand when we cross the street.
+- **Choices**: crossroads, street light, crosswalk
+
+## ID: red-carpet
+- **Level**: medium
+- **Pattern**: color
+- **Visual**: {CARPET}
+- **Answer**: red carpet
+- **Also**: the red carpet
+- **Hint**: Where movie stars walk at a big event.
+- **Why**: CARPET in RED = RED CARPET
+- **Example**: The movie stars walked on the red carpet.
+- **Choices**: magic carpet, rug, red rose
+
+## ID: red-light
+- **Level**: easy
+- **Pattern**: color
+- **Visual**: {LIGHT}
+- **Answer**: red light
+- **Hint**: It means STOP at the street corner.
+- **Why**: LIGHT in RED = RED LIGHT
+- **Example**: Stop at the red light.
+- **Choices**: green light, light bulb, flashlight
+
+## ID: red-handed
+- **Level**: tricky
+- **Pattern**: color
+- **Visual**: CAUGHT {HANDED}
+- **Answer**: caught red-handed
+- **Also**: caught red handed, red-handed, red handed
+- **Hint**: Caught just as you were doing something wrong!
+- **Why**: CAUGHT and HANDED in RED = CAUGHT RED-HANDED
+- **Example**: My dog was caught red-handed eating the cake.
+- **Choices**: left-handed, hand in hand, caught a cold
+
+## ID: seeing-red
+- **Level**: tricky
+- **Pattern**: color
+- **Visual**: {SEEING}
+- **Answer**: seeing red
+- **Hint**: Feeling very, very angry.
+- **Why**: SEEING in RED = SEEING RED
+- **Example**: When my brother broke my toy, I was seeing red.
+- **Choices**: red alert, i see you, sunburn
+
+## ID: less-is-more
+- **Level**: tricky
+- **Pattern**: math
+- **Visual**: LESS > MORE
+- **Answer**: less is more
+- **Hint**: Simple can be better than too much.
+- **Why**: LESS is bigger (>) than MORE = LESS IS MORE
+- **Example**: When you decorate a cake, less is more.
+- **Choices**: more or less, no more, nevermore
+
+## ID: after-all
+- **Level**: tricky
+- **Pattern**: position
+- **Visual**: ALL | AFTER
+- **Answer**: after all
+- **Hint**: "In the end, it turned out like this."
+- **Why**: AFTER comes after ALL = AFTER ALL
+- **Example**: It didn't rain after all, so we went to the beach.
+- **Choices**: all in all, afternoon, all done
+
+## ID: just-in-time
+- **Level**: tricky
+- **Pattern**: inside
+- **Visual**: TI{JUST}ME
+- **Answer**: just in time
+- **Hint**: Not late, right at the last moment!
+- **Why**: JUST is IN TIME = JUST IN TIME
+- **Example**: We got to the bus just in time.
+- **Choices**: right on time, last minute, time out
+
+## ID: pain-in-the-neck
+- **Level**: tricky
+- **Pattern**: inside
+- **Visual**: NE{PAIN}CK
+- **Answer**: pain in the neck
+- **Also**: a pain in the neck
+- **Hint**: Something really annoying.
+- **Why**: PAIN is IN THE NECK = PAIN IN THE NECK
+- **Example**: My noisy alarm clock is a pain in the neck.
+- **Choices**: neck and neck, sore throat, headache
+
+## ID: butterflies-in-my-stomach
+- **Level**: tricky
+- **Pattern**: inside
+- **Visual**: STOM{BUTTERFLIES}ACH
+- **Answer**: butterflies in my stomach
+- **Also**: butterflies in your stomach, butterflies in the stomach
+- **Hint**: The nervous, fluttery feeling before something big.
+- **Why**: BUTTERFLIES are IN the STOMACH = BUTTERFLIES IN MY STOMACH
+- **Example**: Before the show, I had butterflies in my stomach.
+- **Choices**: stomach ache, butterfly net, hungry
+
+## ID: ball-in-your-court
+- **Level**: tricky
+- **Pattern**: inside
+- **Visual**: COU{BALL}RT
+- **Answer**: the ball is in your court
+- **Also**: ball in your court
+- **Hint**: Now it's your turn to decide.
+- **Why**: BALL is IN the COURT = THE BALL IS IN YOUR COURT
+- **Example**: I said sorry, so now the ball is in your court.
+- **Choices**: tennis ball, basketball court, play ball
+
+## ID: from-head-to-toe
+- **Level**: medium
+- **Pattern**: position
+- **Visual**: HEAD / ⬇ / TOE
+- **Answer**: from head to toe
+- **Also**: head to toe
+- **Hint**: Your whole body, top to bottom.
+- **Why**: From HEAD down to TOE = FROM HEAD TO TOE
+- **Example**: I was covered in mud from head to toe.
+- **Choices**: head over heels, tiptoe, toe to toe
+
+## ID: neck-and-neck
+- **Level**: medium
+- **Pattern**: quantity
+- **Visual**: NECK | NECK
+- **Answer**: neck and neck
+- **Hint**: When two racers are exactly even.
+- **Why**: NECK and NECK side by side = NECK AND NECK
+- **Example**: The two runners were neck and neck at the end.
+- **Choices**: head to head, necklace, pain in the neck
+
+## ID: heart-to-heart
+- **Level**: medium
+- **Pattern**: typography
+- **Visual**: HEART | HEART (backwards)
+- **Answer**: heart to heart
+- **Also**: a heart to heart, heart-to-heart
+- **Hint**: A long, honest talk with someone you love.
+- **Why**: HEART faces HEART = HEART TO HEART
+- **Example**: Mom and I had a heart to heart about my new school.
+- **Choices**: big heart, sweetheart, heart shape
