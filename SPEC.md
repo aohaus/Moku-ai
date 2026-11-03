@@ -320,7 +320,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
   - 使い道: タイトル画面の Board Shop で盤の着せ替え(Forest Oak は無料、Spring Meadow 200 / Cherry Blossom 250 / Sunset Sky 300 / Snowy Birch 350 / Candy Shop 450)。持っている盤と選んだ盤は同じ progress の `boards` / `board`。
   - CPU は10段階(Lv.1 Moyo / 2 Chef Rat / 3 Ponta / 4 Ninja Rat / 5 Kon / 6 Nox / 7 Goro / 8 Sage Kon / 9 King Nox / 10 Thunder King Goro。8〜10 は Moku Fight のキャラの「師範」版で、顔に王冠と後光)。最初は Lv.1〜3 が遊べ、Lv.n に勝つと Lv.n+1 が開く(`progress.best` = 勝った最高レベル)。Lv.1〜4 だけ 💡 Hint と ↩ Undo が使える(初心者の練習用。高いレベルの初勝利ボーナスを Undo で取れないように)。
   - 対局中の盤面は `moku:moku-chess:game`(初期局面からの手順 UCI の配列)に毎手保存し、タイトル画面の「Continue」で再開できる。終局で消す。
-- **Moku Word Riddles**(2026-10-31〜、v0.3.0): 英語のレバス・パズル(2026-11-01 時点で102問、Easy 10 / Medium 59 / Tricky 33)。1ラウンド5問、正解画面と結果画面に内訳、結果画面とタイトル画面に今日の分 n / 500。
+- **Moku Word Riddles**(2026-10-31〜、v0.3.0): 英語のレバス・パズル(2026-11-03 時点で200問、Easy 20 / Medium 115 / Tricky 65。11-03 に、前後の単語をつなげるだけではない問題を98問足した)。1ラウンド5問、正解画面と結果画面に内訳、結果画面とタイトル画面に今日の分 n / 500。
   - 毎回(上限 500/日): 正解 +10、ヒントなし・1回目で正解 +5、5問すべて自力で解いたラウンド +20。リプレイ(全問解いた後)の正解も同じ。
   - Riddle Race(§14、同じ上限の中): 勝った問題 ×5 + 最後まで +10 + 1位(同点も)+30。1レース1回だけ(`progress.race.paid` = 部屋の `key` → 忘れてよい時刻、3日)。
   - 1回きり: 初回のお試し用に 30(`welcomeGift`、上限の外)。
