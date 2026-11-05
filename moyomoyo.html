@@ -13,6 +13,16 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
+/* No iOS text-selection / Copy・Look Up bar or long-press callout anywhere
+   in the game (holding ▼ used to select the button's text). Safari still
+   needs the -webkit- prefixes. Only the room-code box keeps selection. */
+* {
+  -webkit-user-select: none; user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+input { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
+img, canvas { -webkit-user-drag: none; }
 /* Explicit height + fallback color: on the title screen the game
    canvas is hidden, and a zero-height body would otherwise lose its
    gradient (the page turned white). */
@@ -63,13 +73,12 @@ body {
   flex-direction: column;
   /* Wider gap than before (was 8-18px) — that little clearance made the
      bottom button an easy mis-tap right after the top one. */
-  gap: clamp(20px, 5vw, 44px);
+  gap: clamp(18px, 4.5vw, 40px);
   position: absolute;
-  /* Percentage of #wrapper's own height (not a fixed px offset) so this
-     still lands comfortably below center regardless of which canvas
-     shape is active — marathon/title's tall portrait one or VS mode's
-     wider one. */
-  top: 55%;
+  /* Anchored to the bottom of #wrapper (was top: 55%) — the buttons got
+     bigger, and from the top they ran off the bottom on short landscape
+     phones. Low on the screen is also where the thumbs are. */
+  bottom: clamp(12px, 5%, 36px);
   visibility: hidden;
 }
 #left-col { left: clamp(14px, 3vw, 32px); }
@@ -78,29 +87,46 @@ body {
   /* Sized from both vw and vh (not just vw) so the buttons shrink in
      step with the canvas — which is height-bound via dvh — instead of
      staying pinned near their max on wide screens whose real estate
-     (browser chrome, etc.) has eaten into the available height. */
-  width: clamp(52px, min(11vw, 12vh), 96px);
-  height: clamp(52px, min(11vw, 12vh), 96px);
-  border-radius: clamp(14px, 3vw, 22px);
-  background: rgba(255,111,168,0.85);
-  border: none;
-  color: white;
-  font-size: clamp(26px, 7vw, 46px);
+     (browser chrome, etc.) has eaten into the available height.
+     2026-11-05: one size up (was 52–96px) and see-through, so a gummy
+     under a button still shows. */
+  width: var(--btn);
+  height: var(--btn);
+  border-radius: 30%;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0;
+  /* A translucent candy key: light top edge, darker lip at the bottom */
+  background: linear-gradient(180deg, rgba(255,160,200,0.50), rgba(232,80,145,0.40));
+  border: 1.5px solid rgba(255,255,255,0.38);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.40), inset 0 -6px 0 rgba(122,20,72,0.30),
+              0 6px 14px rgba(20,5,30,0.30);
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(255,111,168,0.4);
   touch-action: manipulation;
+  transition: transform 0.06s, box-shadow 0.06s, background 0.06s;
 }
-.ctrl-btn:active { background: #FF8FBC; }
+.ctrl-btn svg {
+  width: 46%; height: 46%; fill: #fff; pointer-events: none;
+  filter: drop-shadow(0 2px 0 rgba(122,20,72,0.45));
+}
+/* .pressed is set from the touch handlers (iOS skips :active when the
+   touch's default is prevented) */
+.ctrl-btn:active, .ctrl-btn.pressed {
+  transform: translateY(3px);
+  background: linear-gradient(180deg, rgba(255,175,210,0.66), rgba(240,95,158,0.56));
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.35), inset 0 -2px 0 rgba(122,20,72,0.30),
+              0 2px 6px rgba(20,5,30,0.30);
+}
 /* VS mode's wider board runs the falling piece closer to the screen
    edges than marathon's single narrow board does, so the control
    buttons end up sitting on top of live play area instead of beside it
    — lower opacity here so a falling/landed block is still visible
    through the button instead of fully hidden behind it. */
 body.vs-active .ctrl-btn {
-  background: rgba(255,111,168,0.4);
-  box-shadow: 0 4px 16px rgba(255,111,168,0.2);
+  background: linear-gradient(180deg, rgba(255,160,200,0.34), rgba(232,80,145,0.26));
 }
-body.vs-active .ctrl-btn:active { background: rgba(255,143,188,0.55); }
+body.vs-active .ctrl-btn:active, body.vs-active .ctrl-btn.pressed {
+  background: linear-gradient(180deg, rgba(255,175,210,0.52), rgba(240,95,158,0.44));
+}
 #wrapper {
   position: relative;
   display: flex;
@@ -124,16 +150,29 @@ body.vs-active .ctrl-btn:active { background: rgba(255,143,188,0.55); }
    from the frame border, so tall desktop windows get a genuinely
    bigger board instead of one arbitrarily capped short of the room
    actually available. */
+/* The width is the smaller of "all the width" and "the width the full
+   height allows" (--arn = W/H, set by resizeCanvasTo), and the height
+   follows from the aspect ratio. (Before 2026-11-05 the height was pinned
+   to the screen and max-width squeezed the width, so on a portrait iPad
+   the board — and every gummy — was stretched tall.) */
+:root { --btn: clamp(62px, min(13.5vw, 14.5vh), 116px); --arn: 0.9718; --room: 24px; }
 #c {
   display: block;
   cursor: pointer;
   aspect-ratio: 828 / 852; /* must match the canvas's internal W:H below */
-  height: 100vh;
-  height: 100dvh;
-  max-height: calc(100vh - 24px);
-  max-height: calc(100dvh - 24px);
-  max-width: 100%;
-  width: auto;
+  height: auto;
+  width: min(100%, calc((100vh - var(--room)) * var(--arn)));
+  width: min(100%, calc((100dvh - var(--room)) * var(--arn)));
+}
+/* Portrait tablets: the board is width-bound, so there's room under it —
+   the buttons go in a row below the board instead of on top of it. */
+@media (orientation: portrait) and (min-width: 601px) {
+  :root { --room: calc(24px + var(--btn) + 28px); }
+  #wrapper { padding-bottom: calc(var(--btn) + 28px); }
+  .side-col { flex-direction: row; bottom: 14px; }
+  /* the board fills the width, so the score pills go in one row above it */
+  #hud-marathon-info { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding-right: 8px; }
+  #hud-marathon-info > div { margin-top: 0; }
 }
 #hud {
   position: absolute; top: 0; left: 0; right: 0;
@@ -142,7 +181,8 @@ body.vs-active .ctrl-btn:active { background: rgba(255,143,188,0.55); }
   pointer-events: none;
 }
 #score-display {
-  background: linear-gradient(135deg, rgba(255,111,168,0.30), rgba(79,157,255,0.25));
+  background: linear-gradient(180deg, rgba(255,140,190,0.42), rgba(120,60,170,0.42));
+  box-shadow: inset 0 1.5px 0 rgba(255,255,255,0.28), inset 0 -3px 0 rgba(40,10,60,0.35), 0 6px 14px rgba(20,5,30,0.35);
   color: #FFE066;
   font-size: 21px; font-weight: 900;
   padding: 6px 16px; border-radius: 14px;
@@ -151,21 +191,24 @@ body.vs-active .ctrl-btn:active { background: rgba(255,143,188,0.55); }
   border: 1.5px solid rgba(255,224,102,0.35);
 }
 #best-display {
-  background: rgba(40,15,55,0.4);
+  background: linear-gradient(180deg, rgba(70,30,95,0.55), rgba(40,15,55,0.55));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), 0 3px 8px rgba(20,5,30,0.25);
   color: rgba(255,255,255,0.75);
   font-size: 13px;
   padding: 5px 12px; border-radius: 20px;
   margin-top: 8px;
 }
 #next-lv-display {
-  background: rgba(40,15,55,0.4);
+  background: linear-gradient(180deg, rgba(70,30,95,0.55), rgba(40,15,55,0.55));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), 0 3px 8px rgba(20,5,30,0.25);
   color: rgba(255,255,255,0.4);
   font-size: 13px;
   padding: 5px 12px; border-radius: 20px;
   margin-top: 6px;
 }
 #time-display {
-  background: rgba(40,15,55,0.4);
+  background: linear-gradient(180deg, rgba(70,30,95,0.55), rgba(40,15,55,0.55));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), 0 3px 8px rgba(20,5,30,0.25);
   color: rgba(255,255,255,0.75);
   font-size: 13px;
   padding: 5px 12px; border-radius: 20px;
@@ -173,7 +216,8 @@ body.vs-active .ctrl-btn:active { background: rgba(255,143,188,0.55); }
 }
 #pause-btn {
   pointer-events: all;
-  background: rgba(40,15,55,0.55);
+  background: linear-gradient(180deg, rgba(90,45,120,0.7), rgba(40,15,55,0.7));
+  box-shadow: inset 0 1.5px 0 rgba(255,255,255,0.22), 0 4px 10px rgba(20,5,30,0.35);
   color: white;
   border: 1.5px solid rgba(255,255,255,0.25);
   border-radius: 50%;
@@ -566,7 +610,7 @@ body.on-mp #mp-screen { display: flex; }
 </div>
 <div id="mp-toast"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v1.5.3 · Updated Nov 1, 2026</div>
+<div id="buildInfo">v1.6.0 · Updated Nov 5, 2026</div>
 <div id="game-layout">
   <div id="wrapper">
     <canvas id="c"></canvas>
@@ -580,12 +624,12 @@ body.on-mp #mp-screen { display: flex; }
       <button id="pause-btn" title="Pause" aria-label="Pause">⏸</button>
     </div>
     <div class="side-col" id="left-col">
-      <button class="ctrl-btn" data-action="left" aria-label="Move left">◀</button>
-      <button class="ctrl-btn" data-action="down" aria-label="Drop">▼</button>
+      <button class="ctrl-btn" data-action="left" aria-label="Move left"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.6 4.2a1.4 1.4 0 0 1 2.2 1.2v13.2a1.4 1.4 0 0 1-2.2 1.2L6.3 13.2a1.4 1.4 0 0 1 0-2.4z"/></svg></button>
+      <button class="ctrl-btn" data-action="down" aria-label="Drop"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.2 8.4a1.4 1.4 0 0 1 1.2-2.2h13.2a1.4 1.4 0 0 1 1.2 2.2l-6.6 9.3a1.4 1.4 0 0 1-2.4 0z"/></svg></button>
     </div>
     <div class="side-col" id="right-col">
-      <button class="ctrl-btn" data-action="right" aria-label="Move right">▶</button>
-      <button class="ctrl-btn" data-action="rotate" aria-label="Rotate">🔄</button>
+      <button class="ctrl-btn" data-action="right" aria-label="Move right"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.4 4.2a1.4 1.4 0 0 0-2.2 1.2v13.2a1.4 1.4 0 0 0 2.2 1.2l9.3-6.6a1.4 1.4 0 0 0 0-2.4z"/></svg></button>
+      <button class="ctrl-btn" data-action="rotate" aria-label="Rotate"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5a8.5 8.5 0 0 1 7.6 4.7l1.1-1a1 1 0 0 1 1.7.8l-.3 5a1 1 0 0 1-1.1.9l-4.9-.6a1 1 0 0 1-.6-1.7l1.4-1.3A5.6 5.6 0 0 0 6.4 12a1.45 1.45 0 0 1-2.9 0A8.5 8.5 0 0 1 12 3.5zM12 20.5a8.5 8.5 0 0 1-7.4-4.3 1.45 1.45 0 0 1 2.5-1.4 5.6 5.6 0 0 0 7.8 2 1.45 1.45 0 1 1 1.5 2.5 8.4 8.4 0 0 1-4.4 1.2z"/></svg></button>
     </div>
     <div id="overlay" class="hidden">
       <h1 id="ov-title"></h1>
@@ -636,6 +680,7 @@ function resizeCanvasTo(w, h) {
   canvas.width = w * DPR;
   canvas.height = h * DPR;
   canvas.style.aspectRatio = `${w} / ${h}`;
+  canvas.style.setProperty('--arn', String(w / h));
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 }
 resizeCanvasTo(W, H);
@@ -1142,6 +1187,52 @@ function updateTimeDisplay() {
 
 // ─── DRAW ─────────────────────────────────────────────────────
 
+// ── 3D jelly look (2026-11-05) ──
+// Each gummy is drawn like a soft jelly cube lit from the top-left: a darker
+// "side" peeking out underneath (its thickness), a body that is lighter at the
+// top and deeper at the bottom, a glossy band and a sparkle. No shadowBlur per
+// gummy (too slow on an iPhone 7 with ~90 on the board): the soft contact
+// shadow is a plain translucent ellipse.
+const shadeCache = new Map();
+// amt -1..1: mix toward black (−) or white (+). Hex colors are cached (the
+// same five repeat); the rainbow gummy's hsl() changes every frame.
+function shade(color, amt) {
+  if (color[0] !== '#') {
+    const m = /hsl\(([\d.]+),\s*([\d.]+)%,\s*([\d.]+)%\)/.exec(color);
+    if (!m) return color;
+    const l = Math.max(0, Math.min(100, +m[3] + amt * (amt > 0 ? 100 - +m[3] : +m[3])));
+    return `hsl(${m[1]}, ${m[2]}%, ${l}%)`;
+  }
+  const key = color + amt;
+  let v = shadeCache.get(key);
+  if (v) return v;
+  const n = parseInt(color.slice(1), 16);
+  const ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(c => Math.round(amt > 0 ? c + (255 - c) * amt : c * (1 + amt)));
+  v = `rgb(${ch[0]},${ch[1]},${ch[2]})`;
+  shadeCache.set(key, v);
+  return v;
+}
+function drawJellyBody(s, rad, color, depth) {
+  // contact shadow
+  ctx.fillStyle = 'rgba(20,5,30,0.30)';
+  ctx.beginPath(); ctx.ellipse(0, s / 2 + depth * 0.95, s * 0.44, depth * 0.9 + 1, 0, 0, Math.PI * 2); ctx.fill();
+  // the side (thickness) under the face
+  ctx.fillStyle = shade(color, -0.42);
+  ctx.beginPath(); ctx.roundRect(-s / 2, -s / 2 + depth, s, s, rad); ctx.fill();
+  // body: lit top → deeper bottom
+  const g = ctx.createLinearGradient(0, -s / 2, 0, s / 2);
+  g.addColorStop(0, shade(color, 0.28));
+  g.addColorStop(0.5, color);
+  g.addColorStop(1, shade(color, -0.14));
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.roundRect(-s / 2, -s / 2, s, s, rad); ctx.fill();
+  // rim light on the upper edge
+  const rim = ctx.createLinearGradient(0, -s / 2, 0, 0);
+  rim.addColorStop(0, 'rgba(255,255,255,0.55)');
+  rim.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.strokeStyle = rim; ctx.lineWidth = Math.max(1, s * 0.035);
+  ctx.beginPath(); ctx.roundRect(-s / 2 + ctx.lineWidth / 2, -s / 2 + ctx.lineWidth / 2, s - ctx.lineWidth, s - ctx.lineWidth, rad); ctx.stroke();
+}
 function drawGummyShape(x, y, r, color, face, angle, scale, legendary, magic) {
   ctx.save();
   ctx.translate(x, y);
@@ -1158,21 +1249,33 @@ function drawGummyShape(x, y, r, color, face, angle, scale, legendary, magic) {
     ctx.restore();
   }
 
-  if (legendary) { ctx.shadowColor = '#FFE080'; ctx.shadowBlur = 18; }
-
   const s = r * 1.62;
   const rad = r * 0.42;
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.roundRect(-s/2, -s/2, s, s, rad);
-  ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,0.28)';
-  ctx.beginPath();
-  ctx.roundRect(-s/2 + s*0.12, -s/2 + s*0.1, s*0.4, s*0.22, rad*0.6);
-  ctx.fill();
-  ctx.shadowBlur = 0;
+  const depth = r * 0.11;
+  if (legendary) {
+    // the golden glow, drawn once behind the jelly (not per layer)
+    ctx.save();
+    ctx.shadowColor = '#FFE080'; ctx.shadowBlur = 18;
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.roundRect(-s/2, -s/2, s, s + depth, rad); ctx.fill();
+    ctx.restore();
+  }
+  drawJellyBody(s, rad, color, depth);
+  // glossy band across the top-left, fading downward
+  const gloss = ctx.createLinearGradient(0, -s/2 + s*0.08, 0, -s/2 + s*0.36);
+  gloss.addColorStop(0, 'rgba(255,255,255,0.62)');
+  gloss.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = gloss;
+  ctx.beginPath(); ctx.roundRect(-s/2 + s*0.11, -s/2 + s*0.08, s*0.5, s*0.26, rad*0.6); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.beginPath(); ctx.ellipse(s*0.30, -s*0.31, s*0.045, s*0.035, 0, 0, Math.PI*2); ctx.fill();
 
-  ctx.fillStyle = 'rgba(232,213,176,0.92)';
+  // face disk, slightly domed (lighter top-left, shaded at the bottom)
+  const fg = ctx.createRadialGradient(-r*0.16, -r*0.2, r*0.08, 0, r*0.05, r*0.66);
+  fg.addColorStop(0, 'rgba(250,238,214,0.97)');
+  fg.addColorStop(0.75, 'rgba(232,213,176,0.95)');
+  fg.addColorStop(1, 'rgba(196,170,128,0.95)');
+  ctx.fillStyle = fg;
   ctx.beginPath(); ctx.ellipse(0, r*0.05, r*0.56, r*0.6, 0, 0, Math.PI*2); ctx.fill();
 
   const eyeR = r * 0.13;
@@ -1216,20 +1319,57 @@ function drawGridPanel() {
   bg.addColorStop(0, '#2A1840'); bg.addColorStop(0.55, '#4A2560'); bg.addColorStop(1, '#331A48');
   ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
 
-  ctx.fillStyle = 'rgba(0,0,0,0.22)';
-  ctx.beginPath(); ctx.roundRect(GRID_X0 - 6, GRID_Y0 - 6, GRID_W + 12, GRID_H + 12, 10); ctx.fill();
+  drawBoardTray(GRID_X0, GRID_Y0, CELL, 'rgba(255,143,196,0.45)');
+}
 
-  ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+// The play area as a sunken candy tray (2026-11-05): a beveled frame lit
+// from the top, a dark well with a soft shadow along its top edge, and
+// faint dots where the cell corners meet instead of full grid lines.
+function drawBoardTray(x0, y0, cell, accent) {
+  const w = cell * GRID_COLS, h = cell * GRID_ROWS;
+  const pad = Math.max(6, cell * 0.12);
+  ctx.save();
+  // drop shadow under the whole tray
+  ctx.fillStyle = 'rgba(15,4,25,0.35)';
+  ctx.beginPath(); ctx.roundRect(x0 - pad, y0 - pad + 6, w + pad * 2, h + pad * 2, 16); ctx.fill();
+  // frame
+  const fr = ctx.createLinearGradient(0, y0 - pad, 0, y0 + h + pad);
+  fr.addColorStop(0, '#7A4597'); fr.addColorStop(0.5, '#56296F'); fr.addColorStop(1, '#3B1A50');
+  ctx.fillStyle = fr;
+  ctx.beginPath(); ctx.roundRect(x0 - pad, y0 - pad, w + pad * 2, h + pad * 2, 16); ctx.fill();
+  const hi = ctx.createLinearGradient(0, y0 - pad, 0, y0 + pad);
+  hi.addColorStop(0, 'rgba(255,255,255,0.30)'); hi.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.strokeStyle = hi; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.roundRect(x0 - pad + 0.75, y0 - pad + 0.75, w + pad * 2 - 1.5, h + pad * 2 - 1.5, 15); ctx.stroke();
+  // well
+  const well = ctx.createLinearGradient(0, y0, 0, y0 + h);
+  well.addColorStop(0, '#1C0D2B'); well.addColorStop(1, '#2B1640');
+  ctx.fillStyle = well;
+  ctx.beginPath(); ctx.roundRect(x0, y0, w, h, 10); ctx.fill();
+  // inner shadow along the top and left edges (the well is sunk in)
+  ctx.save();
+  ctx.beginPath(); ctx.roundRect(x0, y0, w, h, 10); ctx.clip();
+  const top = ctx.createLinearGradient(0, y0, 0, y0 + cell * 0.45);
+  top.addColorStop(0, 'rgba(0,0,0,0.45)'); top.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = top; ctx.fillRect(x0, y0, w, cell * 0.45);
+  const left = ctx.createLinearGradient(x0, 0, x0 + cell * 0.3, 0);
+  left.addColorStop(0, 'rgba(0,0,0,0.30)'); left.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = left; ctx.fillRect(x0, y0, cell * 0.3, h);
+  // cell corners
+  ctx.fillStyle = 'rgba(255,255,255,0.09)';
+  const dot = Math.max(1, cell * 0.03);
   for (let c = 1; c < GRID_COLS; c++) {
-    const x = GRID_X0 + c * CELL;
-    ctx.beginPath(); ctx.moveTo(x, GRID_Y0); ctx.lineTo(x, GRID_Y0 + GRID_H); ctx.stroke();
+    for (let r = 1; r < GRID_ROWS; r++) {
+      ctx.beginPath(); ctx.arc(x0 + c * cell, y0 + r * cell, dot, 0, Math.PI * 2); ctx.fill();
+    }
   }
-  for (let r = 1; r < GRID_ROWS; r++) {
-    const y = GRID_Y0 + r * CELL;
-    ctx.beginPath(); ctx.moveTo(GRID_X0, y); ctx.lineTo(GRID_X0 + GRID_W, y); ctx.stroke();
-  }
-  ctx.strokeStyle = 'rgba(255,143,196,0.35)'; ctx.lineWidth = 2;
-  ctx.strokeRect(GRID_X0, GRID_Y0, GRID_W, GRID_H);
+  ctx.restore();
+  // bottom lip catching the light + the game's accent line
+  ctx.strokeStyle = 'rgba(255,255,255,0.10)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(x0 + 10, y0 + h + 0.75); ctx.lineTo(x0 + w - 10, y0 + h + 0.75); ctx.stroke();
+  ctx.strokeStyle = accent; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.roundRect(x0, y0, w, h, 10); ctx.stroke();
+  ctx.restore();
 }
 
 // Resolves a grid/piece stage value (0-4, or RAINBOW) into what
@@ -2309,31 +2449,22 @@ function drawEnemyRat(x, y, r, type) {
 // ─── VS DRAW ──────────────────────────────────────────────────
 
 function vbDrawPanel(b) {
-  ctx.fillStyle = 'rgba(0,0,0,0.22)';
-  ctx.beginPath(); ctx.roundRect(b.x0 - 5, VS_GRID_Y0 - 5, VS_GRID_W + 10, VS_GRID_H + 10, 8); ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
-  for (let c = 1; c < GRID_COLS; c++) {
-    const x = b.x0 + c * VS_CELL;
-    ctx.beginPath(); ctx.moveTo(x, VS_GRID_Y0); ctx.lineTo(x, VS_GRID_Y0 + VS_GRID_H); ctx.stroke();
-  }
-  for (let r = 1; r < GRID_ROWS; r++) {
-    const y = VS_GRID_Y0 + r * VS_CELL;
-    ctx.beginPath(); ctx.moveTo(b.x0, y); ctx.lineTo(b.x0 + VS_GRID_W, y); ctx.stroke();
-  }
-  ctx.strokeStyle = b.isCpu ? 'rgba(255,180,120,0.4)' : 'rgba(255,143,196,0.4)';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(b.x0, VS_GRID_Y0, VS_GRID_W, VS_GRID_H);
+  drawBoardTray(b.x0, VS_GRID_Y0, VS_CELL, b.isCpu ? 'rgba(255,180,120,0.5)' : 'rgba(255,143,196,0.5)');
 }
 
+// お邪魔: a gray stone-candy block with the same top-left light as the gummies
 function drawGarbageBlock(x, y, cell) {
-  const s = cell * 0.82;
+  const s = cell * 0.82, rad = cell * 0.18, depth = cell * 0.08;
   ctx.save();
-  ctx.fillStyle = '#5A5A66';
-  ctx.beginPath(); ctx.roundRect(x - s / 2, y - s / 2, s, s, cell * 0.18); ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,0.18)';
-  ctx.beginPath(); ctx.roundRect(x - s / 2 + s * 0.12, y - s / 2 + s * 0.1, s * 0.35, s * 0.2, cell * 0.1); ctx.fill();
-  ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.roundRect(x - s / 2, y - s / 2, s, s, cell * 0.18); ctx.stroke();
+  ctx.translate(x, y);
+  drawJellyBody(s, rad, '#6A6A78', depth);
+  ctx.fillStyle = 'rgba(255,255,255,0.22)';
+  ctx.beginPath(); ctx.roundRect(-s / 2 + s * 0.12, -s / 2 + s * 0.1, s * 0.35, s * 0.18, rad * 0.6); ctx.fill();
+  // little speckles so it reads as "not a gummy"
+  ctx.fillStyle = 'rgba(30,25,40,0.35)';
+  [[-0.18, 0.12], [0.16, -0.02], [0.05, 0.22], [-0.04, -0.12]].forEach(([dx, dy]) => {
+    ctx.beginPath(); ctx.arc(dx * s, dy * s, s * 0.045, 0, Math.PI * 2); ctx.fill();
+  });
   ctx.restore();
 }
 
@@ -3252,10 +3383,7 @@ function mpDrawAvatar(x, y, size) {
 function mpDrawOpponent(p, s, x, y, cell) {
   const w = GRID_COLS * cell, h = GRID_ROWS * cell;
   ctx.save();
-  ctx.fillStyle = 'rgba(0,0,0,0.22)';
-  ctx.beginPath(); ctx.roundRect(x - 4, y - 4, w + 8, h + 8, 8); ctx.fill();
-  ctx.strokeStyle = 'rgba(160,200,255,0.4)'; ctx.lineWidth = 2;
-  ctx.strokeRect(x, y, w, h);
+  drawBoardTray(x, y, cell, 'rgba(160,200,255,0.5)');
   if (s && s.board) ctx.drawImage(mpBoardImage(p.tag, s.board, cell), x, y, w, h);
   // name + score above the board
   const big = cell >= VS_CELL;
@@ -3637,10 +3765,18 @@ function stopHoldRepeat() {
   clearInterval(holdRepeatTimer); holdRepeatTimer = null;
 }
 
+// Long-presses must never open iOS/Android's selection bar or callout menu
+// (the CSS turns selection off too; this catches what CSS misses).
+document.addEventListener('contextmenu', e => { if (e.target.tagName !== 'INPUT') e.preventDefault(); });
+document.addEventListener('selectstart', e => { if (e.target.tagName !== 'INPUT') e.preventDefault(); });
+
 document.querySelectorAll('.ctrl-btn').forEach(btn => {
   const action = btn.dataset.action;
+  const release = () => btn.classList.remove('pressed');
+  ['mouseup', 'mouseleave', 'touchend', 'touchcancel'].forEach(ev => btn.addEventListener(ev, release));
   const press = (e) => {
     e.preventDefault();
+    btn.classList.add('pressed');
     ctrlAction(action);
     if (action === 'down') {
       stopHoldRepeat();

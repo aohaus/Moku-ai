@@ -75,6 +75,7 @@ Mokuball は実装済みだがハブ未公開(準備中)。
   - HTML実装(Battle Royal / Shiri of Moku / Mokuball): `.titleMenuItem`(または相当クラス)は `font-size: 19px; font-weight: 800;` 固定値(`clamp()`にしない)、`padding: 8px 18px;`。コンテナは `margin-top: 10px; gap: 6px;` で中央揃え。
   - canvas実装(Angry Mokumoku): タイトルロゴを基準にメニュー文字サイズを概ね0.38〜0.40倍にする(50px→20px)。太字・中央揃え・選択中はグロー+`▶ `プレフィックス、非選択は低コントラスト。
   - Moyomoyo(2026-10-30〜): タイトル画面をHTMLで作り直した(`#title-screen`。枠いっぱいに、横長は「ロゴ+Moku+進化の列|メニュー」の2列、縦長は1列)。メニューは上の HTML 実装と同じ 19px/800 で、Marathon / ⚔️ Moyo Quest の2つ(各ベストスコアつき)+Moint 残高と今日の分。グミの絵だけ canvas(`#title-art` / 背景の `#title-bg`)で、プレイ中と同じ `drawGummyShape()` を使う。ゲーム内の端末ローカルのランキング(Top 10・名前登録)は廃止(Marathon のベストはハブの Achievements に出る)。古い `moyomoyo-leaderboard` キーは起動時に消す。
+  - Moyomoyo のプレイ画面の見た目(2026-11-05、v1.6.0): グミは立体のゼリー(厚み・上が明るいグラデーション・ツヤ・接地の影。1つずつの `shadowBlur` は使わない=iPhone 7 で重いため)、盤面は縁に段差があって内側がへこんだトレイ(`drawBoardTray()`、Marathon / Moyo Quest / Multiplayer 共通)。操作ボタンは一回り大きく半透明(`--btn`)で、白い SVG アイコン・押すと沈む。iPad 縦では盤面の下に1列で並べる(盤面の縦横比を保つ。以前は縦に引き伸ばされていた)。長押しの文字選択・Copy / Look Up のメニューは CSS(`-webkit-user-select` / `-webkit-touch-callout`)と `selectstart` / `contextmenu` で全体を止める(部屋コードの入力欄だけ除く)。
   - **MK Mobileは対象外**: 現状メニューがテキストリストではなくピルボタン(`▶ START`)のまま(§9の積み残しタスク)。テキストリスト化してから本項のサイズ統一を適用する。
 - **共通コンポーネント**
   - カード(`.card`): 角丸16px、2pxボーダー(アクセントカラー)、内側に1pxの縁取り、hoverで浮き上がる。
