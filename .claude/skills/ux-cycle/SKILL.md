@@ -15,6 +15,34 @@ description: Moku Series の UX 改善サイクル(CLAUDE.md §9)を Producer �
 
 1サイクルで直すのは **1件だけ**。小さく、インパクトの大きいもの(CLAUDE.md §3)。
 
+## 呼び方(`$ARGUMENTS` で決める)
+
+| 呼び方 | いつ | やること |
+| --- | --- | --- |
+| `/ux-cycle` | 手で1回まわす | 0 → 4 を全部 |
+| `/ux-cycle auto` | **毎週木曜の夜のスケジュール実行**(人はいない) | 下の「auto」だけ。人に聞かない |
+| `/ux-cycle resume <サイクルID> [選んだ番号]` | 金曜の朝など、auto の続き | 下の「resume」から 2 → 4 |
+
+### auto(木曜の夜、自動)
+
+人に何も聞かずに、診断までで止める。Claude Code の利用枠が金曜のお昼ごろに戻るので、木曜の夜に軽い診断だけ済ませ、金曜の午前に残りの枠で直す、という分担。
+
+1. `main` の最新から `ux/<YYYY-MM-DD>-weekly` ブランチを作る。
+2. `node scripts/ux-agent-log.js start weekly` → サイクル ID を覚える。`note "scheduled run"` も書く。
+3. `moku-detective` を呼ぶ(貼り付けはない。`ux:smoke`・台帳・前回のログ・コードだけで診断する、と伝える)。
+4. 診断の全文を `ux-cycles/logs/<サイクルID>.md` に保存する(Issue が作れなかった時も残るように)。
+5. ログと診断を commit(trailer `UX-Cycle:` / `UX-Agents: moku-detective` / `UX-Log:`)して `git push -u origin <ブランチ>`。
+6. GitHub Issue を作る(`aohaus/Moku-ai`、タイトル `🦉 UX cycle <サイクルID>: pick one to fix`)。本文: Top3(番号つき・子どもに分かる言葉)、前回の効果、「ここでは確かめられなかったゲーム」、ブランチ名、続け方 `/ux-cycle resume <サイクルID> <番号>`。末尾に GitHub 投稿のフッター。Issue の URL を `note` に書いて commit・push する。
+7. **Fixer・Guardian は呼ばない。コードは直さない。PR は作らない。** 最後の返事は「Top3 の1行ずつ+Issue の URL」だけ(スマホの通知にそのまま出る)。
+8. smoke やエージェントが失敗しても、分かったところまでを Issue にして「失敗: <理由>」と書く(動かなかったことが分かるように)。
+
+### resume(金曜の朝など)
+
+1. `git fetch origin ux/<サイクルID の日付>-weekly` → そのブランチに移る。`node scripts/ux-agent-log.js resume <サイクルID>`。
+2. `ux-cycles/logs/<サイクルID>.md` の Top3 を見せる。番号が引数になければ **AskUserQuestion で「どれを直す?」**。🙋 `decision` を書く。
+3. 管理画面の貼り付けや子どもたちの声が新しくあれば受け取り、Fixer に一緒に渡す。
+4. 下の「2. 直し方」から続ける(PR はこのブランチから。PR を作ったら Issue に URL をコメントして閉じる)。
+
 ## 0. 準備
 
 1. 作業ブランチにいることを確かめる(`main` なら `ux/<YYYY-MM-DD>-<短い名前>` を作る。指定のブランチがあればそれ)。

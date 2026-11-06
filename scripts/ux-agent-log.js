@@ -12,6 +12,7 @@
  *
  *   node scripts/ux-agent-log.js hook                       # stdin = hook JSON (from settings.json)
  *   node scripts/ux-agent-log.js start <short-name>          # begin a cycle → prints the cycle id
+ *   node scripts/ux-agent-log.js resume <cycle-id>           # continue a cycle started elsewhere (e.g. the Thursday run)
  *   node scripts/ux-agent-log.js decision "<question>" "<chosen>" [who]
  *   node scripts/ux-agent-log.js note "<text>"
  *   node scripts/ux-agent-log.js end [PR url]
@@ -98,7 +99,8 @@ function render(cycle) {
     else if (r.type === 'agent_report') {
       out.push('- ' + t + ' ' + (LABEL[r.agent] || r.agent) + ' 完了' + (r.files.length ? '(変更中: ' + r.files.map((f) => '`' + f + '`').join(', ') + ')' : ''));
       out.push('', '  <details><summary>報告</summary>', '', r.report.split('\n').map((l) => '  ' + l).join('\n'), '', '  </details>', '');
-    } else if (r.type === 'decision') out.push('- ' + t + ' 🙋 **' + r.question + '** → ' + r.chosen + (r.who ? '(' + r.who + ')' : ''));
+    } else if (r.type === 'cycle_resume') out.push('- ' + t + ' ⏯ 再開(`' + r.commit + '` / `' + r.branch + '`)');
+    else if (r.type === 'decision') out.push('- ' + t + ' 🙋 **' + r.question + '** → ' + r.chosen + (r.who ? '(' + r.who + ')' : ''));
     else if (r.type === 'note') out.push('- ' + t + ' 📝 ' + r.text);
     else if (r.type === 'cycle_end') out.push('- ' + t + ' ■ 終了' + (r.pr ? '(' + r.pr + ')' : ''));
   });
@@ -117,6 +119,13 @@ function main() {
     fs.writeFileSync(CURRENT, id + '\n');
     append({ type: 'cycle_start' }, id);
     console.log(id);
+  } else if (cmd === 'resume') {
+    const id = args[0];
+    if (!id || !fs.existsSync(path.join(LOG_DIR, id + '.jsonl'))) throw new Error('no log for cycle: ' + id);
+    fs.mkdirSync(path.dirname(CURRENT), { recursive: true });
+    fs.writeFileSync(CURRENT, id + '\n');
+    append({ type: 'cycle_resume' }, id);
+    console.log(id);
   } else if (cmd === 'decision') {
     if (!args[0] || !args[1]) throw new Error('usage: decision "<question>" "<chosen>" [who]');
     append({ type: 'decision', question: args[0], chosen: args[1], who: args[2] || '' });
@@ -128,7 +137,7 @@ function main() {
   } else if (cmd === 'render') {
     process.stdout.write(render(args[0] || currentCycle()));
   } else {
-    console.error('usage: ux-agent-log.js hook | start <name> | decision <q> <chosen> [who] | note <text> | end [pr] | render [cycle]');
+    console.error('usage: ux-agent-log.js hook | start <name> | resume <cycle> | decision <q> <chosen> [who] | note <text> | end [pr] | render [cycle]');
     process.exit(2);
   }
 }
