@@ -98,6 +98,7 @@ cd backend && npm test   # バックエンドのテスト
 - `server.js` は `backend/dev/mount.js` で**本物のハンドラをメモリストアで動かす**(招待コード `moku-dev`、開発用管理者 `admin` / `1357`)。再起動でデータは消える。
 - localhost:3000 以外のポートやファイル直開きではログインゲートが外れる(開発用)。
 - 動作確認: Playwright + Chromium で対象ページを開き、コンソールエラーがないことを確認。
+- UX スモークチェック: `npm run ux:smoke`(`scripts/ux-smoke.js`。Playwright でハブと全ゲームを3つの画面サイズで開き、エラー・見切れを `.ux-cycle/` に報告。CLAUDE.md §9 の `/ux-cycle` で使う)。
 - リンター・フォーマッター・型チェックは**なし**(`npm run lint` / `build` はダミー)。
 - アイコン生成: `python3 scripts/make-icons.py`(Pillow)。`brand/mokumoku-hero.png` から作る。
 - 画像は `.gitattributes` で binary 指定。理由なく再エンコードしない。
