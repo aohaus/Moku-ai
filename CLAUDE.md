@@ -55,7 +55,7 @@ Claude は『Moku Series』の**プロプランナー 兼 クリエイティブ�
 
 - ゲームをワクワクさせる新システム・演出・イベントを提案し、実装する。
 - 市販ゲームのような洗練されたデザイン・アニメーション・効果音で「垢抜け感」を高める。
-- 抽象的なレポートや提案だけのテキストファイル(`README_AI_SUGGESTION.md` 等)は作らない。**そのまま動くコードの変更**として出す(例外: §8 の定期レビューの記録 `reviews/`)。
+- 抽象的なレポートや提案だけのテキストファイル(`README_AI_SUGGESTION.md` 等)は作らない。**そのまま動くコードの変更**として出す(例外: §8 の定期レビューの記録 `reviews/` と §9 の UX サイクルの台帳 `ux-cycles/`)。
 - 1回の変更(PR)は小さく、インパクトの大きいものに絞る。既存コードを省略・短縮しない。
 
 ## 4. デザイン・世界観の絶対ルール
@@ -118,6 +118,25 @@ cd backend && npm test   # アカウントAPIのテスト(AWS不要)
 - **直す時**: 指摘は1件ずつ、ふだんの小さな PR で直す(レビューの PR に修正を混ぜない)。コミットメッセージや PR に指摘の ID(`MR-001` など)を書くと、次のレビューで「解消」を確かめやすい。High は次のレビューを待たずに直す。
 - **過剰な変更をしない**: レビューをきっかけにした全面リファクタリング・フレームワーク導入・設計の作り替えはしない(本ファイル §3・§7)。
 - **テンプレートを変えたら** `REVIEW_TEMPLATE.md` 冒頭の「テンプレート版」を上げる。版が違う回の点数は単純に比べない。
+
+## 9. UX 改善サイクル(`/ux-cycle`、2026-11-06〜)
+
+ゲームの**遊ぶ人の体験**を、小さく継続的に良くするための週1回のサイクル(§8 はコードの健康診断、こちらは体験)。
+AWS re:Invent 2025 の「AIM301: Build an End-to-End SRE Use Case with Bedrock AgentCore」の4エージェント構成を、Claude Code のサブエージェントで小さく真似ている。
+
+| ワークショップ | Moku | 定義 |
+| --- | --- | --- |
+| Supervisor | 🦉 Producer(まとめ役) | `.claude/skills/ux-cycle/SKILL.md`(`/ux-cycle`) |
+| Diagnostic | 🔍 Play Detective(診断。読み取り専用) | `.claude/agents/moku-detective.md` |
+| Remediation | 🛠 Fixer(案を出す・選ばれた案を作る) | `.claude/agents/moku-fixer.md` |
+| Prevention | 🌳 Guardian(同じ種類の問題を仕組みで防ぐ) | `.claude/agents/moku-guardian.md` |
+| AgentCore Gateway | 受け渡しの場所 | 会話+台帳 `ux-cycles/README.md`+PR |
+
+- **流れ**: Detective が Top3 → **子どもたちが1つ選ぶ** → Fixer が直し方を2〜3案 → **子どもたちが選ぶ** → Fixer が作る → Guardian が再発防止 → 台帳に1行+PR(マージは保護者)。AI は選択を代わりにしない(§1 の「AIとの適切な距離感」)。1サイクルで直すのは1件。
+- **Detective の手がかり**: `npm run ux:smoke`(= `node scripts/ux-smoke.js [gameId ...]`。ハブと全ゲームを iPhone 縦・iPad 横・PC の大きさで、ログインした状態で開き、コンソールエラー・ログイン画面への飛ばされ・横スクロール・画面の外に出たボタンを調べてスクリーンショットを撮る。結果は gitignore 済みの `.ux-cycle/<日付>/report.md`)。あれば管理画面のエラー(「Claude Code に渡す情報」)・アクセスログの `play`・子どもたちの声を貼り付けて渡す。
+- **Guardian**: 台帳の「種類」で、同じ種類の問題が2回目以上なら、smoke のチェック / `backend/test/` のテスト / このファイルか SPEC.md のルールのどれか1つを足す。
+- 台帳・PR・コミットに子どもの名前や Player ID を書かない(人数は数で)。
+- 次の段階の候補: 管理者専用の読み取りだけの `GET /admin/ux-digest`(エラーとゲームごとの遊ばれ方をまとめた JSON)で貼り付けをなくす / 週1回のスケジュール実行。
 
 ## 開発履歴について
 
