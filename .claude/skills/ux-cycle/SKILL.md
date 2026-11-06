@@ -29,12 +29,13 @@ description: Moku Series の UX 改善サイクル(CLAUDE.md §9)を Producer �
 
 1. `main` の最新から `ux/<YYYY-MM-DD>-weekly` ブランチを作る。
 2. `node scripts/ux-agent-log.js start weekly` → サイクル ID を覚える。`note "scheduled run"` も書く。
-3. `moku-detective` を呼ぶ(貼り付けはない。`ux:smoke`・台帳・前回のログ・コードだけで診断する、と伝える)。
+3. `moku-detective` を **model `sonnet`** で呼ぶ(トークン節約。貼り付けはない。`ux:smoke`・台帳・前回のログ・コードだけで診断する、と伝える)。
 4. 診断の全文を `ux-cycles/logs/<サイクルID>.md` に保存する(Issue が作れなかった時も残るように)。
 5. ログと診断を commit(trailer `UX-Cycle:` / `UX-Agents: moku-detective` / `UX-Log:`)して `git push -u origin <ブランチ>`。
 6. GitHub Issue を作る(`aohaus/Moku-ai`、タイトル `🦉 UX cycle <サイクルID>: pick one to fix`)。本文: Top3(番号つき・子どもに分かる言葉)、前回の効果、「ここでは確かめられなかったゲーム」、ブランチ名、続け方 `/ux-cycle resume <サイクルID> <番号>`。末尾に GitHub 投稿のフッター。Issue の URL を `note` に書いて commit・push する。
 7. **Fixer・Guardian は呼ばない。コードは直さない。PR は作らない。** 最後の返事は「Top3 の1行ずつ+Issue の URL」だけ(スマホの通知にそのまま出る)。
 8. smoke やエージェントが失敗しても、分かったところまでを Issue にして「失敗: <理由>」と書く(動かなかったことが分かるように)。
+9. **次の週のために入れ替える**(トークン節約。会話を毎週ためないため): `create_session`(source_url `https://github.com/aohaus/Moku-ai`、source_revision `main`、model `claude-sonnet-5-5`、permission_mode `auto`、title `🦉 Moku UX weekly diagnosis (home)`)で新しい専用セッションを作り、`list_triggers` で名前が「Moku UX weekly diagnosis」のスケジュールを探して、`update_trigger` の `persistent_session_id` をその新しいセッションに変える。新しいセッションへの最初の指示は「来週の木曜まで待つ。最初に、前の専用セッション `<このセッションの ID>` を archive_session で閉じる」。入れ替えに失敗しても診断は終わっているので、`note "rotation failed: <理由>"` を書くだけでよい(次の週も今のセッションが起こされる)。
 
 ### resume(金曜の朝など)
 
