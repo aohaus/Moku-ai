@@ -1193,6 +1193,12 @@ footer {
   background: rgba(12,13,22,0.82);
   backdrop-filter: blur(10px);
   border-top: 1px solid rgba(255,255,255,0.08);
+  /* iOS Safari sometimes leaves a fixed bottom bar where the bottom of the
+     screen was before its toolbar collapsed (it floats up with page content
+     showing under it). Its own compositing layer helps, and the script below
+     snaps it back down with --nav-drop when it has drifted. */
+  transform: translate3d(0, var(--nav-drop, 0px), 0);
+  will-change: transform;
 }
 .nav-item {
   appearance: none;
@@ -4608,6 +4614,48 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     try { window.MokuAccount.onStatusChange(function () { load(); }); } catch (e) {}
   }
   if (document.readyState === 'complete') setTimeout(start, 0); else window.addEventListener('load', start);
+})();
+</script>
+<script>
+// Bottom nav: keep it glued to the bottom of the visible screen (iOS Safari).
+// Only Home scrolls the page (the other tabs lock it), and while the page
+// scrolls, Safari's toolbar collapses and expands. Sometimes the fixed bar
+// stays where the bottom used to be, so it floats up over the games. After
+// each scroll or resize, compare the bar's bottom edge with the bottom of
+// the visual viewport, and move it down by the difference. Only downward,
+// and at most 140px (the toolbar's height plus a margin), so an on-screen
+// keyboard or a normal layout never moves it.
+(function () {
+  'use strict';
+  var nav = document.getElementById('bottomNav');
+  if (!nav) return;
+  var vv = window.visualViewport;
+  var drop = 0, raf = 0, settle = 0;
+  function fit() {
+    raf = 0;
+    var bottom = vv ? vv.offsetTop + vv.height : window.innerHeight;
+    var rect = nav.getBoundingClientRect();
+    var gap = bottom - (rect.bottom - drop);   // where the bar would sit without our shift
+    var next = gap > 1 && gap < 140 ? Math.round(gap) : 0;
+    if (next !== drop) {
+      drop = next;
+      nav.style.setProperty('--nav-drop', drop + 'px');
+    }
+  }
+  function schedule() {
+    if (!raf) raf = requestAnimationFrame(fit);
+    clearTimeout(settle);
+    settle = setTimeout(fit, 160);   // once more after the scroll and toolbar animation stop
+  }
+  window.addEventListener('scroll', schedule, { passive: true });
+  window.addEventListener('resize', schedule);
+  window.addEventListener('orientationchange', schedule);
+  window.addEventListener('pageshow', schedule);
+  if (vv) {
+    vv.addEventListener('resize', schedule);
+    vv.addEventListener('scroll', schedule);
+  }
+  schedule();
 })();
 </script>
 </body>
