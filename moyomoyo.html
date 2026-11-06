@@ -662,7 +662,7 @@ body.on-mp #mp-screen { display: flex; }
 </div>
 <div id="mp-toast"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v1.7.1 · Updated Nov 6, 2026</div>
+<div id="buildInfo">v1.8.0 · Updated Nov 6, 2026</div>
 <div id="game-layout">
   <div id="wrapper">
     <canvas id="c"></canvas>
@@ -886,6 +886,7 @@ let grid = [];        // grid[col][row] = stage number | RAINBOW | null
 let piece = null;     // { col, row, rot, s1, s2 } — s1/s2 may be RAINBOW
 let lockedCols = [];  // columns the most recently locked piece occupied
 let nextPair = null;  // { s1, s2 } pre-rolled preview
+let nextPair2 = null; // and the one after it (shown smaller next to NEXT)
 let particles = [];
 let comboText = '';
 let comboTimer = 0;
@@ -992,7 +993,8 @@ function lockPiece() {
 function trySpawnPiece() {
   if (grid[SPAWN_COL][1] !== null || grid[SPAWN_COL][0] !== null) { gameOver(); return; }
   piece = { col: SPAWN_COL, row: 1, rot: 0, s1: nextPair.s1, s2: nextPair.s2 };
-  nextPair = rollPair();
+  nextPair = nextPair2;
+  nextPair2 = rollPair();
   fallTimer = 0;
 }
 
@@ -1466,25 +1468,65 @@ function drawPiece() {
   drawGummyShape(b.x, b.y, CELL * 0.42 * pulse, v2.color, v2.face, 0, 1, v2.legendary, v2.magic);
 }
 
+// The band above the board (2026-11-06): the color order as a hint on the
+// left, NEXT and the piece after it on the right — both in the same dark
+// pills as the rest of the HUD, and off the board so nothing covers it.
+// Portrait tablets put the HUD row and pause button over the top of the
+// canvas, so there the pills are small and sit low in the band; elsewhere
+// the HUD is beside the board and the pills can use the whole band.
+const hudOnTop = window.matchMedia('(orientation: portrait) and (min-width: 601px)');
 function drawNextPreview() {
-  // Top-right of the grid — clear of both the HTML score/best/time text
-  // (top-left) and the pause button (above the canvas entirely). Sized
-  // up with CELL (78/64 ≈ 1.22x) to match the bigger board.
-  const bx = GRID_X0 + GRID_W - 130;
-  const by = GRID_Y0 + 10;
+  const small = hudOnTop.matches;
+  const by = small ? 70 : 16, bh = small ? 54 : 100, cy = by + bh / 2;
+  const r1 = small ? 12 : 21, r2 = small ? 9 : 15, bw = small ? 204 : 280;
+  const bx = GRID_X0 + GRID_W - bw;
   ctx.save();
   ctx.fillStyle = 'rgba(0,0,0,0.28)';
-  ctx.beginPath(); ctx.roundRect(bx, by, 112, 150, 20); ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,0.7)';
-  ctx.font = '16px Arial'; ctx.textAlign = 'center';
-  ctx.fillText('NEXT', bx + 56, by + 24);
+  ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 20); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.font = `bold ${small ? 13 : 19}px Arial`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText('NEXT', bx + (small ? 18 : 22), cy + 1);
+  const div = bx + bw * 0.65;
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(div, by + 12); ctx.lineTo(div, by + bh - 12); ctx.stroke();
+  ctx.textBaseline = 'alphabetic';
   ctx.restore();
-  if (nextPair) {
-    const r = 24;
-    const v1 = stageVisual(nextPair.s1), v2 = stageVisual(nextPair.s2);
-    drawGummyShape(bx + 56, by + 63, r, v1.color, v1.face, 0, 1, false, v1.magic);
-    drawGummyShape(bx + 56, by + 118, r, v2.color, v2.face, 0, 1, false, v2.magic);
-  }
+  drawPairPreview(nextPair, bx + bw * 0.47, cy, r1, 1);
+  drawPairPreview(nextPair2, bx + bw * 0.82, cy, r2, 0.6);
+  if (small) drawGrowHint(GRID_X0 + 198, cy, 13, 5.2);
+  else drawGrowHint(GRID_X0 + 254, cy, 18, 4.2); // a little right: on small phones the score pill reaches over the board's left edge
+}
+// A falling pair as it will appear: s2 on top of s1. alpha < 1 = further away.
+function drawPairPreview(pair, x, cy, r, alpha) {
+  if (!pair) return;
+  const gap = r * 1.85;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  const v1 = stageVisual(pair.s1), v2 = stageVisual(pair.s2);
+  drawGummyShape(x, cy - gap / 2, r, v2.color, v2.face, 0, 1, false, v2.magic);
+  drawGummyShape(x, cy + gap / 2, r, v1.color, v1.face, 0, 1, false, v1.magic);
+  ctx.restore();
+}
+// "GROW  mint › teal › violet › pink › blue": which color a group of 4
+// turns into, as a pill centered on (cx, cy) with gummies of radius r.
+function drawGrowHint(cx, cy, r, spacing = 5.2) {
+  const step = r * spacing, label = r * 4.6, pad = r * 1.2;
+  const w = label + step * (STAGES.length - 1) + r * 2 + pad * 2, h = r * 4.15;
+  const x0 = cx - w / 2;
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  ctx.beginPath(); ctx.roundRect(x0, cy - h / 2, w, h, Math.min(20, h / 2)); ctx.fill();
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.font = `bold ${Math.round(r * 1.0)}px Arial`; ctx.textAlign = 'left';
+  ctx.fillText('GROW', x0 + pad, cy + 1);
+  const gx = x0 + pad + label + r;
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.font = `bold ${Math.round(r * 1.3)}px Arial`; ctx.textAlign = 'center';
+  for (let i = 0; i < STAGES.length - 1; i++) ctx.fillText('›', gx + step * i + step / 2, cy);
+  ctx.textBaseline = 'alphabetic';
+  ctx.restore();
+  STAGES.forEach((st, i) => drawGummyShape(gx + step * i, cy, r, st.color, st.face, 0, 1, false, false));
 }
 
 function drawChainPop() {
@@ -1936,6 +1978,7 @@ function startGame() {
   shakeX = 0; shakeY = 0;
   document.getElementById('pause-btn').textContent = '⏸';
   nextPair = rollPair();
+  nextPair2 = rollPair();
   document.getElementById('hud').style.visibility = 'visible';
   document.getElementById('hud-marathon-info').style.visibility = 'visible';
   document.getElementById('left-col').style.visibility = 'visible';
@@ -2065,6 +2108,7 @@ function newVsBoard(x0, isCpu) {
     chainCount: 0,
     score: 0,
     nextPair: null,
+    nextPair2: null, // the one after nextPair
     lockedCols: [],
     pendingGarbage: 0,
     garbageCols: [], // which columns the next drop (up to VS_GARBAGE_PER_DROP) will land in — kept in sync with pendingGarbage via refreshGarbageCols so the standby preview always matches where it actually lands
@@ -2137,7 +2181,9 @@ function vbLockPiece(b) {
 function vbTrySpawnPiece(b) {
   if (b.grid[VS_SPAWN_COL][1] !== null || b.grid[VS_SPAWN_COL][0] !== null) { b.alive = false; return; }
   b.piece = { col: VS_SPAWN_COL, row: 1, rot: 0, s1: b.nextPair.s1, s2: b.nextPair.s2 };
-  b.nextPair = vbRollPair(b);
+  // rolled in the same order as before (one ahead), so Multiplayer's shared seed still deals everyone the same pieces
+  b.nextPair = b.nextPair2;
+  b.nextPair2 = vbRollPair(b);
   b.fallTimer = 0;
   if (b.isCpu) b.aiTarget = vbAiPickTarget(b);
 }
@@ -2588,7 +2634,7 @@ function vbDrawHud(b, label, enemyType) {
 // mirrors marathon's drawNextPreview placement/style at VS board scale.
 function vbDrawNextPreview(b) {
   if (!b.nextPair) return;
-  const boxW = 60, boxH = 82;
+  const boxW = 96, boxH = 82;
   const bx = b.x0 + VS_GRID_W - boxW - 8;
   const by = VS_GRID_Y0 + 8;
   ctx.save();
@@ -2598,10 +2644,8 @@ function vbDrawNextPreview(b) {
   ctx.font = '11px Arial'; ctx.textAlign = 'center';
   ctx.fillText('NEXT', bx + boxW / 2, by + 14);
   ctx.restore();
-  const r = 14;
-  const v1 = stageVisual(b.nextPair.s1), v2 = stageVisual(b.nextPair.s2);
-  drawGummyShape(bx + boxW / 2, by + 34, r, v1.color, v1.face, 0, 1, false, v1.magic);
-  drawGummyShape(bx + boxW / 2, by + 66, r, v2.color, v2.face, 0, 1, false, v2.magic);
+  drawPairPreview(b.nextPair, bx + 32, by + 50, 13, 1);
+  drawPairPreview(b.nextPair2, bx + 72, by + 52, 9, 0.6);
 }
 
 // Incoming お邪魔, shown as a full-size standby row hovering directly
@@ -2669,6 +2713,7 @@ function drawVs() {
   vbDrawHud(vsP, 'YOU');
   vbDrawHud(vsC, null, currentCpuEnemy().type);
   vbDrawNextPreview(vsP); vbDrawNextPreview(vsC);
+  drawGrowHint(VS_CANVAS_W / 2, 42, 15, 4.6);
   vbDrawIncomingGarbage(vsP); vbDrawIncomingGarbage(vsC);
 
   ctx.textAlign = 'center';
@@ -2807,6 +2852,7 @@ function advanceVsCampaign() {
   cpuLevel++;
   vsC = newVsBoard(VS_C_X0, true);
   vsC.nextPair = vbRollPair();
+  vsC.nextPair2 = vbRollPair();
   vsP.grid = newGrid();
   vsP.piece = null;
   vsP.phase = 'FALL';
@@ -2837,7 +2883,9 @@ function startVsGame() {
   vsP = newVsBoard(VS_P_X0, false);
   vsC = newVsBoard(VS_C_X0, true);
   vsP.nextPair = vbRollPair();
+  vsP.nextPair2 = vbRollPair();
   vsC.nextPair = vbRollPair();
+  vsC.nextPair2 = vbRollPair();
   vsWinnerIsPlayer = false;
   questMoints = { lines: [], capHit: false, last: 0 };
   document.getElementById('pause-btn').textContent = '⏸';
@@ -3287,6 +3335,7 @@ function mpSetupRound() {
   b.rng = MokuRandom.create(room.seed);
   b.onAttack = mpSendAttack;
   b.nextPair = vbRollPair(b);
+  b.nextPair2 = vbRollPair(b);
   mp.r = room.round;
   mp.board = b;
   vsP = b;
@@ -3573,6 +3622,7 @@ function drawMulti() {
   vbDrawIncomingGarbage(b);
   ctx.restore();
   mpDrawOpponents();
+  drawGrowHint(VS_CANVAS_W / 2, 42, 15, 4.6);
 
   ctx.save();
   ctx.textAlign = 'center';
