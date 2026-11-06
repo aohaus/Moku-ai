@@ -69,11 +69,6 @@ body {
    the score/best/time readout so they land inside the card's own
    left/right margin instead of overlapping the puzzle grid. */
 .side-col {
-  display: flex;
-  flex-direction: column;
-  /* Wider gap than before (was 8-18px) — that little clearance made the
-     bottom button an easy mis-tap right after the top one. */
-  gap: clamp(18px, 4.5vw, 40px);
   position: absolute;
   /* Anchored to the bottom of #wrapper (was top: 55%) — the buttons got
      bigger, and from the top they ran off the bottom on short landscape
@@ -81,8 +76,40 @@ body {
   bottom: clamp(12px, 5%, 36px);
   visibility: hidden;
 }
-#left-col { left: clamp(14px, 3vw, 32px); }
-#right-col { right: clamp(14px, 3vw, 32px); }
+#left-col { left: var(--co); }
+#right-col { right: var(--co); }
+/* Left hand: a D-pad without "up" — ◀ ▶ on top, ▼ under the middle */
+.dpad {
+  display: grid;
+  grid-template-columns: repeat(3, var(--pad));
+  grid-template-rows: repeat(2, var(--pad));
+  gap: calc(var(--pad) * 0.08);
+  grid-template-areas: "l hub r" ". d .";
+}
+.dpad .ctrl-btn { width: var(--pad); height: var(--pad); border-radius: 26%; }
+.dpad [data-action="left"] { grid-area: l; }
+.dpad [data-action="right"] { grid-area: r; }
+.dpad [data-action="down"] { grid-area: d; }
+.dpad-hub {
+  grid-area: hub; justify-self: center; align-self: center;
+  width: 46%; height: 46%; border-radius: 50%;
+  background: rgba(255,255,255,0.05);
+  box-shadow: inset 0 3px 5px rgba(20,5,30,0.22), 0 1px 0 rgba(255,255,255,0.08);
+}
+/* Right hand: Turn right (↻, upper right) and Turn left (↺, lower left),
+   staggered like the A / B buttons */
+.rotpad {
+  display: grid;
+  grid-template-columns: repeat(2, var(--rot));
+  grid-template-rows: repeat(2, calc(var(--strip) / 2));
+  column-gap: calc(var(--rot) * 0.1);
+  grid-template-areas: ". a" "b .";
+}
+.rotpad .rot-btn { width: var(--rot); height: var(--rot); border-radius: 50%; }
+.rotpad [data-action="rotR"] { grid-area: a; align-self: start; }
+.rotpad [data-action="rotL"] { grid-area: b; align-self: end; }
+.rot-btn svg { width: 54%; height: 54%; }
+.rotpad [data-action="rotL"] svg { transform: scaleX(-1); }
 .ctrl-btn {
   /* Sized from both vw and vh (not just vw) so the buttons shrink in
      step with the canvas — which is height-bound via dvh — instead of
@@ -95,26 +122,29 @@ body {
   border-radius: 30%;
   display: flex; align-items: center; justify-content: center;
   padding: 0;
-  /* A translucent candy key: light top edge, darker lip at the bottom */
-  background: linear-gradient(180deg, rgba(255,160,200,0.50), rgba(232,80,145,0.40));
-  border: 1.5px solid rgba(255,255,255,0.38);
-  box-shadow: inset 0 2px 0 rgba(255,255,255,0.40), inset 0 -6px 0 rgba(122,20,72,0.30),
-              0 6px 14px rgba(20,5,30,0.30);
+  /* A see-through candy key that melts into the background (2026-11-06:
+     about half as opaque as before): light top edge, darker lip below */
+  background: linear-gradient(180deg, rgba(255,160,200,0.24), rgba(232,80,145,0.16));
+  border: 1.5px solid rgba(255,255,255,0.20);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.22), inset 0 -5px 0 rgba(122,20,72,0.18),
+              0 5px 12px rgba(20,5,30,0.16);
   cursor: pointer;
   touch-action: manipulation;
   transition: transform 0.06s, box-shadow 0.06s, background 0.06s;
 }
+/* Only the turn buttons carry a mark (the D-pad keys explain themselves
+   by where they are), at half-white so it stays quiet */
 .ctrl-btn svg {
   width: 46%; height: 46%; fill: #fff; pointer-events: none;
-  filter: drop-shadow(0 2px 0 rgba(122,20,72,0.45));
+  opacity: 0.5;
 }
 /* .pressed is set from the touch handlers (iOS skips :active when the
    touch's default is prevented) */
 .ctrl-btn:active, .ctrl-btn.pressed {
   transform: translateY(3px);
-  background: linear-gradient(180deg, rgba(255,175,210,0.66), rgba(240,95,158,0.56));
-  box-shadow: inset 0 2px 0 rgba(255,255,255,0.35), inset 0 -2px 0 rgba(122,20,72,0.30),
-              0 2px 6px rgba(20,5,30,0.30);
+  background: linear-gradient(180deg, rgba(255,175,210,0.42), rgba(240,95,158,0.34));
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.22), inset 0 -2px 0 rgba(122,20,72,0.18),
+              0 2px 6px rgba(20,5,30,0.16);
 }
 /* VS mode's wider board runs the falling piece closer to the screen
    edges than marathon's single narrow board does, so the control
@@ -122,10 +152,10 @@ body {
    — lower opacity here so a falling/landed block is still visible
    through the button instead of fully hidden behind it. */
 body.vs-active .ctrl-btn {
-  background: linear-gradient(180deg, rgba(255,160,200,0.34), rgba(232,80,145,0.26));
+  background: linear-gradient(180deg, rgba(255,160,200,0.18), rgba(232,80,145,0.12));
 }
 body.vs-active .ctrl-btn:active, body.vs-active .ctrl-btn.pressed {
-  background: linear-gradient(180deg, rgba(255,175,210,0.52), rgba(240,95,158,0.44));
+  background: linear-gradient(180deg, rgba(255,175,210,0.34), rgba(240,95,158,0.26));
 }
 #wrapper {
   position: relative;
@@ -155,7 +185,24 @@ body.vs-active .ctrl-btn:active, body.vs-active .ctrl-btn.pressed {
    follows from the aspect ratio. (Before 2026-11-05 the height was pinned
    to the screen and max-width squeezed the width, so on a portrait iPad
    the board — and every gummy — was stretched tall.) */
-:root { --btn: clamp(62px, min(13.5vw, 14.5vh), 116px); --arn: 0.9718; --room: 24px; }
+:root {
+  --btn: clamp(62px, min(13.5vw, 14.5vh), 116px);
+  /* Switch-style controls: D-pad keys (--pad) and the two round turn
+     buttons (--rot); --strip is how tall the controls are */
+  /* Landscape: the D-pad (≈3.16 keys wide) must fit in the margin beside
+     the board. --natW is the board's natural width (full height, Marathon's
+     828:852), --gp / --co the layout's side padding and the columns' inset.
+     A key is at most what the margin leaves when the board gives up 10%,
+     and never under 52px; #c below then shrinks the board (by up to 10%)
+     so the keys don't cover it. */
+  --natW: calc((100vh - 24px) * 0.9718);
+  --gp: clamp(16px, 3vw, 40px);
+  --co: clamp(14px, 3vw, 32px);
+  --pad: clamp(52px, min(11.5vw, 12.5vh, (100vw - 2 * var(--gp) - 0.9 * var(--natW)) / 6.32 - (var(--co) + 6px) / 3.16), 100px);
+  --rot: calc(var(--pad) * 1.12);
+  --strip: calc(var(--rot) * 1.62);
+  --arn: 0.9718; --room: 24px;
+}
 #c {
   display: block;
   cursor: pointer;
@@ -164,12 +211,17 @@ body.vs-active .ctrl-btn:active, body.vs-active .ctrl-btn.pressed {
   width: min(100%, calc((100vh - var(--room)) * var(--arn)));
   width: min(100%, calc((100dvh - var(--room)) * var(--arn)));
 }
+@supports (height: 100dvh) { :root { --natW: calc((100dvh - 24px) * 0.9718); } }
+body:not(.vs-active) #c {
+  max-width: max(0.9 * var(--natW), 100vw - 2 * var(--gp) - 2 * (var(--co) + 3.16 * var(--pad) + 6px));
+}
 /* Portrait tablets: the board is width-bound, so there's room under it —
    the buttons go in a row below the board instead of on top of it. */
 @media (orientation: portrait) and (min-width: 601px) {
-  :root { --room: calc(24px + var(--btn) + 28px); }
-  #wrapper { padding-bottom: calc(var(--btn) + 28px); }
-  .side-col { flex-direction: row; bottom: 14px; }
+  :root { --room: calc(24px + var(--strip) + 28px); --pad: clamp(54px, min(11.5vw, 12.5vh), 100px); }
+  body:not(.vs-active) #c { max-width: none; }
+  #wrapper { padding-bottom: calc(var(--strip) + 28px); }
+  .side-col { bottom: 14px; }
   /* the board fills the width, so the score pills go in one row above it */
   #hud-marathon-info { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding-right: 8px; }
   #hud-marathon-info > div { margin-top: 0; }
@@ -544,7 +596,7 @@ body.on-mp #mp-screen { display: flex; }
       <h1 id="title-logo" aria-label="Moyomoyo"></h1>
       <div id="title-tagline">Mokumoku Chain</div>
       <canvas id="title-art" aria-hidden="true"></canvas>
-      <div id="title-howto">Match <b>4+</b> of the same gummy to make it grow!<br><span class="keys">◀ ▶ Move · 🔄 Rotate · ▼ Drop</span></div>
+      <div id="title-howto">Match <b>4+</b> of the same gummy to make it grow!<br><span class="keys">◀ ▶ Move · ▼ Drop · ↺ ↻ Turn</span></div>
     </div>
     <div class="title-side">
       <div class="titleMenu" role="menu">
@@ -610,7 +662,7 @@ body.on-mp #mp-screen { display: flex; }
 </div>
 <div id="mp-toast"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v1.6.0 · Updated Nov 5, 2026</div>
+<div id="buildInfo">v1.8.0 · Updated Nov 6, 2026</div>
 <div id="game-layout">
   <div id="wrapper">
     <canvas id="c"></canvas>
@@ -623,13 +675,21 @@ body.on-mp #mp-screen { display: flex; }
       </div>
       <button id="pause-btn" title="Pause" aria-label="Pause">⏸</button>
     </div>
+    <!-- Switch-style controls (2026-11-06): moving on the left hand,
+         turning on the right hand, like Puyo Puyo on a Nintendo Switch. -->
     <div class="side-col" id="left-col">
-      <button class="ctrl-btn" data-action="left" aria-label="Move left"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.6 4.2a1.4 1.4 0 0 1 2.2 1.2v13.2a1.4 1.4 0 0 1-2.2 1.2L6.3 13.2a1.4 1.4 0 0 1 0-2.4z"/></svg></button>
-      <button class="ctrl-btn" data-action="down" aria-label="Drop"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.2 8.4a1.4 1.4 0 0 1 1.2-2.2h13.2a1.4 1.4 0 0 1 1.2 2.2l-6.6 9.3a1.4 1.4 0 0 1-2.4 0z"/></svg></button>
+      <div class="dpad">
+        <button class="ctrl-btn" data-action="left" aria-label="Move left"></button>
+        <span class="dpad-hub" aria-hidden="true"></span>
+        <button class="ctrl-btn" data-action="right" aria-label="Move right"></button>
+        <button class="ctrl-btn" data-action="down" aria-label="Drop"></button>
+      </div>
     </div>
     <div class="side-col" id="right-col">
-      <button class="ctrl-btn" data-action="right" aria-label="Move right"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.4 4.2a1.4 1.4 0 0 0-2.2 1.2v13.2a1.4 1.4 0 0 0 2.2 1.2l9.3-6.6a1.4 1.4 0 0 0 0-2.4z"/></svg></button>
-      <button class="ctrl-btn" data-action="rotate" aria-label="Rotate"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5a8.5 8.5 0 0 1 7.6 4.7l1.1-1a1 1 0 0 1 1.7.8l-.3 5a1 1 0 0 1-1.1.9l-4.9-.6a1 1 0 0 1-.6-1.7l1.4-1.3A5.6 5.6 0 0 0 6.4 12a1.45 1.45 0 0 1-2.9 0A8.5 8.5 0 0 1 12 3.5zM12 20.5a8.5 8.5 0 0 1-7.4-4.3 1.45 1.45 0 0 1 2.5-1.4 5.6 5.6 0 0 0 7.8 2 1.45 1.45 0 1 1 1.5 2.5 8.4 8.4 0 0 1-4.4 1.2z"/></svg></button>
+      <div class="rotpad">
+        <button class="ctrl-btn rot-btn" data-action="rotR" aria-label="Turn right"><svg viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(90 12 12)"><path d="M12 4.2A7.8 7.8 0 1 1 4.2 12" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/><path d="M0.9 13.2h6.6L4.2 7.9z"/></g></svg></button>
+        <button class="ctrl-btn rot-btn" data-action="rotL" aria-label="Turn left"><svg viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(90 12 12)"><path d="M12 4.2A7.8 7.8 0 1 1 4.2 12" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/><path d="M0.9 13.2h6.6L4.2 7.9z"/></g></svg></button>
+      </div>
     </div>
     <div id="overlay" class="hidden">
       <h1 id="ov-title"></h1>
@@ -826,6 +886,7 @@ let grid = [];        // grid[col][row] = stage number | RAINBOW | null
 let piece = null;     // { col, row, rot, s1, s2 } — s1/s2 may be RAINBOW
 let lockedCols = [];  // columns the most recently locked piece occupied
 let nextPair = null;  // { s1, s2 } pre-rolled preview
+let nextPair2 = null; // and the one after it (shown smaller next to NEXT)
 let particles = [];
 let comboText = '';
 let comboTimer = 0;
@@ -905,9 +966,10 @@ function canPlace(col, row, rot) {
 
 function moveLeft()  { if (piece && canPlace(piece.col - 1, piece.row, piece.rot)) { piece.col--; playSfx('move'); } }
 function moveRight() { if (piece && canPlace(piece.col + 1, piece.row, piece.rot)) { piece.col++; playSfx('move'); } }
-function rotatePiece() {
+// dir -1 = turn left (counter-clockwise, the old single rotate), +1 = turn right
+function rotatePiece(dir = -1) {
   if (!piece) return;
-  const newRot = (piece.rot + 3) % 4; // counter-clockwise
+  const newRot = (piece.rot + (dir > 0 ? 1 : 3)) % 4;
   if (canPlace(piece.col, piece.row, newRot)) { piece.rot = newRot; playSfx('rotate'); return; }
   if (canPlace(piece.col - 1, piece.row, newRot)) { piece.col--; piece.rot = newRot; playSfx('rotate'); return; }
   if (canPlace(piece.col + 1, piece.row, newRot)) { piece.col++; piece.rot = newRot; playSfx('rotate'); return; }
@@ -931,7 +993,8 @@ function lockPiece() {
 function trySpawnPiece() {
   if (grid[SPAWN_COL][1] !== null || grid[SPAWN_COL][0] !== null) { gameOver(); return; }
   piece = { col: SPAWN_COL, row: 1, rot: 0, s1: nextPair.s1, s2: nextPair.s2 };
-  nextPair = rollPair();
+  nextPair = nextPair2;
+  nextPair2 = rollPair();
   fallTimer = 0;
 }
 
@@ -1405,25 +1468,65 @@ function drawPiece() {
   drawGummyShape(b.x, b.y, CELL * 0.42 * pulse, v2.color, v2.face, 0, 1, v2.legendary, v2.magic);
 }
 
+// The band above the board (2026-11-06): the color order as a hint on the
+// left, NEXT and the piece after it on the right — both in the same dark
+// pills as the rest of the HUD, and off the board so nothing covers it.
+// Portrait tablets put the HUD row and pause button over the top of the
+// canvas, so there the pills are small and sit low in the band; elsewhere
+// the HUD is beside the board and the pills can use the whole band.
+const hudOnTop = window.matchMedia('(orientation: portrait) and (min-width: 601px)');
 function drawNextPreview() {
-  // Top-right of the grid — clear of both the HTML score/best/time text
-  // (top-left) and the pause button (above the canvas entirely). Sized
-  // up with CELL (78/64 ≈ 1.22x) to match the bigger board.
-  const bx = GRID_X0 + GRID_W - 130;
-  const by = GRID_Y0 + 10;
+  const small = hudOnTop.matches;
+  const by = small ? 70 : 16, bh = small ? 54 : 100, cy = by + bh / 2;
+  const r1 = small ? 12 : 21, r2 = small ? 9 : 15, bw = small ? 204 : 280;
+  const bx = GRID_X0 + GRID_W - bw;
   ctx.save();
   ctx.fillStyle = 'rgba(0,0,0,0.28)';
-  ctx.beginPath(); ctx.roundRect(bx, by, 112, 150, 20); ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,0.7)';
-  ctx.font = '16px Arial'; ctx.textAlign = 'center';
-  ctx.fillText('NEXT', bx + 56, by + 24);
+  ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 20); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.font = `bold ${small ? 13 : 19}px Arial`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText('NEXT', bx + (small ? 18 : 22), cy + 1);
+  const div = bx + bw * 0.65;
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(div, by + 12); ctx.lineTo(div, by + bh - 12); ctx.stroke();
+  ctx.textBaseline = 'alphabetic';
   ctx.restore();
-  if (nextPair) {
-    const r = 24;
-    const v1 = stageVisual(nextPair.s1), v2 = stageVisual(nextPair.s2);
-    drawGummyShape(bx + 56, by + 63, r, v1.color, v1.face, 0, 1, false, v1.magic);
-    drawGummyShape(bx + 56, by + 118, r, v2.color, v2.face, 0, 1, false, v2.magic);
-  }
+  drawPairPreview(nextPair, bx + bw * 0.47, cy, r1, 1);
+  drawPairPreview(nextPair2, bx + bw * 0.82, cy, r2, 0.6);
+  if (small) drawGrowHint(GRID_X0 + 198, cy, 13, 5.2);
+  else drawGrowHint(GRID_X0 + 254, cy, 18, 4.2); // a little right: on small phones the score pill reaches over the board's left edge
+}
+// A falling pair as it will appear: s2 on top of s1. alpha < 1 = further away.
+function drawPairPreview(pair, x, cy, r, alpha) {
+  if (!pair) return;
+  const gap = r * 1.85;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  const v1 = stageVisual(pair.s1), v2 = stageVisual(pair.s2);
+  drawGummyShape(x, cy - gap / 2, r, v2.color, v2.face, 0, 1, false, v2.magic);
+  drawGummyShape(x, cy + gap / 2, r, v1.color, v1.face, 0, 1, false, v1.magic);
+  ctx.restore();
+}
+// "GROW  mint › teal › violet › pink › blue": which color a group of 4
+// turns into, as a pill centered on (cx, cy) with gummies of radius r.
+function drawGrowHint(cx, cy, r, spacing = 5.2) {
+  const step = r * spacing, label = r * 4.6, pad = r * 1.2;
+  const w = label + step * (STAGES.length - 1) + r * 2 + pad * 2, h = r * 4.15;
+  const x0 = cx - w / 2;
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  ctx.beginPath(); ctx.roundRect(x0, cy - h / 2, w, h, Math.min(20, h / 2)); ctx.fill();
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.font = `bold ${Math.round(r * 1.0)}px Arial`; ctx.textAlign = 'left';
+  ctx.fillText('GROW', x0 + pad, cy + 1);
+  const gx = x0 + pad + label + r;
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.font = `bold ${Math.round(r * 1.3)}px Arial`; ctx.textAlign = 'center';
+  for (let i = 0; i < STAGES.length - 1; i++) ctx.fillText('›', gx + step * i + step / 2, cy);
+  ctx.textBaseline = 'alphabetic';
+  ctx.restore();
+  STAGES.forEach((st, i) => drawGummyShape(gx + step * i, cy, r, st.color, st.face, 0, 1, false, false));
 }
 
 function drawChainPop() {
@@ -1875,6 +1978,7 @@ function startGame() {
   shakeX = 0; shakeY = 0;
   document.getElementById('pause-btn').textContent = '⏸';
   nextPair = rollPair();
+  nextPair2 = rollPair();
   document.getElementById('hud').style.visibility = 'visible';
   document.getElementById('hud-marathon-info').style.visibility = 'visible';
   document.getElementById('left-col').style.visibility = 'visible';
@@ -2004,6 +2108,7 @@ function newVsBoard(x0, isCpu) {
     chainCount: 0,
     score: 0,
     nextPair: null,
+    nextPair2: null, // the one after nextPair
     lockedCols: [],
     pendingGarbage: 0,
     garbageCols: [], // which columns the next drop (up to VS_GARBAGE_PER_DROP) will land in — kept in sync with pendingGarbage via refreshGarbageCols so the standby preview always matches where it actually lands
@@ -2052,9 +2157,9 @@ function vbCanPlace(b, col, row, rot) { return vbSimCanPlace(b.grid, col, row, r
 
 function vbMoveLeft(b)  { if (b.piece && vbCanPlace(b, b.piece.col - 1, b.piece.row, b.piece.rot)) { b.piece.col--; if (!b.isCpu) playSfx('move'); } }
 function vbMoveRight(b) { if (b.piece && vbCanPlace(b, b.piece.col + 1, b.piece.row, b.piece.rot)) { b.piece.col++; if (!b.isCpu) playSfx('move'); } }
-function vbRotate(b) {
+function vbRotate(b, dir = -1) {
   if (!b.piece) return;
-  const newRot = (b.piece.rot + 3) % 4;
+  const newRot = (b.piece.rot + (dir > 0 ? 1 : 3)) % 4;
   if (vbCanPlace(b, b.piece.col, b.piece.row, newRot)) { b.piece.rot = newRot; if (!b.isCpu) playSfx('rotate'); return; }
   if (vbCanPlace(b, b.piece.col - 1, b.piece.row, newRot)) { b.piece.col--; b.piece.rot = newRot; if (!b.isCpu) playSfx('rotate'); return; }
   if (vbCanPlace(b, b.piece.col + 1, b.piece.row, newRot)) { b.piece.col++; b.piece.rot = newRot; if (!b.isCpu) playSfx('rotate'); return; }
@@ -2076,7 +2181,9 @@ function vbLockPiece(b) {
 function vbTrySpawnPiece(b) {
   if (b.grid[VS_SPAWN_COL][1] !== null || b.grid[VS_SPAWN_COL][0] !== null) { b.alive = false; return; }
   b.piece = { col: VS_SPAWN_COL, row: 1, rot: 0, s1: b.nextPair.s1, s2: b.nextPair.s2 };
-  b.nextPair = vbRollPair(b);
+  // rolled in the same order as before (one ahead), so Multiplayer's shared seed still deals everyone the same pieces
+  b.nextPair = b.nextPair2;
+  b.nextPair2 = vbRollPair(b);
   b.fallTimer = 0;
   if (b.isCpu) b.aiTarget = vbAiPickTarget(b);
 }
@@ -2527,7 +2634,7 @@ function vbDrawHud(b, label, enemyType) {
 // mirrors marathon's drawNextPreview placement/style at VS board scale.
 function vbDrawNextPreview(b) {
   if (!b.nextPair) return;
-  const boxW = 60, boxH = 82;
+  const boxW = 96, boxH = 82;
   const bx = b.x0 + VS_GRID_W - boxW - 8;
   const by = VS_GRID_Y0 + 8;
   ctx.save();
@@ -2537,10 +2644,8 @@ function vbDrawNextPreview(b) {
   ctx.font = '11px Arial'; ctx.textAlign = 'center';
   ctx.fillText('NEXT', bx + boxW / 2, by + 14);
   ctx.restore();
-  const r = 14;
-  const v1 = stageVisual(b.nextPair.s1), v2 = stageVisual(b.nextPair.s2);
-  drawGummyShape(bx + boxW / 2, by + 34, r, v1.color, v1.face, 0, 1, false, v1.magic);
-  drawGummyShape(bx + boxW / 2, by + 66, r, v2.color, v2.face, 0, 1, false, v2.magic);
+  drawPairPreview(b.nextPair, bx + 32, by + 50, 13, 1);
+  drawPairPreview(b.nextPair2, bx + 72, by + 52, 9, 0.6);
 }
 
 // Incoming お邪魔, shown as a full-size standby row hovering directly
@@ -2608,6 +2713,7 @@ function drawVs() {
   vbDrawHud(vsP, 'YOU');
   vbDrawHud(vsC, null, currentCpuEnemy().type);
   vbDrawNextPreview(vsP); vbDrawNextPreview(vsC);
+  drawGrowHint(VS_CANVAS_W / 2, 42, 15, 4.6);
   vbDrawIncomingGarbage(vsP); vbDrawIncomingGarbage(vsC);
 
   ctx.textAlign = 'center';
@@ -2621,7 +2727,7 @@ function drawVs() {
   ctx.textAlign = 'center';
   ctx.fillStyle = 'rgba(255,255,255,0.35)';
   ctx.font = '18px Arial';
-  ctx.fillText('◀▶ Move · 🔄 Rotate · ▼ Drop', VS_CANVAS_W / 2, VS_CANVAS_H - VS_BOTTOM_MARGIN);
+  ctx.fillText('◀ ▶ Move · ▼ Drop · ↺ ↻ Turn', VS_CANVAS_W / 2, VS_CANVAS_H - VS_BOTTOM_MARGIN);
   ctx.restore();
 
   if (flashAlpha > 0.01) {
@@ -2746,6 +2852,7 @@ function advanceVsCampaign() {
   cpuLevel++;
   vsC = newVsBoard(VS_C_X0, true);
   vsC.nextPair = vbRollPair();
+  vsC.nextPair2 = vbRollPair();
   vsP.grid = newGrid();
   vsP.piece = null;
   vsP.phase = 'FALL';
@@ -2776,7 +2883,9 @@ function startVsGame() {
   vsP = newVsBoard(VS_P_X0, false);
   vsC = newVsBoard(VS_C_X0, true);
   vsP.nextPair = vbRollPair();
+  vsP.nextPair2 = vbRollPair();
   vsC.nextPair = vbRollPair();
+  vsC.nextPair2 = vbRollPair();
   vsWinnerIsPlayer = false;
   questMoints = { lines: [], capHit: false, last: 0 };
   document.getElementById('pause-btn').textContent = '⏸';
@@ -3226,6 +3335,7 @@ function mpSetupRound() {
   b.rng = MokuRandom.create(room.seed);
   b.onAttack = mpSendAttack;
   b.nextPair = vbRollPair(b);
+  b.nextPair2 = vbRollPair(b);
   mp.r = room.round;
   mp.board = b;
   vsP = b;
@@ -3512,12 +3622,13 @@ function drawMulti() {
   vbDrawIncomingGarbage(b);
   ctx.restore();
   mpDrawOpponents();
+  drawGrowHint(VS_CANVAS_W / 2, 42, 15, 4.6);
 
   ctx.save();
   ctx.textAlign = 'center';
   ctx.fillStyle = 'rgba(255,255,255,0.35)';
   ctx.font = '18px Arial';
-  ctx.fillText('◀▶ Move · 🔄 Rotate · ▼ Drop', VS_CANVAS_W / 2, VS_CANVAS_H - VS_BOTTOM_MARGIN);
+  ctx.fillText('◀ ▶ Move · ▼ Drop · ↺ ↻ Turn', VS_CANVAS_W / 2, VS_CANVAS_H - VS_BOTTOM_MARGIN);
   ctx.restore();
 
   if (mp.flash && mp.flash.timer > 0) {
@@ -3746,14 +3857,16 @@ function ctrlAction(action) {
     if (!vsP || vsP.phase !== 'FALL') return;
     if (action === 'left') vbMoveLeft(vsP);
     else if (action === 'right') vbMoveRight(vsP);
-    else if (action === 'rotate') vbRotate(vsP);
+    else if (action === 'rotL' || action === 'rotate') vbRotate(vsP, -1);
+    else if (action === 'rotR') vbRotate(vsP, 1);
     else if (action === 'down') vbSoftDrop(vsP);
     return;
   }
   if (phase !== 'FALL') return;
   if (action === 'left') moveLeft();
   else if (action === 'right') moveRight();
-  else if (action === 'rotate') rotatePiece();
+  else if (action === 'rotL' || action === 'rotate') rotatePiece(-1);
+  else if (action === 'rotR') rotatePiece(1);
   else if (action === 'down') softDrop();
 }
 
@@ -3853,7 +3966,9 @@ document.addEventListener('keydown', e => {
   if (state !== 'PLAYING') return;
   if (e.key === 'ArrowLeft') ctrlAction('left');
   else if (e.key === 'ArrowRight') ctrlAction('right');
-  else if (e.key === 'ArrowUp' || e.key === ' ') ctrlAction('rotate');
+  // Space / Z turn left (as the old single rotate did), ↑ / X turn right
+  else if (e.key === ' ' || e.key === 'z' || e.key === 'Z') ctrlAction('rotL');
+  else if (e.key === 'ArrowUp' || e.key === 'x' || e.key === 'X') ctrlAction('rotR');
   else if (e.key === 'ArrowDown') ctrlAction('down');
 });
 
