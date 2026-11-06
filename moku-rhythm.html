@@ -389,6 +389,18 @@ canvas#rhythmCanvas {
 .c-great { color: #6EE7A8; }
 .c-miss { color: #FF6B97; }
 .result-best { margin-top: 6px; font-size: 12px; font-weight: 800; color: var(--text-main); }
+/* Moint receipt on the result screen (SPEC.md §13) */
+.moint-box { width: 100%; max-width: 280px; display: flex; flex-direction: column; gap: 3px; padding: 9px 14px; margin: 0 auto 14px;
+  border-radius: 12px; background: rgba(255, 201, 74, 0.10); border: 1px solid rgba(255, 201, 74, 0.35); font-size: 12.5px; text-align: left; }
+.moint-box[hidden] { display: none; }
+.moint-box > div { display: flex; justify-content: space-between; gap: 14px; font-weight: 700; color: rgba(237, 238, 246, 0.85); }
+.moint-box b { color: #FFD86A; white-space: nowrap; }
+.moint-box .moint-total { margin-top: 3px; padding-top: 5px; border-top: 1px solid rgba(255, 216, 106, 0.28); font-size: 14px; color: #FFF; }
+.moint-box p { margin: 2px 0 0; font-size: 11px; font-weight: 700; color: #FFD86A; text-align: center; }
+.moint-box p.is-today { color: rgba(237, 238, 246, 0.55); }
+.moint-box .coin { display: inline-flex; align-items: center; justify-content: center; width: 1.25em; height: 1.25em; margin-right: 5px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #FFF3B0, #FFC94A 55%, #C98A1B); color: #6A4300; font-size: 0.72em; font-weight: 900; vertical-align: -0.2em; }
+
 
 #buildInfo {
   position: fixed;
@@ -403,6 +415,7 @@ canvas#rhythmCanvas {
 body:not(.on-title) #buildInfo { display: none; }
 </style>
 <script src="shared/moku-account.js?v=20261101b" data-mode="background"></script>
+<script src="shared/moku-moint.js?v=20261101b" data-mode="none"></script>
 </head>
 <body class="on-title">
 
@@ -469,12 +482,13 @@ body:not(.on-title) #buildInfo { display: none; }
       <div class="result-counts" id="resultCounts"></div>
       <div class="result-best" id="resultBest"></div>
     </div>
+    <div class="moint-box" id="mointBox" hidden></div>
     <button class="btn-primary" id="replayBtn">▶ Play Again</button>
     <button class="btn-secondary" id="songsBtn">🎵 Choose a Song</button>
   </div>
 </div>
 
-<div id="buildInfo">v1.1.0 · Updated Oct 30, 2026</div>
+<div id="buildInfo">v1.2.0 · Updated Nov 6, 2026</div>
 
 <script>
 (function() {
@@ -1026,7 +1040,9 @@ body:not(.on-title) #buildInfo { display: none; }
     var acc = (counts.perfect + counts.great * 0.6) / total;
     var stars = acc >= 0.9 ? 3 : acc >= 0.7 ? 2 : acc >= 0.4 ? 1 : 0;
     var fullCombo = counts.miss === 0 && counts.perfect + counts.great === notes.length;
+    var prevBest = loadBests()[currentSong.id] || 0;
     var isNew = saveBest(currentSong.id, currentScore);
+    var moints = payMoints(stars, fullCombo, isNew && prevBest > 0);
 
     document.getElementById('resultTitle').textContent = fullCombo ? '🎉 FULL COMBO!' : stars > 0 ? '☕ SONG CLEARED!' : '☕ Nice Try!';
     document.getElementById('resultSong').textContent = currentSong.icon + ' ' + currentSong.title;
@@ -1041,8 +1057,66 @@ body:not(.on-title) #buildInfo { display: none; }
     document.getElementById('resultBest').textContent = isNew && currentScore > 0
       ? '🏆 New Best!'
       : 'Best: ' + (loadBests()[currentSong.id] || 0).toLocaleString();
+    renderMoints(document.getElementById('mointBox'), moints);
     document.getElementById('resultsModal').classList.add('active');
     stopSongAudio();
+  }
+
+  // ============================================================
+  // MOINT REWARDS (SPEC.md §13)
+  // Every song you finish pays by stars (+ full combo / new best), toward the
+  // daily cap (MokuMoint.DAILY_GAME_CAP). Your first 3 stars and first full
+  // combo on each song are one-time rewards outside the cap, remembered in
+  // moku:moku-rhythm:progress (mointClaims).
+  // ============================================================
+  var GAME_ID = 'moku-rhythm';
+  var PROGRESS_KEY = 'moku:moku-rhythm:progress';
+  var MOINT = { stars: [10, 30, 50, 80], fullCombo: 20, newBest: 20, first3Stars: 100, firstFullCombo: 150 };
+  function loadProgress() {
+    try {
+      var p = JSON.parse(localStorage.getItem(PROGRESS_KEY) || 'null');
+      if (p && typeof p === 'object') { if (!p.mointClaims) p.mointClaims = {}; return p; }
+    } catch (e) {}
+    return { version: 1, gameId: GAME_ID, mointClaims: {} };
+  }
+  function saveProgress(p) {
+    p.updatedAt = new Date().toISOString();
+    try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(p)); } catch (e) {}
+  }
+  function mointPay(out, label, amount, capped) {
+    if (!window.MokuMoint || amount <= 0) return 0;
+    var got = MokuMoint.earn(GAME_ID, amount, { capped: capped });
+    if (capped && got < amount) out.capHit = true;
+    if (got) out.lines.push([label, got]);
+    return got;
+  }
+  function payMoints(stars, fullCombo, newBest) {
+    if (!window.MokuMoint) return null;
+    var out = { lines: [], capHit: false };
+    mointPay(out, '★'.repeat(stars) + (stars ? ' ' : '') + 'Song played', MOINT.stars[stars], true);
+    if (fullCombo) mointPay(out, 'Full combo!', MOINT.fullCombo, true);
+    if (newBest) mointPay(out, 'New best!', MOINT.newBest, true);
+    var prog = loadProgress(), id = currentSong.id, changed = false;
+    if (stars === 3 && !prog.mointClaims[id + ':3']) {
+      prog.mointClaims[id + ':3'] = true; changed = true;
+      mointPay(out, 'First ★★★ on ' + currentSong.title + '!', MOINT.first3Stars, false);
+    }
+    if (fullCombo && !prog.mointClaims[id + ':fc']) {
+      prog.mointClaims[id + ':fc'] = true; changed = true;
+      mointPay(out, 'First full combo on ' + currentSong.title + '!', MOINT.firstFullCombo, false);
+    }
+    if (changed) saveProgress(prog);
+    return out;
+  }
+  function renderMoints(el, m) {
+    if (!el) return;
+    if (!m || (!m.lines.length && !m.capHit)) { el.hidden = true; el.innerHTML = ''; return; }
+    var total = m.lines.reduce(function (a, l) { return a + l[1]; }, 0);
+    el.innerHTML = m.lines.map(function (l) { return '<div><span>' + l[0] + '</span><b>+' + l[1] + '</b></div>'; }).join('') +
+      (total ? '<div class="moint-total"><span><i class="coin">M</i>Moints</span><b>+' + total + '</b></div>' : '') +
+      (m.capHit ? '<p>You got all of today\'s Rhythm Cafe Moints! Come back tomorrow.</p>'
+                : '<p class="is-today">Today ' + MokuMoint.earnedToday(GAME_ID) + ' / ' + MokuMoint.DAILY_GAME_CAP + '</p>');
+    el.hidden = false;
   }
 
   // ============================================================

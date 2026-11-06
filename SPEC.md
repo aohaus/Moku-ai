@@ -306,7 +306,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
 - 他のタイトルで Moint を配る・使う場合も同じキーを読み書きする。`balance` は 0 未満にしない。
 - **他のゲームへの展開**(2026-10-25〜、1本ずつ): 相場は「1回遊ぶ(2〜3分)と 50〜150、毎日遊べば 300 Moint の物が1日1個買える」。
   - 配る時は `MokuMoint.earn(gameId, amount)`。毎回もらえる分(勝ち・クリアなど)は**1ゲーム1日 500 まで**(`DAILY_GAME_CAP`)。1回きりの実績は `{ capped: false }` で上限の外。今日の分は `moku:moint:earned` = `{ version: 1, day, games: { gameId: n }, updatedAt }`(クラウドセーブではこの端末の値を使う)。実績を受け取ったかどうかはそのゲーム自身のセーブに記録する(2台で食い違った時、ゲームごとに選ばせるため)。
-  - **ハブの印**: `hub.html` の `CATALOG` に `moint: { how, cap }` を書いたゲームは、タイルの左上に小さい金色のMコインが付き、詳細シートに「Earn Moints」(もらい方の説明。`cap` があれば今日の分 n / 500)が出る。今は Moku Fight / Moku Bridge / Moku Drop / Moyomoyo / MK Mobile / Moku Chess / Moku Word Riddles / Moku Dropper。
+  - **ハブの印**: `hub.html` の `CATALOG` に `moint: { how, cap }` を書いたゲームは、タイルの左上に小さい金色のMコインが付き、詳細シートに「Earn Moints」(もらい方の説明。`cap` があれば今日の分 n / 500)が出る。今は Moku Fight / Moku Bridge / Moku Drop / Moyomoyo / MK Mobile / Moku Chess / Moku Word Riddles / Moku Dropper / Moku Rhythm Cafe / Moku Bento / Moku Future Run。
   - 次の候補: Moku Kart(独自コインがあるので実績だけにするか要相談)など。
 - **Moku Drop**(2026-10-26〜): ビンがいっぱいになった(JAR FULL)時の画面に内訳と今日の分 n / 500。途中で 🔄 でやり直した回は払わない。
   - 毎回(上限 500/日): スコア 100 点ごとに 1(1回で最大 150。コンボで点が大きく伸びるので Moyomoyo より割る数を大きくした)。自己ベスト更新 +30(ベストが 0 の初回は除く)。
@@ -315,6 +315,15 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
   - 毎回(上限 500/日): マラソンはスコア 30 点ごとに 1(最大 150)+全面クリア 100+自己ベスト更新 30。モヨクエストはネズミを倒すごとに 20 / 30 / 40 / 50 / 80(倒した時点で払う。次へ進む画面に「+n Moints」)。
   - 1回きり: 初めて Lv.5 到達 100、初めての全面クリア 300、ネズミごとの初勝利 100 / 150 / 200 / 250 / 500。受け取り済みは `moku:moyomoyo:progress` の `mointClaims`(`lv5` `clear` `boss1`〜`boss5`)。
   - Multiplayer(§14、2026-10-31〜、**上限の外**): 3試合の合計の順位で 1位 500 / 2位 300 / 3位 200 / 4位 100(同点は同じ順位)。もらえるのは1日2セットまで(兄弟の2アカウントで稼げないように)、1つの部屋で1回だけ。記録は同じ progress の `multi = { day, sets, paid: { 部屋のkey: { got, forgetAt } } }`(`paid` は3日で消す)。
+- **Moku Rhythm Cafe**(2026-11-06〜、v1.2.0): 曲が終わった時の結果画面に内訳と今日の分 n / 500。
+  - 毎回(上限 500/日): 星の数で ☆0 10 / ★1 30 / ★2 50 / ★3 80、フルコンボ +20、その曲の自己ベスト更新 +20(その曲が初めての時は除く)。
+  - 1回きり: 曲ごとの初めての ★★★ 100、初めてのフルコンボ 150。受け取り済みは `moku:moku-rhythm:progress` の `mointClaims`(`<曲のid>:3` `<曲のid>:fc`)。
+- **Moku Bento**(2026-11-06〜): お店が閉まった(KITCHEN CLOSED)時の画面に内訳と今日の分。
+  - 毎回(上限 500/日): スコア 100 点ごとに 1(1回で最大 150)、自己ベスト更新 +30(ベストが 0 の初回は除く)。
+  - 1回きり: 1回のお店で初めて 5 / 10 / 20 個のお弁当を出せた 50 / 100 / 200。受け取り済みは `moku:moku-bento:progress` の `mointClaims`(`served5` `served10` `served20`)。
+- **Moku Future Run**(2026-11-06〜、v1.6.0): STAGE CLEAR と GAME OVER の画面に内訳と今日の分。
+  - 毎回(上限 500/日): ステージクリア 30 + 15 × ステージ(45〜90)、ベリー 5 個ごとに 1(最大 30)、自己ベスト更新 +30(初回は除く)。途中で終わった時は 100m ごとに 1(最大 30)。Endless はクリアがないので 50m ごとに 1(最大 150)。
+  - 1回きり: ステージ 1〜4 の初クリア 100 / 150 / 200 / 300。受け取り済みは `moku:moku-future-run:progress` の `mointClaims`(`stage1`〜`stage4`)。
 - **MK Mobile**(2026-10-26〜): MK Mobile 独自のポイント(選手の購入・強化用)はそのまま、Ready!(CPU戦)の結果画面で Moint も払う。
   - 毎回(上限 500/日): 勝ち = 試合の長さ(1分 25 / 3分 60 / 5分 90)× CPU(Easy ×1 / Normal ×1.3 / Hard ×1.6)。無失点の勝ち +10。引き分け 10。負けは 0。
   - 1回きり: CPU の難易度ごとの初勝利 100 / 200 / 300。受け取り済みは `moku:mk-mobile:profile` の `mointClaims`(`win0`〜`win2`)。

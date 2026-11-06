@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <script src="shared/moku-errors.js?v=20261101b"></script>
 <script src="shared/moku-gate.js?v=20261101b"></script>
+<script src="shared/moku-account.js?v=20261101b" data-mode="background"></script>
+<script src="shared/moku-moint.js?v=20261101b" data-mode="none"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>MOKU BENTO - Cozy Kitchen Rush | Moku Series</title>
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
@@ -376,6 +378,17 @@ body {
 }
 
 /* Modals */
+/* Moint receipt on the result screen (SPEC.md §13) */
+.moint-box { width: 100%; max-width: 280px; display: flex; flex-direction: column; gap: 3px; padding: 9px 14px; margin: 0 auto 14px;
+  border-radius: 12px; background: rgba(255, 201, 74, 0.10); border: 1px solid rgba(255, 201, 74, 0.35); font-size: 12.5px; text-align: left; }
+.moint-box[hidden] { display: none; }
+.moint-box > div { display: flex; justify-content: space-between; gap: 14px; font-weight: 700; color: rgba(237, 238, 246, 0.85); }
+.moint-box b { color: #FFD86A; white-space: nowrap; }
+.moint-box .moint-total { margin-top: 3px; padding-top: 5px; border-top: 1px solid rgba(255, 216, 106, 0.28); font-size: 14px; color: #FFF; }
+.moint-box p { margin: 2px 0 0; font-size: 11px; font-weight: 700; color: #FFD86A; text-align: center; }
+.moint-box p.is-today { color: rgba(237, 238, 246, 0.55); }
+.moint-box .coin { display: inline-flex; align-items: center; justify-content: center; width: 1.25em; height: 1.25em; margin-right: 5px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #FFF3B0, #FFC94A 55%, #C98A1B); color: #6A4300; font-size: 0.72em; font-weight: 900; vertical-align: -0.2em; }
 .modal-overlay {
   position: absolute;
   inset: 0;
@@ -759,6 +772,7 @@ body {
       <div class="modal-score-val" id="finalScoreVal">0</div>
       <div class="stats-label" id="newBestLabel" style="color: var(--accent-gold); margin-top: 4px; display: none;">★ NEW HIGH SCORE! ★</div>
     </div>
+    <div class="moint-box" id="mointBox" hidden></div>
     <button class="btn-primary" id="playAgainBtn">▶ Play Again</button>
   </div>
 </div>
@@ -991,6 +1005,7 @@ body {
       var pts = (100 * maxSlots + bonus) * (streak > 1 ? 1 + streak * 0.2 : 1);
       pts = Math.round(pts);
       currentScore += pts;
+      served++;
       scoreEl.textContent = currentScore;
       streakEl.textContent = streak + '🔥';
 
@@ -1032,6 +1047,59 @@ body {
   }
 
   // --- GAME OVER ---
+  // --- MOINT REWARDS (SPEC.md §13) ---
+  // When the kitchen closes: +1 for every 100 points (up to 150) and a new
+  // best, toward the daily cap (MokuMoint.DAILY_GAME_CAP). Serving 5 / 10 /
+  // 20 bentos in one shift for the first time is a one-time reward outside
+  // the cap, remembered in moku:moku-bento:progress (mointClaims).
+  var GAME_ID = 'moku-bento';
+  var PROGRESS_KEY = 'moku:moku-bento:progress';
+  var MOINT = { perPoints: 100, runMax: 150, newBest: 30, served: [[5, 50], [10, 100], [20, 200]] };
+  var served = 0;            // perfect bentos this shift
+  var runBest = bestScore;   // best score before this shift started
+  function loadProgress() {
+    try {
+      var p = JSON.parse(localStorage.getItem(PROGRESS_KEY) || 'null');
+      if (p && typeof p === 'object') { if (!p.mointClaims) p.mointClaims = {}; return p; }
+    } catch (e) {}
+    return { version: 1, gameId: GAME_ID, mointClaims: {} };
+  }
+  function saveProgress(p) {
+    p.updatedAt = new Date().toISOString();
+    try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(p)); } catch (e) {}
+  }
+  function mointPay(out, label, amount, capped) {
+    if (!window.MokuMoint || amount <= 0) return 0;
+    var got = MokuMoint.earn(GAME_ID, amount, { capped: capped });
+    if (capped && got < amount) out.capHit = true;
+    if (got) out.lines.push([label, got]);
+    return got;
+  }
+  function payMoints() {
+    if (!window.MokuMoint || currentScore <= 0) return null;
+    var out = { lines: [], capHit: false };
+    mointPay(out, 'Score ' + currentScore.toLocaleString('en-US'), Math.min(MOINT.runMax, Math.floor(currentScore / MOINT.perPoints)), true);
+    if (currentScore > runBest && runBest > 0) mointPay(out, 'New high score!', MOINT.newBest, true);
+    var prog = loadProgress(), changed = false;
+    MOINT.served.forEach(function (m) {
+      if (served < m[0] || prog.mointClaims['served' + m[0]]) return;
+      prog.mointClaims['served' + m[0]] = true; changed = true;
+      mointPay(out, 'First ' + m[0] + ' bentos in one shift!', m[1], false);
+    });
+    if (changed) saveProgress(prog);
+    return out;
+  }
+  function renderMoints(el, m) {
+    if (!el) return;
+    if (!m || (!m.lines.length && !m.capHit)) { el.hidden = true; el.innerHTML = ''; return; }
+    var total = m.lines.reduce(function (a, l) { return a + l[1]; }, 0);
+    el.innerHTML = m.lines.map(function (l) { return '<div><span>' + l[0] + '</span><b>+' + l[1] + '</b></div>'; }).join('') +
+      (total ? '<div class="moint-total"><span><i class="coin">M</i>Moints</span><b>+' + total + '</b></div>' : '') +
+      (m.capHit ? '<p>You got all of today\'s Moku Bento Moints! Come back tomorrow.</p>'
+                : '<p class="is-today">Today ' + MokuMoint.earnedToday(GAME_ID) + ' / ' + MokuMoint.DAILY_GAME_CAP + '</p>');
+    el.hidden = false;
+  }
+
   function triggerGameOver() {
     isGameOver = true;
     playSound('fail');
@@ -1042,6 +1110,7 @@ body {
 
     if (finalVal) finalVal.textContent = currentScore;
     if (newBest) newBest.style.display = (currentScore >= bestScore && currentScore > 0) ? 'block' : 'none';
+    renderMoints(document.getElementById('mointBox'), payMoints());
     if (modal) modal.classList.add('active');
 
     try {
@@ -1052,6 +1121,8 @@ body {
 
   function resetGame() {
     currentScore = 0;
+    served = 0;
+    runBest = bestScore;
     streak = 0;
     orderCount = 0;
     isGameOver = false;

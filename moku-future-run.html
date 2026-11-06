@@ -228,6 +228,17 @@
   .run-record-line {
     font-size: 12px; font-weight: 800; color: #FDE68A; margin-top: 10px;
   }
+  /* Moint receipt on the result screens (SPEC.md §13) */
+  .moint-box { max-width: 300px; display: flex; flex-direction: column; gap: 3px; padding: 9px 14px; margin: 12px auto 0;
+    border-radius: 12px; background: rgba(255,201,74,0.10); border: 1px solid rgba(255,201,74,0.35); font-size: 12.5px; text-align: left; }
+  .moint-box[hidden] { display: none; }
+  .moint-box > div { display: flex; justify-content: space-between; gap: 14px; font-weight: 700; color: rgba(237,238,246,0.85); }
+  .moint-box b { color: #FFD86A; white-space: nowrap; }
+  .moint-box .moint-total { margin-top: 3px; padding-top: 5px; border-top: 1px solid rgba(255,216,106,0.28); font-size: 14px; color: #FFF; }
+  .moint-box p { margin: 2px 0 0; font-size: 11px; font-weight: 700; color: #FFD86A; text-align: center; }
+  .moint-box p.is-today { color: rgba(237,238,246,0.55); }
+  .moint-box .coin { display: inline-flex; align-items: center; justify-content: center; width: 1.25em; height: 1.25em; margin-right: 5px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #FFF3B0, #FFC94A 55%, #C98A1B); color: #6A4300; font-size: 0.72em; font-weight: 900; vertical-align: -0.2em; }
   .hud-powerup-bar {
     margin-top: 6px; display: none; align-items: center; gap: 8px;
     background: rgba(10, 11, 22, 0.85); border: 1.5px solid var(--accent-amber);
@@ -480,7 +491,7 @@
 <!-- Title Frame Elements per SPEC.md -->
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">Moku Future Run v1.5.1 · Updated Oct 30, 2026</div>
+<div id="buildInfo">Moku Future Run v1.6.0 · Updated Nov 6, 2026</div>
 
 <!-- Title Screen Overlay -->
 <div class="screen-overlay" id="titleScreen">
@@ -618,6 +629,7 @@
       </div>
     </div>
     <div class="run-record-line" id="goRunRecord"></div>
+    <div class="moint-box" id="goMoints" hidden></div>
 
     <div class="modal-btn-row">
       <button class="btn-start" id="btnRetryRun" style="padding:12px 32px; font-size:15px; background:linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); box-shadow:0 6px 20px rgba(239,68,68,0.5);">TRY AGAIN ↺</button>
@@ -649,6 +661,7 @@
       </div>
     </div>
     <div class="run-record-line" id="scRunRecord"></div>
+    <div class="moint-box" id="scMoints" hidden></div>
 
     <div class="modal-btn-row">
       <button class="btn-celebrate-next" id="btnNextStage">NEXT STAGE ▶</button>
@@ -2731,6 +2744,58 @@ function stopRainEffect() {
   }
 }
 
+// --- Moint rewards (SPEC.md §13) ---
+// Toward the daily cap (MokuMoint.DAILY_GAME_CAP): clearing a stage (30 + 15 ×
+// stage), +1 for every 5 berries (up to 30), and a new high score. A run that
+// ends early pays +1 for every 100 m (up to 30); Endless pays +1 for every 50 m
+// (up to 150), since it never "clears". The first clear of each stage is a
+// one-time reward outside the cap, remembered in progress.mointClaims.
+const GAME_ID = 'moku-future-run';
+const MOINT = { clearBase: 30, clearStep: 15, berriesPer: 5, berriesMax: 30, newBest: 30,
+  failPer: 100, failMax: 30, endlessPer: 50, endlessMax: 150, firstClear: { 1: 100, 2: 150, 3: 200, 4: 300 } };
+function mointPay(out, label, amount, capped) {
+  if (!window.MokuMoint || amount <= 0) return 0;
+  const got = MokuMoint.earn(GAME_ID, amount, { capped });
+  if (capped && got < amount) out.capHit = true;
+  if (got) out.lines.push([label, got]);
+  return got;
+}
+// call before progress.highScore is updated
+function payMoints(cleared) {
+  if (!window.MokuMoint) return null;
+  const out = { lines: [], capHit: false };
+  const stage = STAGES[state.stageKey] || STAGES[1];
+  const meters = Math.round(state.distance);
+  if (cleared && typeof stage.id === 'number') {
+    mointPay(out, stage.name + ' cleared', MOINT.clearBase + MOINT.clearStep * stage.id, true);
+  } else if (stage.id === 'endless') {
+    mointPay(out, meters.toLocaleString('en-US') + ' m run', Math.min(MOINT.endlessMax, Math.floor(meters / MOINT.endlessPer)), true);
+  } else {
+    mointPay(out, meters.toLocaleString('en-US') + ' m run', Math.min(MOINT.failMax, Math.floor(meters / MOINT.failPer)), true);
+  }
+  mointPay(out, state.berriesCollected + ' berries', Math.min(MOINT.berriesMax, Math.floor(state.berriesCollected / MOINT.berriesPer)), true);
+  if (state.score > progress.highScore && progress.highScore > 0) mointPay(out, 'New high score!', MOINT.newBest, true);
+  if (cleared && MOINT.firstClear[stage.id]) {
+    if (!progress.mointClaims) progress.mointClaims = {};
+    const key = 'stage' + stage.id;
+    if (!progress.mointClaims[key]) {
+      progress.mointClaims[key] = true;   // saved with the rest of progress right after
+      mointPay(out, 'First clear: ' + stage.name + '!', MOINT.firstClear[stage.id], false);
+    }
+  }
+  return out;
+}
+function renderMoints(el, m) {
+  if (!el) return;
+  if (!m || (!m.lines.length && !m.capHit)) { el.hidden = true; el.innerHTML = ''; return; }
+  const total = m.lines.reduce((a, l) => a + l[1], 0);
+  el.innerHTML = m.lines.map(l => '<div><span>' + l[0] + '</span><b>+' + l[1] + '</b></div>').join('') +
+    (total ? '<div class="moint-total"><span><i class="coin">M</i>Moints</span><b>+' + total + '</b></div>' : '') +
+    (m.capHit ? '<p>You got all of today\'s Future Run Moints! Come back tomorrow.</p>'
+              : '<p class="is-today">Today ' + MokuMoint.earnedToday(GAME_ID) + ' / ' + MokuMoint.DAILY_GAME_CAP + '</p>');
+  el.hidden = false;
+}
+
 function triggerGameOver(reason) {
   state.running = false;
   sounds.play('fail');
@@ -2738,6 +2803,7 @@ function triggerGameOver(reason) {
   stopCelebrationEffect();
   startRainEffect();
 
+  const goMoints = payMoints(false);
   if (state.score > progress.highScore) {
     progress.highScore = state.score;
   }
@@ -2747,6 +2813,7 @@ function triggerGameOver(reason) {
 
   document.getElementById('hud').classList.add('hidden');
   document.getElementById('goRunRecord').textContent = runRecordText();
+  renderMoints(document.getElementById('goMoints'), goMoints);
   lockOverlayInput(document.getElementById('gameOverScreen'));
   document.getElementById('gameOverReason').textContent = reason;
   // 白黒コースでは色で見分けられないので、明るさで説明する
@@ -2768,6 +2835,7 @@ function triggerStageClear() {
   startCelebrationEffect();
 
   const curStage = STAGES[state.stageKey];
+  const scMoints = payMoints(true);
   if (typeof curStage.id === 'number' && curStage.id >= progress.unlockedStages) {
     progress.unlockedStages = Math.min(5, curStage.id + 1);
   }
@@ -2780,6 +2848,7 @@ function triggerStageClear() {
 
   document.getElementById('hud').classList.add('hidden');
   document.getElementById('scRunRecord').textContent = runRecordText();
+  renderMoints(document.getElementById('scMoints'), scMoints);
   lockOverlayInput(document.getElementById('stageClearScreen'));
   document.getElementById('clearStageName').textContent = curStage.name + ' Cleared!';
   document.getElementById('scScore').textContent = state.score.toLocaleString();
