@@ -56,8 +56,17 @@ async function isUp() {
   try { return (await fetch(BASE + '/api/health')).ok; } catch (e) { return false; }
 }
 
+// A fresh checkout (e.g. the weekly scheduled run) may not have run
+// `npm install` yet; server.js needs express. Install once if it's missing.
+function ensureDeps() {
+  try { require.resolve('express', { paths: [ROOT] }); return; } catch (e) { /* install below */ }
+  console.log('node_modules missing: running npm install …');
+  require('child_process').execSync('npm install --no-audit --no-fund --silent', { cwd: ROOT, stdio: 'inherit' });
+}
+
 async function startServer() {
   if (await isUp()) return null;
+  ensureDeps();
   const child = spawn(process.execPath, ['server.js'], { cwd: ROOT, stdio: 'ignore' });
   for (let i = 0; i < 50; i++) {
     if (await isUp()) return child;
