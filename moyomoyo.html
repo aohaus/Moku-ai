@@ -93,8 +93,8 @@ body {
 .dpad-hub {
   grid-area: hub; justify-self: center; align-self: center;
   width: 46%; height: 46%; border-radius: 50%;
-  background: rgba(255,255,255,0.08);
-  box-shadow: inset 0 3px 5px rgba(20,5,30,0.35), 0 1px 0 rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.05);
+  box-shadow: inset 0 3px 5px rgba(20,5,30,0.22), 0 1px 0 rgba(255,255,255,0.08);
 }
 /* Right hand: Turn right (↻, upper right) and Turn left (↺, lower left),
    staggered like the A / B buttons */
@@ -122,26 +122,29 @@ body {
   border-radius: 30%;
   display: flex; align-items: center; justify-content: center;
   padding: 0;
-  /* A translucent candy key: light top edge, darker lip at the bottom */
-  background: linear-gradient(180deg, rgba(255,160,200,0.50), rgba(232,80,145,0.40));
-  border: 1.5px solid rgba(255,255,255,0.38);
-  box-shadow: inset 0 2px 0 rgba(255,255,255,0.40), inset 0 -6px 0 rgba(122,20,72,0.30),
-              0 6px 14px rgba(20,5,30,0.30);
+  /* A see-through candy key that melts into the background (2026-11-06:
+     about half as opaque as before): light top edge, darker lip below */
+  background: linear-gradient(180deg, rgba(255,160,200,0.24), rgba(232,80,145,0.16));
+  border: 1.5px solid rgba(255,255,255,0.20);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.22), inset 0 -5px 0 rgba(122,20,72,0.18),
+              0 5px 12px rgba(20,5,30,0.16);
   cursor: pointer;
   touch-action: manipulation;
   transition: transform 0.06s, box-shadow 0.06s, background 0.06s;
 }
+/* Only the turn buttons carry a mark (the D-pad keys explain themselves
+   by where they are), at half-white so it stays quiet */
 .ctrl-btn svg {
   width: 46%; height: 46%; fill: #fff; pointer-events: none;
-  filter: drop-shadow(0 2px 0 rgba(122,20,72,0.45));
+  opacity: 0.5;
 }
 /* .pressed is set from the touch handlers (iOS skips :active when the
    touch's default is prevented) */
 .ctrl-btn:active, .ctrl-btn.pressed {
   transform: translateY(3px);
-  background: linear-gradient(180deg, rgba(255,175,210,0.66), rgba(240,95,158,0.56));
-  box-shadow: inset 0 2px 0 rgba(255,255,255,0.35), inset 0 -2px 0 rgba(122,20,72,0.30),
-              0 2px 6px rgba(20,5,30,0.30);
+  background: linear-gradient(180deg, rgba(255,175,210,0.42), rgba(240,95,158,0.34));
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.22), inset 0 -2px 0 rgba(122,20,72,0.18),
+              0 2px 6px rgba(20,5,30,0.16);
 }
 /* VS mode's wider board runs the falling piece closer to the screen
    edges than marathon's single narrow board does, so the control
@@ -149,10 +152,10 @@ body {
    — lower opacity here so a falling/landed block is still visible
    through the button instead of fully hidden behind it. */
 body.vs-active .ctrl-btn {
-  background: linear-gradient(180deg, rgba(255,160,200,0.34), rgba(232,80,145,0.26));
+  background: linear-gradient(180deg, rgba(255,160,200,0.18), rgba(232,80,145,0.12));
 }
 body.vs-active .ctrl-btn:active, body.vs-active .ctrl-btn.pressed {
-  background: linear-gradient(180deg, rgba(255,175,210,0.52), rgba(240,95,158,0.44));
+  background: linear-gradient(180deg, rgba(255,175,210,0.34), rgba(240,95,158,0.26));
 }
 #wrapper {
   position: relative;
@@ -659,7 +662,7 @@ body.on-mp #mp-screen { display: flex; }
 </div>
 <div id="mp-toast"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v1.7.0 · Updated Nov 6, 2026</div>
+<div id="buildInfo">v1.7.1 · Updated Nov 6, 2026</div>
 <div id="game-layout">
   <div id="wrapper">
     <canvas id="c"></canvas>
@@ -676,10 +679,10 @@ body.on-mp #mp-screen { display: flex; }
          turning on the right hand, like Puyo Puyo on a Nintendo Switch. -->
     <div class="side-col" id="left-col">
       <div class="dpad">
-        <button class="ctrl-btn" data-action="left" aria-label="Move left"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.6 4.2a1.4 1.4 0 0 1 2.2 1.2v13.2a1.4 1.4 0 0 1-2.2 1.2L6.3 13.2a1.4 1.4 0 0 1 0-2.4z"/></svg></button>
+        <button class="ctrl-btn" data-action="left" aria-label="Move left"></button>
         <span class="dpad-hub" aria-hidden="true"></span>
-        <button class="ctrl-btn" data-action="right" aria-label="Move right"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.4 4.2a1.4 1.4 0 0 0-2.2 1.2v13.2a1.4 1.4 0 0 0 2.2 1.2l9.3-6.6a1.4 1.4 0 0 0 0-2.4z"/></svg></button>
-        <button class="ctrl-btn" data-action="down" aria-label="Drop"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.2 8.4a1.4 1.4 0 0 1 1.2-2.2h13.2a1.4 1.4 0 0 1 1.2 2.2l-6.6 9.3a1.4 1.4 0 0 1-2.4 0z"/></svg></button>
+        <button class="ctrl-btn" data-action="right" aria-label="Move right"></button>
+        <button class="ctrl-btn" data-action="down" aria-label="Drop"></button>
       </div>
     </div>
     <div class="side-col" id="right-col">
