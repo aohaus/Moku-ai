@@ -141,7 +141,7 @@ AWS re:Invent 2025 の「AIM301: Build an End-to-End SRE Use Case with Bedrock A
   - コミットには trailer `UX-Cycle:` / `UX-Agents:` / `UX-Log:` を付ける。`git log --grep "UX-Cycle:"` でエージェント経由の改修だけを一覧でき、`node scripts/ux-agent-log.js render <サイクルID>` で1サイクルの流れを Markdown で読める(PR の本文にも貼る)。
   - ログは書き換え・削除をしない(まちがいは `note` で訂正)。
 - 台帳・ログ・PR・コミットに子どもの名前や Player ID を書かない(人数は数で)。
-- **毎週木曜の夜に自動で前半だけ**(2026-11-06〜、木曜 20:47 マレーシア時間): Claude Code のスケジュール実行が、診断専用のクラウドセッション「🦉 Moku UX weekly diagnosis (home)」(リポジトリつきで立ち上げてあるので、3人のエージェント・`/ux-cycle`・ログの hook がそろっている。新しいセッションを毎回作る方式は、リポジトリが付かず使えなかった)を起こして `/ux-cycle auto` を動かし、smoke+Detective の診断を `ux/<日付>-weekly` ブランチ(`ux-cycles/logs/<サイクルID>.md` と `.jsonl`)と GitHub Issue「🦉 UX cycle …: pick one to fix」に残して、スマホに通知する。直すのは人が選んでから(金曜の午前に `/ux-cycle resume <サイクルID> <番号>`)。Claude Code の利用枠が金曜のお昼ごろに戻るので、木曜の夜は軽い診断だけ、金曜の午前に残りの枠で直す分担。
+- **毎週木曜の夜に自動で前半だけ**(2026-11-06〜、木曜 18:47 マレーシア時間): Claude Code のスケジュール実行が、診断専用のクラウドセッション「🦉 Moku UX weekly diagnosis (home)」(リポジトリつきで立ち上げてあるので、3人のエージェント・`/ux-cycle`・ログの hook がそろっている。新しいセッションを毎回作る方式は、リポジトリが付かず使えなかった)を起こして `/ux-cycle auto` を動かし、smoke+Detective の診断を `ux/<日付>-weekly` ブランチ(`ux-cycles/logs/<サイクルID>.md` と `.jsonl`)と GitHub Issue「🦉 UX cycle …: pick one to fix」に残して、スマホに通知する。直すのは人が選んでから(金曜の午前に `/ux-cycle resume <サイクルID> <番号>`)。Claude Code の利用枠が金曜のお昼ごろに戻るので、木曜の夜は軽い診断だけ、金曜の午前に残りの枠で直す分担。
   - **動いているかの確かめ方**: 毎週木曜の夜〜金曜の朝にスマホの通知と Issue が来ているか。来ていなければ Claude Code に「UX の定期実行の最後の実行」を聞く(スケジュールの最後の実行と、専用セッションの記録を見られる)。専用セッションがなくなった・ずっと失敗する時は、リポジトリつきのセッションを作り直して、スケジュールの宛先をそのセッションにする。`ux-cycles/logs/` にはブランチがマージされた週の分だけが入る。
   - 自動の診断が見られないもの: 管理画面のデータ(エラー・アクセスログ。resume の時に貼り付ける)と、クラウドから CDN に届かない 3D のゲーム。
 - 次の段階の候補: 管理者専用の読み取りだけの `GET /admin/ux-digest`(エラーとゲームごとの遊ばれ方をまとめた JSON)で、自動の診断でも管理画面のデータを使えるようにする。
