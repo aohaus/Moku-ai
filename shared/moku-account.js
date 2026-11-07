@@ -1153,9 +1153,9 @@
     var u = readJSONKey(UPDATE_KEY);
     if (!u || !u.at) return '';
     var parts = ['Updated <b>' + esc(fmtWhen(u.at)) + '</b> · about <b>' + esc(fmtBytes(u.bytes)) + '</b>'];
-    if (u.newest) parts.push('Newest game: <b>' + esc(u.newest.name) + ' ' + esc(u.newest.v) + '</b> (' + esc(u.newest.date) + ')');
+    // Each game's version is shown in its My Games row (hub.html), not here.
     if (u.changed && u.changed.length) {
-      var list = u.changed.slice(0, 3).map(function (c) { return esc(c.name) + ' ' + esc(c.v); }).join(', ');
+      var list = u.changed.slice(0, 3).map(function (c) { return esc(c.name); }).join(', ');
       parts.push('New since last time: <b>' + list + '</b>' + (u.changed.length > 3 ? ' and ' + (u.changed.length - 3) + ' more' : ''));
     } else if (u.compared) {
       parts.push('No game changed since last time.');

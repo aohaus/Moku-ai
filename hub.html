@@ -1445,6 +1445,9 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
 .me-row-main b { font-size: 14px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .me-row-main span { font-size: 12px; font-weight: 600; color: rgba(237,238,246,0.62); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .me-row-side { flex: none; font-size: 11.5px; font-weight: 700; color: rgba(237,238,246,0.5); text-align: right; }
+/* The game's version on this device (from the last "Get the latest games &
+   updates"; shared/moku-account.js keeps it in mokuhub:update:versions). */
+.me-row-side small { display: block; margin-top: 3px; font-size: 10.5px; font-weight: 600; color: rgba(237,238,246,0.32); }
 .me-best { flex: none; font-size: 15px; font-weight: 800; color: #FFE27A; white-space: nowrap; }
 .me-empty { grid-column: 1 / -1; padding: 14px; font-size: 13px; font-weight: 600; color: rgba(237,238,246,0.55); text-align: center; }
 
@@ -3632,12 +3635,17 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     try { savedAt = (window.MokuAccount && window.MokuAccount.getSavedAt()) || {}; } catch (e) {}
     var games = [];
     try { games = saveSummary(savedAt); } catch (e) {}
+    var versions = {};
+    try { versions = JSON.parse(localStorage.getItem('mokuhub:update:versions') || '{}') || {}; } catch (e) {}
     var list = document.getElementById('meGames');
     list.textContent = '';
     games.forEach(function (g) {
       var row = meRow('button', g, g.icon, g.name, g.summary);
-      row.setAttribute('aria-label', g.name + ': ' + g.summary);
-      row.appendChild(el('span', 'me-row-side', g.savedAt ? relTime(g.savedAt) : ''));
+      var ver = CATALOG[g.card] ? versions[CATALOG[g.card].gameId + '.html'] : '';
+      row.setAttribute('aria-label', g.name + ': ' + g.summary + (ver ? ' (' + ver + ')' : ''));
+      var side = el('span', 'me-row-side', g.savedAt ? relTime(g.savedAt) : '');
+      if (ver) side.appendChild(el('small', null, ver));
+      row.appendChild(side);
       row.addEventListener('click', function () { if (CATALOG[g.card]) openSheet(g.card, row); });
       list.appendChild(row);
     });
