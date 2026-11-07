@@ -126,6 +126,11 @@
     transform: translateY(-4px); box-shadow: 0 8px 24px rgba(168,85,247,0.4);
   }
   .stage-icon { font-size: 26px; margin-bottom: 4px; }
+  /* Stage 5 (HARD): golden frame; locked until Stage 4 is cleared */
+  .stage-card.hard { border-color: rgba(253, 186, 116, 0.55); }
+  .stage-card.hard .stage-name::after { content: ' ⭐ HARD'; color: #FDBA74; font-size: 10px; }
+  .stage-card.locked { opacity: 0.5; border-style: dashed; }
+  .stage-card.locked:hover { transform: none; box-shadow: none; background: rgba(255,255,255,0.06); border-color: rgba(253, 186, 116, 0.55); }
   /* Short phones (iPhone SE etc.): keep the whole title menu on screen */
   @media (max-height: 700px) {
     .title-logo-container { margin-bottom: 10px; }
@@ -322,6 +327,15 @@
   .modal-btn-row {
     display: flex; gap: 10px; justify-content: center; margin-top: 18px;
   }
+  /* Results with a Moint receipt are taller than a phone screen: keep TRY AGAIN / NEXT / MENU
+     pinned to the bottom of the window instead of below the fold */
+  .modal-fail .modal-btn-row, .modal-celebrate .modal-btn-row {
+    position: sticky; bottom: -24px; z-index: 3;
+    margin: 14px -24px -24px; padding: 12px 24px 18px;
+    border-radius: 0 0 20px 20px;
+  }
+  .modal-fail .modal-btn-row { background: linear-gradient(180deg, rgba(14,12,18,0) 0%, rgba(14,12,18,0.97) 30%); }
+  .modal-celebrate .modal-btn-row { background: linear-gradient(180deg, rgba(30,20,55,0) 0%, rgba(30,20,55,0.97) 30%); }
 
   /* Celebration Modal (Stage Clear - Full Celebration Mode!) */
   #stageClearScreen {
@@ -491,7 +505,7 @@
 <!-- Title Frame Elements per SPEC.md -->
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">Moku Future Run v1.6.0 · Updated Nov 6, 2026</div>
+<div id="buildInfo">Moku Future Run v1.7.0 · Updated Nov 7, 2026</div>
 
 <!-- Title Screen Overlay -->
 <div class="screen-overlay" id="titleScreen">
@@ -521,6 +535,11 @@
       <div class="stage-icon">✏️</div>
       <div class="stage-name">Stage 4</div>
       <div class="stage-target">Pencil Sketch Town (3,000m)</div>
+    </div>
+    <div class="stage-card hard" data-stage="5">
+      <div class="stage-icon">⛈️</div>
+      <div class="stage-name">Stage 5</div>
+      <div class="stage-target" id="stage5Target">Thunder Trail (3,500m)</div>
     </div>
     <div class="stage-card" data-stage="endless">
       <div class="stage-icon">♾️</div>
@@ -705,6 +724,14 @@
       <div class="info-guide-text">
         <h4>NARROW MISS!</h4>
         <p>Jump or slide at the very last moment for bonus points. Keep the combo going to multiply your score (up to x3)!</p>
+      </div>
+    </div>
+
+    <div class="info-guide-row">
+      <div class="info-guide-icon">⛈️</div>
+      <div class="info-guide-text">
+        <h4>STAGE 5: THUNDER TRAIL ⭐ HARD</h4>
+        <p>Opens after Stage 4. Super fast from the start, rows of hurdles across all 3 lanes, and the rocket only makes you faster (no smashing!). No mochi.</p>
       </div>
     </div>
 
@@ -1049,6 +1076,28 @@ const STAGES = {
     mono: true,
     baseSpeed: 22
   },
+  // ⭐ HARD (2026-11-07): 最初から速い・ブーストは速くなるだけ(無敵にならない)・3レーンをふさぐ
+  // ハードルの列・Mochi なし。Stage 4 をクリアすると開く。景色は絵本風の雷の夜道(ネオン調にしない)。
+  5: {
+    id: 5,
+    name: 'Thunder Trail',
+    targetDist: 3500,
+    skyTop: 0x2A3150,
+    skyBottom: 0x5A6A9A,
+    fogColor: 0x343D5E,
+    roadColor: 0x4A4E5E,
+    stripeColor: 0xFFE7A3,
+    laneStripe: 0xFFE7A3,   // warm lantern yellow lines
+    border: 0xC9A15A,
+    borderEmissive: 0x3A2A10,
+    theme: 'thunder_trail',
+    hard: true,
+    baseSpeed: 28,
+    speedPerLevel: 0.5,     // +0.5 every 50m (other stages +0.35), up to +10
+    boostMult: 1.3,         // the rocket: faster and double points, but NO smashing
+    wallChance: 0.4,        // 40% of hurdles are a row across all 3 lanes
+    lightning: true
+  },
   endless: {
     id: 'endless',
     name: 'Endless Future Rush',
@@ -1115,7 +1164,9 @@ const state = {
   effSpeed: 18,        // speed incl. boost, for the camera
   biomes: null,
   biomeIdx: 0,
-  biomeSettled: -1
+  biomeSettled: -1,
+  lightningIn: 6,      // Stage 5 lightning
+  flash: 0
 };
 
 // --- Momentum, NARROW MISS & biome tuning ---
@@ -1374,9 +1425,10 @@ function stageBiomes(st) {
     ];
   }
   return [
-    { name: st.name, icon: '🎨', sky: st.skyTop, fog: st.fogColor, road: st.roadColor, stripe: 0xF472B6,
-      border: 0xA855F7, borderEmissive: 0x9333EA, moon: 0xFDE047, dir: 0xFFE4E6, dirI: 0.9,
-      rim: 0xA855F7, rimI: 0.6, ambI: 0.7, stars: 0.85, deco: [0, 1, 2] },
+    { name: st.name, icon: st.hard ? '⛈️' : '🎨', sky: st.skyTop, fog: st.fogColor, road: st.roadColor,
+      stripe: st.laneStripe || 0xF472B6, border: st.border || 0xA855F7, borderEmissive: st.borderEmissive || 0x9333EA,
+      moon: 0xFDE047, dir: 0xFFE4E6, dirI: 0.9,
+      rim: st.hard ? 0x9DB4FF : 0xA855F7, rimI: 0.6, ambI: 0.7, stars: st.hard ? 0.4 : 0.85, deco: [0, 1, 2] },
     { name: 'Sunset Grove', icon: '🌅', sky: 0xF2A06C, fog: 0xE48A5E, road: 0x6B4433, stripe: 0xFFE2A8,
       border: 0xD98A3A, borderEmissive: 0x4A2208, moon: 0xFFF1C1, dir: 0xFFD6A8, dirI: 1.0,
       rim: 0xFF9A6A, rimI: 0.5, ambI: 0.75, stars: 0, deco: [3, 3, 1, 0] },
@@ -1386,6 +1438,7 @@ function stageBiomes(st) {
   ];
 }
 
+let ambientBase = 0.7;
 const _mixA = new THREE.Color();
 const _mixB = new THREE.Color();
 function mixColor(target, a, b, t) {
@@ -1406,7 +1459,7 @@ function applyBiomeBlend(from, to, t) {
   dirLight.intensity = mixNum(from.dirI, to.dirI, t);
   mixColor(rimLight.color, from.rim, to.rim, t);
   rimLight.intensity = mixNum(from.rimI, to.rimI, t);
-  ambientLight.intensity = mixNum(from.ambI, to.ambI, t);
+  ambientLight.intensity = ambientBase = mixNum(from.ambI, to.ambI, t);
   const stars = mixNum(from.stars, to.stars, t);
   starParticles.material.opacity = stars;
   starParticles.visible = stars > 0.02;
@@ -1858,8 +1911,21 @@ function spawnTrackPieces() {
   const lane = Math.floor(Math.random() * 3);
   const laneX = LANES[lane];
   const typeRand = Math.random();
+  const st = STAGES[state.stageKey] || STAGES[1];
 
-  if (typeRand < 0.9) {
+  if (st.wallChance && typeRand < 0.9 && Math.random() < st.wallChance) {
+    // Stage 5: a row of hurdles across all 3 lanes. Every lane can be passed with the right move
+    // (jump the low ones, slide under the high ones), so switching lanes alone can't save you.
+    const kinds = [Math.random() < 0.5, Math.random() < 0.5, Math.random() < 0.5];
+    if (kinds.every(k => k === kinds[0])) kinds[Math.floor(Math.random() * 3)] = !kinds[0]; // always a mix
+    kinds.forEach((high, l) => {
+      const h = buildHurdle(high);
+      h.position.set(LANES[l], 0, spawnZ);
+      h.userData = { type: 'obstacle', subType: high ? 'high' : 'low', lane: l, passed: false };
+      obstaclesGroup.add(h);
+      activeObstacles.push(h);
+    });
+  } else if (typeRand < 0.9) {
     const high = typeRand < 0.45;
     const hurdle = buildHurdle(high);
     hurdle.position.set(laneX, 0, spawnZ);
@@ -1868,8 +1934,8 @@ function spawnTrackPieces() {
     activeObstacles.push(hurdle);
 
   } else {
-    // Spawn Power-Up Item: Boost (Rocket) or Mochi (Spring)
-    const isBoost = Math.random() > 0.5;
+    // Spawn Power-Up Item: Boost (Rocket) or Mochi (Spring). Stage 5 has no mochi.
+    const isBoost = st.hard || Math.random() > 0.5;
     const itemGroup = new THREE.Group();
 
     if (isBoost) {
@@ -1931,7 +1997,8 @@ function spawnTrackPieces() {
   }
 
   // ジャンプの滞空(約0.75秒)で進む距離より間隔を広くとる。速くなっても着地してから次のハードルに備えられる
-  spawnZ -= Math.max(16, state.speed * 0.9);
+  // Stage 5: the rocket keeps running at 1.3x without smashing, so leave room for a boosted jump too
+  spawnZ -= Math.max(16, state.speed * (st.boostMult || 1) * 0.9);
 }
 
 // --- Player Actions & Controls ---
@@ -2106,7 +2173,8 @@ function triggerBoost() {
   state.boostTimer = 6.0;
   state.activePowerup = 'boost';
   sounds.play('boost');
-  showBanner('🚀 SUPER BOOST ACTIVATED!', '#F472B6');
+  const hardStage = (STAGES[state.stageKey] || {}).hard;
+  showBanner(hardStage ? '🚀 TURBO! x2 POINTS - STILL DODGE!' : '🚀 SUPER BOOST ACTIVATED!', '#F472B6');
   document.getElementById('hudPowerupBar').style.display = 'flex';
   document.getElementById('powerupIcon').textContent = '🚀';
   document.getElementById('powerupName').textContent = 'BOOST';
@@ -2171,6 +2239,7 @@ function updateComboHUD() {
 function updateMomentum(dt) {
   const st = STAGES[state.stageKey] || STAGES[1];
   const maxMomentum = st.id === 'endless' ? 32 : MAX_MOMENTUM;
+  const perLevel = st.speedPerLevel || SPEED_PER_LEVEL;
   while (state.distance >= state.nextMilestone) {
     state.nextMilestone += MILESTONE_M;
     if (state.momentum >= maxMomentum) continue;
@@ -2182,7 +2251,7 @@ function updateMomentum(dt) {
     }
   }
   // Ease toward the target speed so the change never feels like a jolt
-  const target = st.baseSpeed + state.momentum * SPEED_PER_LEVEL;
+  const target = st.baseSpeed + state.momentum * perLevel;
   state.speed += (target - state.speed) * Math.min(1, dt * 1.5);
 }
 
@@ -2224,14 +2293,15 @@ function animate(now) {
 
 function updateGame(dt) {
   const currentStage = STAGES[state.stageKey] || STAGES[1];
-  const effectiveSpeed = state.speed * (state.boostTimer > 0 ? 1.6 : 1.0);
+  const effectiveSpeed = state.speed * (state.boostTimer > 0 ? (currentStage.boostMult || 1.6) : 1.0);
+  const turbo = state.boostTimer > 0 && currentStage.hard; // Stage 5: double points while boosting
 
   state.effSpeed = effectiveSpeed;
   state.runTime += dt;
 
   // Advance distance & score (NARROW MISS combo multiplies the score)
   state.distance += effectiveSpeed * dt;
-  state.score += Math.round(effectiveSpeed * dt * 5 * state.berryMultiplier * comboMultiplier());
+  state.score += Math.round(effectiveSpeed * dt * 5 * state.berryMultiplier * comboMultiplier() * (turbo ? 2 : 1));
 
   // Speed scaling: momentum level every 50m
   updateMomentum(dt);
@@ -2245,6 +2315,18 @@ function updateGame(dt) {
 
   // The world slowly changes as Moku runs further
   updateBiome();
+
+  // Stage 5: now and then a soft lightning flash lights up the trail (no scary sound)
+  if (currentStage.lightning) {
+    state.lightningIn -= dt;
+    if (state.lightningIn <= 0) {
+      state.lightningIn = 5 + Math.random() * 7;
+      state.flash = 1;
+    }
+    state.flash = Math.max(0, state.flash - dt * 4);
+    const f = state.flash > 0.6 || (state.flash > 0.2 && state.flash < 0.35) ? state.flash : state.flash * 0.3;
+    ambientLight.intensity = ambientBase + f * 0.45;
+  }
 
   // Boost timer countdown
   if (state.boostTimer > 0) {
@@ -2343,8 +2425,8 @@ function updateGame(dt) {
       if (sameLane) {
         let isSafe = false;
 
-        // Boost breaks through everything!
-        if (state.boostTimer > 0) {
+        // Boost breaks through everything! (not on Stage 5: there it only makes Moku faster)
+        if (state.boostTimer > 0 && !currentStage.hard) {
           isSafe = true;
           sounds.play('hit');
           state.score += 200;
@@ -2566,6 +2648,8 @@ function startGame(stageKey) {
   state.hasMochiShield = false;
   state.boostTimer = 0;
   state.runTime = 0;
+  state.lightningIn = 6;
+  state.flash = 0;
   state.jumpStartAt = -99;
   state.slideStartAt = -99;
   state.momentum = 0;
@@ -2752,7 +2836,7 @@ function stopRainEffect() {
 // one-time reward outside the cap, remembered in progress.mointClaims.
 const GAME_ID = 'moku-future-run';
 const MOINT = { clearBase: 30, clearStep: 15, berriesPer: 5, berriesMax: 30, newBest: 30,
-  failPer: 100, failMax: 30, endlessPer: 50, endlessMax: 150, firstClear: { 1: 100, 2: 150, 3: 200, 4: 300 } };
+  failPer: 100, failMax: 30, endlessPer: 50, endlessMax: 150, firstClear: { 1: 100, 2: 150, 3: 200, 4: 300, 5: 500 } };
 function mointPay(out, label, amount, capped) {
   if (!window.MokuMoint || amount <= 0) return 0;
   const got = MokuMoint.earn(GAME_ID, amount, { capped });
@@ -2837,7 +2921,7 @@ function triggerStageClear() {
   const curStage = STAGES[state.stageKey];
   const scMoints = payMoints(true);
   if (typeof curStage.id === 'number' && curStage.id >= progress.unlockedStages) {
-    progress.unlockedStages = Math.min(5, curStage.id + 1);
+    progress.unlockedStages = Math.min(6, curStage.id + 1); // 6 = all 5 stages cleared
   }
   if (state.score > progress.highScore) {
     progress.highScore = state.score;
@@ -2850,13 +2934,14 @@ function triggerStageClear() {
   document.getElementById('scRunRecord').textContent = runRecordText();
   renderMoints(document.getElementById('scMoints'), scMoints);
   lockOverlayInput(document.getElementById('stageClearScreen'));
-  document.getElementById('clearStageName').textContent = curStage.name + ' Cleared!';
+  document.getElementById('clearStageName').textContent = curStage.name + ' Cleared!' + (curStage.hard ? ' ⭐ HARD' : '');
   document.getElementById('scScore').textContent = state.score.toLocaleString();
   document.getElementById('scBerries').textContent = state.berriesCollected;
   document.getElementById('stageClearScreen').classList.remove('hidden');
 }
 
 function returnToTitle() {
+  refreshStageLocks();
   state.running = false;
   state.paused = false;
   sounds.stopBGM();
@@ -2928,8 +3013,28 @@ document.getElementById('btnStartGame').addEventListener('click', () => {
   startGame(stage);
 });
 
+// Stage 5 (HARD) opens once Stage 4 is cleared (progress.unlockedStages >= 5)
+function stage5Unlocked() {
+  return (progress.unlockedStages || 1) >= 5;
+}
+function refreshStageLocks() {
+  const card = document.querySelector('.stage-card[data-stage="5"]');
+  const locked = !stage5Unlocked();
+  card.classList.toggle('locked', locked);
+  document.getElementById('stage5Target').textContent = locked ? '🔒 Clear Stage 4 to open' : 'Thunder Trail (3,500m)';
+  if (locked && card.classList.contains('selected')) {
+    card.classList.remove('selected');
+    document.querySelector('.stage-card[data-stage="1"]').classList.add('selected');
+  }
+}
+refreshStageLocks();
+
 document.querySelectorAll('.stage-card').forEach(card => {
   card.addEventListener('click', () => {
+    if (card.classList.contains('locked')) {
+      showBanner('🔒 Clear Stage 4 to open Thunder Trail!', '#FDBA74');
+      return;
+    }
     document.querySelectorAll('.stage-card').forEach(c => c.classList.remove('selected'));
     card.classList.add('selected');
   });
@@ -2967,6 +3072,7 @@ document.getElementById('btnNextStage').addEventListener('click', () => {
   if (state.stageKey === '1') next = '2';
   else if (state.stageKey === '2') next = '3';
   else if (state.stageKey === '3') next = '4';
+  else if (state.stageKey === '4') next = '5';
   startGame(next);
 });
 document.getElementById('btnScHome').addEventListener('click', returnToTitle);
