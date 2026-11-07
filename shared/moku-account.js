@@ -706,6 +706,8 @@
     'color:rgba(237,238,246,0.45);text-decoration:underline;text-underline-offset:2px;cursor:pointer}',
     '.mka-refresh:hover{color:rgba(237,238,246,0.75)}',
     '.mka-refresh:disabled{text-decoration:none;cursor:default}',
+    '.mka-update-note{margin:2px 4px 0;font-size:11px;font-weight:600;line-height:1.5;color:rgba(237,238,246,0.45);text-align:center}',
+    '.mka-update-note b{color:rgba(237,238,246,0.7);font-weight:800}',
     '.mka-actions{display:flex;flex-direction:column;gap:10px}',
     '.mka-choice{display:flex;align-items:center;gap:12px;width:100%;padding:14px;border-radius:14px;text-align:left;',
     'border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.05);color:#EDEEF6;font:inherit;cursor:pointer}',
@@ -1089,7 +1091,8 @@
           '<button class="mka-secondary" type="button" data-go="logout">👋 Log Out</button>' +
           (user.admin ? '<a class="mka-secondary is-wide" href="admin.html">🛠 Admin</a>' : '') + '</div>' +
           '<p class="mka-id">Player ID: ' + esc(user.loginId) + ' · keep it secret</p>' +
-          '<button class="mka-refresh" type="button" data-act="refresh">↻ Get the latest games &amp; updates</button>'
+          '<button class="mka-refresh" type="button" data-act="refresh">↻ Get the latest games &amp; updates</button>' +
+          updateNoteHTML()
         : '<button class="mka-wide" type="button" data-act="login">' +
           '<span class="mka-wide-icon" aria-hidden="true">☁️</span>' +
           '<span class="mka-wide-text"><span class="mka-wide-title"><span>Log In</span></span>' +
@@ -1108,6 +1111,9 @@
       else if (act === 'login') openModal('login');
       else if (b.hasAttribute('data-go')) openModal(b.getAttribute('data-go'));
     });
+    // After "Get the latest games & updates" reloads the page, say how it went.
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(announceUpdate, 600); });
+    else setTimeout(announceUpdate, 600);
   }
 
   // For when a new game or a game's update doesn't show up: the browser keeps
@@ -1117,18 +1123,107 @@
   // copy, so the next normal visit gets the new page). Then reload with a
   // one-off ?fresh= so no cache can answer. Progress lives in localStorage,
   // so nothing is lost; the hub syncs again after the reload.
+  // The last update's result, shown under the button: when it ran, about
+  // how much it downloaded, the newest game version (each game's #buildInfo,
+  // "v1.8.0 · Updated Nov 6, 2026") and which games changed since the update
+  // before. Kept outside the synced prefixes: it's about this browser's copy.
+  var UPDATE_KEY = 'mokuhub:update:last';
+  var UPDATE_VERSIONS_KEY = 'mokuhub:update:versions';
+  function readJSONKey(k) {
+    try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; }
+  }
+  function writeJSONKey(k, v) {
+    try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {}
+  }
+  function fmtBytes(n) {
+    if (!(n > 0)) return '0 KB';
+    if (n < 1024 * 1024) return Math.max(1, Math.round(n / 1024)) + ' KB';
+    return (n / 1024 / 1024).toFixed(1) + ' MB';
+  }
+  function fmtWhen(iso) {
+    var d = new Date(iso);
+    if (isNaN(d)) return '';
+    var mins = Math.round((Date.now() - d.getTime()) / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return mins + ' min ago';
+    var opts = { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' };
+    try { return d.toLocaleString('en-US', opts); } catch (e) { return d.toDateString(); }
+  }
+  function updateNoteHTML() {
+    var u = readJSONKey(UPDATE_KEY);
+    if (!u || !u.at) return '';
+    var parts = ['Updated <b>' + esc(fmtWhen(u.at)) + '</b> · about <b>' + esc(fmtBytes(u.bytes)) + '</b>'];
+    // Each game's version is shown in its My Games row (hub.html), not here.
+    if (u.changed && u.changed.length) {
+      var list = u.changed.slice(0, 3).map(function (c) { return esc(c.name); }).join(', ');
+      parts.push('New since last time: <b>' + list + '</b>' + (u.changed.length > 3 ? ' and ' + (u.changed.length - 3) + ' more' : ''));
+    } else if (u.compared) {
+      parts.push('No game changed since last time.');
+    }
+    return '<p class="mka-update-note">' + parts.join('<br>') + '</p>';
+  }
+  // Right after the update's reload: say how it went, once.
+  function announceUpdate() {
+    var u = readJSONKey(UPDATE_KEY);
+    if (!u || !u.fresh) return;
+    u.fresh = false;
+    writeJSONKey(UPDATE_KEY, u);
+    var n = u.changed ? u.changed.length : 0;
+    toast('✨ Up to date! ' + (n ? n + (n === 1 ? ' game' : ' games') + ' updated · ' : '') + fmtBytes(u.bytes) + ' downloaded');
+  }
+
   function forceRefresh(btn) {
     if (btn) { btn.disabled = true; btn.textContent = 'Updating…'; }
     var done = false;
-    var go = function () {
+    var bytes = 0;
+    var names = {};      // page → game name, from the hub's CATALOG
+    var versions = {};   // page → { v, date } from its #buildInfo
+    var finish = function () {
       if (done) return;
       done = true;
+      // Compare each game's version with the update before this one.
+      var prev = readJSONKey(UPDATE_VERSIONS_KEY);
+      var now = {}, changed = [], newest = null;
+      Object.keys(versions).forEach(function (page) {
+        var info = versions[page], name = names[page] || page.replace(/\.html$/, '');
+        now[page] = info.v;
+        if (prev && prev[page] !== info.v) changed.push({ name: name, v: info.v });
+        var t = Date.parse(info.date);
+        if (!isNaN(t) && (!newest || t > newest.t)) newest = { t: t, name: name, v: info.v, date: info.date };
+      });
+      if (Object.keys(now).length) writeJSONKey(UPDATE_VERSIONS_KEY, now);
+      writeJSONKey(UPDATE_KEY, {
+        at: new Date().toISOString(), bytes: bytes, pages: Object.keys(names).length,
+        newest: newest ? { name: newest.name, v: newest.v, date: newest.date } : null,
+        changed: changed, compared: !!prev, fresh: true
+      });
       location.replace(location.pathname + '?fresh=' + Date.now().toString(36) + location.hash);
     };
-    setTimeout(go, 15000);   // a slow network shouldn't leave the button stuck
-    if (!global.fetch) { go(); return; }
+    setTimeout(finish, 15000);   // a slow network shouldn't leave the button stuck
+    if (!global.fetch) { finish(); return; }
+    var sizeOf = function (url, text) {
+      // Bytes over the network when the browser reports them, else the page's own size.
+      try {
+        var abs = new URL(url, location.href).href;
+        var entries = performance.getEntriesByName(abs);
+        var last = entries[entries.length - 1];
+        if (last && last.transferSize > 0) return last.transferSize;
+      } catch (e) {}
+      try { return new Blob([text]).size; } catch (e) { return text.length; }
+    };
     var reload = function (p) {
-      return fetch(p, { cache: 'reload' }).then(function (r) { return r.ok ? r.text() : ''; }).catch(function () { return ''; });
+      return fetch(p, { cache: 'reload' }).then(function (r) { return r.ok ? r.text() : ''; }).catch(function () { return ''; })
+        .then(function (text) {
+          if (text) {
+            bytes += sizeOf(p, text);
+            var m = /id="buildInfo"[^>]*>\s*(v[0-9][^<·]*?)\s*·\s*Updated\s*([A-Z][a-z]{2} \d{1,2}, \d{4})/.exec(text);
+            if (m) versions[p] = { v: m[1].trim(), date: m[2] };
+          }
+          return text;
+        });
+    };
+    var label = function (doneCount, total) {
+      if (btn) btn.textContent = 'Updating… ' + doneCount + ' / ' + total + ' · ' + fmtBytes(bytes);
     };
     var here = location.pathname.split('/').pop() || 'index.html';
     var pages = ['index.html', 'hollow.html'];
@@ -1137,18 +1232,22 @@
       ? caches.keys().then(function (keys) { return Promise.all(keys.map(function (k) { return caches.delete(k); })); }).catch(function () {})
       : null;
     reload('hub.html').then(function (hub) {
-      // The games are the hub's CATALOG entries: gameId: 'moku-bridge' → moku-bridge.html
-      var re = /gameId:\s*'([a-z0-9-]+)'/g, m;
-      while ((m = re.exec(hub))) if (pages.indexOf(m[1] + '.html') < 0) pages.push(m[1] + '.html');
+      // The games are the hub's CATALOG entries: name: 'Moku Bridge', gameId: 'moku-bridge' → moku-bridge.html
+      var re = /name:\s*'((?:[^'\\]|\\.)*)',\s*gameId:\s*'([a-z0-9-]+)'/g, m;
+      while ((m = re.exec(hub))) {
+        var page = m[2] + '.html';
+        names[page] = m[1].replace(/\\u2019/g, '’').replace(/\\'/g, "'");
+        if (pages.indexOf(page) < 0) pages.push(page);
+      }
       var left = pages.length;
-      if (btn) btn.textContent = 'Updating… 0 / ' + pages.length;
+      label(0, pages.length);
       return Promise.all(pages.map(function (p) {
         return reload(p).then(function () {
           left--;
-          if (btn) btn.textContent = 'Updating… ' + (pages.length - left) + ' / ' + pages.length;
+          label(pages.length - left, pages.length);
         });
       }));
-    }).then(function () { return cleared; }).then(go, go);
+    }).then(function () { return cleared; }).then(finish, finish);
   }
 
   // `keys` (optional) = the saves changed on both sides; everything else is
