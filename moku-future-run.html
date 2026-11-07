@@ -505,7 +505,7 @@
 <!-- Title Frame Elements per SPEC.md -->
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">Moku Future Run v1.7.0 · Updated Nov 7, 2026</div>
+<div id="buildInfo">Moku Future Run v1.8.0 · Updated Nov 7, 2026</div>
 
 <!-- Title Screen Overlay -->
 <div class="screen-overlay" id="titleScreen">
@@ -731,7 +731,7 @@
       <div class="info-guide-icon">⛈️</div>
       <div class="info-guide-text">
         <h4>STAGE 5: THUNDER TRAIL ⭐ HARD</h4>
-        <p>Opens after Stage 4. Super fast from the start, rows of hurdles across all 3 lanes, and the rocket only makes you faster (no smashing!). No mochi.</p>
+        <p>Opens after Stage 4. Super fast from the start and keeps getting faster, rows of hurdles across all 3 lanes, and the rocket only makes you faster (no smashing!). No mochi. Berries sit right at the hurdles: jump or slide through them!</p>
       </div>
     </div>
 
@@ -1078,6 +1078,8 @@ const STAGES = {
   },
   // ⭐ HARD (2026-11-07): 最初から速い・ブーストは速くなるだけ(無敵にならない)・3レーンをふさぐ
   // ハードルの列・Mochi なし。Stage 4 をクリアすると開く。景色は絵本風の雷の夜道(ネオン調にしない)。
+  // Stage 5 以降の難しいステージの決まり(2026-11-07): Mochi なし、ベリーはハードルのすぐ前後など
+  // 取りにくい所だけ、スピードの上がり方の上限はふつうの 3 倍(MAX_MOMENTUM 20 → 60)。
   5: {
     id: 5,
     name: 'Thunder Trail',
@@ -1093,7 +1095,10 @@ const STAGES = {
     theme: 'thunder_trail',
     hard: true,
     baseSpeed: 28,
-    speedPerLevel: 0.5,     // +0.5 every 50m (other stages +0.35), up to +10
+    speedPerLevel: 0.5,     // +0.5 every 50m (other stages +0.35)
+    maxMomentum: 60,        // 3x the usual level cap: up to +30 (28 → 58 at 3,000m)
+    noMochi: true,          // no shield
+    riskyBerries: true,     // berries only right before / over / under / after hurdles
     boostMult: 1.3,         // the rocket: faster and double points, but NO smashing
     wallChance: 0.4,        // 40% of hurdles are a row across all 3 lanes
     lightning: true
@@ -1904,6 +1909,53 @@ function spawnNextTrackSegment() {
   monoize(obstaclesGroup);
   monoize(itemsGroup);
 }
+// One berry (pink with a leaf and a golden ring) at lane / height / z
+function spawnBerry(lane, y, z) {
+  const berryGroup = new THREE.Group();
+  const berryGeo = new THREE.DodecahedronGeometry(0.24);
+  const berryMat = new THREE.MeshStandardMaterial({
+    color: 0xEC4899,
+    emissive: 0xFF1493,
+    emissiveIntensity: 0.85,
+    roughness: 0.2
+  });
+  const berry = new THREE.Mesh(berryGeo, berryMat);
+  berryGroup.add(berry);
+
+  // Cute green leaf
+  const leafGeo = new THREE.ConeGeometry(0.08, 0.16, 4);
+  const leafMat = new THREE.MeshBasicMaterial({ color: 0x10B981 });
+  const leaf = new THREE.Mesh(leafGeo, leafMat);
+  leaf.position.y = 0.22;
+  berryGroup.add(leaf);
+
+  // Golden Sparkle Ring around berry (Clear Friendly Collectible!)
+  const ringGeo = new THREE.TorusGeometry(0.3, 0.025, 6, 16);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0xFDE047 });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.rotation.x = Math.PI / 2;
+  berryGroup.add(ring);
+
+  berryGroup.position.set(LANES[lane], y, z);
+  berryGroup.userData = { type: 'item', subType: 'berry', lane };
+  itemsGroup.add(berryGroup);
+  activeItems.push(berryGroup);
+}
+
+// Hard stages: berries only where it's risky, in the hurdle's own lane —
+// just before it (stay in the lane until the last moment), right over a low hurdle
+// (only a jump reaches it) or right under a high one (only a slide), and just after it.
+function spawnRiskyBerries(lane, high, z) {
+  spawnBerry(lane, 0.6, z + 2.6);              // just before the hurdle
+  if (high) {
+    spawnBerry(lane, 0.45, z);                 // under the bar: slide through it
+    spawnBerry(lane, 0.6, z - 2.4);            // just after
+  } else {
+    spawnBerry(lane, 2.2, z);                  // over the board: jump through it
+    spawnBerry(lane, 1.9, z - 2.6);            // still in the air just after
+  }
+}
+
 function spawnTrackPieces() {
 
   // 障害物はハードルだけ(2026-10-28〜。電車・レーン変更で避ける壁はなくした)
@@ -1925,6 +1977,10 @@ function spawnTrackPieces() {
       obstaclesGroup.add(h);
       activeObstacles.push(h);
     });
+    if (st.riskyBerries) {
+      const bl = Math.floor(Math.random() * 3);
+      spawnRiskyBerries(bl, kinds[bl], spawnZ);
+    }
   } else if (typeRand < 0.9) {
     const high = typeRand < 0.45;
     const hurdle = buildHurdle(high);
@@ -1932,10 +1988,11 @@ function spawnTrackPieces() {
     hurdle.userData = { type: 'obstacle', subType: high ? 'high' : 'low', lane, passed: false };
     obstaclesGroup.add(hurdle);
     activeObstacles.push(hurdle);
+    if (st.riskyBerries) spawnRiskyBerries(lane, high, spawnZ);
 
   } else {
-    // Spawn Power-Up Item: Boost (Rocket) or Mochi (Spring). Stage 5 has no mochi.
-    const isBoost = st.hard || Math.random() > 0.5;
+    // Spawn Power-Up Item: Boost (Rocket) or Mochi (Spring). Hard stages (5+) have no mochi.
+    const isBoost = st.noMochi || Math.random() > 0.5;
     const itemGroup = new THREE.Group();
 
     if (isBoost) {
@@ -1961,39 +2018,13 @@ function spawnTrackPieces() {
     activeItems.push(itemGroup);
   }
 
-  // Also spawn a trail of Berries in the other open lane!
-  const berryLane = (lane + (Math.random() > 0.5 ? 1 : 2)) % 3;
-  const berryX = LANES[berryLane];
-  for (let b = 0; b < 3; b++) {
-    const berryGroup = new THREE.Group();
-    const berryGeo = new THREE.DodecahedronGeometry(0.24);
-    const berryMat = new THREE.MeshStandardMaterial({
-      color: 0xEC4899,
-      emissive: 0xFF1493,
-      emissiveIntensity: 0.85,
-      roughness: 0.2
-    });
-    const berry = new THREE.Mesh(berryGeo, berryMat);
-    berryGroup.add(berry);
-
-    // Cute green leaf
-    const leafGeo = new THREE.ConeGeometry(0.08, 0.16, 4);
-    const leafMat = new THREE.MeshBasicMaterial({ color: 0x10B981 });
-    const leaf = new THREE.Mesh(leafGeo, leafMat);
-    leaf.position.y = 0.22;
-    berryGroup.add(leaf);
-
-    // Golden Sparkle Ring around berry (Clear Friendly Collectible!)
-    const ringGeo = new THREE.TorusGeometry(0.3, 0.025, 6, 16);
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0xFDE047 });
-    const ring = new THREE.Mesh(ringGeo, ringMat);
-    ring.rotation.x = Math.PI / 2;
-    berryGroup.add(ring);
-
-    berryGroup.position.set(berryX, 0.6, spawnZ + b * 2.2);
-    berryGroup.userData = { type: 'item', subType: 'berry', lane: berryLane };
-    itemsGroup.add(berryGroup);
-    activeItems.push(berryGroup);
+  // Also spawn a trail of Berries in the other open lane! (not on hard stages: there berries
+  // only sit right at the hurdles, see spawnRiskyBerries)
+  if (!st.riskyBerries) {
+    const berryLane = (lane + (Math.random() > 0.5 ? 1 : 2)) % 3;
+    for (let b = 0; b < 3; b++) {
+      spawnBerry(berryLane, 0.6, spawnZ + b * 2.2);
+    }
   }
 
   // ジャンプの滞空(約0.75秒)で進む距離より間隔を広くとる。速くなっても着地してから次のハードルに備えられる
@@ -2238,7 +2269,7 @@ function updateComboHUD() {
 // --- Momentum: Moku speeds up a little every 50m ---
 function updateMomentum(dt) {
   const st = STAGES[state.stageKey] || STAGES[1];
-  const maxMomentum = st.id === 'endless' ? 32 : MAX_MOMENTUM;
+  const maxMomentum = st.maxMomentum || (st.id === 'endless' ? 32 : MAX_MOMENTUM);
   const perLevel = st.speedPerLevel || SPEED_PER_LEVEL;
   while (state.distance >= state.nextMilestone) {
     state.nextMilestone += MILESTONE_M;
