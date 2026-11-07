@@ -327,6 +327,15 @@
   .modal-btn-row {
     display: flex; gap: 10px; justify-content: center; margin-top: 18px;
   }
+  /* Results with a Moint receipt are taller than a phone screen: keep TRY AGAIN / NEXT / MENU
+     pinned to the bottom of the window instead of below the fold */
+  .modal-fail .modal-btn-row, .modal-celebrate .modal-btn-row {
+    position: sticky; bottom: -24px; z-index: 3;
+    margin: 14px -24px -24px; padding: 12px 24px 18px;
+    border-radius: 0 0 20px 20px;
+  }
+  .modal-fail .modal-btn-row { background: linear-gradient(180deg, rgba(14,12,18,0) 0%, rgba(14,12,18,0.97) 30%); }
+  .modal-celebrate .modal-btn-row { background: linear-gradient(180deg, rgba(30,20,55,0) 0%, rgba(30,20,55,0.97) 30%); }
 
   /* Celebration Modal (Stage Clear - Full Celebration Mode!) */
   #stageClearScreen {
