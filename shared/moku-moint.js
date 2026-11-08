@@ -25,6 +25,9 @@
  *   repeatable rewards (a win, a clear) count toward DAILY_GAME_CAP per game;
  *   one-time achievements pass { capped: false }. The game itself remembers
  *   which achievements it already paid (in its own moku:<gameId>: save).
+ *   CEO's Pick (ceo-moku.html): once the player has visited Sir CEO Moku today,
+ *   the game he picked pays +20% on repeatable rewards (still inside the cap).
+ *   His pick is in moku:ceo-moku:pick = { version, day: 'YYYY-MM-DD', gameId }.
  *   moku:moint:closet  { version, owned: [id], equipped: { head, mood, face, neck, bg }, updatedAt }
  *
  * Items are drawn as SVG on a 100×100 grid laid exactly over
@@ -40,6 +43,8 @@
   var DAILY_MOINTS = 100;
   var EARNED_KEY = 'moku:moint:earned';
   var DAILY_GAME_CAP = 500;     // 1ゲームで1日にもらえる「毎回もらえる分」の上限(実績は別)
+  var CEO_PICK_KEY = 'moku:ceo-moku:pick';  // Sir CEO Moku の今日のおすすめ(ceo-moku.html が書く)
+  var CEO_PICK_BOOST = 1.2;                 // おすすめのゲームは「毎回もらえる分」が 2 割増し(上限は同じ)
   var HERO_SRC = 'brand/mokumoku-hero.png';
   var SLOTS = ['head', 'mood', 'face', 'neck'];  // what Moku wears (mood = his expression)
   var TABS = SLOTS.concat('bg');                 // Closet tabs (bg = background card behind Moku)
@@ -84,12 +89,18 @@
     return e;
   }
   function earnedToday(gameId) { return readEarned().games[gameId] || 0; }
+  // Is this game Sir CEO Moku's pick today? (Only after the player visited him today.)
+  function ceoPick() {
+    var p = readJSON(CEO_PICK_KEY);
+    return p && p.version === 1 && p.day === todayStr() && p.gameId ? p.gameId : null;
+  }
   // Moints from a game. Returns how many were really added (less than asked,
   // or 0, once the game's daily cap is used up).
   function earn(gameId, amount, opts) {
     amount = Math.max(0, Math.floor(amount || 0));
     if (!amount) return 0;
     if (!(opts && opts.capped === false)) {
+      if (ceoPick() === gameId) amount = Math.round(amount * CEO_PICK_BOOST);
       var e = readEarned();
       amount = Math.min(amount, Math.max(0, DAILY_GAME_CAP - (e.games[gameId] || 0)));
       if (!amount) return 0;
@@ -1387,6 +1398,8 @@
     DAILY_GAME_CAP: DAILY_GAME_CAP,
     earn: earn,
     earnedToday: earnedToday,
+    ceoPick: ceoPick,
+    CEO_PICK_BOOST: CEO_PICK_BOOST,
     ITEMS: ITEMS,
     MOODS: MOODS,
     BACKGROUNDS: BACKGROUNDS,
