@@ -264,7 +264,7 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v1.0.1 · Updated Nov 8, 2026</div>
+<div id="buildInfo">v1.0.2 · Updated Nov 8, 2026</div>
 <canvas id="c"></canvas>
 
 <div id="coinHud">
@@ -609,6 +609,7 @@ function selectMall(idx){
   currentMall=idx; coinsPerSec=0;
   slots.forEach(s=>s.storeIdx=null);
   shoppers=[]; for(let i=0;i<5;i++) spawnShopper();
+  assignBadCustomers(); // 新しいモールにも悪いお客さんを1〜2人(以前は最初のモールにしかいなかった)
   robbers=[]; robberSpawnTimer=0; guards=[];
   setGuardCounts(0,0);
   document.getElementById('robberAlert').style.display='none';
