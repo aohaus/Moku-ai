@@ -18,7 +18,8 @@
 | タイトル | ファイル | ジャンル |
 | --- | --- | --- |
 | Angry Mokumoku | `angry-mokumoku.html` | スリングショット物理アクション |
-| Angry Moku Battle Royal | `angry-moku-battle-royal.html` | 4対4のスリングショット対戦 |
+| Angry Moku Battle Royal | `angry-moku-battle-royal.html` | 3Dのバトルロイヤル(迷路の広場で Moku vs CPU 3羽) |
+| Angry Moku Battle Royal (Classic) | `angry-moku-battle-royal-classic.html` | 2D だった v1.2.0 をそのまま残した版(ハブには出さず、本編のタイトル画面「🕰 Classic Mode」から開く) |
 | MK Mobile | `mk-mobile.html` | サッカー |
 | Moku Fight | `moku-fight.html` | 格闘アクション |
 | Moku Kart Dash | `moku-kart.html` | サーキットレース |
@@ -46,6 +47,8 @@
 
 - **Moku City**: 「ただビルを建てるだけだと普通のシムシティと同じ」という子どもの意見から、**緑(自然)を一定割合残さないと市民の幸福度が下がる**ルールを入れた。環境教育とゲーム性の両立がテーマ。
 - **Moku Dropper**: 子どもが別の Claude で作った「Moku Dropper 3D」(マイクラのドロッパー風、青い壁の縦穴)が元。ラウンド構成・障害物のおやつ・「ぶつかったら上からやり直し」・紫のポータルは子どもの設計なので変えない。舞台だけ The Hollow の大きな木の幹の中にして、シリーズの世界観とつないだ。2026-10-31 に遊んでみた声で、CPU を弱く・遅く、各フロアの穴を2つに、レースの相手を2人に、星をやめて 1st / 2nd / 3rd の順位だけにした(SPEC.md §13)。
+- **Angry Moku Battle Royal の Classic Mode**(2026-11-08): エンハンスの前に、今の版(v1.2.0)を `angry-moku-battle-royal-classic.html` に凍結して、いつでも遊べるように残した。**Classic のゲームの中身は直さない**(エラーの修正と共通スクリプトの `?v=` 上げは除く)。セーブ(`moku:save`)とランキングは本編と共有なので、本編でセーブの形を変える時は Classic でも読める形にするか、本編だけ新しいキーにする。
+- **Angry Moku Battle Royal の 3D**(2026-11-08、v2.0.0): 子どもたちのホワイトボードのスケッチから。Moku の後ろから見るカメラ・左上の MAP(押すと大きい地図)と時計・左下のジョイスティック・右下の技ボタン・右側の CPU の顔(矢印で「Moku から見てどっちにいるか」、自分を狙っていたら 👀、戦っている最中は ⚔️)・迷路のような生け垣のある地図と四隅のスタート(自分は S)は子どもの設計なので変えない。技・ダメージ・装備・コイン・レベル・Spin・Ranks の決まりとセーブは 2D の時のまま。
 - **Moku Bento / Shiri of Moku**: レース・パズル・格闘のような定番ジャンルだけでなく、「日常の可愛いもの」「子どもが大笑いするもの」を入れたいという子どもたちのアイディアから誕生。高度なグラフィックより、動きの愛嬌(イージングアニメーション)を大事にする。
 - **ゲーム内は英語**: 英語学習・グローバル展開・友達への自慢を意識した方針(§4)。
 
@@ -84,7 +87,7 @@ cd backend && npm test   # アカウントAPIのテスト(AWS不要)
 - **音**: iOS Safari などは最初のタップまで `AudioContext` が `suspended` のまま。`ctx.resume()` をタッチ/クリックに紐付ける。効果音・BGMは音源ファイルを使わず Web Audio API で合成している。
 - **画面**: iPhone のノッチ/ホームバー(`env(safe-area-inset-*)`)、iPad の 4:3、縦長スマホで HUD や操作ボタンが重ならない・見切れないか確認する(特に `moku-kart.html` / `moku-bento.html` の固定操作パネル)。
 - **localStorage**: プライベートブラウズ等で例外が出てもゲームが止まらないよう try-catch で包む。
-- **Three.js**(`moku-future-run.html` / `flying-moku.html` / `moku-rane.html` / `moku-dropper.html`): リトライやシーン再初期化で geometry / material / texture を `dispose()` しているか気をつける。
+- **Three.js**(`moku-future-run.html` / `flying-moku.html` / `moku-rane.html` / `moku-dropper.html` / `angry-moku-battle-royal.html`): リトライやシーン再初期化で geometry / material / texture を `dispose()` しているか気をつける。
 
 ## 6. ブランチ・PR運用
 
