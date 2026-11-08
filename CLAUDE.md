@@ -19,6 +19,7 @@
 | --- | --- | --- |
 | Angry Mokumoku | `angry-mokumoku.html` | スリングショット物理アクション |
 | Angry Moku Battle Royal | `angry-moku-battle-royal.html` | 4対4のスリングショット対戦 |
+| Angry Moku Battle Royal (Classic) | `angry-moku-battle-royal-classic.html` | 上の v1.2.0 をそのまま残した版(ハブには出さず、本編のタイトル画面「🕰 Classic Mode」から開く) |
 | MK Mobile | `mk-mobile.html` | サッカー |
 | Moku Fight | `moku-fight.html` | 格闘アクション |
 | Moku Kart Dash | `moku-kart.html` | サーキットレース |
@@ -46,6 +47,7 @@
 
 - **Moku City**: 「ただビルを建てるだけだと普通のシムシティと同じ」という子どもの意見から、**緑(自然)を一定割合残さないと市民の幸福度が下がる**ルールを入れた。環境教育とゲーム性の両立がテーマ。
 - **Moku Dropper**: 子どもが別の Claude で作った「Moku Dropper 3D」(マイクラのドロッパー風、青い壁の縦穴)が元。ラウンド構成・障害物のおやつ・「ぶつかったら上からやり直し」・紫のポータルは子どもの設計なので変えない。舞台だけ The Hollow の大きな木の幹の中にして、シリーズの世界観とつないだ。2026-10-31 に遊んでみた声で、CPU を弱く・遅く、各フロアの穴を2つに、レースの相手を2人に、星をやめて 1st / 2nd / 3rd の順位だけにした(SPEC.md §13)。
+- **Angry Moku Battle Royal の Classic Mode**(2026-11-08): エンハンスの前に、今の版(v1.2.0)を `angry-moku-battle-royal-classic.html` に凍結して、いつでも遊べるように残した。**Classic のゲームの中身は直さない**(エラーの修正と共通スクリプトの `?v=` 上げは除く)。セーブ(`moku:save`)とランキングは本編と共有なので、本編でセーブの形を変える時は Classic でも読める形にするか、本編だけ新しいキーにする。
 - **Moku Bento / Shiri of Moku**: レース・パズル・格闘のような定番ジャンルだけでなく、「日常の可愛いもの」「子どもが大笑いするもの」を入れたいという子どもたちのアイディアから誕生。高度なグラフィックより、動きの愛嬌(イージングアニメーション)を大事にする。
 - **ゲーム内は英語**: 英語学習・グローバル展開・友達への自慢を意識した方針(§4)。
 

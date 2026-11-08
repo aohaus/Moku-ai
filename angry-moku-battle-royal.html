@@ -439,6 +439,9 @@
     text-shadow:0 0 14px rgba(147,160,255,.7);
   }
   .titleMenuItem:active{ transform:translateY(1px); }
+  /* Classic Mode へのリンク(v1.2.0 を angry-moku-battle-royal-classic.html に保存) */
+  a.titleMenuItem{ text-decoration:none; }
+  .titleMenuItem.sub{ color:#6E77C2; text-shadow:none; }
   #titleFooterTag{
     margin-top:34px; padding-top:14px; width:min(320px,80%);
     border-top:1px solid rgba(255,255,255,.12);
@@ -449,7 +452,7 @@
 <body class="on-title">
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v1.2.0 · Updated Aug 14, 2026</div>
+<div id="buildInfo">v1.2.1 · Updated Nov 8, 2026</div>
 <a class="moku-back" href="hub.html" aria-label="Back to Moku Series">←</a>
 <div id="rotate-hint">
   <span>📱</span>
@@ -464,6 +467,7 @@
     <p id="titleSub">4 V 4 &nbsp; S L I N G S H O T &nbsp; S H O W D O W N</p>
     <nav id="titleMenu">
       <button class="titleMenuItem" id="titleStartBtn">▶ Start</button>
+      <a class="titleMenuItem sub" href="angry-moku-battle-royal-classic.html">🕰 Classic Mode</a>
     </nav>
     <div id="titleFooterTag">🦉 × 🍬 × ⚽ × 🏆&nbsp; M O K U M O K U &nbsp;S E R I E S</div>
   </section>
