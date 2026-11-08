@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<script src="shared/moku-errors.js?v=20261108"></script>
-<script src="shared/moku-gate.js?v=20261108"></script>
+<script src="shared/moku-errors.js?v=20261108b"></script>
+<script src="shared/moku-gate.js?v=20261108b"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Moku Series</title>
 <!-- Icons: made by scripts/make-icons.py. Bump ?v= when they change so browsers refetch. -->
@@ -3173,6 +3173,11 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
            desc: 'Open shops to earn coins, hire guards, and run around as Moku to stop robbers at the ATMs. Fill all 10 stores to unlock the next mall. Made by one of our young game designers!',
            moint: { cap: true, how: 'Catch a robber: +30. Catch a Super Robber: +50. Fill every store in a mall for the first time: +100 to +500.' } }
   };
+  // For "Get the latest games & updates" (shared/moku-account.js): the games
+  // this hub lists, so it can say which ones the last update didn't know about.
+  window.MOKU_GAME_PAGES = function () {
+    return Object.keys(CATALOG).map(function (k) { return { page: CATALOG[k].gameId + '.html', name: CATALOG[k].name }; });
+  };
   var SHELVES = [
     { title: 'Action & Sports', sub: 'Fling, kick, fight, race', cards: ['mdp', 'mfg', 'mfr', 'mkt', 'br', 'mk', 'am'] },
     { title: 'Puzzle & Brain',  sub: 'Think, match, merge',      cards: ['mwr', 'mch', 'md', 'so', 'mm'] },
@@ -4487,9 +4492,9 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
   };
 })();
 </script>
-<script src="shared/moku-account.js?v=20261108"></script>
-<script src="shared/moku-transfer.js?v=20261108"></script>
-<script src="shared/moku-moint.js?v=20261108"></script>
+<script src="shared/moku-account.js?v=20261108b"></script>
+<script src="shared/moku-transfer.js?v=20261108b"></script>
+<script src="shared/moku-moint.js?v=20261108b"></script>
 <script>
 // ---------- Invites (SPEC.md §7) ----------
 // Friends waiting for you in a multiplayer game, at the top of the hub:

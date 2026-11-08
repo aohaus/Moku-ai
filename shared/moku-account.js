@@ -1149,17 +1149,33 @@
     var opts = { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' };
     try { return d.toLocaleString('en-US', opts); } catch (e) { return d.toDateString(); }
   }
+  function nameList(names) {
+    var list = names.slice(0, 3).map(esc).join(', ');
+    return '<b>' + list + '</b>' + (names.length > 3 ? ' and ' + (names.length - 3) + ' more' : '');
+  }
+  // Games the hub lists right now that the last update didn't know about
+  // (the hub page itself refreshes on its own, so a new game can show up
+  // on Home before anyone presses the update link). hub.html provides
+  // MOKU_GAME_PAGES(); records from before `games` was kept are skipped.
+  function gamesAddedSince(u) {
+    if (!u || !u.games || !global.MOKU_GAME_PAGES) return [];
+    var known = {}, out = [];
+    u.games.forEach(function (pg) { known[pg] = 1; });
+    try {
+      global.MOKU_GAME_PAGES().forEach(function (g) { if (!known[g.page]) out.push(g.name); });
+    } catch (e) {}
+    return out;
+  }
+  // The note is about the LAST update, not a live check: say so, and add what
+  // the hub has gained since. Each game's version is in its My Games row.
   function updateNoteHTML() {
     var u = readJSONKey(UPDATE_KEY);
     if (!u || !u.at) return '';
-    var parts = ['Updated <b>' + esc(fmtWhen(u.at)) + '</b> · about <b>' + esc(fmtBytes(u.bytes)) + '</b>'];
-    // Each game's version is shown in its My Games row (hub.html), not here.
-    if (u.changed && u.changed.length) {
-      var list = u.changed.slice(0, 3).map(function (c) { return esc(c.name); }).join(', ');
-      parts.push('New since last time: <b>' + list + '</b>' + (u.changed.length > 3 ? ' and ' + (u.changed.length - 3) + ' more' : ''));
-    } else if (u.compared) {
-      parts.push('No game changed since last time.');
-    }
+    var parts = ['Last update: <b>' + esc(fmtWhen(u.at)) + '</b> · about <b>' + esc(fmtBytes(u.bytes)) + '</b>'];
+    if (u.changed && u.changed.length) parts.push('Changed in that update: ' + nameList(u.changed.map(function (c) { return c.name; })));
+    else if (u.compared) parts.push('No game had changed in that update.');
+    var added = gamesAddedSince(u);
+    if (added.length) parts.push('Added since: ' + nameList(added));
     return '<p class="mka-update-note">' + parts.join('<br>') + '</p>';
   }
   // Right after the update's reload: say how it went, once.
@@ -1193,7 +1209,7 @@
       });
       if (Object.keys(now).length) writeJSONKey(UPDATE_VERSIONS_KEY, now);
       writeJSONKey(UPDATE_KEY, {
-        at: new Date().toISOString(), bytes: bytes, pages: Object.keys(names).length,
+        at: new Date().toISOString(), bytes: bytes, pages: Object.keys(names).length, games: Object.keys(names),
         newest: newest ? { name: newest.name, v: newest.v, date: newest.date } : null,
         changed: changed, compared: !!prev, fresh: true
       });
