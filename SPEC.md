@@ -368,12 +368,14 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
   - 泥棒は ATM で盗んだあと、近い方の横の出口へ走って逃げ、着いたら消える(逃げている間もつかまえられる。逃げられた分の Moint・+$200 はなし)。取り込み前は ATM の前に居座り、スーパー泥棒だと次の泥棒も来なかった。悪いお客さんはモールを切り替えるたびに1〜2人入れ直す。
   - 背景(v1.1.0): モール名に合わせて描いた。Moku's Garden Mall = 晴れた花の庭(花壇・木・温室・バラのアーチ・チョウ)、Moku Sunshine Resort Mall = いちばん豪華な海辺のリゾート(太陽・海・ヤシ・噴水のプール・パラソル)。壁と床の色もそれぞれの雰囲気に合わせた(`MALL_DEFS`)。モールの建物が真ん中をおおうので、見どころは左右の端に置き、メニュー・Check / Superpower・ジョイスティックと重ならない高さにする。看板は右の壁と画面の端のすき間に入る大きさで描き、狭い時は短い名前にする(`drawSignBoard`)。
   - 画面: 横向き専用(縦持ちは `#rotate-hint`)。Retina では canvas を最大2倍の画素で描く(`pxRatio`。描画は論理サイズ `VW` × `VH` の座標)。モールの絵は決まった大きさ(`TILE` 44)なので、画面が 1000×860 より小さい時は canvas の内部サイズを広げて全体を縮小表示する(`VIEW_MIN_W` / `VIEW_MIN_H`、`toCanvas()` でタップ位置を直す)。背の低い画面(高さ 520px 以下)では店の一覧を 5 列にする。
-- **Sir CEO Moku**(`ceo-moku.html`、2026-11-08〜、v0.1.0。ハブの Cozy & Create、Achievements は Pop Quizzes Solved): Moku-ai games のオーナー「Sir CEO Moku」(シルクハット・モノクル・Moint Medallion。表情は Closet の Moods を会話に合わせて切り替え、大事なセリフで寄る)の社長室で会話する。会話はスクリプトで、外部への通信はしない。UI は英語で、口ぐせは文末の「…, moku」。
-  - **CEO's Pick**(+20% の CEO Bonus): 毎日1本、Moint を配るゲームから選ぶ(シード `ceo-pick-<日付>`、全員同じ、前日と同じにしない)。**+20% はゲームの外のボーナス**: 社長室で発表を聞いた時の、そのゲームの今日の「毎回もらえる分」(`MokuMoint.earnedToday`)を覚えておき、社長室に戻ってくると、そこから増えた分の 20%(切り捨て)を CEO Bonus として払う(`earn('ceo-moku', n, { capped: false })`)。各ゲームと `shared/moku-moint.js` は変えない。1回きりの実績はボーナスに入らない。ハブの Today's Pick とは別物。
-  - **Pop Quiz**(1日1問): Moku Word Riddles の問題(`data/riddles-db.md`、Easy を優先)を4択で。正解 100 Moint(`{ capped: false }`)。答える前に記録するので、読み直してもやり直せない。会話の途中で突然始まることもある。
+- **Sir CEO Moku**(`ceo-moku.html`、2026-11-08〜、v0.2.0。ハブの Cozy & Create、Achievements は Pop Quizzes Solved): Moku-ai games のオーナー「Sir CEO Moku」(シルクハット・モノクル・Moint Medallion。表情は Closet の Moods を会話に合わせて切り替え、大事なセリフで寄る)の社長室で会話する。会話はスクリプトで、外部への通信はしない。UI は英語で、口ぐせは文末の「…, moku」。
+  - **CEO's Pick = ハブの Today's Pick**(v0.2.0〜): `hub.html` の `FEATURED` と同じ並び・同じ日付の式(`ceo-moku.html` の `PICKS`。**片方を変えたらもう片方も**)。ボーナスは**ゲームの外**で、社長室に戻ってきた時に払う(`earn('ceo-moku', n, { capped: false })`。各ゲームと `shared/moku-moint.js` は変えない)。
+    - Moint を配るゲーム(今は Moku Fight): 社長室で発表を聞いた時の、そのゲームの今日の「毎回もらえる分」(`MokuMoint.earnedToday`)を覚えておき、そこから増えた分の 20%(切り捨て)。1回きりの実績は入らない。
+    - Moint のないゲーム(Moku Kart Dash / Angry Mokumoku / Moku City): 発表の後にそのゲームのセーブ(`PICKS[].saves` の頭のキー)が変わっていたら Play Bonus 30(1日1回)。
+  - **Pop Quiz**(1日1問、v0.2.0〜): メニューには出さず、**おしゃべり(Let's chat)の途中で突然始まる**(その日の1回目 20%・2回目 50%・3回目は必ず)。Moku Word Riddles の問題(`data/riddles-db.md`、Easy を優先)を元のゲームと同じ**自由記述**で答える(`MokuRiddles.isCorrect`)。3回まで: まちがえると意味のヒント(`Hint`)→ 頭文字(`Y _ _ / T _ _`)。正解 100 Moint(`{ capped: false }`)。答える前に記録するので、読み直してもやり直せない。
   - **ゲームのアイデア**: 160 文字まで。キーワードでコメント(★4 か ★5。子どもの案を下げない)+考えを深める質問。最新 10 件を覚えていて、次に来た時に話題にする。
   - **寄付のおねだり**: ゲーム内の Moint 10 だけ。1日1回、残高 50 以上の時だけ。断っても何も起きない。
-  - 記録は `moku:ceo-moku:memory` = `{ version: 1, gameId, visits, days, firstDay, lastDay, log: [{ at, who, text }](最新 40), ideas: [{ day, text }], quiz: { day, wins, tries, seen }, donate: { askedDay, count, total }, pick: { day, gameId, base, paid }, bonusTotal, pokes, talks, updatedAt }`。音のオン/オフは `moku:ceo-moku:settings`。
+  - 記録は `moku:ceo-moku:memory` = `{ version: 1, gameId, visits, days, firstDay, lastDay, log: [{ at, who, text }](最新 40), ideas: [{ day, text }], quiz: { day, wins, tries, seen }, donate: { askedDay, count, total }, pick: { day, gameId, base, fp, paid }, chat: { day, n }, bonusTotal, pokes, talks, updatedAt }`。音のオン/オフは `moku:ceo-moku:settings`。
 - **Moku Fight**(2026-10-25〜): 結果画面に内訳(コインが数え上がる)。タイトル画面に残高と今日の分。負けても減らない。
   - 毎回(上限 500/日): 勝ち Easy 30 / Normal 60 / Hard 120。ノーダメージで取ったラウンドがあれば +20。連勝ボーナスは2連勝目から1つごとに +10(最大 +50)。
   - 1回きり: ライバルごと・CPUの難易度ごとの初勝利 100 / 200 / 300(ゲストのライバルも)。Goro への初勝利は 500(その時の難易度の初勝利も済みにする)。新しい技を覚えた 50。技の練習を初めて終えた 10。

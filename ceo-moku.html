@@ -15,12 +15,14 @@
   - 会話はスクリプト(AI は使わない。外部への通信もしない)。選択肢を押して進む。
   - 記憶: moku:ceo-moku:memory に、訪れた日・会話の記録(最新 40 行)・ゲームのアイデア・クイズ・寄付を残す。
     クラウドセーブ・引き継ぎコードの対象(moku: 接頭辞)。次に来た時のあいさつが変わる。
-  - CEO's Pick: 毎日1本おすすめを決める(日付からのシード、全員同じ)。+20% は**ゲームの外のボーナス**:
-    ここで発表を聞いた時の、そのゲームの今日の「毎回もらえる分」(MokuMoint.earnedToday)を覚えておき、
-    社長室に戻ってくると、そこから増えた分の 20% を CEO Bonus として払う(ceo-moku の Moint、上限の外)。
-    ゲームの中のコードと shared/moku-moint.js は変えない。記録は memory の pick = { day, gameId, base, paid }。
+  - CEO's Pick: ハブの上の Today's Pick と同じゲーム(hub.html の FEATURED と同じ並び・同じ日付の式。片方を変えたらもう片方も)。
+    ボーナスは**ゲームの外**で、社長室に戻ってきた時に払う(ceo-moku の Moint、上限の外)。ゲームと shared/moku-moint.js は変えない。
+    ・Moint を配るゲーム(Moku Fight): 発表を聞いた時の今日の「毎回もらえる分」(MokuMoint.earnedToday)を覚えておき、増えた分の 20%。
+    ・Moint のないゲーム(Moku Kart Dash / Angry Mokumoku / Moku City): そのゲームのセーブが発表の後に変わっていたら Play Bonus 30(1日1回)。
+    記録は memory の pick = { day, gameId, base, fp, paid }。
     ハブの Today's Pick(スクリーンショットのある4本から)とは別物なので、名前を「CEO's Pick」にした。
-  - Pop Quiz: Moku Word Riddles の問題(data/riddles-db.md、shared/moku-riddles.js)から1日1問、4択。正解で 100 Moint(1日1回、上限の外)。
+  - Pop Quiz: おしゃべり(Let's chat)の途中で突然出る(メニューには出さない)。Moku Word Riddles の問題(data/riddles-db.md、
+    shared/moku-riddles.js)から1日1問、元のゲームと同じ自由記述。3回まで答えられ、まちがえるとヒント → 頭文字。正解で 100 Moint(上限の外)。
   - Game idea: 子どもが書いたアイデアに、キーワードでコメントを返し、考えを深める質問をする。記憶に残る(最新 10 件)。
   - Donation: ときどき 10 Moint の「寄付」をおねだりする(ゲーム内の Moint だけ。1日1回、残高 50 以上の時だけ。断っても何も起きない)。
   - 表情: Moku Closet の Moods(表情)と、CEO の服(Top Hat / Monocle / Moint Medallion)を MokuMoint.outfitSVG() で重ねる。
@@ -166,7 +168,13 @@ body {
 #choices button.right { background: #DDF2D4; border-color: #8CC77E; box-shadow: 0 3px 0 #8CC77E; }
 #choices button.wrong { background: #F8DCD6; border-color: #E29C8E; box-shadow: 0 3px 0 #E29C8E; opacity: .8; }
 #choices button:disabled { cursor: default; }
-#ideaBox { flex: 1 1 100%; display: flex; gap: 8px; }
+#ideaBox, #answerBox { flex: 1 1 100%; display: flex; gap: 8px; }
+#answerBox input {
+  flex: 1; min-height: 48px; padding: 8px 14px; border-radius: 12px; border: 2px solid #E3CFA8; background: #fff;
+  font: 700 18px/1.2 var(--round); color: var(--ink); letter-spacing: .02em;
+  -webkit-user-select: text; user-select: text;
+}
+#answerBox input:focus { outline: 3px solid rgba(217,146,90,0.45); border-color: var(--hi); }
 #ideaBox textarea {
   flex: 1; min-height: 64px; resize: none;
   padding: 10px 12px; border-radius: 12px; border: 2px solid #E3CFA8; background: #fff;
@@ -393,7 +401,7 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
 
 <div id="title-frame"></div>
 <a id="hub-link" href="index.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.1.0 · Updated Nov 8, 2026</div>
+<div id="buildInfo">v0.2.0 · Updated Nov 8, 2026</div>
 
 <script src="shared/moku-account.js?v=20261108b" data-mode="background"></script>
 <script src="shared/moku-moint.js?v=20261108b" data-mode="none"></script>
@@ -406,14 +414,28 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
   var GAME_ID = 'ceo-moku';
   var MEM_KEY = 'moku:ceo-moku:memory';
   var PICK_BONUS = 0.2;                          // CEO's Pick で稼いだ分の 2 割を、社長室に戻ったら払う
+  var PLAY_BONUS = 30;                           // Moint のないゲームが CEO's Pick の日: 遊んでセーブが変わったら
+  var QUIZ_TRIES = 3;                            // 突発クイズで答えられる回数(まちがえるとヒント → 頭文字)
   var SETTINGS_KEY = 'moku:ceo-moku:settings';
   var QUIZ_MOINTS = 100;                         // 突発クイズの正解(1日1回、上限の外)
   var DONATION = 10;                             // おねだりする寄付(ゲーム内の Moint だけ)
   var DONATION_MIN_BALANCE = 50;                 // これより少ない子にはおねだりしない
   var LOG_MAX = 40, IDEAS_MAX = 10, SEEN_MAX = 60;
 
-  // CEO's Pick の候補 = Moint を配っているゲーム(SPEC.md §13)
+  // CEO's Pick = ハブの Today's Pick。hub.html の FEATURED(['mfg', 'mkt', 'am', 'mc'])と同じ順番にする
+  // saves: そのゲームのセーブのキーの頭(遊んだかどうかを見る)。moint: Moint を配るゲーム
   var PICKS = [
+    { card: 'mfg', id: 'moku-fight', name: 'Moku Fight', file: 'moku-fight.html', icon: '🥋', moint: true, saves: ['moku:moku-fight:'],
+      why: 'Practice your moves. A CEO must be ready for anything. Even a pillow fight.' },
+    { card: 'mkt', id: 'moku-kart', name: 'Moku Kart Dash', file: 'moku-kart.html', icon: '🏎️', moint: false, saves: ['moku_kart_'],
+      why: 'Vroom! A CEO must be fast. Fast at meetings. Fast at lunch. Mostly lunch.' },
+    { card: 'am', id: 'angry-mokumoku', name: 'Angry Mokumoku', file: 'angry-mokumoku.html', icon: '🪶', moint: false, saves: ['amoku-', 'moku:angry-mokumoku:'],
+      why: 'Fling, crash, boom! It is how I deal with my emails.' },
+    { card: 'mc', id: 'mokucity', name: 'Moku City', file: 'mokucity.html', icon: '🏙️', moint: false, saves: ['moku:mokucity:'],
+      why: 'Build a city! Keep lots of trees, moku. I want a park next to my office.' }
+  ];
+  // おしゃべりの話題にするゲーム(この端末のセーブがあるもの)
+  var TALK_GAMES = [
     { id: 'moku-fight', name: 'Moku Fight', file: 'moku-fight.html', icon: '🥋', why: 'Practice your moves. A CEO must be ready for anything. Even a pillow fight.' },
     { id: 'moku-bridge', name: 'Moku Bridge', file: 'moku-bridge.html', icon: '🌉', why: 'Left or right? It is like business. Mostly luck. Do not tell anyone.' },
     { id: 'moku-drop', name: 'Moku Drop', file: 'moku-drop.html', icon: '🫧', why: 'Merging things is what big companies do. Practice now.' },
@@ -427,8 +449,6 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
     { id: 'moku-future-run', name: 'Moku Future Run', file: 'moku-future-run.html', icon: '🏃', why: 'Run, jump, slide! I would join, but my hat might fall off.' },
     { id: 'moku-mall', name: 'Moku Mall', file: 'moku-mall.html', icon: '🛍️', why: 'Running shops! Finally, a game about MONEY. My favorite.' }
   ];
-  var PICK_BY_ID = {};
-  PICKS.forEach(function (p) { PICK_BY_ID[p.id] = p; });
 
   // CEO の服(Moku Closet のアイテム)。表情は Moods から
   var CEO_OUTFIT = { head: 'top-hat', face: 'monocle', neck: 'moint-medallion' };
@@ -649,32 +669,44 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
   });
 
   // ---------- CEO's Pick ----------
-  function pickFor(day) {
-    var R = window.MokuRandom;
-    var r = R ? R.create('ceo-pick-' + day) : null;
-    var i = r ? r.int(0, PICKS.length - 1) : (parseInt(day.replace(/-/g, ''), 10) % PICKS.length);
-    var y = new Date(day + 'T12:00:00'); y.setDate(y.getDate() - 1);
-    var ry = R ? R.create('ceo-pick-' + dayStr(y)) : null;
-    var yi = ry ? ry.int(0, PICKS.length - 1) : -1;
-    if (i === yi) i = (i + 1) % PICKS.length;   // 2日続けて同じにしない
-    return PICKS[i];
+  // hub.html の setupTodayPick() と同じ式(端末の日付の 0 時から数えた日)
+  function hubPick() {
+    var now = new Date();
+    var day = Math.floor(new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() / 86400000);
+    return PICKS[((day % PICKS.length) + PICKS.length) % PICKS.length];
   }
   var today = dayStr();
-  var pick = pickFor(today);
+  var pick = hubPick();
   function earnedIn(id) { return M && M.earnedToday ? M.earnedToday(id) : 0; }
+  // そのゲームのセーブの指紋(遊んで何か記録が変わったかを見るだけ)
+  function saveFingerprint(g) {
+    var parts = [];
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && g.saves.some(function (pre) { return k.indexOf(pre) === 0; })) parts.push(k + '=' + localStorage.getItem(k));
+      }
+    } catch (e) {}
+    parts.sort();
+    var h = 5381, str = parts.join('|');
+    for (var j = 0; j < str.length; j++) h = ((h << 5) + h + str.charCodeAt(j)) | 0;
+    return String(h >>> 0) + ':' + str.length;
+  }
   function pickIsOn() { return !!(mem.pick && mem.pick.day === today && mem.pick.gameId === pick.id); }
   function turnPickOn() {
-    // 発表を聞いた時点で、そのゲームで今日もうもらった分を基準にする(それより前の分はボーナスにしない)
-    mem.pick = { day: today, gameId: pick.id, base: earnedIn(pick.id), paid: 0 };
+    // 発表を聞いた時点を基準にする(それより前に遊んだ分はボーナスにしない)
+    mem.pick = { day: today, gameId: pick.id, base: earnedIn(pick.id), fp: saveFingerprint(pick), paid: 0 };
     saveMem();
     paintPick();
   }
   // 社長室に戻ってきた時に払うボーナス(まだ払っていない分)
   function pendingBonus() {
     if (!pickIsOn()) return 0;
+    if (!pick.moint) return !mem.pick.paid && saveFingerprint(pick) !== mem.pick.fp ? PLAY_BONUS : 0;
     var earned = Math.max(0, earnedIn(pick.id) - (mem.pick.base | 0));
     return Math.max(0, Math.floor(earned * PICK_BONUS) - (mem.pick.paid | 0));
   }
+  function bonusLabel() { return pick.moint ? '+20% bonus' : '+' + PLAY_BONUS + ' bonus'; }
   function payBonus() {
     var n = pendingBonus();
     if (!n || !M) return 0;
@@ -688,7 +720,7 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
   function paintPick() {
     var el = $('pickPill');
     var paid = pickIsOn() ? (mem.pick.paid | 0) : 0;
-    el.textContent = pick.icon + ' ' + pick.name + ' · +20% bonus' + (paid ? ' (+' + paid + ')' : '');
+    el.textContent = pick.icon + ' ' + pick.name + ' · ' + (paid ? 'Bonus +' + paid + ' ✓' : bonusLabel());
     el.classList.toggle('on', pickIsOn());
   }
   // ゲームから戻ってきたら、ボーナスの表示を新しくする
@@ -700,6 +732,10 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
     var got = payBonus();
     if (!got) return Promise.resolve();
     coin(); setTimeout(chime, 250); confetti();
+    if (!pick.moint) return talk([
+      { t: 'Ah! You played ' + pick.icon + ' <b>' + esc(pick.name) + '</b> today. I saw your new record. Nice work, moku!', mood: 'star', close: true, hop: true },
+      { t: 'As promised, here is your <b>Play Bonus: +' + got + ' Moints</b>. From my own pocket. My pocket is crying, moku.', mood: 'moint' }
+    ]);
     return talk([
       { t: 'Ah! You played ' + pick.icon + ' <b>' + esc(pick.name) + '</b> and earned <b>' + earned + ' Moints</b> today. Nice work, moku!', mood: 'star', close: true, hop: true },
       { t: 'As promised, here is your <b>CEO Bonus: +' + got + ' Moints</b>. 20%! From my own pocket. My pocket is crying, moku.', mood: 'moint' }
@@ -709,9 +745,11 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
   function announcePick() {
     turnPickOn();
     return talk([
-      { t: 'Now, business. Today\'s <b>CEO\'s Pick</b> is…', mood: 'showOff', close: true },
+      { t: 'Now, business. Did you see <b>Today\'s Pick</b> at the top of the hub? I picked it. Me. Personally.', mood: 'showOff', close: true },
       { t: pick.icon + ' <b>' + esc(pick.name) + '</b>! ' + esc(pick.why), mood: 'happy', hop: true },
-      { t: 'Play it today, then come back to my office. I will pay you a <b>CEO Bonus</b>: <b>20%</b> of the Moints you earn there. You are welcome, moku.', mood: 'wink' }
+      pick.moint
+        ? { t: 'Play it today, then come back to my office. I will pay you a <b>CEO Bonus</b>: <b>20%</b> of the Moints you earn there. You are welcome, moku.', mood: 'wink' }
+        : { t: 'Play it today and make a new record, then come back to my office. I will pay you a <b>Play Bonus of ' + PLAY_BONUS + ' Moints</b>. You are welcome, moku.', mood: 'wink' }
     ]);
   }
 
@@ -756,8 +794,7 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
       var opts = [];
       var bonus = pendingBonus();
       if (bonus) opts.push({ label: '🎁 Get my CEO Bonus', value: 'bonus', cls: 'main', tag: '+' + bonus });
-      opts.push({ label: pick.icon + ' Play ' + pick.name, value: 'play', cls: bonus ? '' : 'main', tag: '+20% bonus', href: pick.file });
-      if (mem.quiz.day !== today) opts.push({ label: '🧩 Pop Quiz', value: 'quiz', tag: '+' + QUIZ_MOINTS });
+      opts.push({ label: pick.icon + ' Play ' + pick.name, value: 'play', cls: bonus ? '' : 'main', tag: pickIsOn() && mem.pick.paid && !pick.moint ? '' : (pick.moint ? '+20%' : '+' + PLAY_BONUS), href: pick.file });
       opts.push({ label: '💡 I have a game idea', value: 'idea' });
       opts.push({ label: '💬 Let\'s chat', value: 'chat' });
       opts.push({ label: '📜 Our talks', value: 'log', cls: 'soft', log: false });
@@ -766,7 +803,6 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
     }).then(function (v) {
       document.body.classList.remove('on-title');
       if (v === 'bonus') return bonusTalk().then(function () { return menu(rand(MENU_LINES)); });
-      if (v === 'quiz') return quiz(false);
       if (v === 'idea') return ideaTalk();
       if (v === 'chat') return chat();
       if (v === 'log') { openLog(); return menu(); }
@@ -792,9 +828,9 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
   function chooseRiddle(list) {
     var seen = {};
     mem.quiz.seen.forEach(function (id) { seen[id] = 1; });
-    var pool = list.filter(function (r) { return r.level === 1 && !seen[r.id] && r.choices.length >= 3; });
-    if (!pool.length) pool = list.filter(function (r) { return r.level <= 2 && !seen[r.id] && r.choices.length >= 3; });
-    if (!pool.length) pool = list.filter(function (r) { return r.choices.length >= 3; });
+    var pool = list.filter(function (r) { return r.level === 1 && !seen[r.id]; });
+    if (!pool.length) pool = list.filter(function (r) { return r.level <= 2 && !seen[r.id]; });
+    if (!pool.length) pool = list.slice();
     return pool.length ? rand(pool) : null;
   }
   var COLORS = { ink: '#3B2A20', accent: '#D9534F', red: '#D9534F', blue: '#3C7DD9', green: '#4E9A4A', orange: '#E8832A', purple: '#8A5BD1', brown: '#8B5A2B', soft: '#B9A48C' };
@@ -822,49 +858,88 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
   }
   function hideCard() { $('quizCard').classList.remove('on'); }
 
-  function quiz(surprise) {
-    var intro = surprise
-      ? [{ t: 'WAIT! Stop right there, moku!', mood: 'surprised', close: true, hop: true }, { t: 'It is time for a… <b>POP QUIZ!</b> Solve it and I pay you <b>' + QUIZ_MOINTS + ' Moints</b>. From my own pocket. Ouch.', mood: 'showOff' }]
-      : [{ t: 'A quiz? You like danger, moku. Okay. Solve it for <b>' + QUIZ_MOINTS + ' Moints</b>.', mood: 'showOff', close: true }];
+  // 頭文字のヒント: "climb up" → "C _ _ _ _ / U _"
+  function letterHint(answer) {
+    // 単語の途中で折り返さないよう、単語ごとに nowrap(HTML を返す)
+    return answer.toUpperCase().split(' ').map(function (w) {
+      return '<span style="white-space:nowrap">' + esc(w.split('').map(function (ch, i) { return i === 0 || !/[A-Z0-9]/.test(ch) ? ch : '_'; }).join(' ')) + '</span>';
+    }).join(' / ');
+  }
+  // 自由記述の答えを1つ受け取る(null = あきらめた)
+  function askAnswer(placeholder) {
+    return new Promise(function (resolve) {
+      var box = $('choices');
+      box.innerHTML = '<div id="answerBox"><input id="answerText" type="text" maxlength="40" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" aria-label="Your answer"></div>';
+      var input = $('answerText');
+      input.placeholder = placeholder;
+      var check = document.createElement('button'); check.type = 'button'; check.className = 'main'; check.textContent = '✓ Check';
+      var give = document.createElement('button'); give.type = 'button'; give.className = 'soft'; give.textContent = 'I give up';
+      box.appendChild(check); box.appendChild(give);
+      function send() {
+        var v = input.value.replace(/\s+/g, ' ').trim();
+        if (!v) { input.focus(); return; }
+        remember('you', v);
+        resolve(v);
+      }
+      check.addEventListener('click', send);
+      input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); send(); } });
+      give.addEventListener('click', function () { remember('you', 'I give up'); resolve(null); });
+      armIdle();
+      setTimeout(function () { try { input.focus(); } catch (e) {} }, 60);
+    });
+  }
+
+  // 突発クイズ(おしゃべりの途中で出る。1日1問)
+  function quiz() {
+    var intro = [
+      { t: 'WAIT! Stop right there, moku!', mood: 'surprised', close: true, hop: true },
+      { t: 'It is time for a… <b>POP QUIZ!</b> Type the answer and I pay you <b>' + QUIZ_MOINTS + ' Moints</b>. From my own pocket. Ouch.', mood: 'showOff' }
+    ];
     return talk(intro).then(loadRiddles).then(function (list) {
       var r = list && chooseRiddle(list);
       if (!r) return menu('Oh no. I lost my quiz cards. Next time, moku!');
       mem.quiz.seen.push(r.id);
       if (mem.quiz.seen.length > SEEN_MAX) mem.quiz.seen = mem.quiz.seen.slice(-SEEN_MAX);
       mem.quiz.tries += 1;
-      mem.quiz.day = today;           // 1日1問(まちがえても、その日はもうなし)
+      mem.quiz.day = today;           // 1日1問(答える前に記録するので、読み直してもやり直せない)
       saveMem();
       renderCard(r);
       closeUp(false);
-      var opts = [r.answer].concat(r.choices.slice(0, 3));
-      opts = window.MokuRandom ? MokuRandom.create(r.id + today).shuffle(opts) : opts.sort(function () { return Math.random() - 0.5; });
-      return talk([{ t: 'What word or phrase is hiding in this card? 🤔', mood: 'wink' }]).then(function () {
-        return ask(opts.map(function (o) { return { label: o, value: o }; }));
-      }).then(function (ans) {
-        var btns = $('choices').querySelectorAll('button');
-        var ok = window.MokuRiddles ? MokuRiddles.isCorrect(r.id, ans) : ans === r.answer;
-        btns.forEach(function (b) {
-          b.disabled = true;
-          if (window.MokuRiddles ? MokuRiddles.isCorrect(r.id, b.textContent) : b.textContent === r.answer) b.classList.add('right');
-          else if (b.textContent === ans) b.classList.add('wrong');
+      var isRight = function (v) { return window.MokuRiddles ? MokuRiddles.isCorrect(r.id, v) : String(v).toLowerCase() === r.answer; };
+      var why = esc(r.why) + (r.example ? ' <i>“' + esc(r.example) + '”</i>' : '');
+      var words = r.answer.split(' ').length;
+      function attempt(n) {
+        var prompt = n === 1
+          ? { t: 'What word or phrase is hiding in this card? 🤔 Type it in!' + (words > 1 ? ' (' + words + ' words)' : ''), mood: 'wink' }
+          : n === 2
+            ? { t: 'Nope! Here is a hint: <b>' + esc(r.clue) + '</b>', mood: 'sideEye' }
+            : { t: 'Last try, moku! It looks like this: <b>' + letterHint(r.answer) + '</b>', mood: 'sweat' };
+        return talk([prompt]).then(function () { return askAnswer(n === 1 ? 'Your answer…' : 'Try again…'); }).then(function (ans) {
+          if (ans === null) return false;
+          if (isRight(ans)) return true;
+          boop();
+          var card = $('quizCard');
+          card.style.transform = 'translate(-50%, -50%) rotate(-1.5deg) translateX(-8px)';
+          setTimeout(function () { card.style.transform = ''; }, 160);
+          return n < QUIZ_TRIES ? attempt(n + 1) : false;
         });
-        var why = esc(r.why) + (r.example ? ' <i>“' + esc(r.example) + '”</i>' : '');
+      }
+      return attempt(1).then(function (ok) {
         if (ok) {
           var got = M ? M.earn(GAME_ID, QUIZ_MOINTS, { capped: false }) : 0;
           mem.quiz.wins += 1; saveMem();
           chime(); setTimeout(coin, 300); confetti();
-          return wait(700).then(function () {
+          return wait(500).then(function () {
             return talk([
-              { t: 'Correct?! …Correct. ' + why, mood: 'surprised', close: true },
+              { t: 'Correct?! …Correct. It is <b>' + esc(r.answer.toUpperCase()) + '</b>! ' + why, mood: 'surprised', close: true },
               { t: 'Here are your <b>' + got + ' Moints</b>. Spend them wisely. Or on hats, moku.', mood: 'moint' }
             ]);
           });
         }
-        boop();
-        return wait(700).then(function () {
+        return wait(300).then(function () {
           return talk([
-            { t: 'Ha! Not quite. It was <b>' + esc(r.answer.toUpperCase()) + '</b>. ' + why, mood: 'laugh', close: true },
-            { t: 'Do not worry. I got it wrong too. The first 12 times. Come back tomorrow, moku!', mood: 'wink' }
+            { t: 'Ha! It was <b>' + esc(r.answer.toUpperCase()) + '</b>. ' + why, mood: 'laugh', close: true },
+            { t: 'Do not worry. I got it wrong too. The first 12 times. There will be another quiz tomorrow, moku!', mood: 'wink' }
           ]);
         });
       }).then(function () { hideCard(); return menu(rand(MENU_LINES)); });
@@ -955,13 +1030,22 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
   // 最近遊んだゲームの話(この端末のセーブがあるか、だけを見る)
   function playedGames() {
     var out = [];
-    PICKS.forEach(function (p) {
+    TALK_GAMES.forEach(function (p) {
       try { for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.indexOf('moku:' + p.id + ':') === 0) { out.push(p); break; } } } catch (e) {}
     });
     return out;
   }
+  // 突発クイズはおしゃべりの途中だけで出る。その日のおしゃべりが増えるほど出やすく、3回目には必ず
+  function quizChance() {
+    if (mem.quiz.day === today) return 0;
+    var n = mem.chat && mem.chat.day === today ? mem.chat.n : 0;
+    return n >= 3 ? 1 : n === 2 ? 0.5 : 0.2;
+  }
   function chat() {
-    mem.talks += 1; saveMem();
+    mem.talks += 1;
+    if (!mem.chat || mem.chat.day !== today) mem.chat = { day: today, n: 0 };
+    mem.chat.n += 1;
+    saveMem();
     var played = playedGames();
     var useGame = played.length && Math.random() < 0.35;
     var c = useGame ? null : CHATS[(mem.talks + Math.floor(Math.random() * 3)) % CHATS.length];
@@ -979,7 +1063,7 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
         }).then(function (i) { var a = c.a[i]; return talk([{ t: a.r, mood: a.mood, hop: true }]); });
     return p.then(function () {
       // ときどき突発クイズか、寄付のおねだり
-      if (mem.quiz.day !== today && Math.random() < 0.3) return quiz(true);
+      if (Math.random() < quizChance()) return quiz();
       if (canAskDonation() && Math.random() < 0.35) return donation();
       return menu(rand(MENU_LINES));
     });
@@ -1011,9 +1095,9 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
   // ---------- さよなら ----------
   function bye() {
     return talk([
-      { t: rand(['Bye, {name}! Go play. That is an order from the CEO, moku.', 'See you! Play my pick, then come back for your 20% bonus, moku!', 'Off you go! I will just… sit here. Being important.']), mood: 'wink', hop: true }
+      { t: rand(['Bye, {name}! Go play. That is an order from the CEO, moku.', 'See you! Play my pick, then come back for your bonus, moku!', 'Off you go! I will just… sit here. Being important.']), mood: 'wink', hop: true }
     ]).then(function () {
-      return ask([{ label: pick.icon + ' Play ' + pick.name, href: pick.file, cls: 'main', tag: '+20% bonus' }, { label: '🎮 All games', href: 'hub.html' }, { label: '↩ Wait, one more thing', value: 'back', cls: 'soft' }]);
+      return ask([{ label: pick.icon + ' Play ' + pick.name, href: pick.file, cls: 'main', tag: pick.moint ? '+20%' : '+' + PLAY_BONUS }, { label: '🎮 All games', href: 'hub.html' }, { label: '↩ Wait, one more thing', value: 'back', cls: 'soft' }]);
     }).then(function () { return menu(rand(MENU_LINES)); });
   }
 
@@ -1064,7 +1148,6 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
     var first = !pickIsOn();
     var p = first ? announcePick() : bonusTalk();
     return p.then(function () {
-      if (!first && mem.quiz.day !== today && Math.random() < 0.35) return quiz(true);
       return menu(first ? 'So, what shall we do, moku?' : rand(MENU_LINES));
     });
   });

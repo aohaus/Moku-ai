@@ -3202,7 +3202,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     ceo: { name: 'Sir CEO Moku', gameId: 'ceo-moku', genre: 'Chat & Quiz', cta: 'Visit', hi: '#D9925A', lo: '#6A3A1C', newUntil: '2026-12-08',
            tag: 'Meet the boss of Moku games!',
            desc: 'Visit Sir CEO Moku in his office. He picks a game for you every day, gives surprise quizzes, and listens to your game ideas. He is a little silly… and a little greedy.',
-           moint: { how: 'CEO\'s Pick: play his pick of the day, then come back for a 20% CEO Bonus on the Moints you earned there. Pop Quiz: +100 (once a day).' } }
+           moint: { how: 'His pick is Today\'s Pick at the top of the hub. Play it, then come back to his office for a bonus: 20% of the Moints you earned there (or +30 for games without Moints). Chat with him and a Pop Quiz may pop up: type the answer for +100 (once a day).' } }
   };
   // For "Get the latest games & updates" (shared/moku-account.js): the games
   // this hub lists, so it can say which ones the last update didn't know about.
@@ -3216,6 +3216,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     { title: 'Party & Arcade',  sub: 'Play with friends',        cards: ['mbr', 'mw', 'mr'] }
   ];
   // Today's Pick rotates daily through titles whose screenshot shows real gameplay.
+  // Sir CEO Moku (ceo-moku.html PICKS) uses the same list and day formula as his CEO's Pick — change both together.
   var FEATURED = ['mfg', 'mkt', 'am', 'mc'];
 
   // ---------- My Moku page: "My Games" ----------
