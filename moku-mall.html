@@ -16,6 +16,7 @@
   - 取り込み時に変えたこと(保護者と相談済み):
     ・名前を「Moku Mall」に(参考にしたゲームの名前を外す)。実在のモール名を架空の名前に
       (Ombak → Moku's Garden Mall、Suria KLCC → Moku Sunshine Resort Mall。最初のモールは Moku's 1st Mall)。
+      背景も名前に合わせて描き直した(v1.1.0): Garden = 晴れた花の庭、Sunshine Resort = 海辺のリゾート。
     ・固定の名前の Leaderboard と、何もしない Ranked Mode を外した(記録はハブの Achievements の Most Coins)。
     ・セーブ(moku:moku-mall:progress)で Continue が本当に続きから遊べる。クラウドセーブの対象。
     ・Moint: 泥棒をつかまえる 30 / スーパー泥棒 50(1日 500 まで)、モールの初クリア 100 / 200 / 300 / 500(1回きり)。
@@ -264,7 +265,7 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v1.0.6 · Updated Nov 8, 2026</div>
+<div id="buildInfo">v1.1.0 · Updated Nov 8, 2026</div>
 <canvas id="c"></canvas>
 
 <div id="coinHud">
@@ -533,12 +534,12 @@ const MALL_DEFS=[
   {name:"Sunset Plaza",icon:"🌅",unlocked:false,
    bg:'#7B2D0A',wallTop:'#E8854A',wallFront:'#C0522A',wallSide:'#8B3010',
    floor1:'#C87840',floor2:'#A85828',outerFloor:'#8B3A10',aisle:'#FF6B20'},
-  {name:"Moku's Garden Mall",icon:"🌊",unlocked:false,
-   bg:'#B0BEC5',wallTop:'#ECEFF1',wallFront:'#CFD8DC',wallSide:'#90A4AE',
-   floor1:'#ECEFF1',floor2:'#CFD8DC',outerFloor:'#78909C',aisle:'#4FC3F7'},
-  {name:"Moku Sunshine Resort Mall",icon:"🏙️",unlocked:false,
-   bg:'#050D1A',wallTop:'#1A3A6A',wallFront:'#0D2040',wallSide:'#0A1830',
-   floor1:'#0D1F3C',floor2:'#091628',outerFloor:'#0A1428',aisle:'#00BFFF'},
+  {name:"Moku's Garden Mall",icon:"🌷",unlocked:false,
+   bg:'#8CCB6E',wallTop:'#F3EAD3',wallFront:'#D9C39A',wallSide:'#A88B5E',
+   floor1:'#F4EEDC',floor2:'#E3D8BA',outerFloor:'#6FAF55',aisle:'#7BC47F'},
+  {name:"Moku Sunshine Resort Mall",icon:"🏝️",unlocked:false,
+   bg:'#7FD3F2',wallTop:'#FFF8E6',wallFront:'#F3D68C',wallSide:'#D2AA55',
+   floor1:'#FFFDF5',floor2:'#F2E7CE',outerFloor:'#E2C17A',aisle:'#E8B830'},
 ];
 let currentMall=0;
 
@@ -901,6 +902,134 @@ function box3D(sx,sy,w,h,wallH,cTop,cRight,cFront){
 }
 
 // ══════════════════════════════════════════════
+// BACKGROUND HELPERS(Moku's Garden Mall / Moku Sunshine Resort Mall の背景用。絵本のような温かい色)
+// ══════════════════════════════════════════════
+function drawCloud(x,y,r,a){
+  ctx.fillStyle=`rgba(255,255,255,${a})`;
+  [[0,0,1],[r*0.9,r*0.15,0.75],[-r*0.85,r*0.2,0.7],[r*0.3,-r*0.45,0.7]].forEach(([dx,dy,s])=>{
+    ctx.beginPath();ctx.arc(x+dx,y+dy,r*s,0,Math.PI*2);ctx.fill();
+  });
+}
+function drawSun(x,y,r,now,big){
+  const g=ctx.createRadialGradient(x,y,r*0.3,x,y,r*(big?3.2:2.4));
+  g.addColorStop(0,'rgba(255,240,170,0.9)');g.addColorStop(1,'rgba(255,240,170,0)');
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r*(big?3.2:2.4),0,Math.PI*2);ctx.fill();
+  if(big){
+    ctx.save();ctx.translate(x,y);ctx.rotate(now*0.15);
+    ctx.fillStyle='rgba(255,214,90,0.55)';
+    for(let i=0;i<12;i++){
+      ctx.rotate(Math.PI/6);
+      ctx.beginPath();ctx.moveTo(r*1.15,-r*0.12);ctx.lineTo(r*2.1,0);ctx.lineTo(r*1.15,r*0.12);ctx.closePath();ctx.fill();
+    }
+    ctx.restore();
+  }
+  ctx.fillStyle='#FFD34D';ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#FFE88A';ctx.beginPath();ctx.arc(x-r*0.25,y-r*0.25,r*0.55,0,Math.PI*2);ctx.fill();
+}
+function drawFlower(x,y,r,c){
+  ctx.fillStyle='#3E7D2E';ctx.fillRect(x-1,y,2,r*1.6);
+  ctx.fillStyle=c;
+  for(let i=0;i<5;i++){ const a=i*Math.PI*2/5; ctx.beginPath();ctx.arc(x+Math.cos(a)*r*0.75,y+Math.sin(a)*r*0.75,r*0.6,0,Math.PI*2);ctx.fill(); }
+  ctx.fillStyle='#FFC93C';ctx.beginPath();ctx.arc(x,y,r*0.45,0,Math.PI*2);ctx.fill();
+}
+function drawRoundTree(x,y,s){
+  ctx.fillStyle='rgba(0,0,0,0.12)';ctx.beginPath();ctx.ellipse(x,y+s*0.05,s*0.55,s*0.12,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#8A5A2B';ctx.fillRect(x-s*0.08,y-s*0.55,s*0.16,s*0.6);
+  ctx.fillStyle='#3FA35B';ctx.beginPath();ctx.arc(x,y-s*0.8,s*0.5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#57B96F';ctx.beginPath();ctx.arc(x-s*0.2,y-s*0.95,s*0.3,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#FF8A80';
+  [[0.18,-0.7],[-0.25,-0.62],[0.05,-1.05]].forEach(([dx,dy])=>{ctx.beginPath();ctx.arc(x+dx*s,y+dy*s,s*0.05,0,Math.PI*2);ctx.fill();});
+}
+function drawGreenhouse(x,y,s){
+  ctx.fillStyle='#E9DFC9';rr(x-s*0.55,y-s*0.05,s*1.1,s*0.12,4);ctx.fill();
+  ctx.fillStyle='rgba(200,240,235,0.75)';
+  ctx.beginPath();ctx.moveTo(x-s*0.5,y);ctx.lineTo(x-s*0.5,y-s*0.35);ctx.arc(x,y-s*0.35,s*0.5,Math.PI,0);ctx.lineTo(x+s*0.5,y);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='#FFFFFF';ctx.lineWidth=2;ctx.stroke();
+  for(let i=-2;i<=2;i++){ ctx.beginPath();ctx.moveTo(x+i*s*0.2,y);ctx.lineTo(x+i*s*0.2,y-s*0.35-Math.sqrt(Math.max(0,0.25-(i*0.2)**2))*s);ctx.stroke(); }
+  ctx.beginPath();ctx.moveTo(x-s*0.5,y-s*0.35);ctx.lineTo(x+s*0.5,y-s*0.35);ctx.stroke();
+  ctx.fillStyle='#57B96F';
+  for(let i=-2;i<=2;i++){ ctx.beginPath();ctx.arc(x+i*s*0.19,y-s*0.1,s*0.07,0,Math.PI*2);ctx.fill(); }
+}
+function drawRoseArch(x,y,s){
+  ctx.strokeStyle='#FFF4E2';ctx.lineWidth=Math.max(3,s*0.06);
+  ctx.beginPath();ctx.moveTo(x-s*0.45,y);ctx.lineTo(x-s*0.45,y-s*0.6);ctx.arc(x,y-s*0.6,s*0.45,Math.PI,0);ctx.lineTo(x+s*0.45,y);ctx.stroke();
+  ctx.fillStyle='#4E8F3A';
+  for(let i=0;i<14;i++){
+    const t=i/13, a=Math.PI*(1-t);
+    const px=t<0.25?x-s*0.45:t>0.75?x+s*0.45:x+Math.cos(a)*s*0.45;
+    const py=t<0.25?y-(t/0.25)*s*0.6:t>0.75?y-((1-t)/0.25)*s*0.6:y-s*0.6-Math.sin(a)*s*0.45;
+    ctx.beginPath();ctx.arc(px,py,s*0.07,0,Math.PI*2);ctx.fill();
+    if(i%2===0){ ctx.fillStyle='#FF6F91';ctx.beginPath();ctx.arc(px+2,py-2,s*0.045,0,Math.PI*2);ctx.fill();ctx.fillStyle='#4E8F3A'; }
+  }
+}
+function drawButterfly(x,y,s,t,c){
+  const f=0.4+0.6*Math.abs(Math.sin(t));
+  ctx.fillStyle=c;
+  ctx.beginPath();ctx.ellipse(x-s*0.55*f,y,s*0.6*f,s*0.8,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(x+s*0.55*f,y,s*0.6*f,s*0.8,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#5A4636';ctx.fillRect(x-1,y-s*0.6,2,s*1.2);
+}
+function drawPalm(x,y,h,lean,now){
+  const tx=x+lean*h, ty=y-h;
+  ctx.strokeStyle='#A8743F';ctx.lineWidth=Math.max(4,h*0.07);ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(x,y);ctx.quadraticCurveTo(x+lean*h*0.2,y-h*0.5,tx,ty);ctx.stroke();
+  ctx.lineCap='butt';
+  const sway=Math.sin(now*0.8)*0.06;
+  ctx.fillStyle='#3FA35B';
+  for(let i=0;i<7;i++){
+    const a=-Math.PI/2+(i-3)*0.5+sway;
+    ctx.save();ctx.translate(tx,ty);ctx.rotate(a);
+    ctx.beginPath();ctx.moveTo(0,0);ctx.quadraticCurveTo(h*0.25,-h*0.1,h*0.45,h*0.08);ctx.quadraticCurveTo(h*0.22,h*0.02,0,0);ctx.fill();
+    ctx.restore();
+  }
+  ctx.fillStyle='#8A5A2B';
+  [[-0.04,0.03],[0.04,0.04],[0,0.07]].forEach(([dx,dy])=>{ctx.beginPath();ctx.arc(tx+dx*h,ty+dy*h,h*0.035,0,Math.PI*2);ctx.fill();});
+}
+function drawResortPool(x,y,s,now){
+  ctx.fillStyle='#FFFFFF';rr(x-s*0.55,y-s*0.28,s*1.1,s*0.56,s*0.2);ctx.fill();
+  const g=ctx.createLinearGradient(0,y-s*0.24,0,y+s*0.24);
+  g.addColorStop(0,'#5FD3E8');g.addColorStop(1,'#2BA8D4');
+  ctx.fillStyle=g;rr(x-s*0.5,y-s*0.24,s*1.0,s*0.48,s*0.17);ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.6)';ctx.lineWidth=1.5;
+  for(let i=0;i<3;i++){ ctx.beginPath();ctx.ellipse(x+(i-1)*s*0.28,y+s*0.06,s*0.1+Math.sin(now*2+i)*2,s*0.03,0,0,Math.PI*2);ctx.stroke(); }
+  // 噴水(白と水色の水しぶき)
+  for(let f=0;f<3;f++){
+    const fx=x+(f-1)*s*0.28, fh=s*(0.3+0.08*Math.sin(now*2.2+f*1.3));
+    ctx.strokeStyle='rgba(235,250,255,0.9)';ctx.lineWidth=2;
+    for(let j=-1;j<=1;j++){ ctx.beginPath();ctx.moveTo(fx,y);ctx.quadraticCurveTo(fx+j*s*0.04,y-fh,fx+j*s*0.1,y-fh*0.55);ctx.stroke(); }
+    ctx.fillStyle='rgba(255,255,255,0.9)';ctx.beginPath();ctx.arc(fx,y-fh*0.92,2.5,0,Math.PI*2);ctx.fill();
+  }
+}
+function drawParasol(x,y,s,c){
+  ctx.fillStyle='rgba(0,0,0,0.12)';ctx.beginPath();ctx.ellipse(x+s*0.2,y+s*0.05,s*0.9,s*0.2,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#FFFFFF';rr(x-s*0.9,y-s*0.15,s*0.9,s*0.18,4);ctx.fill();
+  ctx.fillStyle='#E6E6E6';rr(x-s*0.9,y-s*0.4,s*0.22,s*0.28,4);ctx.fill();
+  ctx.fillStyle='#C9A27A';ctx.fillRect(x-1.5,y-s*1.1,3,s*1.1);
+  for(let i=0;i<6;i++){
+    ctx.fillStyle=i%2?'#FFFFFF':c;
+    ctx.beginPath();ctx.moveTo(x,y-s*1.25);ctx.arc(x,y-s*0.85,s*0.75,Math.PI+i*Math.PI/6,Math.PI+(i+1)*Math.PI/6);ctx.closePath();ctx.fill();
+  }
+}
+// 看板はモールの右の壁と画面の右端のあいだ(見えるすき間)の真ん中に、入る大きさで描く
+// (すき間が狭い iPad などでは短い名前 shortText にする)
+function drawSignBoard(y,text,shortText,frame,face){
+  const {ox}=getOrigin();
+  const left=ox+TILE*(TOTAL_W+1)+40, avail=VW-left-12;
+  const fits=(t,f)=>{ ctx.font=`bold ${f}px Arial`; return ctx.measureText(t).width+24<=avail; };
+  let fs=13;
+  while(fs>10&&!fits(text,fs)) fs--;
+  if(!fits(text,fs)){ text=shortText; fs=13; while(fs>8&&!fits(text,fs)) fs--; }
+  ctx.font=`bold ${fs}px Arial`;
+  ctx.textAlign='center';
+  const w=ctx.measureText(text).width+24;
+  const x=Math.max(left+w/2,Math.min(VW-w/2-8,(left+VW)/2));
+  ctx.fillStyle=frame;ctx.fillRect(x-3,y,6,46);
+  rr(x-w/2-3,y-29,w+6,32,9);ctx.fill();
+  ctx.fillStyle=face;rr(x-w/2,y-26,w,26,7);ctx.fill();
+  ctx.fillStyle='#5A3A1A';ctx.fillText(text,x,y-8);
+}
+
+// ══════════════════════════════════════════════
 // DRAW SCENE
 // ══════════════════════════════════════════════
 function drawScene(){
@@ -1028,244 +1157,105 @@ function drawScene(){
     }
 
   } else if(currentMall===2){
-    // ── MALL 2: OMBAK — Modern curved building, overcast KL sky ──
-    const gOmb=ctx.createLinearGradient(0,0,0,H);
-    gOmb.addColorStop(0,'#B8C4CC');gOmb.addColorStop(0.5,'#9AAAB4');gOmb.addColorStop(1,'#7A8A94');
-    ctx.fillStyle=gOmb;ctx.fillRect(0,0,W,H);
-
-    // Overcast cloud layers
-    ctx.fillStyle='rgba(255,255,255,0.25)';
-    for(let i=0;i<6;i++){
-      const cxc=W*(0.1+i*0.17), cyc=H*(0.05+i%3*0.06), rc=W*(0.12+i%2*0.06);
-      ctx.beginPath();ctx.ellipse(cxc,cyc,rc,H*0.04,0,0,Math.PI*2);ctx.fill();
-    }
-    ctx.fillStyle='rgba(200,210,218,0.4)';
-    for(let i=0;i<4;i++){
-      const cxc=W*(0.05+i*0.28), cyc=H*(0.12+i%2*0.05), rc=W*(0.15+i%3*0.05);
-      ctx.beginPath();ctx.ellipse(cxc,cyc,rc,H*0.035,0,0,Math.PI*2);ctx.fill();
-    }
-
-    // Background skyscrapers (silver glass towers like the photo)
-    const towers=[
-      {x:W*0.02,w:W*0.06,h:H*0.55,c:'#8A9AA4'},
-      {x:W*0.10,w:W*0.05,h:H*0.65,c:'#7A8C96'},
-      {x:W*0.17,w:W*0.07,h:H*0.50,c:'#909EA8'},
-      {x:W*0.72,w:W*0.08,h:H*0.60,c:'#8A9AA4'},
-      {x:W*0.82,w:W*0.10,h:H*0.72,c:'#788896'},
-      {x:W*0.92,w:W*0.06,h:H*0.50,c:'#8A9AA4'},
-    ];
-    towers.forEach(t=>{
-      const tg=ctx.createLinearGradient(t.x,0,t.x+t.w,0);
-      tg.addColorStop(0,'rgba(100,120,130,0.85)');
-      tg.addColorStop(0.5,'rgba(160,180,190,0.7)');
-      tg.addColorStop(1,'rgba(100,115,125,0.8)');
-      ctx.fillStyle=tg;
-      ctx.fillRect(t.x,H-t.h,t.w,t.h);
-      // Glass reflection lines
-      ctx.strokeStyle='rgba(255,255,255,0.12)';ctx.lineWidth=1;
-      for(let r=0;r<8;r++){
-        ctx.beginPath();
-        ctx.moveTo(t.x,H-t.h+r*t.h/8);ctx.lineTo(t.x+t.w,H-t.h+r*t.h/8);
-        ctx.stroke();
+    // ── MALL 2: MOKU'S GARDEN MALL — 晴れた日の花の庭(花壇・木・温室・チョウ) ──
+    // モールの建物が真ん中をおおうので、見どころは左右の端(およそ W の 0〜16% と 84〜100%)に置く。
+    const now=lastTS*0.001;
+    const sky=ctx.createLinearGradient(0,0,0,H*0.56);
+    sky.addColorStop(0,'#8FD3F4');sky.addColorStop(1,'#E8F8E4');
+    ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+    drawSun(W*0.93,H*0.1,H*0.045,now,false);
+    drawCloud(((now*8)%(W+300))-150,H*0.12,H*0.035,0.85);
+    drawCloud(((now*5+W*0.6)%(W+300))-150,H*0.24,H*0.028,0.75);
+    // 遠くの丘と芝生
+    ctx.fillStyle='#B5DE95';
+    for(let i=0;i<6;i++){ ctx.beginPath();ctx.ellipse(W*(i/5),H*0.56,W*0.16,H*0.09,0,Math.PI,0);ctx.fill(); }
+    const grass=ctx.createLinearGradient(0,H*0.55,0,H);
+    grass.addColorStop(0,'#8CCB6E');grass.addColorStop(1,'#5FA548');
+    ctx.fillStyle=grass;ctx.fillRect(0,H*0.55,W,H*0.45);
+    // 左: ガラスの温室 / 右: バラのアーチ
+    drawGreenhouse(W*0.085,H*0.62,Math.min(W*0.12,H*0.16));
+    drawRoseArch(W*0.915,H*0.64,Math.min(W*0.09,H*0.14));
+    // 木
+    drawRoundTree(W*0.025,H*0.66,H*0.11);
+    drawRoundTree(W*0.975,H*0.6,H*0.1);
+    drawRoundTree(W*0.15,H*0.58,H*0.07);
+    drawRoundTree(W*0.85,H*0.57,H*0.07);
+    // 花壇(左右の端に、色とりどりの花の列。並びは固定)
+    const FL=['#FF8FB1','#FFD25A','#FF9F68','#C8A2FF','#FFFFFF','#FF6F91'];
+    for(let side=0;side<2;side++){
+      for(let row=0;row<5;row++){
+        const y=H*(0.72+row*0.06);
+        ctx.fillStyle='#4E8F3A';
+        const x0=side?W*0.84:W*0.005, x1=side?W*0.995:W*0.16;
+        rr(x0,y+H*0.012,x1-x0,H*0.018,6);ctx.fill();
+        for(let x=x0+8;x<x1-4;x+=Math.max(14,W*0.016)){
+          const k=side*10000+row*100+Math.round(x);
+          drawFlower(x,y+H*0.01+Math.sin(now*1.6+k)*1.2,Math.max(4,H*0.009),FL[Math.floor(winRand(k,5)*FL.length)]);
+        }
       }
-    });
-
-    // The Ombak building — iconic curved wave roof
-    // Ground/plaza
-    const gPlaza=ctx.createLinearGradient(0,H*0.78,0,H);
-    gPlaza.addColorStop(0,'#C8CDD0');gPlaza.addColorStop(1,'#9AAAB0');
-    ctx.fillStyle=gPlaza;ctx.fillRect(0,H*0.78,W,H*0.22);
-    // Concentric circle plaza pattern
-    ctx.strokeStyle='rgba(150,160,165,0.5)';ctx.lineWidth=2;
-    for(let r=1;r<=5;r++){
-      ctx.beginPath();ctx.arc(W*0.5,H*1.05,H*r*0.12,0,Math.PI*2);ctx.stroke();
     }
-
-    // Building base — tiered platform
-    ctx.fillStyle='#8A9AA4';
-    ctx.beginPath();
-    ctx.moveTo(W*0.08,H*0.78);ctx.lineTo(W*0.92,H*0.78);
-    ctx.lineTo(W*0.95,H*0.85);ctx.lineTo(W*0.05,H*0.85);ctx.closePath();ctx.fill();
-    ctx.fillStyle='#9AAAB4';
-    ctx.beginPath();
-    ctx.moveTo(W*0.10,H*0.72);ctx.lineTo(W*0.90,H*0.72);
-    ctx.lineTo(W*0.92,H*0.78);ctx.lineTo(W*0.08,H*0.78);ctx.closePath();ctx.fill();
-
-    // Glass curtain wall (colourful like the photo)
-    const glassG=ctx.createLinearGradient(W*0.3,0,W*0.9,0);
-    glassG.addColorStop(0,'rgba(60,140,180,0.7)');
-    glassG.addColorStop(0.25,'rgba(80,180,160,0.65)');
-    glassG.addColorStop(0.5,'rgba(100,160,200,0.7)');
-    glassG.addColorStop(0.75,'rgba(140,100,180,0.6)');
-    glassG.addColorStop(1,'rgba(60,120,160,0.65)');
-    ctx.fillStyle=glassG;
-    ctx.beginPath();
-    ctx.moveTo(W*0.28,H*0.72);ctx.lineTo(W*0.92,H*0.72);
-    ctx.lineTo(W*0.90,H*0.62);ctx.lineTo(W*0.26,H*0.62);ctx.closePath();ctx.fill();
-    // Glass panel lines
-    ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=1;
-    for(let i=0;i<14;i++){
-      const gx=W*0.28+i*(W*0.64/14);
-      ctx.beginPath();ctx.moveTo(gx,H*0.62);ctx.lineTo(gx,H*0.72);ctx.stroke();
+    // チョウ
+    for(let b=0;b<4;b++){
+      const side=b%2, base=side?W*0.92:W*0.08;
+      const bx=base+Math.sin(now*0.6+b*2)*W*0.05, by=H*(0.5+0.08*b/2)+Math.sin(now*1.3+b)*H*0.04;
+      drawButterfly(bx,by,Math.max(5,H*0.011),now*10+b,['#FFB3D1','#FFE27A','#B9A6FF','#9FE3F0'][b]);
     }
-    // Wavy roof (the iconic Ombak wave)
-    const roofG=ctx.createLinearGradient(0,H*0.5,0,H*0.65);
-    roofG.addColorStop(0,'#C8CDD0');roofG.addColorStop(1,'#8A9AA4');
-    ctx.fillStyle=roofG;
-    ctx.beginPath();
-    ctx.moveTo(W*0.05,H*0.72);
-    ctx.bezierCurveTo(W*0.15,H*0.68,W*0.25,H*0.55,W*0.4,H*0.58);
-    ctx.bezierCurveTo(W*0.5,H*0.60,W*0.55,H*0.52,W*0.65,H*0.54);
-    ctx.bezierCurveTo(W*0.75,H*0.56,W*0.85,H*0.62,W*0.95,H*0.60);
-    ctx.lineTo(W*0.95,H*0.72);ctx.lineTo(W*0.05,H*0.72);ctx.closePath();ctx.fill();
-    // Diamond pattern on left roof
-    ctx.strokeStyle='rgba(180,190,195,0.5)';ctx.lineWidth=1;
-    for(let i=0;i<8;i++) for(let j=0;j<3;j++){
-      const dx2=W*0.08+i*W*0.022,dy2=H*0.63+j*H*0.025;
-      ctx.beginPath();ctx.moveTo(dx2,dy2-H*0.012);ctx.lineTo(dx2+W*0.011,dy2);
-      ctx.lineTo(dx2,dy2+H*0.012);ctx.lineTo(dx2-W*0.011,dy2);ctx.closePath();ctx.stroke();
-    }
-    // Palm trees
-    [[W*0.24,H*0.75],[W*0.35,H*0.77],[W*0.62,H*0.76],[W*0.74,H*0.75]].forEach(([px,py])=>{
-      ctx.fillStyle='#5A7A40';ctx.fillRect(px-3,py-H*0.08,6,H*0.08);
-      ctx.fillStyle='#4A8A30';
-      for(let a=-1.2;a<=1.2;a+=0.4){
-        ctx.beginPath();ctx.moveTo(px,py-H*0.08);
-        ctx.quadraticCurveTo(px+Math.cos(a)*30,py-H*0.1,px+Math.cos(a)*50,py-H*0.07);
-        ctx.lineWidth=2;ctx.strokeStyle='#4A8A30';ctx.stroke();
-      }
-    });
-    // Sign
-    ctx.fillStyle='rgba(0,120,180,0.9)';
-    rr(W*0.38,H*0.80,W*0.24,28,8);ctx.fill();
-    ctx.fillStyle='white';ctx.font='bold 14px Arial';ctx.textAlign='center';
-    ctx.fillText("🌊 Moku's Garden Mall",W*0.5,H*0.80+19);
+    // 看板(右。左はメニューのボタンと重なるため)
+    drawSignBoard(H*0.47,"🌷 Moku's Garden Mall",'🌷 Garden Mall','#8A5A2B','#FFF4E2');
 
   } else if(currentMall===3){
-    // ── MALL 3: SURIA KLCC — KL night with fountains & Twin Towers ──
-    // Deep night sky
-    const gNight=ctx.createLinearGradient(0,0,0,H);
-    gNight.addColorStop(0,'#03060F');gNight.addColorStop(0.4,'#050D1A');gNight.addColorStop(1,'#081528');
-    ctx.fillStyle=gNight;ctx.fillRect(0,0,W,H);
-
-    // Stars
-    for(let i=0;i<80;i++){
-      const sx2=(Math.sin(i*137.508)*0.5+0.5)*W;
-      const sy2=(Math.cos(i*97.341)*0.5+0.5)*H*0.45;
-      const pulse=0.4+0.6*Math.sin(lastTS*0.001+i);
-      ctx.fillStyle=`rgba(255,255,255,${pulse*0.8})`;
-      ctx.beginPath();ctx.arc(sx2,sy2,i%5===0?1.5:0.8,0,Math.PI*2);ctx.fill();
-    }
-
-    // Background buildings with warm window lights
-    const bgBuildings=[
-      {x:0,    w:W*0.08,h:H*0.5, c:'#0A1525'},
-      {x:W*0.1,w:W*0.06,h:H*0.42,c:'#0C1828'},
-      {x:W*0.78,w:W*0.08,h:H*0.48,c:'#0A1525'},
-      {x:W*0.88,w:W*0.12,h:H*0.38,c:'#0C1828'},
-    ];
-    bgBuildings.forEach((b,bi)=>{
-      ctx.fillStyle=b.c;ctx.fillRect(b.x,H-b.h,b.w,b.h);
-      // Windows — 毎フレーム Math.random() だとちらつくので、窓ごとに決まった値(winRand)を使う
-      for(let wr=0;wr<12;wr++) for(let wc2=0;wc2<4;wc2++){
-        const k=bi*1000+wr*10+wc2;
-        if(winRand(k,0)<0.45||wr===0){
-          ctx.fillStyle=`rgba(255,${180+winRand(k,1)*75},${50+winRand(k,2)*50},${0.5+winRand(k,3)*0.4})`;
-          ctx.fillRect(b.x+wc2*(b.w/4)+2,H-b.h+wr*(b.h/12)+2,b.w/4-4,b.h/12-3);
-        }
-      }
-    });
-
-    // TWIN TOWERS — iconic silhouette
-    const drawTower=(tx,bw,th)=>{
-      // Main shaft
-      ctx.fillStyle='#1A2A40';
-      ctx.beginPath();
-      ctx.moveTo(tx-bw/2,H*0.80);ctx.lineTo(tx+bw/2,H*0.80);
-      ctx.lineTo(tx+bw*0.42,H-th);ctx.lineTo(tx-bw*0.42,H-th);ctx.closePath();ctx.fill();
-      // Ribbed segments
-      for(let seg=0;seg<12;seg++){
-        const sy2=H*0.80-seg*(th*0.8/12);
-        const sw2=bw*(0.42+seg*0.005);
-        ctx.fillStyle=`rgba(200,220,255,${0.06+seg*0.005})`;
-        ctx.fillRect(tx-sw2,sy2,sw2*2,3);
-      }
-      // Spire
-      ctx.fillStyle='rgba(220,235,255,0.9)';
-      ctx.beginPath();ctx.moveTo(tx-4,H-th);ctx.lineTo(tx+4,H-th);
-      ctx.lineTo(tx,H-th-H*0.09);ctx.closePath();ctx.fill();
-      // Antenna glow
-      ctx.fillStyle='rgba(255,100,100,0.9)';
-      ctx.beginPath();ctx.arc(tx,H-th-H*0.09,3,0,Math.PI*2);ctx.fill();
-      // Tower lit windows
-      for(let wr=2;wr<18;wr++) for(let wc2=-1;wc2<=1;wc2++){
-        if(Math.sin(wr*7+wc2*3)>0){
-          ctx.fillStyle='rgba(255,240,150,0.6)';
-          ctx.fillRect(tx+wc2*8-3,H*0.80-wr*(th*0.8/20),6,3);
-        }
-      }
-    };
-    drawTower(W*0.42,W*0.12,H*0.48);
-    drawTower(W*0.58,W*0.12,H*0.48);
-    // Sky Bridge
-    ctx.fillStyle='rgba(180,210,255,0.7)';
-    ctx.fillRect(W*0.44,H*0.42,W*0.12,5);
-    ctx.fillRect(W*0.455,H*0.38,3,H*0.045);
-    ctx.fillRect(W*0.515,H*0.38,3,H*0.045);
-
-    // Suria KLCC mall building (low, wide, lit up)
-    ctx.fillStyle='#0F1E30';
-    ctx.fillRect(W*0.28,H*0.72,W*0.44,H*0.10);
-    // Mall facade windows lit warm
-    for(let i=0;i<18;i++){
-      ctx.fillStyle=`rgba(255,${150+i*4},30,0.65)`;
-      ctx.fillRect(W*0.29+i*W*0.023,H*0.73,W*0.018,H*0.04);
-    }
-    // Suria sign
-    ctx.fillStyle='rgba(255,200,50,0.9)';
-    ctx.font='bold 11px Arial';ctx.textAlign='center';
-    ctx.fillText('MOKU SUNSHINE RESORT',W*0.5,H*0.755);
-
-    // Reflection pool
-    const poolG=ctx.createLinearGradient(0,H*0.82,0,H);
-    poolG.addColorStop(0,'#040D1C');poolG.addColorStop(1,'#020810');
-    ctx.fillStyle=poolG;ctx.fillRect(0,H*0.82,W,H*0.18);
-    // Reflection of towers in water
-    ctx.save();ctx.globalAlpha=0.3;
-    ctx.scale(1,-1);ctx.translate(0,-H*2*0.82);
-    drawTower(W*0.42,W*0.10,H*0.22);
-    drawTower(W*0.58,W*0.10,H*0.22);
-    ctx.restore();
-
-    // COLOURFUL FOUNTAINS — the signature of this photo
-    const fountainColors=[
-      '#FF0088','#0088FF','#00FFCC','#FF4400','#AA00FF',
-      '#00FF88','#FF8800','#0044FF','#FF0044','#44FF00',
-    ];
+    // ── MALL 3: MOKU SUNSHINE RESORT MALL — いちばん豪華。晴れた海辺のリゾート(太陽・海・ヤシ・プール) ──
     const now=lastTS*0.001;
-    for(let f=0;f<20;f++){
-      const fx=W*0.15+f*(W*0.70/20);
-      const fHeight=H*0.10+Math.sin(now*1.5+f*0.7)*H*0.08+Math.cos(now*0.8+f*1.1)*H*0.04;
-      const fc=fountainColors[f%fountainColors.length];
-      // Jet
-      ctx.strokeStyle=fc.replace(')',',0.8)').replace('rgb','rgba');
-      ctx.lineWidth=2.5;
-      ctx.shadowBlur=8;ctx.shadowColor=fc;
+    const sky=ctx.createLinearGradient(0,0,0,H*0.44);
+    sky.addColorStop(0,'#4FC3F7');sky.addColorStop(1,'#C9F1FF');
+    ctx.fillStyle=sky;ctx.fillRect(0,0,W,H*0.44);
+    drawSun(W*0.07,H*0.11,H*0.06,now,true);
+    drawCloud(((now*6+W*0.3)%(W+300))-150,H*0.16,H*0.03,0.9);
+    // 海(波と光のきらめき)
+    const sea=ctx.createLinearGradient(0,H*0.44,0,H*0.6);
+    sea.addColorStop(0,'#1597C9');sea.addColorStop(1,'#62D4E6');
+    ctx.fillStyle=sea;ctx.fillRect(0,H*0.44,W,H*0.16);
+    ctx.strokeStyle='rgba(255,255,255,0.55)';ctx.lineWidth=2;
+    for(let r=0;r<4;r++){
+      const y=H*(0.47+r*0.035);
       ctx.beginPath();
-      ctx.moveTo(fx,H*0.82);
-      ctx.quadraticCurveTo(fx+Math.sin(now+f)*12,H*0.82-fHeight*0.6,fx+Math.sin(now*0.5+f)*6,H*0.82-fHeight);
+      for(let x=0;x<=W;x+=24){ const yy=y+Math.sin(x*0.03+now*1.5+r)*2.5; x?ctx.lineTo(x,yy):ctx.moveTo(x,yy); }
       ctx.stroke();
-      // Glow dot at tip
-      ctx.fillStyle=fc;
-      ctx.beginPath();ctx.arc(fx+Math.sin(now*0.5+f)*6,H*0.82-fHeight,3,0,Math.PI*2);ctx.fill();
-      // Water reflection
-      ctx.strokeStyle=fc.replace(')',',0.25)').replace('rgb','rgba');
-      ctx.lineWidth=1.5;
-      ctx.beginPath();
-      ctx.moveTo(fx,H*0.82);ctx.lineTo(fx+Math.sin(now*0.5+f)*4,H*0.82+fHeight*0.3);
-      ctx.stroke();
-      ctx.shadowBlur=0;
     }
+    for(let i=0;i<24;i++){
+      const a=0.5+0.5*Math.sin(now*3+i*1.7);
+      ctx.fillStyle=`rgba(255,255,255,${a*0.8})`;
+      ctx.beginPath();ctx.arc(winRand(i,7)*W,H*(0.45+winRand(i,8)*0.13),1.6,0,Math.PI*2);ctx.fill();
+    }
+    // 遠くのヨット
+    const yx=((now*10)%(W*0.2))+W*0.79;
+    ctx.fillStyle='#FFFFFF';ctx.beginPath();ctx.moveTo(yx,H*0.455);ctx.lineTo(yx,H*0.41);ctx.lineTo(yx+H*0.03,H*0.455);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#E8615A';rr(yx-H*0.012,H*0.455,H*0.05,H*0.01,3);ctx.fill();
+    // 砂浜
+    const sand=ctx.createLinearGradient(0,H*0.6,0,H);
+    sand.addColorStop(0,'#FBE7B5');sand.addColorStop(1,'#EFCB8C');
+    ctx.fillStyle=sand;ctx.fillRect(0,H*0.58,W,H*0.42);
+    ctx.fillStyle='rgba(255,255,255,0.7)';
+    ctx.beginPath();ctx.moveTo(0,H*0.6);
+    for(let x=0;x<=W;x+=20) ctx.lineTo(x,H*0.6+Math.sin(x*0.02+now)*3);
+    ctx.lineTo(W,H*0.585);ctx.lineTo(0,H*0.585);ctx.closePath();ctx.fill();
+    // 左: 噴水のあるリゾートプール(メニューのボタンと Check の間の高さ)
+    drawResortPool(W*0.1,H*0.69,Math.min(W*0.13,H*0.17),now);
+    // 右: パラソルとデッキチェア(ジョイスティックより上)
+    drawParasol(W*0.935,H*0.69,H*0.06,'#FF8A9E');
+    // ヤシの木
+    drawPalm(W*0.03,H*0.74,H*0.2,-0.12,now);
+    drawPalm(W*0.15,H*0.66,H*0.15,0.1,now+1);
+    drawPalm(W*0.85,H*0.68,H*0.16,-0.1,now+2);
+    drawPalm(W*0.975,H*0.76,H*0.2,0.12,now+3);
+    // カモメ
+    ctx.strokeStyle='#5A6B7A';ctx.lineWidth=2;
+    for(let g=0;g<3;g++){
+      const gx=((now*(18+g*6)+g*W*0.37)%(W+80))-40, gy=H*(0.2+g*0.05)+Math.sin(now*2+g)*6, s=6+g;
+      ctx.beginPath();ctx.moveTo(gx-s,gy);ctx.quadraticCurveTo(gx-s/2,gy-s*0.6,gx,gy);ctx.quadraticCurveTo(gx+s/2,gy-s*0.6,gx+s,gy);ctx.stroke();
+    }
+    // 金色の看板(右)
+    drawSignBoard(H*0.47,'☀️ Moku Sunshine Resort','☀️ Sunshine Resort','#C9962E','#FFF8E1');
   }
 
   ctx.save();
