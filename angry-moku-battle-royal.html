@@ -5,6 +5,7 @@
 <script src="shared/moku-errors.js?v=20261108"></script>
 <script src="shared/moku-gate.js?v=20261108"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="shared/moku-moint.js?v=20261108" data-mode="none"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Angry Moku — 4v4 Battle Royal</title>
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
@@ -26,10 +27,8 @@
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{height:100%;margin:0;}
   body{
-    background:
-      radial-gradient(circle at 50% 22%, rgba(255,255,255,.4) 0%, rgba(255,255,255,0) 40%),
-      radial-gradient(circle at 15% 85%, rgba(255,255,255,.12) 0%, transparent 40%),
-      linear-gradient(180deg, #3fd0f5 0%, #52d6c8 32%, #63cf7f 58%, #3fa85a 82%, #2f8a4a 100%);
+    background:linear-gradient(180deg,#8fc6ea 0%,#f7d9b0 58%,#8cc46a 58%,#6fa851 100%);
+    overflow:hidden; -webkit-user-select:none; user-select:none;
     font-family: ui-rounded, "Segoe UI Rounded", "Baloo 2", system-ui, sans-serif;
     color:var(--cream);
     display:flex; justify-content:center;
@@ -44,97 +43,45 @@
     position:relative;
   }
 
-  /* ---------- HUD ---------- */
-  #hud{
-    display:flex; align-items:center; justify-content:space-between;
-    padding:14px 16px 8px calc(env(safe-area-inset-left,0px) + 60px); gap:8px;
+  /* ---------- 3D world behind every screen (v2.1.0) ---------- */
+  #arena3d{
+    position:fixed; inset:0; width:100%; height:100%; display:block; z-index:0;
+    background:linear-gradient(180deg,#8fc6ea 0%,#c9dfe6 40%,#f7d9b0 58%,#8cc46a 58%,#6fa851 100%);
+    touch-action:none;
   }
-  #hud h1{
-    font-size:19px; margin:0; letter-spacing:0.5px;
-    color:var(--cream);
-    text-shadow:0 2px 0 rgba(0,0,0,.3);
+  #app{ position:relative; z-index:1; }
+  /* ---------- Screens (overlays on the 3D field) ---------- */
+  .screen{ display:none; position:fixed; inset:0; z-index:10; pointer-events:none; }
+  .screen.active{ display:flex; }
+  .screen > *{ pointer-events:auto; }
+  .chip{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:5px 12px; border-radius:999px;
+    background:rgba(255,247,230,.94); color:#4a341e;
+    font-weight:800; font-size:14px; box-shadow:0 2px 0 rgba(122,79,46,.45);
     white-space:nowrap;
   }
-  #hud h1 span{color:var(--red);}
-  #hudRight{display:flex; align-items:center; gap:6px;}
-  #coinPill, #levelPill{
-    display:flex; align-items:center; gap:6px;
-    background:var(--navy-panel); border:1px solid #384073;
-    padding:6px 10px; border-radius:999px; font-weight:700; font-size:13px;
-    white-space:nowrap;
+  .chip b{ font-weight:900; }
+  .coin-dot{
+    width:18px; height:18px; border-radius:50%; flex:none;
+    background:radial-gradient(circle at 35% 30%, #fff1b8, #f2c14e 60%, #c98f1e);
+    box-shadow:inset 0 -2px 0 rgba(154,101,18,.55);
   }
-  #coinPill .dot{width:14px;height:14px;border-radius:50%;background:var(--gold);box-shadow:inset 0 -2px 0 rgba(0,0,0,.25);}
-  #levelPill{color:var(--gold);}
-
-  /* ---------- Screens ---------- */
-  .screen{display:none; flex-direction:column; flex:1; padding:0 14px;}
-  .screen.active{display:flex;}
-
-  /* ---------- Home screen (scene layout) ---------- */
-  #homeScreen{padding:0 14px; gap:0;}
-  #homeSceneWrap{
-    position:relative; flex:1; border-radius:22px; overflow:hidden;
-    border:3px solid #3b4478; box-shadow:0 10px 28px rgba(0,0,0,.4), inset 0 0 0 6px rgba(35,44,82,.6);
-    min-height:180px; margin:4px 0 10px;
+  .panelBack{
+    position:absolute; z-index:3;
+    top:calc(env(safe-area-inset-top,0px) + 12px); left:calc(env(safe-area-inset-left,0px) + 12px);
+    padding:8px 16px; border:none; border-radius:999px; cursor:pointer;
+    background:rgba(255,247,230,.95); color:#4a341e; font-family:inherit; font-weight:900; font-size:15px;
+    box-shadow:0 3px 0 rgba(122,79,46,.5);
   }
-  #homeBgCanvas{position:absolute; inset:0; width:100%; height:100%; display:block;}
-  #homeSceneOverlay{position:absolute; inset:0; pointer-events:none;}
-  #homeSceneOverlay > *{pointer-events:auto;}
-
-  #homeStatsPill{
-    position:absolute; top:12px; left:50%; transform:translateX(-50%);
-    background:rgba(18,23,44,.65); backdrop-filter:blur(2px);
-    border:1px solid rgba(255,255,255,.25); color:var(--cream);
-    padding:6px 16px; border-radius:999px; font-size:12px; font-weight:700;
-    white-space:nowrap;
-  }
-  #homeTitleTag{
-    position:absolute; top:12px; left:12px;
-    background:rgba(18,23,44,.65); border:1px solid rgba(255,255,255,.25);
-    color:var(--gold); font-size:13px; font-weight:800; letter-spacing:.5px;
-    padding:6px 12px; border-radius:999px;
-  }
-  #homePreviewWrap{
-    position:absolute; left:50%; bottom:16%; transform:translateX(-50%);
-    width:190px; height:190px; border-radius:50%;
-    background:radial-gradient(circle at 40% 30%, rgba(255,255,255,.3), rgba(255,255,255,0) 60%);
-  }
-  #homeSideIcons{
-    position:absolute; left:12px; top:50%; transform:translateY(-50%);
-    display:flex; flex-direction:column; gap:14px;
-  }
-  .sideIconBtn{
-    width:64px; height:64px; border:none; border-radius:16px; cursor:pointer;
-    background:linear-gradient(160deg,var(--navy-mid),var(--navy-panel));
-    border:1px solid rgba(255,255,255,.2);
-    color:var(--cream); box-shadow:0 4px 0 rgba(0,0,0,.35);
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
-  }
-  .sideIconBtn:active{transform:translateY(2px); box-shadow:0 2px 0 rgba(0,0,0,.35);}
-  .sideIconBtn .sic{font-size:24px;}
-  .sideIconBtn .slbl{font-size:9px; font-weight:800;}
-
-  #homeBattleBtn{
-    position:absolute; right:14px; bottom:14px;
-    padding:16px 22px; border:none; border-radius:18px; cursor:pointer;
-    background:linear-gradient(160deg,var(--gold),#c8912f); color:#2a1c05;
-    font-size:16px; font-weight:900; letter-spacing:.5px;
-    box-shadow:0 6px 0 #8a651f;
-    display:flex; flex-direction:column; align-items:center; gap:2px;
-  }
-  #homeBattleBtn:active{transform:translateY(3px); box-shadow:0 3px 0 #8a651f;}
-  #homeBattleBtn .bbic{font-size:26px;}
-
+  .panelBack:active{ transform:translateY(2px); box-shadow:0 1px 0 rgba(122,79,46,.5); }
   /* ---------- Battle screen (3D, v2.0.0) ---------- */
-  body.in-battle #hud, body.in-battle #bottomnav, body.in-battle .moku-back{ display:none !important; }
   body.in-battle{ overflow:hidden; }
   #battleScreen{ padding:0; }
   #battleScreen.active{
-    position:fixed; inset:0; z-index:40; display:block; overflow:hidden;
-    background:linear-gradient(180deg,#8fc6ea,#f7d9b0 62%,#8cc46a 62%);
+    position:fixed; inset:0; z-index:10; display:block; overflow:hidden;
     -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
   }
-  #arena3d{ position:absolute; inset:0; width:100%; height:100%; display:block; background:transparent; touch-action:none; }
   #fxLayer{ position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:2; }
   .bhud{ position:absolute; z-index:3; }
   .fxText{
@@ -304,132 +251,144 @@
     .foe .face{ width:28px; height:28px; }
     .foe .dir{ width:24px; height:24px; }
   }
-  /* ---------- Customize screen ---------- */
-  .panelTitle{font-size:20px; font-weight:800; margin:14px 0 6px; letter-spacing:.5px;}
-  #previewLabel{font-size:11px; opacity:.7; margin-bottom:2px;}
-  #preview{
-    margin:2px auto 4px; width:150px; height:150px; position:relative;
+  /* ---------- Customize (v2.1.0): Moku up close on the field + a gear panel ---------- */
+  #customizeScreen{ justify-content:flex-end; }
+  #custPanel{
+    position:relative; display:flex; flex-direction:column; gap:8px;
+    width:min(560px, 54vw); height:100%;
+    padding:calc(env(safe-area-inset-top,0px) + 12px) calc(env(safe-area-inset-right,0px) + 12px) calc(env(safe-area-inset-bottom,0px) + 10px) 14px;
+    background:linear-gradient(180deg, rgba(255,247,230,.97), rgba(247,234,210,.97));
+    border-left:4px solid #c9935f; box-shadow:-8px 0 24px rgba(74,52,30,.25);
+    color:#4a341e;
   }
-  #equipBadges{
-    display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-bottom:10px;
+  .panelHead{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .panelHead h2{ margin:0; font-size:22px; font-weight:900; letter-spacing:.02em; }
+  #custMoves{ display:flex; gap:6px; }
+  .moveCard{
+    flex:1; min-width:0; display:flex; align-items:center; gap:6px;
+    padding:5px 8px; border-radius:12px; background:#fff; border:2px solid #ead7b8;
   }
-  .ebadge{
-    display:flex; align-items:center; gap:4px; background:var(--navy-panel); border:1px solid #384073;
-    padding:4px 8px; border-radius:999px; font-size:10px; font-weight:700;
-  }
-  #custBody{display:flex; gap:10px; flex:1; min-height:0;}
-  #custTabs{display:flex; flex-direction:column; gap:6px; width:72px; flex:none; overflow-y:auto;}
+  .moveCard .mi{ font-size:22px; flex:none; }
+  .moveCard .mt{ font-size:9.5px; font-weight:900; letter-spacing:.08em; color:#a07a52; }
+  .moveCard .mn{ font-size:12px; font-weight:900; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .moveCard .md{ font-size:10.5px; font-weight:800; color:#7a5a3a; }
+  #custTabs{ display:flex; gap:5px; overflow-x:auto; padding-bottom:2px; flex:none; }
   .custTab{
-    background:var(--navy-panel); border:1px solid #384073; border-radius:12px;
-    color:var(--cream); font-size:11px; font-weight:700; padding:9px 3px;
-    cursor:pointer; opacity:.6;
+    flex:1 0 auto; display:flex; align-items:center; justify-content:center; gap:4px;
+    padding:7px 10px; border-radius:999px; border:2px solid #ead7b8; cursor:pointer;
+    background:#fff; color:#7a5a3a; font-family:inherit; font-size:13px; font-weight:900;
   }
-  .custTab.active{opacity:1; background:linear-gradient(160deg,#3a4472,#232c52); border-color:var(--gold);}
+  .custTab.active{ background:#e8955c; border-color:#c4763a; color:#fff7e6; box-shadow:0 2px 0 #a85f2c; }
   #custGrid{
-    flex:1; display:grid; grid-template-columns:repeat(3,1fr); gap:8px; align-content:start;
-    overflow-y:auto; max-height:100%;
+    flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(118px, 1fr)); gap:9px; align-content:start;
+    padding:4px 2px 10px;
   }
-  .item{
-    background:var(--navy-panel); border:1px solid #384073; border-radius:14px;
-    padding:8px 5px; text-align:center; cursor:pointer;
+  /* gear cards: color by rarity */
+  .gear{
+    --ra:#e9e2d3; --rb:#cdbfa6;
+    position:relative; display:flex; flex-direction:column; align-items:center; gap:3px;
+    padding:8px 6px 7px; border-radius:16px; cursor:pointer; text-align:center;
+    background:linear-gradient(170deg, #fff 0%, #fff 55%, var(--ra) 100%);
+    border:2.5px solid var(--rb); box-shadow:0 3px 0 rgba(122,79,46,.25);
+    font-family:inherit; color:#4a341e;
+    transition:transform .12s;
   }
-  .item .swatch{
-    width:100%; aspect-ratio:1; border-radius:10px; margin-bottom:5px;
-    display:flex; align-items:center; justify-content:center; font-size:20px;
+  .gear:active{ transform:scale(.97); }
+  .gear.r-common{ --ra:#dcefc9; --rb:#8cc46a; }
+  .gear.r-rare{ --ra:#d4e9ff; --rb:#6aa8e8; }
+  .gear.r-epic{ --ra:#ebdcff; --rb:#9b7be0; }
+  .gear.r-legendary{ --ra:#fff0c2; --rb:#e2a93a; }
+  .gear.r-exclusive{ --ra:#ffdbe8; --rb:#e86a9a; }
+  .gear .rar{
+    position:absolute; top:-1px; left:50%; transform:translate(-50%,-50%);
+    padding:1px 8px; border-radius:999px; background:var(--rb); color:#fff;
+    font-size:9px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; white-space:nowrap;
   }
-  .item .nm{font-size:10px; font-weight:700; line-height:1.2;}
-  .item .cost{font-size:9px; margin-top:3px; opacity:.8;}
-  .item.locked{opacity:.55;}
-  .item.equipped{border-color:var(--gold); box-shadow:0 0 0 2px var(--gold) inset;}
-  .item .status-icon{font-size:9px;}
+  .gear .medal{
+    position:relative; width:58px; height:58px; border-radius:50%; margin-top:6px;
+    display:flex; align-items:center; justify-content:center;
+    background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.85), var(--c, #e9e2d3) 62%);
+    border:3px solid #fff; box-shadow:0 0 0 2px var(--rb), 0 4px 8px rgba(74,52,30,.25);
+  }
+  .gear.r-legendary .medal, .gear.r-exclusive .medal{ animation:medalShine 2.4s ease-in-out infinite; }
+  @keyframes medalShine{ 0%,100%{ box-shadow:0 0 0 2px var(--rb), 0 4px 8px rgba(74,52,30,.25); } 50%{ box-shadow:0 0 0 2px var(--rb), 0 0 16px var(--rb); } }
+  .gear .gi{ font-size:30px; line-height:1; filter:drop-shadow(0 2px 1px rgba(74,52,30,.35)); }
+  .gear .lv{
+    position:absolute; right:-6px; bottom:-4px; padding:1px 5px; border-radius:8px;
+    background:#4a341e; color:#fff7e6; font-size:9.5px; font-weight:900;
+  }
+  .gear .gnm{ font-size:11.5px; font-weight:900; line-height:1.15; min-height:2.3em; display:flex; align-items:center; }
+  .gear .gstat{ font-size:10px; font-weight:800; color:#7a5a3a; line-height:1.2; }
+  .gear .gbtn{
+    margin-top:2px; width:100%; padding:4px 0; border-radius:10px;
+    font-size:11px; font-weight:900; background:#f3e6cf; color:#7a5a3a;
+  }
+  .gear.can-buy .gbtn{ background:linear-gradient(160deg,#f2c14e,#d39a1e); color:#4a2c05; }
+  .gear.too-much .gbtn{ background:#efe3cf; color:#b8564a; }
+  .gear.owned .gbtn{ background:#e5f3dc; color:#3f7a39; }
+  .gear.equipped{ box-shadow:0 0 0 3px #3f9f74, 0 3px 0 rgba(122,79,46,.25); }
+  .gear.equipped .gbtn{ background:#3f9f74; color:#fff; }
+  .gear.locked .medal{ filter:grayscale(.55) brightness(.95); }
+  .gear.nope{ animation:nope .25s; }
+  @keyframes nope{ 25%{ transform:translateX(-4px); } 75%{ transform:translateX(4px); } }
+  .gear.got{ animation:got .45s ease-out; }
+  @keyframes got{ 40%{ transform:scale(1.08); } }
+  #custHint{
+    position:absolute; left:calc(env(safe-area-inset-left,0px) + 16px); bottom:calc(env(safe-area-inset-bottom,0px) + 14px);
+    font-size:12px; font-weight:800; color:#fff7e6; text-shadow:0 1px 3px rgba(74,52,30,.7);
+  }
+  @media (max-aspect-ratio:1/1){
+    #customizeScreen{ align-items:flex-end; }
+    #custPanel{ width:100%; height:58%; border-left:none; border-top:4px solid #c9935f; border-radius:22px 22px 0 0; padding-top:12px; }
+    #custHint{ bottom:calc(58% + 10px); }
+  }
 
-  /* ---------- Spin screen ---------- */
-  #spinScreen{align-items:center; text-align:center; overflow-y:auto;}
-  #eventCard{
-    margin-top:8px; width:100%; max-width:300px;
-    border-radius:16px; border:2px solid var(--gold); background:linear-gradient(160deg,#3a2e17,#231b0f);
-    padding:10px 14px; font-size:11px;
+  /* ---------- Spin (v2.1.0): a spinning wheel ---------- */
+  #spinScreen{ align-items:center; justify-content:center; background:rgba(74,52,30,.32); }
+  #spinPanel{
+    display:flex; align-items:center; justify-content:center; gap:clamp(16px, 4vw, 48px);
+    padding:56px 20px 20px; max-width:100%; max-height:100%;
   }
-  #eventCard .etitle{font-weight:800; color:var(--gold); font-size:12px; margin-bottom:2px;}
-  #spinArena{
-    margin-top:10px; width:100%; max-width:300px;
-    border-radius:22px; border:3px solid #3b4478; background:linear-gradient(160deg,#2a3358,#171d38);
-    padding:24px 18px 20px; box-shadow:0 8px 24px rgba(0,0,0,.35);
+  #wheelWrap{ position:relative; width:min(78vh, 46vw, 440px); aspect-ratio:1; flex:none; }
+  #wheel{ width:100%; height:100%; display:block; filter:drop-shadow(0 8px 0 rgba(74,52,30,.35)); }
+  #wheelPointer{
+    position:absolute; left:50%; top:-14px; transform:translateX(-50%); z-index:2;
+    width:0; height:0; border-left:18px solid transparent; border-right:18px solid transparent;
+    border-top:34px solid #d6474a; filter:drop-shadow(0 3px 0 rgba(74,52,30,.45));
   }
-  #chest{font-size:54px; margin:6px 0;}
-  #spinResult{min-height:22px; font-weight:800; color:var(--gold); font-size:14px;}
+  #wheelPointer::after{ content:''; position:absolute; left:-7px; top:-31px; width:14px; height:14px; border-radius:50%; background:#fff7e6; }
   #spinBtn{
-    margin-top:14px; padding:14px 30px; font-size:16px; font-weight:800; border:none;
-    border-radius:14px; background:linear-gradient(160deg,var(--gold),#c8912f); color:#2a1c05;
-    cursor:pointer; box-shadow:0 4px 0 #8a651f;
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:2;
+    width:28%; aspect-ratio:1; border-radius:50%; border:5px solid #fff7e6; cursor:pointer;
+    background:radial-gradient(circle at 35% 30%, #ffb07a, #e8955c 55%, #c4763a);
+    color:#fff; font-family:inherit; font-weight:900; font-size:clamp(15px, 3.4vh, 22px); line-height:1.05;
+    box-shadow:0 4px 0 #8a4f22, 0 0 0 3px rgba(74,52,30,.25);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
   }
-  #spinBtn:active{transform:translateY(2px); box-shadow:0 2px 0 #8a651f;}
-  #spinBtn:disabled{opacity:.5; cursor:not-allowed;}
-  #spinNote{font-size:11px; opacity:.7; margin-top:8px;}
-
-  /* ---------- Ranks screen ---------- */
-  #ranksScreen{align-items:center; text-align:center; overflow-y:auto;}
-  #ranksNameRow{
-    display:flex; gap:8px; align-items:center; width:100%; max-width:320px;
-    margin-top:6px;
+  #spinBtn small{ font-size:.55em; font-weight:900; opacity:.95; margin-top:3px; }
+  #spinBtn:active{ transform:translate(-50%,-48%); box-shadow:0 2px 0 #8a4f22; }
+  #spinBtn:disabled{ filter:grayscale(.35) brightness(.92); cursor:default; }
+  #spinSide{ display:flex; flex-direction:column; align-items:center; gap:10px; max-width:300px; text-align:center; }
+  #spinSide h2{ margin:0; font-size:26px; font-weight:900; color:#fff7e6; text-shadow:0 3px 0 rgba(74,52,30,.55); }
+  #eventCard{
+    width:100%; border-radius:16px; border:3px solid #e2a93a; background:#fff7e6; color:#4a341e;
+    padding:8px 12px; font-size:12px; font-weight:800; box-shadow:0 3px 0 rgba(122,79,46,.4);
   }
-  #ranksNameInput{
-    flex:1; padding:9px 12px; border-radius:12px; border:1px solid #384073;
-    background:var(--navy-panel); color:var(--cream); font-size:13px; font-weight:700;
+  #eventCard .etitle{ font-weight:900; color:#c4763a; font-size:12px; margin-bottom:2px; letter-spacing:.06em; }
+  #spinResult{
+    min-height:44px; width:100%; padding:10px 12px; border-radius:16px;
+    background:rgba(255,247,230,.95); color:#4a341e; font-weight:900; font-size:15px;
+    box-shadow:0 3px 0 rgba(122,79,46,.4);
   }
-  #ranksNameInput:focus{outline:2px solid var(--gold);}
-  #ranksNameHint{font-size:10.5px; opacity:.65; margin-top:4px; width:100%; max-width:320px; text-align:left;}
-  #ranksNameSavedTag{
-    font-size:11px; font-weight:800; color:var(--teal);
-    margin-top:6px; width:100%; max-width:320px; text-align:left;
-    opacity:0; transition:opacity .25s ease;
+  #spinResult.win{ animation:got .5s ease-out; background:#fff0c2; }
+  #spinNote{ font-size:11.5px; font-weight:800; color:#fff7e6; text-shadow:0 1px 2px rgba(74,52,30,.7); }
+  @media (max-aspect-ratio:1/1){
+    #spinPanel{ flex-direction:column; }
+    #wheelWrap{ width:min(80vw, 52vh, 460px); }
   }
-  #ranksNameSavedTag.show{opacity:1;}
-  #ranksNameSavedTag.warn{color:var(--red);}
-  #rankList{
-    width:100%; max-width:320px; margin-top:14px;
-    display:flex; flex-direction:column; gap:6px;
-  }
-  .rankRow{
-    display:flex; align-items:center; gap:10px;
-    background:var(--navy-panel); border:1px solid #384073; border-radius:12px;
-    padding:9px 12px; font-size:13px; text-align:left;
-  }
-  .rankRow.me{border-color:var(--gold); box-shadow:0 0 0 1px var(--gold) inset;}
-  .rankRow .rnum{width:22px; font-weight:800; opacity:.7; flex:none;}
-  .rankRow .rname{flex:1; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .rankRow .rlv{font-size:11px; opacity:.75; flex:none;}
-  .rankRow .rscore{font-weight:800; color:var(--gold); flex:none;}
-  #rankStatus{font-size:12px; opacity:.75; margin-top:16px;}
-
-  button.primary{
-    padding:10px 20px; border:none; border-radius:12px; font-weight:800; cursor:pointer;
-    background:linear-gradient(160deg,var(--gold),#c8912f); color:#2a1c05;
-    box-shadow:0 3px 0 #8a651f;
-  }
-
-  /* ---------- bottom nav ---------- */
-  #bottomnav{
-    position:fixed; bottom:0; left:50%; transform:translateX(-50%);
-    width:100%; max-width:1500px;
-    display:flex; background:var(--navy-panel); border-top:1px solid #384073;
-    padding:8px 6px calc(8px + env(safe-area-inset-bottom));
-    gap:4px;
-  }
-  .navbtn{
-    flex:1; background:none; border:none; color:var(--cream); opacity:.55;
-    display:flex; flex-direction:column; align-items:center; gap:2px; padding:6px 0;
-    font-size:10px; font-weight:700; cursor:pointer; border-radius:10px;
-  }
-  .navbtn .ic{font-size:18px;}
-  .navbtn.active{opacity:1; background:rgba(232,184,74,.12); color:var(--gold);}
 
   /* ---------- TITLE SCREEN (Moku series design system) ---------- */
-  body.on-title{ background:
-      radial-gradient(circle at 20% 15%, rgba(110,123,255,0.14), transparent 42%),
-      linear-gradient(180deg, #0B0C1F 0%, #171A3D 55%, #0B0C1F 100%);
-  }
-  body.on-title #hud, body.on-title #bottomnav{ display:none; }
   #title-frame{
     display:none;
     position:fixed; inset:14px;
@@ -505,97 +464,100 @@
     #hub-link{ display:none !important; }
     .moku-back{ display:none !important; }
   }
+  /* ---------- Start screen (v2.1.0): the field slowly drifts by behind the menu ---------- */
   #titleScreen{
-    align-items:center; justify-content:center; text-align:center;
-    min-height:100vh; gap:18px; padding:24px 20px;
+    align-items:center; justify-content:center; gap:clamp(18px, 6vw, 80px);
+    padding:calc(env(safe-area-inset-top,0px) + 40px) 40px calc(env(safe-area-inset-bottom,0px) + 34px);
+    background:radial-gradient(ellipse at 50% 50%, rgba(255,240,220,0) 30%, rgba(74,40,30,.38) 100%);
+    text-align:center;
   }
-  #titleMascot{
-    width:104px; height:104px; border-radius:50%;
-    object-fit:cover; object-position:center 30%;
-    box-shadow:0 0 34px rgba(110,123,255,.45);
+  .titleCol{ display:flex; flex-direction:column; align-items:center; }
+  #titleHero{
+    width:min(150px, 30vh); aspect-ratio:1; position:relative;
+    filter:drop-shadow(0 0 18px rgba(110,123,255,.55)) drop-shadow(0 6px 10px rgba(60,30,20,.35));
     animation:titleMascotBob 3.2s ease-in-out infinite;
   }
+  /* ハブの Moku Closet で選んだ服を同じ 100×100 グリッドで重ねる(Moku Bridge と同じ) */
+  #titleHero img, #titleHero svg{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+  #titleHero img{ object-fit:cover; object-position:center 30%; }
   @keyframes titleMascotBob{ 0%,100%{transform:translateY(0);} 50%{transform:translateY(-8px);} }
   #titleLogo{
-    margin:6px 0 0; font-weight:800; letter-spacing:.02em;
-    font-size:clamp(26px,7vw,40px); line-height:1.15;
-    color:#EBEDF6;
-    text-shadow:0 0 24px rgba(110,123,255,.4);
+    margin:8px 0 0; font-weight:800; letter-spacing:.02em; line-height:1;
+    font-size:clamp(34px, 8vh, 56px); color:#FFFDF7;
+    text-shadow:0 3px 0 #2B2F80, 0 6px 14px rgba(40,30,60,.4);
   }
-  #titleLogo span{ color:#93A0FF; }
+  #titleLogo span{ display:block; font-size:.5em; letter-spacing:.3em; margin-top:6px; color:#E3E6FF; }
   #titleSub{
-    margin:0; font-size:12.5px; letter-spacing:.14em; font-weight:700;
-    color:#8890D6; text-transform:uppercase;
+    margin:8px 0 0; font-size:12.5px; letter-spacing:.14em; font-weight:800;
+    color:#FFF6EA; text-shadow:0 1px 3px rgba(40,30,60,.65);
   }
+  .title-chips{ margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
   #titleMenu{ margin-top:10px; display:flex; flex-direction:column; align-items:center; gap:6px; }
+  /* SPEC.md §3: title menu items are 19px / 800 */
   .titleMenuItem{
-    appearance:none; border:none; background:none; cursor:pointer;
-    font-family:inherit; font-weight:800; font-size:19px;
-    color:#93A0FF; padding:8px 18px;
-    text-shadow:0 0 14px rgba(147,160,255,.7);
+    appearance:none; border:none; cursor:pointer; text-decoration:none;
+    font-family:inherit; font-weight:800; font-size:19px; padding:8px 18px;
+    min-width:220px; border-radius:999px;
+    background:rgba(255,247,230,.9); color:#4a341e;
+    box-shadow:0 3px 0 rgba(122,79,46,.45);
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
   }
-  .titleMenuItem:active{ transform:translateY(1px); }
-  /* Classic Mode へのリンク(v1.2.0 を angry-moku-battle-royal-classic.html に保存) */
-  a.titleMenuItem{ text-decoration:none; }
-  .titleMenuItem.sub{ color:#6E77C2; text-shadow:none; }
-  #titleFooterTag{
-    margin-top:34px; padding-top:14px; width:min(320px,80%);
-    border-top:1px solid rgba(255,255,255,.12);
-    font-size:11px; letter-spacing:.05em; color:#5B6099;
+  .titleMenuItem:active{ transform:translateY(2px); box-shadow:0 1px 0 rgba(122,79,46,.45); }
+  .titleMenuItem.primary{
+    background:linear-gradient(160deg,#8f9bff,#6E7BFF 55%,#4d58d6); color:#fff;
+    box-shadow:0 4px 0 #2B2F80, 0 0 18px rgba(110,123,255,.6);
+    animation:menuGlow 1.6s ease-in-out infinite;
+  }
+  @keyframes menuGlow{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.05); } }
+  .titleMenuItem.sub{ background:rgba(255,247,230,.62); font-size:19px; }
+  .spinBadge{
+    font-size:10px; font-weight:900; letter-spacing:.06em; padding:2px 7px; border-radius:999px;
+    background:#d6474a; color:#fff; animation:hubLinkPulse 1.6s ease-in-out infinite;
+  }
+  .spinBadge[hidden]{ display:none; }
+  @media (max-aspect-ratio:1/1){
+    #titleScreen{ flex-direction:column; gap:14px; }
+  }
+  @media (max-height:430px){
+    #titleHero{ width:min(110px, 28vh); }
+    .titleMenuItem{ padding:6px 18px; min-width:200px; }
+    #titleMenu{ gap:5px; }
   }
 </style>
 </head>
 <body class="on-title">
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v2.0.0 · Updated Nov 8, 2026</div>
-<a class="moku-back" href="hub.html" aria-label="Back to Moku Series">←</a>
+<div id="buildInfo">v2.1.0 · Updated Nov 8, 2026</div>
 <div id="rotate-hint">
   <span>📱</span>
   <p>Rotate to play!</p>
 </div>
+<canvas id="arena3d"></canvas>
 <div id="app">
 
-  <!-- TITLE SCREEN -->
+  <!-- START SCREEN (v2.1.0): the 3D field drifts by behind the menu, like Moku Bridge -->
   <section class="screen active" id="titleScreen">
-    <img id="titleMascot" src="brand/mokumoku-hero.png" alt="Mokumoku">
-    <h1 id="titleLogo">ANGRY MOKU<br><span>BATTLE ROYAL</span></h1>
-    <p id="titleSub">3 D &nbsp; A R E N A &nbsp; S H O W D O W N</p>
-    <nav id="titleMenu">
-      <button class="titleMenuItem" id="titleStartBtn">▶ Start</button>
-      <a class="titleMenuItem sub" href="angry-moku-battle-royal-classic.html">🕰 Classic Mode</a>
-    </nav>
-    <div id="titleFooterTag">🦉 × 🍬 × ⚽ × 🏆&nbsp; M O K U M O K U &nbsp;S E R I E S</div>
-  </section>
-
-  <div id="hud">
-    <h1>ANGRY <span>MOKU</span></h1>
-    <div id="hudRight">
-      <div id="levelPill">LV <span id="levelNum">1</span></div>
-      <div id="coinPill"><span class="dot"></span><span id="coinCount">0</span></div>
-    </div>
-  </div>
-
-  <!-- HOME SCREEN -->
-  <section class="screen" id="homeScreen">
-    <div id="homeSceneWrap">
-      <canvas id="homeBgCanvas"></canvas>
-      <div id="homeSceneOverlay">
-        <div id="homeTitleTag">ANGRY <span style="color:var(--red);">MOKU</span></div>
-        <div id="homeStatsPill">Level <span id="homeLevel">1</span> · <span id="homeDiff">Easy</span> · 🪙 <span id="homeCoins">0</span></div>
-        <div id="homePreviewWrap"><canvas id="homePreview" width="190" height="190"></canvas></div>
-        <div id="homeSideIcons">
-          <button class="sideIconBtn homeNavBtn" data-screen="customizeScreen"><span class="sic">🧣</span><span class="slbl">Customize</span></button>
-          <button class="sideIconBtn homeNavBtn" data-screen="spinScreen"><span class="sic">🎡</span><span class="slbl">Spin</span></button>
-        </div>
-        <button id="homeBattleBtn" class="homeNavBtn" data-screen="battleScreen"><span class="bbic">⚔️</span>BATTLE</button>
+    <div class="titleCol">
+      <div id="titleHero"><img src="brand/mokumoku-hero.png" alt="Moku"><span id="titleOutfit"></span></div>
+      <h1 id="titleLogo">ANGRY MOKU<span>BATTLE ROYAL</span></h1>
+      <p id="titleSub">3 D &nbsp; A R E N A &nbsp; S H O W D O W N</p>
+      <div class="title-chips">
+        <div class="chip">LV <b id="tLevel">1</b> · <span id="tDiff">Easy</span></div>
+        <div class="chip"><span class="coin-dot"></span><b class="coinsNow">0</b></div>
       </div>
     </div>
+    <nav id="titleMenu" class="titleCol">
+      <button class="titleMenuItem primary" id="titleStartBtn">▶ Start</button>
+      <button class="titleMenuItem" id="titleCustomizeBtn">🧣 Customize</button>
+      <button class="titleMenuItem" id="titleSpinBtn">🎡 Spin <span class="spinBadge" id="spinBadge" hidden>LIMITED</span></button>
+      <a class="titleMenuItem" href="hub.html#awards">🏆 Leaderboard</a>
+      <a class="titleMenuItem sub" href="angry-moku-battle-royal-classic.html">🕰 Classic Mode</a>
+    </nav>
   </section>
 
   <!-- BATTLE SCREEN (3D, v2.0.0 — from the kids' whiteboard sketch) -->
   <section class="screen" id="battleScreen">
-    <canvas id="arena3d"></canvas>
     <div id="fxLayer"></div>
 
     <!-- top-left: map (tap for the big map) + clock -->
@@ -632,7 +594,7 @@
       <h2>Paused</h2>
       <button class="primary" id="resumeBtn">▶ Resume</button>
       <button class="ghost" id="restartBtn">🔄 Restart</button>
-      <button class="ghost" id="leaveBtn">🏠 Home</button>
+      <button class="ghost" id="leaveBtn">🏠 Menu</button>
     </div>
 
     <div id="banner" class="overlay">
@@ -649,54 +611,43 @@
     </div>
   </section>
 
-  <!-- CUSTOMIZE SCREEN -->
+  <!-- CUSTOMIZE (v2.1.0): the camera comes close to your Moku on the field -->
   <section class="screen" id="customizeScreen">
-    <div class="panelTitle">Customize</div>
-    <div id="previewLabel">Your Moku</div>
-    <canvas id="preview" width="150" height="150"></canvas>
-    <div id="equipBadges"></div>
-    <div id="custBody">
+    <button class="panelBack" data-back>◀ Back</button>
+    <div id="custHint">Drag to turn Moku</div>
+    <div id="custPanel">
+      <div class="panelHead">
+        <h2>Customize</h2>
+        <div class="chip"><span class="coin-dot"></span><b class="coinsNow">0</b></div>
+      </div>
+      <div id="custMoves"></div>
       <div id="custTabs"></div>
       <div id="custGrid"></div>
     </div>
   </section>
 
-  <!-- SPIN SCREEN -->
+  <!-- SPIN (v2.1.0): a spinning wheel. Each slice is as big as its chance -->
   <section class="screen" id="spinScreen">
-    <div class="panelTitle">Spin</div>
-    <div id="eventCard">
-      <div class="etitle">🔥 LIMITED TIME</div>
-      <div id="eventDesc">—</div>
-      <div id="eventTimer" style="opacity:.75; margin-top:2px;">--:--:--</div>
-    </div>
-    <div id="spinArena">
-      <div id="chest">🎁</div>
-      <div id="spinResult">Spin for coins, buffs, or the limited-time item!</div>
-      <button id="spinBtn">SPIN</button>
-      <div id="spinNote">Costs 100 coins per spin</div>
+    <button class="panelBack" data-back>◀ Back</button>
+    <div id="spinPanel">
+      <div id="wheelWrap">
+        <div id="wheelPointer"></div>
+        <svg id="wheel" viewBox="-110 -110 220 220" aria-label="Prize wheel"></svg>
+        <button id="spinBtn">SPIN<small>🪙 100</small></button>
+      </div>
+      <div id="spinSide">
+        <h2>Spin the Wheel!</h2>
+        <div id="eventCard">
+          <div class="etitle">🔥 LIMITED TIME</div>
+          <div id="eventDesc">—</div>
+          <div id="eventTimer" style="opacity:.75; margin-top:2px;">--:--:--</div>
+        </div>
+        <div id="spinResult">Win coins, power-ups, or the limited item!</div>
+        <div class="chip"><span class="coin-dot"></span><b class="coinsNow">0</b></div>
+        <div id="spinNote">Bigger slices come up more often.</div>
+      </div>
     </div>
   </section>
-
-  <!-- RANKS SCREEN -->
-  <section class="screen" id="ranksScreen">
-    <div class="panelTitle">🏆 Ranks</div>
-    <div id="ranksNameRow">
-      <input id="ranksNameInput" type="text" maxlength="12" placeholder="Moku" autocomplete="off">
-      <button class="primary" id="ranksNameSaveBtn">Save</button>
-    </div>
-    <div id="ranksNameHint">Used on your next battle win. Optional — defaults to "Moku".</div>
-    <div id="ranksNameSavedTag">✓ Saved</div>
-    <div id="rankStatus"></div>
-    <div id="rankList"></div>
-  </section>
-
-  <nav id="bottomnav">
-    <button class="navbtn active" data-screen="homeScreen"><span class="ic">🏠</span>Home</button>
-    <button class="navbtn" data-screen="customizeScreen"><span class="ic">🧣</span>Customize</button>
-    <button class="navbtn" data-screen="battleScreen"><span class="ic">🦉</span>Battle</button>
-    <button class="navbtn" data-screen="spinScreen"><span class="ic">🎡</span>Spin</button>
-    <button class="navbtn" data-screen="ranksScreen"><span class="ic">🏆</span>Ranks</button>
-  </nav>
 
 </div>
 
@@ -731,67 +682,6 @@
     // Fire-and-forget: never let a failed/slow request affect gameplay.
     MokuScores.submit(save.level, {playerName: save.playerName, level: save.level}).catch(()=>{});
   }
-  async function renderRanks(){
-    const listEl = document.getElementById("rankList");
-    const statusEl = document.getElementById("rankStatus");
-    const nameInput = document.getElementById("ranksNameInput");
-    nameInput.value = save.playerName || "";
-    listEl.textContent = "";
-    statusEl.textContent = "Loading rankings…";
-    let ranking;
-    try{
-      ranking = await MokuScores.fetchTop(20);
-    }catch(e){
-      statusEl.textContent = "Couldn't load rankings — check your connection and try again.";
-      return;
-    }
-    if(!ranking || !ranking.length){
-      statusEl.textContent = "No rankings yet — be the first!";
-      return;
-    }
-    statusEl.textContent = "";
-    const myDeviceSuffix = MokuScores.getDeviceId().slice(0,6);
-    ranking.forEach(entry=>{
-      const row = document.createElement("div");
-      row.className = "rankRow" + (entry.deviceIdSuffix===myDeviceSuffix ? " me" : "");
-      const num = document.createElement("span"); num.className="rnum"; num.textContent = "#"+entry.rank;
-      const name = document.createElement("span"); name.className="rname"; name.textContent = entry.playerName;
-      const lv = document.createElement("span"); lv.className="rlv"; lv.textContent = entry.level!=null ? "Lv"+entry.level : "";
-      const score = document.createElement("span"); score.className="rscore"; score.textContent = entry.score;
-      row.append(num, name, lv, score);
-      listEl.appendChild(row);
-    });
-  }
-  async function verifyPlayerNameSaved(expected){
-    // persistSave() swallows storage errors (e.g. iOS Safari Private Browsing
-    // rejects localStorage writes) so a failed save wouldn't otherwise be
-    // visible. Read the value back so the UI can tell the truth.
-    try{
-      let raw;
-      if(hasClaudeStorage()){
-        const r = await window.storage.get(SAVE_KEY, false);
-        raw = r ? r.value : null;
-      } else {
-        raw = localStorage.getItem(SAVE_KEY);
-      }
-      if(!raw) return false;
-      return (JSON.parse(raw).playerName || null) === expected;
-    }catch(e){ return false; }
-  }
-  let ranksNameSavedTimer = null;
-  document.getElementById("ranksNameSaveBtn").addEventListener("click", async ()=>{
-    const val = document.getElementById("ranksNameInput").value.trim().slice(0,12);
-    save.playerName = val || null;
-    await persistSave();
-    const ok = await verifyPlayerNameSaved(save.playerName);
-    const tag = document.getElementById("ranksNameSavedTag");
-    tag.textContent = ok ? "✓ Saved" : "⚠️ Couldn't save — try leaving Private Browsing mode";
-    tag.classList.toggle("warn", !ok);
-    tag.classList.add("show");
-    clearTimeout(ranksNameSavedTimer);
-    ranksNameSavedTimer = setTimeout(()=>tag.classList.remove("show"), ok ? 1600 : 4500);
-  });
-
   async function loadSave(){
     try{
       let raw = null;
@@ -830,11 +720,9 @@
   setInterval(()=>{ persistSave(); }, 5000); // periodic safety-net autosave
 
   function refreshTopStats(){
-    document.getElementById("coinCount").textContent = save.coins;
-    document.getElementById("levelNum").textContent = save.level;
-    document.getElementById("homeCoins").textContent = save.coins;
-    document.getElementById("homeLevel").textContent = save.level;
-    document.getElementById("homeDiff").textContent = difficultyLabel(save.level);
+    document.querySelectorAll(".coinsNow").forEach(el=>el.textContent = save.coins);
+    document.getElementById("tLevel").textContent = save.level;
+    document.getElementById("tDiff").textContent = difficultyLabel(save.level);
   }
   function refreshCoinUI(){ refreshTopStats(); }
 
@@ -1146,7 +1034,8 @@
     }, opts);
   }
 
-  function resetBattle(){
+  // forReal = a battle starts now (uses up a Spin buff). false = the field behind the menus.
+  function resetBattle(forReal){
     fighters = [];
     clearEffects();
     usedOnce = {angry:false, heal:false};
@@ -1157,8 +1046,8 @@
     CPU_STATS = getCpuStats(save.level);
 
     // consume any one-match temp buff won from spin
-    matchBuff = save.tempBuff ? save.tempBuff.type : null;
-    if(save.tempBuff){ save.tempBuff = null; persistSave(); }
+    matchBuff = forReal && save.tempBuff ? save.tempBuff.type : null;
+    if(forReal && save.tempBuff){ save.tempBuff = null; persistSave(); }
 
     const maxHp = PLAYER_MAXHP + vitalityBonus();
 
@@ -1563,7 +1452,7 @@
     document.getElementById("bannerText").textContent = "All 3 CPUs defeated in "+fmtTime(battleTime)+"! Level up — now Level "+save.level+" ("+difficultyLabel(save.level)+").";
     b.classList.add("show");
   }
-  document.getElementById("bannerBtn").addEventListener("click", resetBattle);
+  document.getElementById("bannerBtn").addEventListener("click", ()=>resetBattle(true));
 
   /* ================= INPUT: joystick ================= */
   const joyBase = document.getElementById("joyBase");
@@ -1633,7 +1522,7 @@
     if(id==="player"){
       const hat = ITEMS.hat.find(i=>i.id===save.equipped.hat);
       const clo = ITEMS.clothes.find(i=>i.id===save.equipped.clothes);
-      const wing = ITEMS.wings.find(i=>i.id===save.equipped.wing);
+      const wing = ITEMS.wings.find(i=>i.id===(save.equipped.wings || save.equipped.wing));
       const wep = ITEMS.weapon.find(i=>i.id===save.equipped.weapon);
       const charm = ITEMS.charm.find(i=>i.id===save.equipped.charm);
       return {
@@ -1764,17 +1653,21 @@
       else if(kind==="angry"){ tone(160, 0.35, "sawtooth", 0.07, 70); tone(330, 0.25, "triangle", 0.08, 120, 0.05); }
       else if(kind==="heal"){ [523,659,784].forEach((f,i)=>tone(f, 0.16, "sine", 0.08, null, i*0.07)); }
       else if(kind==="ko"){ [784,988,1319].forEach((f,i)=>tone(f, 0.12, "triangle", 0.09, null, i*0.06)); }
+      else if(kind==="tick"){ tone(1200, 0.035, "square", 0.025); }
       else if(kind==="win"){ [523,659,784,1047].forEach((f,i)=>tone(f, 0.22, "triangle", 0.1, null, i*0.12)); }
     }catch(e){ /* sound is optional */ }
   }
 
   /* ================= 3D WORLD (three.js r128) ================= */
   const has3D = typeof THREE !== "undefined";
-  const stage = document.getElementById("battleScreen");
+  const stage = document.getElementById("arena3d");   // full-screen, behind every screen
   const glCanvas = document.getElementById("arena3d");
   const fxLayer = document.getElementById("fxLayer");
   let renderer = null, scene = null, camera = null, camLight = null;
   let camYaw = 0, camSnap = true, camDragId = null, camDragX = 0, camDragging = false;
+  // "title": drift around the field at 45° / "closet": up close to your Moku / "battle": behind Moku
+  let viewMode = "title", orbitA = 0.7, viewSnap = true, closetTurn = 0, closetSpinT = 0;
+  const camPosS = has3D ? new THREE.Vector3() : null, camTgtS = has3D ? new THREE.Vector3() : null;
   const G = {};             // shared geometries (never disposed: they live as long as the page)
   const TEX = new Map();    // emoji textures (shared, small set)
   let fx3 = [];             // short 3D effects
@@ -1794,7 +1687,7 @@
     renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 1.75));
     scene = new THREE.Scene();
     scene.background = makeSkyTexture();
-    scene.fog = new THREE.Fog(0xf3d2ad, 42, 110);
+    scene.fog = new THREE.Fog(0xf3d2ad, 60, 175);
     camera = new THREE.PerspectiveCamera(58, 1, 0.1, 400);
 
     scene.add(new THREE.HemisphereLight(0xfff3dc, 0x7d9a52, 0.7));
@@ -2096,9 +1989,186 @@
     scene.remove(m.root);
     for(const mat of m.mats) mat.dispose();   // shared geometries / emoji textures stay
   }
+  // ---- your Moku (v2.1.0): the plush Moku of Flying Moku / Moku Bridge ----
+  // flying-moku.html の buildMokuHeroCharacter3D() と同じ形(ふっくらしたベージュの体・クリーム色のおなか・
+  // 緑の3枚葉のしっぽ・オレンジの足・葉っぱの蝶ネクタイ)を、このゲームの向き(前 = +z)で作る。
+  // 立っている時は Moku Bridge のように翼をたたむ。前から見る Customize のために目と怒り眉も付ける。
+  // Battle Royal の装備: 服 = マント、帽子 = ハチマキ、翼 = 翼の色と大きさ、武器 = 手に持つ、お守り = 足元の輪。
+  // ハブの Moku Closet の帽子も頭に載せる(Moku Bridge / Moku Future Run と同じ絵)。
+  const PLUSH = 0.42;   // Flying Moku の単位 → このゲームの単位(体の幅 ≈ 1 Moku)
+  let plushBodyTex = null;
+  function plushTexture(){
+    if(plushBodyTex) return plushBodyTex;
+    const c = document.createElement("canvas"); c.width = c.height = 256;
+    const g = c.getContext("2d");
+    g.fillStyle = "#C29B75"; g.fillRect(0,0,256,256);
+    // cream belly on the front (u = 0.25 is +z on a three.js sphere)
+    // (face + belly like the Moku picture: cream from the eyes down)
+    g.save(); g.translate(64, 150); g.scale(1, 1.55);
+    const grad = g.createRadialGradient(0, 0, 14, 0, 0, 62);
+    grad.addColorStop(0, "#F6F3EB"); grad.addColorStop(0.82, "#F6F3EB"); grad.addColorStop(1, "rgba(194,155,117,0)");
+    g.fillStyle = grad;
+    g.beginPath(); g.arc(0, 0, 62, 0, Math.PI*2); g.fill();
+    g.restore();
+    // soft lighter top of the head
+    g.fillStyle = "rgba(226,194,158,.55)"; g.fillRect(0, 0, 256, 40);
+    plushBodyTex = new THREE.CanvasTexture(c);
+    return plushBodyTex;
+  }
+  function buildPlushMoku(gear){
+    const mats = [];
+    const M = (color, extra)=>{ const m = lam(color, extra); mats.push(m); return m; };
+    const root = new THREE.Group();
+    const body = new THREE.Group();            // hops / squashes (game units)
+    const plush = new THREE.Group();           // Flying Moku units
+    plush.scale.setScalar(PLUSH);
+    plush.position.y = 2.5*PLUSH;              // feet on the ground
+    body.add(plush);
+    root.add(body);
+
+    const bodyMat = M(0xffffff, {map:plushTexture()});
+    addMesh(plush, G.sphere, bodyMat, 2.4*1.14, 2.4*1.04, 2.4*1.1, 0, 0, 0);
+    const beige = M(0xC29B75), cream = M(0xF6F3EB), dark = M(0x2a2420), white = M(0xffffff);
+    const orange = M(0xF59E0B), leaf = M(0x0FA37F, {side:THREE.DoubleSide}), leafDark = M(0x0C8E6E, {side:THREE.DoubleSide});
+
+    // face: big round eyes and Moku's angry brows
+    for(const s of [-1,1]){
+      addMesh(plush, G.sphere, white, 0.6, 0.62, 0.3, s*0.78, 0.62, 2.6);
+      addMesh(plush, G.sphere, dark, 0.36, 0.42, 0.2, s*0.74, 0.6, 2.8);
+      addMesh(plush, G.sphereLo, white, 0.1, 0.1, 0.06, s*0.64, 0.76, 2.97);
+      const brow = addMesh(plush, G.box, dark, 0.95, 0.2, 0.2, s*0.8, 1.32, 2.42);
+      brow.rotation.z = s*0.38; brow.rotation.y = -s*0.25;
+    }
+    const beak = addMesh(plush, G.cone4, orange, 0.36, 0.6, 0.36, 0, 0.15, 2.82);
+    beak.rotation.x = Math.PI/2;
+    // leaf bow-tie under the beak
+    for(const s of [-1,1]){
+      const bow = addMesh(plush, G.cone4, leaf, 0.5, 0.9, 0.12, s*0.45, -0.55, 2.55);
+      bow.rotation.z = s*Math.PI/2;
+    }
+    addMesh(plush, G.sphereLo, leafDark, 0.16, 0.16, 0.1, 0, -0.55, 2.62);
+
+    // three-leaf tail at the back (-z), wags while walking
+    const tail = new THREE.Group();
+    tail.position.set(0, -0.35, -2.05);
+    [[0, 0, 1], [-0.65, 0.45, 0.85], [0.65, -0.45, 0.85]].forEach(([x, rz, k])=>{
+      const l = addMesh(tail, G.cone, x ? leafDark : leaf, 0.8*k, 2.0*k, 0.24*k, x, -0.05*Math.abs(x), -0.15);
+      l.rotation.set(-(Math.PI/2+0.2), 0, rz);
+    });
+    plush.add(tail);
+
+    // feet
+    const feet = [-1,1].map(s=>addMesh(plush, G.sphereLo, orange, 0.55, 0.25, 0.78, s*0.9, -2.12, 0.75));
+
+    // wings hang at the sides; equipped wings change their color and size
+    const wingMat = M(gear.wing ? new THREE.Color(gear.wing) : 0xB48A62);
+    const wk = gear.wing ? 1.15 : 1;
+    const wings = [-1,1].map(s=>{
+      const pivot = new THREE.Group();
+      pivot.position.set(s*2.55, 0.3, 0);
+      const w = addMesh(pivot, G.sphere, wingMat, 0.36*wk, 1.5*wk, 1.05*wk, s*0.1, -1.0*wk, -0.1);
+      w.rotation.z = s*0.12;
+      plush.add(pivot);
+      pivot.userData.side = s;
+      return pivot;
+    });
+
+    // Battle Royal gear
+    if(gear.cape){
+      const capeMat = M(new THREE.Color(gear.cape), {side:THREE.DoubleSide});
+      // a short shoulder cape, so Moku's beige back and leaf tail still show (like Moku Bridge)
+      const cape = new THREE.Mesh(new THREE.CylinderGeometry(2.3, 2.95, 1.6, 18, 1, true, Math.PI-0.95, 1.9), capeMat);
+      mats.push({dispose:()=>cape.geometry.dispose()});
+      cape.position.set(0, 0.55, -0.1);
+      plush.add(cape);
+      // a knot at the neck
+    }
+    if(gear.band){
+      const bandMat = M(new THREE.Color(gear.band));
+      const band = new THREE.Mesh(new THREE.TorusGeometry(1.86, 0.13, 8, 36), bandMat);
+      mats.push({dispose:()=>band.geometry.dispose()});
+      band.rotation.x = Math.PI/2;
+      band.position.y = 1.72;
+      plush.add(band);
+      // the two ribbon tails at the back
+      for(const s of [-1,1]){
+        const t = addMesh(plush, G.box, bandMat, 0.24, 1.0, 0.07, s*0.3, 1.25, -1.95);
+        t.rotation.z = s*0.35; t.rotation.x = -0.3;
+      }
+    }
+    let weapon = null;
+    if(gear.weaponIcon){
+      const sm = new THREE.SpriteMaterial({map:emojiTexture(gear.weaponIcon), depthWrite:false});
+      mats.push(sm);
+      weapon = new THREE.Sprite(sm);
+      weapon.scale.set(0.85,0.85,1); weapon.position.set(1.35, 1.0, 0.25);
+      body.add(weapon);
+    }
+    if(gear.charmGlow){
+      const cm = new THREE.MeshBasicMaterial({color:new THREE.Color(gear.charmGlow), transparent:true, opacity:0.45, depthWrite:false});
+      mats.push(cm);
+      const ring = addMesh(root, G.ring, cm, 1.45, 1.45, 1, 0, 0.04, 0);
+      ring.rotation.x = -Math.PI/2;
+    }
+
+    const shadowMat = new THREE.MeshBasicMaterial({map:G.shadowTex, transparent:true, depthWrite:false});
+    mats.push(shadowMat);
+    const shadow = new THREE.Mesh(G.circle, shadowMat);
+    shadow.rotation.x = -Math.PI/2; shadow.scale.set(1.3,1.3,1); shadow.position.y = 0.03;
+    root.add(shadow);
+
+    const burnMat = new THREE.SpriteMaterial({map:emojiTexture("🔥"), depthWrite:false});
+    mats.push(burnMat);
+    const burn = new THREE.Sprite(burnMat);
+    burn.scale.set(0.7,0.7,1); burn.position.set(0.6, 2.6, 0); burn.visible = false;
+    root.add(burn);
+    const iceMat = new THREE.SpriteMaterial({map:emojiTexture("❄️"), depthWrite:false});
+    mats.push(iceMat);
+    const ice = new THREE.Sprite(iceMat);
+    ice.scale.set(0.7,0.7,1); ice.position.set(-0.6, 2.6, 0); ice.visible = false;
+    root.add(ice);
+
+    scene.add(root);
+    const model = {root, body, bodyMat, mats, burn, ice, weapon, plush, wings, tail, feet, hat:null};
+    if(gear.closetHat) addClosetHat(model, gear.closetHat);
+    return model;
+  }
+
+  // Moku Closet hat: the same 100×100 picture as the hub (body width = 76 grid units, top of the head ≈ y 10).
+  // A sprite, so it reads from the back (battle) and from the front (Customize).
+  const HAT_VIEW = [-10, -20, 120];
+  function addClosetHat(model, id){
+    let svg = null;
+    try{ svg = MokuMoint.itemSVG(id, HAT_VIEW.slice(0,2).concat([HAT_VIEW[2], HAT_VIEW[2]]).join(" ")); }catch(e){ svg = null; }
+    if(!svg) return;
+    const img = new Image();
+    img.onload = ()=>{
+      if(!model.root.parent) return;     // rebuilt meanwhile
+      const cv = document.createElement("canvas"); cv.width = cv.height = 256;
+      cv.getContext("2d").drawImage(img, 0, 0, 256, 256);
+      const tex = new THREE.CanvasTexture(cv);
+      const mat = new THREE.SpriteMaterial({map:tex, transparent:true, alphaTest:0.05});
+      model.mats.push(mat, {dispose:()=>tex.dispose()});
+      const sp = new THREE.Sprite(mat);
+      const u = 2.4*1.18*2/76;            // Flying Moku units per grid unit
+      sp.scale.set(HAT_VIEW[2]*u, HAT_VIEW[2]*u, 1);
+      const centerGridY = HAT_VIEW[1] + HAT_VIEW[2]/2;
+      sp.userData.base = new THREE.Vector3(0, 2.3 + 0.15 - (centerGridY - 10)*u, 0);
+      sp.position.copy(sp.userData.base);
+      model.plush.add(sp);
+      model.hat = sp;
+    };
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  }
+
   function playerLook(){
     const c = ownerColors("player");
-    return {body:c.body, hat:c.hat, wing:c.wing, weaponIcon:c.weaponIcon, charmGlow:c.charmGlow};
+    const clo = ITEMS.clothes.find(i=>i.id===save.equipped.clothes);
+    const hat = ITEMS.hat.find(i=>i.id===save.equipped.hat);
+    let closetHat = null;
+    try{ closetHat = (window.MokuMoint && MokuMoint.closet().equipped.head) || null; }catch(e){ closetHat = null; }
+    return {cape: clo && clo.color ? clo.color : null, band: hat && hat.color ? hat.color : null,
+      wing:c.wing, weaponIcon:c.weaponIcon, charmGlow:c.charmGlow, closetHat};
   }
   // (re)build owl models: the player's only when the equipment changed
   function syncFighterModels(){
@@ -2106,7 +2176,7 @@
     const pl = playerLook(), key = JSON.stringify(pl);
     if(key !== playerLookKey && owlModels.has("player")){ disposeOwl(owlModels.get("player")); owlModels.delete("player"); }
     playerLookKey = key;
-    if(!owlModels.has("player")) owlModels.set("player", buildOwl3D(pl));
+    if(!owlModels.has("player")) owlModels.set("player", buildPlushMoku(pl));
     CPU_LOOK.forEach((lk,i)=>{
       const id = "cpu"+(i+1);
       if(!owlModels.has(id)) owlModels.set(id, buildOwl3D({body:lk.body, flag:lk.accent}));
@@ -2226,12 +2296,32 @@
       m.burn.visible = f.burnTicksRemaining>0;
       m.ice.visible = frozen;
       if(m.weapon) m.weapon.material.rotation = Math.sin(t*3)*0.2;
+      if(m.plush) animatePlush(m, f, t, moving, now);
+    }
+  }
+  // your plush Moku: wings flap while walking, the leaf tail wags, feet paddle; the Closet hat leans toward the camera
+  const camLocal = has3D ? new THREE.Vector3() : null;
+  function animatePlush(m, f, t, moving, now){
+    const cheer = (gameOver && f.isPlayer) || now - (f.cheerAt||0) < 700;
+    const flap = cheer ? 0.9 + Math.sin(t*16)*0.45 : moving ? 0.45 + Math.sin(t*20)*0.35 : 0.08 + Math.sin(t*2)*0.04;
+    m.wings.forEach(w=>{ w.rotation.z = w.userData.side*flap; });
+    m.tail.rotation.y = moving ? Math.sin(t*14)*0.28 : Math.sin(t*1.6)*0.08;
+    const pad = moving ? Math.sin(t*18)*0.25 : 0;
+    m.feet[0].position.z = 0.75 + pad; m.feet[1].position.z = 0.75 - pad;
+    if(cheer && !gameOver) m.body.position.y = Math.abs(Math.sin(t*9))*0.35;
+    if(m.hat){
+      camLocal.copy(camera.position);
+      m.plush.worldToLocal(camLocal);
+      camLocal.y = 0;
+      if(camLocal.lengthSq() > 1e-6) camLocal.normalize();
+      m.hat.position.copy(m.hat.userData.base).addScaledVector(camLocal, 2.4);
     }
   }
 
   function updateCamera(dt){
     const p = player();
     if(!p) return;
+    if(viewMode !== "battle"){ updateMenuCamera(dt, p); return; }
     const px = p.x*U, pz = p.y*U;
     const fx = Math.sin(camYaw), fz = Math.cos(camYaw);
     const distBack = 8.6, height = 5.3;
@@ -2259,6 +2349,77 @@
         t.mats.forEach(m=>{ m.opacity = fade ? 0.3 : 1; m.depthWrite = !fade; });
       }
     }
+  }
+
+  // menus: drift slowly around the field at about 45°, or come up close to your Moku (Customize)
+  function updateMenuCamera(dt, p){
+    const wantPos = new THREE.Vector3(), wantTgt = new THREE.Vector3();
+    const portrait = stage.clientWidth < stage.clientHeight;
+    if(viewMode === "closet"){
+      const px = p.x*U, pz = p.y*U;
+      const toMid = Math.atan2(W/2 - p.x, H/2 - p.y);     // look from the middle of the field toward Moku
+      const fx = Math.sin(toMid), fz = Math.cos(toMid);
+      const near = portrait ? 6.4 : 5.2;
+      wantPos.set(px + fx*near, 2.3, pz + fz*near);
+      if(portrait){ wantTgt.set(px, -0.1, pz); }
+      else {
+        // the panel is on the right: put Moku in the left part of the screen
+        const rx = -(-fz), rz = -fx;                        // camera's right when looking back at Moku
+        wantTgt.set(px + rx*1.9, 1.05, pz + rz*1.9);
+      }
+    } else {
+      orbitA += dt*0.045;
+      const cx = W/2*U, cz = H/2*U, R = 33;
+      wantPos.set(cx + Math.sin(orbitA)*R, R*0.8, cz + Math.cos(orbitA)*R);
+      wantTgt.set(cx, 2, cz);
+    }
+    if(viewSnap){ camPosS.copy(wantPos); camTgtS.copy(wantTgt); viewSnap = false; }
+    else {
+      const k = 1 - Math.exp(-dt*2.6);
+      camPosS.lerp(wantPos, k); camTgtS.lerp(wantTgt, k);
+    }
+    camera.position.copy(camPosS);
+    camera.lookAt(camTgtS);
+    camLight.position.set(camera.position.x, camera.position.y+4, camera.position.z);
+    camLight.target.position.copy(camTgtS);
+    for(const t of treeFoliage){
+      if(t.faded){ t.faded = false; t.mats.forEach(m=>{ m.opacity = 1; m.depthWrite = true; }); }
+    }
+  }
+
+  // behind the menus the owls just stroll around the field (no fighting)
+  function updateStroll(dt, now){
+    const p = player();
+    for(const f of fighters){
+      f.alive = true; f.frozenUntil = 0; f.burnTicksRemaining = 0;
+      if(viewMode === "closet" && f.isPlayer){
+        // stand still and turn slowly (drag to turn), facing the camera now and then
+        closetSpinT += dt;
+        const toCam = Math.atan2(W/2 - f.x, H/2 - f.y);
+        if(camDragging) f.heading = toCam + closetTurn;
+        else { closetTurn *= Math.exp(-dt*0.8); f.heading = toCam + closetTurn + Math.sin(closetSpinT*0.6)*0.5; }
+        f.moving = 0;
+        continue;
+      }
+      f.wanderT -= dt;
+      if(f.wanderT <= 0){
+        f.wanderT = 1.5 + Math.random()*3;
+        const a = Math.random()*Math.PI*2;
+        f.wanderVec = Math.random() < 0.3 ? {x:0, y:0} : {x:Math.cos(a), y:Math.sin(a)};
+      }
+      let vx = f.wanderVec.x, vy = f.wanderVec.y;
+      // in Customize, the others keep away from your Moku so they don't block the view
+      if(viewMode === "closet" && p && !f.isPlayer){
+        const dx = f.x-p.x, dy = f.y-p.y, d = Math.hypot(dx,dy);
+        if(d < 360){ vx = dx/(d||1); vy = dy/(d||1); }
+      }
+      const sp = 70;
+      f.x += vx*sp*dt; f.y += vy*sp*dt;
+      resolveCollisions(f);
+      f.moving = (vx||vy) ? 0.4 : 0;
+      if(vx||vy) f.heading = turnToward(f.heading, Math.atan2(vx, vy), dt*4);
+    }
+    separateFighters();
   }
 
   function updateFx3(dt){
@@ -2323,7 +2484,7 @@
 
   function resize3D(){
     if(!renderer) return;
-    const w = stage.clientWidth, h = stage.clientHeight;
+    const w = window.innerWidth, h = window.innerHeight;
     if(!w || !h) return;
     renderer.setSize(w, h, false);
     camera.aspect = w/h;
@@ -2332,7 +2493,7 @@
     camera.updateProjectionMatrix();
     mapStatic = null;
   }
-  window.addEventListener("resize", ()=>{ if(document.body.classList.contains("in-battle")) resize3D(); });
+  window.addEventListener("resize", resize3D);
 
   // drag on the field (not on a button) to turn the camera
   glCanvas.addEventListener("pointerdown", e=>{
@@ -2343,7 +2504,8 @@
   });
   glCanvas.addEventListener("pointermove", e=>{
     if(e.pointerId !== camDragId) return;
-    camYaw -= (e.clientX - camDragX)*0.008;
+    if(viewMode === "closet") closetTurn += (e.clientX - camDragX)*0.012;   // Customize: turn Moku
+    else camYaw -= (e.clientX - camDragX)*0.008;
     camDragX = e.clientX;
   });
   const endCamDrag = e=>{ if(e.pointerId === camDragId){ camDragId = null; camDragging = false; } };
@@ -2355,6 +2517,8 @@
   const bigMapWrap = document.getElementById("bigMap");
   const bigMapCanvas = document.getElementById("bigMapCanvas");
   let mapStatic = null, bigStatic = null;
+  const heroImg = new Image();
+  heroImg.src = "brand/mokumoku-hero.png";
 
   function drawMapStatic(w, h){
     const c = document.createElement("canvas"); c.width = w; c.height = h;
@@ -2405,7 +2569,15 @@
         g.fillStyle = "#fff7e6"; g.beginPath(); g.arc(x, y, rr*1.25, 0, Math.PI*2); g.fill();
         g.lineWidth = rr*0.22; g.strokeStyle = f.isPlayer ? "#e8955c" : f.look.accent; g.stroke();
         g.restore();
-        drawOwl(g, x, y, rr, Object.assign({}, look, {wing:null, weaponIcon:null, charmGlow:null}), {noShadow:true, noFeet:true});
+        if(f.isPlayer && heroImg.complete && heroImg.naturalWidth){
+          // you: the same Moku picture as the start screen
+          g.save(); g.beginPath(); g.arc(x, y, rr*1.12, 0, Math.PI*2); g.clip();
+          const iw = heroImg.naturalWidth, ih = heroImg.naturalHeight, sz = rr*2.5;
+          g.drawImage(heroImg, 0, ih*0.06, iw, iw, x-sz/2, y-sz/2, sz, sz);
+          g.restore();
+        } else {
+          drawOwl(g, x, y, rr, Object.assign({}, look, {wing:null, weaponIcon:null, charmGlow:null}), {noShadow:true, noFeet:true});
+        }
         g.fillStyle = "#4a341e"; g.font = "800 "+Math.round(rr*0.85)+"px ui-rounded, system-ui, sans-serif";
         g.textAlign = "center";
         const below = y + rr*3.2 < h;   // near the bottom edge: write the name above
@@ -2500,8 +2672,8 @@
   }
   document.getElementById("pauseBtn").addEventListener("click", ()=>setPaused(true));
   document.getElementById("resumeBtn").addEventListener("click", ()=>setPaused(false));
-  document.getElementById("restartBtn").addEventListener("click", ()=>{ setPaused(false); resetBattle(); });
-  document.getElementById("leaveBtn").addEventListener("click", ()=>{ setPaused(false); goToScreen("homeScreen"); });
+  document.getElementById("restartBtn").addEventListener("click", ()=>{ setPaused(false); resetBattle(true); });
+  document.getElementById("leaveBtn").addEventListener("click", ()=>{ setPaused(false); resetBattle(false); goToScreen("titleScreen"); });
   document.addEventListener("visibilitychange", ()=>{ if(document.hidden && document.body.classList.contains("in-battle") && !gameOver) setPaused(true); });
 
   // called by goToScreen when the battle screen opens / closes
@@ -2510,14 +2682,17 @@
     const ok = initThree();
     document.getElementById("no3d").classList.toggle("show", !ok);
     if(!ok) return;
-    // a buff won on the Spin screen starts with this battle if it hasn't really begun yet
-    if(save.tempBuff && battleTime < 1 && !gameOver) resetBattle();
     syncFighterModels();
     resize3D();
     camSnap = true;
-    lastT = performance.now();
   }
   function leaveBattle(){
+    if(document.body.classList.contains("in-battle")){
+      // from the battle back to a menu: the camera glides up from behind Moku
+      if(camPosS){ camPosS.copy(camera.position); camTgtS.set(player().x*U, 1, player().y*U); }
+      clearEffects();
+      targetRing && (targetRing.visible = false);
+    }
     document.body.classList.remove("in-battle");
     bigMapWrap.classList.remove("show");
     resetJoy();
@@ -2527,6 +2702,14 @@
     const dt = Math.min(0.05,(t-lastT)/1000);
     lastT = t;
     const inBattle = document.body.classList.contains("in-battle") && !!renderer;
+    if(!inBattle && renderer && !document.hidden){
+      // menus: the field drifts by behind them
+      const now = performance.now();
+      updateStroll(dt, now);
+      updateOwls(now, dt);
+      updateCamera(dt);
+      renderer.render(scene, camera);
+    }
     if(inBattle && !paused){
       const now = performance.now();
       if(!gameOver){
@@ -2586,223 +2769,112 @@
     requestAnimationFrame(loop);
   }
 
-  /* ================= CUSTOMIZE SCREEN ================= */
-  const previewCanvas = document.getElementById("preview");
-  const pctx = previewCanvas.getContext("2d");
-  const homePreviewCanvas = document.getElementById("homePreview");
-  const hpctx = homePreviewCanvas.getContext("2d");
-
-  function renderPreview(){
-    pctx.clearRect(0,0,150,150);
-    const c = ownerColors("player");
-    drawOwl(pctx, 75,80, 52, c, {});
-    hpctx.clearRect(0,0,190,190);
-    drawOwl(hpctx, 95,100, 64, c, {});
-    refreshEquipBadges();
+  /* ================= CUSTOMIZE (v2.1.0) ================= */
+  // 見た目を刷新: レア度で色分けしたカード。決まり(値段・順番に買う・Spin 限定)は前のまま。
+  const CUST_TABS = [
+    ["hat","🎩","Hat"], ["clothes","👕","Clothes"], ["weapon","⚔️","Sword"], ["wings","🪽","Wings"], ["charm","🍀","Charm"]
+  ];
+  const RARITY_LABEL = {basic:"Basic", common:"Common", rare:"Rare", epic:"Epic", legendary:"Legendary", exclusive:"Exclusive"};
+  function rarityOf(item){
+    if(item.spinOnly) return "exclusive";
+    const c = item.cost;
+    if(!c) return "basic";
+    if(c < 200) return "common";
+    if(c < 700) return "rare";
+    if(c < 1500) return "epic";
+    return "legendary";
+  }
+  // the save keeps the wings under "wings" (Customize) — older saves may have "wing"
+  function equippedId(tab){
+    if(tab==="wings") return save.equipped.wings || save.equipped.wing || "wing_none";
+    return save.equipped[tab];
   }
 
-  /* ================= HOME SCENE: time-of-day skyline ================= */
-  const homeBgCanvas = document.getElementById("homeBgCanvas");
-  const hbctx = homeBgCanvas.getContext("2d");
-
-  function timePeriod(){
-    const h = new Date().getHours();
-    if(h>=5 && h<7) return "dawn";
-    if(h>=7 && h<17) return "day";
-    if(h>=17 && h<19) return "sunset";
-    return "night"; // 19:00–5:00
-  }
-
-  function resizeHomeCanvas(){
-    const rect = homeBgCanvas.getBoundingClientRect();
-    if(rect.width<10) return; // not visible/laid out yet
-    homeBgCanvas.width = rect.width;
-    homeBgCanvas.height = rect.height;
-  }
-  window.addEventListener("resize", resizeHomeCanvas);
-
-  const HOME_PALETTES = {
-    dawn:   {sky:["#2b2f6b","#c8577a","#ffb37a"], sun:"#ffd08a", silhouette:"#1b1f3d"},
-    day:    {sky:["#3fa9f5","#8fd7ff","#d8f3ff"], sun:"#fff6c8", silhouette:"#233a52"},
-    sunset: {sky:["#2a1f5e","#c1477a","#ff9d5c"], sun:"#ffb15c", silhouette:"#1a1330"},
-    night:  {sky:["#050818","#0d1440","#1b2a52"], sun:null,      silhouette:"#05070f"}
-  };
-
-  function hash01(seed){ const x = Math.sin(seed*12.9898)*43758.5453; return x - Math.floor(x); }
-
-  function drawTowers(g, cx, baseY, towerH, pal, period){
-    const towerW = towerH*0.16;
-    const gap = towerW*1.7;
-    [-1,1].forEach(side=>{
-      const x = cx + side*gap/2;
-      g.fillStyle = pal.silhouette;
-      g.beginPath();
-      g.moveTo(x-towerW/2, baseY);
-      g.lineTo(x-towerW/2, baseY-towerH*0.55);
-      g.lineTo(x-towerW/3, baseY-towerH*0.55);
-      g.lineTo(x-towerW/3, baseY-towerH*0.8);
-      g.lineTo(x-towerW/5, baseY-towerH*0.8);
-      g.lineTo(x-towerW/5, baseY-towerH*0.92);
-      g.lineTo(x, baseY-towerH);
-      g.lineTo(x+towerW/5, baseY-towerH*0.92);
-      g.lineTo(x+towerW/5, baseY-towerH*0.8);
-      g.lineTo(x+towerW/3, baseY-towerH*0.8);
-      g.lineTo(x+towerW/3, baseY-towerH*0.55);
-      g.lineTo(x+towerW/2, baseY-towerH*0.55);
-      g.lineTo(x+towerW/2, baseY);
-      g.closePath();
-      g.fill();
-      // antenna spike
-      g.strokeStyle = pal.silhouette; g.lineWidth = 2;
-      g.beginPath(); g.moveTo(x,baseY-towerH); g.lineTo(x,baseY-towerH*1.08); g.stroke();
-      // lit windows at dusk/night
-      if(period==="night" || period==="sunset"){
-        g.fillStyle = "rgba(255,220,140,0.85)";
-        let seed = side*1000;
-        for(let wy=baseY-18; wy>baseY-towerH*0.72; wy-=13){
-          for(let wx=x-towerW/2+6; wx<x+towerW/2-6; wx+=9){
-            seed++;
-            if(hash01(seed)<0.35) g.fillRect(wx,wy,2.4,4.5);
-          }
-        }
-      }
-    });
-    // sky bridge
-    g.fillStyle = pal.silhouette;
-    g.fillRect(cx-gap/2+towerW/2, baseY-towerH*0.44, gap-towerW, towerH*0.035);
-  }
-
-  function drawHomeScene(){
-    const w = homeBgCanvas.width, h = homeBgCanvas.height;
-    if(!w || !h) return;
-    const period = timePeriod();
-    const pal = HOME_PALETTES[period];
-    const now = performance.now();
-
-    // sky
-    const grad = hbctx.createLinearGradient(0,0,0,h);
-    pal.sky.forEach((c,i)=>grad.addColorStop(i/(pal.sky.length-1), c));
-    hbctx.fillStyle = grad; hbctx.fillRect(0,0,w,h);
-
-    // sun / moon / stars
-    if(period==="night"){
-      for(let i=0;i<50;i++){
-        const sx = hash01(i*3.1)*w, sy = hash01(i*7.7)*h*0.6;
-        const tw = 0.5+0.5*Math.sin(now/900 + i);
-        hbctx.fillStyle = "rgba(255,255,255,"+(0.3+0.5*tw)+")";
-        hbctx.fillRect(sx,sy,1.6,1.6);
-      }
-      hbctx.fillStyle = "#e8e8f0";
-      hbctx.beginPath(); hbctx.arc(w*0.78,h*0.16,h*0.045,0,Math.PI*2); hbctx.fill();
-    } else {
-      let sx,sy;
-      if(period==="dawn"){ sx=w*0.22; sy=h*0.55; }
-      else if(period==="day"){ sx=w*0.72; sy=h*0.16; }
-      else { sx=w*0.76; sy=h*0.48; }
-      const glow = hbctx.createRadialGradient(sx,sy,0,sx,sy,h*0.28);
-      glow.addColorStop(0, pal.sun+"66"); glow.addColorStop(1, pal.sun+"00");
-      hbctx.fillStyle = glow; hbctx.beginPath(); hbctx.arc(sx,sy,h*0.28,0,Math.PI*2); hbctx.fill();
-      hbctx.fillStyle = pal.sun;
-      hbctx.beginPath(); hbctx.arc(sx,sy,h*0.06,0,Math.PI*2); hbctx.fill();
-    }
-
-    // distant city skyline (small buildings)
-    hbctx.fillStyle = pal.silhouette;
-    const baseY = h*0.82;
-    for(let i=0;i<14;i++){
-      const bw = w*0.045;
-      const bx = i*(w/14);
-      if(bx>w*0.5 && bx<w*0.75) continue; // leave room for the towers
-      const bh = h*(0.08+hash01(i*5.2)*0.16);
-      hbctx.fillRect(bx,baseY-bh,bw,bh);
-    }
-
-    drawTowers(hbctx, w*0.62, baseY, h*0.56, pal, period);
-
-    // ground
-    hbctx.fillStyle = pal.silhouette;
-    hbctx.fillRect(0,baseY,w,h-baseY);
-  }
-
-  function homeBgLoop(){
-    if(document.getElementById("homeScreen").classList.contains("active")){
-      drawHomeScene();
-    }
-    requestAnimationFrame(homeBgLoop);
-  }
-
-  function refreshEquipBadges(){
-    const wrap = document.getElementById("equipBadges");
-    wrap.innerHTML="";
-    const cats = [["hat","Hat"],["clothes","Clothes"],["weapon","Sword"],["wings","Wings"],["charm","Charm"]];
-    cats.forEach(([key,label])=>{
-      const item = ITEMS[key].find(i=>i.id===save.equipped[key]);
-      if(!item) return;
-      const chip = document.createElement("div");
-      chip.className="ebadge";
-      chip.innerHTML = `<span>${item.icon}</span><span>${label}</span>`;
-      wrap.appendChild(chip);
-    });
+  function renderMoves(){
+    const cm = clothesMove(), hm = hatMove();
+    const card = (title, m, note)=>'<div class="moveCard"><span class="mi">'+m.icon+'</span><div style="min-width:0">'
+      + '<div class="mt">'+title+'</div><div class="mn">'+m.nm+'</div>'
+      + '<div class="md">⚔️ '+m.dmg+(m.status ? ' · '+statusIcon(m.status)+' '+(m.status==="burn"?"Burn":"Freeze") : '')+' · '+note+'</div></div></div>';
+    document.getElementById("custMoves").innerHTML =
+      card("SPECIAL (CLOTHES)", cm, "3s") + card("SUPER (HAT)", hm, "6s");
   }
 
   function buildCustTabs(){
     const wrap = document.getElementById("custTabs");
-    wrap.innerHTML="";
-    [["hat","Hat"],["clothes","Clothes"],["weapon","Sword"],["wings","Wings"],["charm","Charm"]].forEach(([key,label])=>{
+    wrap.innerHTML = "";
+    CUST_TABS.forEach(([key, ic, label])=>{
       const b = document.createElement("button");
       b.className = "custTab"+(custTab===key?" active":"");
-      b.textContent = label;
-      b.addEventListener("click", ()=>{ custTab=key; buildCustTabs(); buildCustGrid(); });
+      b.innerHTML = '<span>'+ic+'</span><span>'+label+'</span>';
+      b.addEventListener("click", ()=>{ custTab = key; buildCustTabs(); buildCustGrid(true); sfx("tick"); });
       wrap.appendChild(b);
     });
   }
 
-  function buildCustGrid(){
+  function buildCustGrid(scrollToEquipped){
     const grid = document.getElementById("custGrid");
-    grid.innerHTML="";
+    grid.innerHTML = "";
+    let equippedEl = null;
     ITEMS[custTab].forEach((item, idx)=>{
       const unlocked = save.unlocked.includes(item.id);
-      const equipped = save.equipped[custTab]===item.id;
+      const equipped = equippedId(custTab)===item.id;
       const isLeveled = custTab==="hat" || custTab==="clothes";
       const prevReady = !isLeveled || idx===0 || save.unlocked.includes(ITEMS[custTab][idx-1].id);
-      const div = document.createElement("div");
-      div.className = "item"+(unlocked?"":" locked")+(equipped?" equipped":"");
-      let costLabel;
-      if(unlocked) costLabel = equipped?"Equipped":"Tap to equip";
-      else if(item.spinOnly) costLabel = "🎡 Spin only";
-      else if(!prevReady) costLabel = "Unlock previous level";
-      else costLabel = "🪙 "+item.cost;
-      const statusBadge = item.status ? `<div class="status-icon">${statusIcon(item.status)} ${item.status}</div>` : (item.desc ? `<div class="status-icon">${item.desc}</div>` : "");
-      div.innerHTML = `
-        <div class="swatch" style="background:${item.color||"#2c355e"}">${item.icon}</div>
-        <div class="nm">${item.nm}</div>
-        ${statusBadge}
-        <div class="cost">${costLabel}</div>
-      `;
-      div.addEventListener("click", ()=>{
+      const rar = rarityOf(item);
+      const el = document.createElement("button");
+      let state = "", btn;
+      if(equipped){ state = " owned equipped"; btn = "✓ Equipped"; }
+      else if(unlocked){ state = " owned"; btn = "Equip"; }
+      else if(item.spinOnly){ state = " locked"; btn = "🎡 Spin only"; }
+      else if(!prevReady){ state = " locked"; btn = "🔒 Lv "+idx+" first"; }
+      else if(save.coins >= item.cost){ state = " locked can-buy"; btn = "🪙 "+item.cost; }
+      else { state = " locked too-much"; btn = "🪙 "+item.cost; }
+      el.className = "gear r-"+rar+state;
+      // name: "Lv3 · Talon Strike" → level on the medal, the move name on the card
+      const m = /^(?:★ EXCLUSIVE · |Lv(\d+) · )?(.*)$/.exec(item.nm);
+      const lv = isLeveled && m && m[1] ? '<span class="lv">Lv '+m[1]+'</span>' : '';
+      let stat = "";
+      if(isLeveled){
+        const mv = custTab==="hat" ? HAT_MOVES[idx] : CLOTHES_MOVES[idx];
+        stat = "⚔️ "+mv.dmg+(mv.status ? " · "+statusIcon(mv.status) : "");
+      } else if(item.desc){ stat = item.desc; }
+      el.innerHTML = '<span class="rar">'+RARITY_LABEL[rar]+'</span>'
+        + '<span class="medal" style="--c:'+(item.color || "#efe3cf")+'"><span class="gi">'+item.icon+'</span>'+lv+'</span>'
+        + '<span class="gnm">'+(m ? m[2] : item.nm)+'</span>'
+        + (stat ? '<span class="gstat">'+stat+'</span>' : '')
+        + '<span class="gbtn">'+btn+'</span>';
+      el.addEventListener("click", ()=>{
+        const nope = ()=>{ el.classList.remove("nope"); void el.offsetWidth; el.classList.add("nope"); sfx("hurt"); };
         if(unlocked){
-          save.equipped[custTab]=item.id;
-        } else if(item.spinOnly){
-          div.animate([{transform:"translateX(0)"},{transform:"translateX(-4px)"},{transform:"translateX(4px)"},{transform:"translateX(0)"}],{duration:250});
-          return;
-        } else if(!prevReady){
-          div.animate([{transform:"translateX(0)"},{transform:"translateX(-4px)"},{transform:"translateX(4px)"},{transform:"translateX(0)"}],{duration:250});
-          return;
-        } else if(save.coins>=item.cost){
+          if(equipped) return;
+          save.equipped[custTab] = item.id;
+          sfx("tick");
+        } else if(item.spinOnly || !prevReady){
+          return nope();
+        } else if(save.coins >= item.cost){
           save.coins -= item.cost;
           save.unlocked.push(item.id);
-          save.equipped[custTab]=item.id;
+          save.equipped[custTab] = item.id;
+          sfx("ko");
         } else {
-          div.animate([{transform:"translateX(0)"},{transform:"translateX(-4px)"},{transform:"translateX(4px)"},{transform:"translateX(0)"}],{duration:250});
-          return;
+          return nope();
         }
-        persistSave(); refreshCoinUI(); buildCustGrid(); renderPreview(); refreshMoveLabels();
+        if(custTab==="wings") save.equipped.wing = item.id; // keep the old key in step (Classic reads "wing")
+        persistSave(); refreshCoinUI(); refreshMoveLabels(); renderMoves();
+        buildCustGrid();
+        const again = grid.children[idx];
+        if(again) again.classList.add("got");
+        syncFighterModels();
+        const p = player();
+        if(p) p.hurtAt = 0, p.cheerAt = performance.now();
       });
-      grid.appendChild(div);
+      if(equipped) equippedEl = el;
+      grid.appendChild(el);
     });
+    if(scrollToEquipped && equippedEl) requestAnimationFrame(()=>equippedEl.scrollIntoView({block:"center"}));
   }
 
-  /* ================= SPIN SCREEN ================= */
+  /* ================= SPIN WHEEL (v2.1.0) ================= */
   const BASE_REWARDS = [
     {type:"coins", label:"40 coins", coins:40, w:26},
     {type:"coins", label:"80 coins", coins:80, w:20},
@@ -2824,37 +2896,111 @@
     for(const r of list){ if(n<r.w) return r; n-=r.w; }
     return list[0];
   }
-  let spinning=false;
+  // warm candy colors, a gold slice for the limited item
+  const WHEEL_COLORS = ["#ffd27a","#f7b0c0","#a6e3c8","#b7d2ff","#ffe3a6","#d2c2f5","#ffc49a","#c3e59a"];
+  function wheelFace(r){
+    if(r.type==="coins") return r.coins>=500 ? {ic:"💰", tx:"500!"} : {ic:"🪙", tx:String(r.coins)};
+    if(r.type==="buff") return r.buff==="power" ? {ic:"⚡", tx:"Power"} : r.buff==="speed" ? {ic:"💨", tx:"Speed"} : {ic:"❤️", tx:"HP+"};
+    const it = ITEMS[r.tab] && ITEMS[r.tab].find(i=>i.id===r.itemId);
+    return {ic: it ? it.icon : "🎁", tx:"RARE"};
+  }
+  let wheelSegs = [], wheelRot = 0, wheelKey = "";
+  function drawWheel(){
+    const pool = buildRewardPool();
+    const key = pool.map(r=>r.type+(r.coins||r.buff||r.itemId)).join("|");
+    if(key===wheelKey) return;
+    wheelKey = key;
+    const total = pool.reduce((s,r)=>s+r.w,0);
+    let a = 0;
+    wheelSegs = pool.map((r,i)=>{
+      const span = r.w/total*360;
+      const seg = {r, start:a, span, color: r.type==="unlock" ? "#f2c14e" : WHEEL_COLORS[i%WHEEL_COLORS.length]};
+      a += span;
+      return seg;
+    });
+    const R = 100;
+    const pt = (deg, rad)=>{ const t = (deg-90)*Math.PI/180; return (Math.cos(t)*rad).toFixed(2)+" "+(Math.sin(t)*rad).toFixed(2); };
+    let svg = '<g id="wheelSpin">';
+    svg += '<circle r="106" fill="#c9935f"/><circle r="102" fill="#fff7e6"/>';
+    wheelSegs.forEach(s=>{
+      const large = s.span > 180 ? 1 : 0;
+      svg += '<path d="M0 0 L'+pt(s.start,R)+' A'+R+' '+R+' 0 '+large+' 1 '+pt(s.start+s.span,R)+' Z" fill="'+s.color+'" stroke="#fff7e6" stroke-width="1.6"/>';
+      const mid = s.start + s.span/2, f = wheelFace(s.r);
+      // icon near the rim; the word runs along the radius so thin slices don't overlap
+      const ic = Math.max(8, Math.min(20, s.span*0.75));
+      const tx = Math.max(6.5, Math.min(13, s.span*0.55));
+      svg += '<g transform="rotate('+mid.toFixed(2)+')">'
+        + '<text y="-82" text-anchor="middle" dominant-baseline="middle" font-size="'+ic.toFixed(1)+'">'+f.ic+'</text>'
+        + '<text transform="translate(0,-50) rotate(-90)" text-anchor="middle" dominant-baseline="middle" font-size="'+tx.toFixed(1)+'" font-weight="900" fill="#4a341e" font-family="ui-rounded, system-ui, sans-serif">'+f.tx+'</text>'
+        + '</g>';
+    });
+    // little bulbs around the rim
+    for(let i=0;i<24;i++) svg += '<circle cx="'+pt(i*15,104).split(" ")[0]+'" cy="'+pt(i*15,104).split(" ")[1]+'" r="2.2" fill="'+(i%2?"#fff1b8":"#ffd27a")+'"/>';
+    svg += '</g>';
+    document.getElementById("wheel").innerHTML = svg;
+    setWheel(wheelRot);
+  }
+  function setWheel(deg){
+    const g = document.getElementById("wheelSpin");
+    if(g) g.setAttribute("transform", "rotate("+deg.toFixed(2)+")");
+  }
+  function segAtPointer(rot){
+    const a = ((-rot % 360) + 360) % 360;
+    return wheelSegs.findIndex(s=>a >= s.start && a < s.start+s.span);
+  }
+
+  let spinning = false;
   const SPIN_COST = 100;
-  document.getElementById("spinBtn").addEventListener("click", async ()=>{
+  document.getElementById("spinBtn").addEventListener("click", ()=>{
     if(spinning) return;
-    const cost = SPIN_COST;
-    if(save.coins < cost){
-      const el = document.getElementById("spinResult");
-      el.textContent = "Need "+cost+" coins to spin — win battles to earn more!";
+    audioUnlock();
+    const resultEl = document.getElementById("spinResult");
+    resultEl.classList.remove("win");
+    if(save.coins < SPIN_COST){
+      resultEl.textContent = "Need "+SPIN_COST+" coins to spin — win battles to earn more!";
+      sfx("hurt");
       return;
     }
+    drawWheel();
     spinning = true;
     const btn = document.getElementById("spinBtn");
     btn.disabled = true;
-    save.coins -= cost;
+    save.coins -= SPIN_COST;
     refreshCoinUI();
-    const chest = document.getElementById("chest");
-    const resultEl = document.getElementById("spinResult");
-    let ticks=0;
-    const spin = setInterval(()=>{
-      chest.textContent = ["🎁","📦","✨","🎁"][ticks%4];
-      ticks++;
-    },90);
-    await new Promise(res=>setTimeout(res, 900));
-    clearInterval(spin);
-    chest.textContent="🎁";
+    persistSave();
+    resultEl.textContent = "Spinning…";
 
+    // pick first (same chances as before), then land the wheel inside that slice
     const reward = weightedPick(buildRewardPool());
+    const seg = wheelSegs.find(s=>s.r===reward) || wheelSegs.find(s=>s.r.type===reward.type && s.r.coins===reward.coins && s.r.buff===reward.buff);
+    const landAt = seg.start + seg.span*(0.18 + Math.random()*0.64);
+    const from = wheelRot;
+    const to = from + 360*5 + ((((-landAt - from) % 360) + 360) % 360);
+    const dur = 4200, t0 = performance.now();
+    let lastSeg = segAtPointer(from);
+    const step = (now)=>{
+      const k = Math.min(1, (now-t0)/dur);
+      const e = 1 - Math.pow(1-k, 4);
+      wheelRot = from + (to-from)*e;
+      setWheel(wheelRot);
+      const sIdx = segAtPointer(wheelRot);
+      if(sIdx !== lastSeg){ lastSeg = sIdx; sfx("tick"); }
+      if(k < 1){ requestAnimationFrame(step); return; }
+      wheelRot = to % 360;
+      setWheel(wheelRot);
+      giveSpinReward(reward);
+      spinning = false;
+      btn.disabled = false;
+    };
+    requestAnimationFrame(step);
+  });
+
+  function giveSpinReward(reward){
+    const resultEl = document.getElementById("spinResult");
     if(reward.type==="coins"){
       const amt = Math.round(reward.coins*luckMult());
       save.coins += amt;
-      resultEl.textContent = "You won "+amt+" coins!";
+      resultEl.textContent = (reward.coins>=500 ? "💰 JACKPOT! " : "🪙 ")+"You won "+amt+" coins!";
     } else if(reward.type==="buff"){
       save.tempBuff = {type:reward.buff};
       resultEl.textContent = "You won "+reward.label+"!";
@@ -2867,46 +3013,59 @@
         resultEl.textContent = "Already own "+reward.label+" — +100 coins instead!";
       }
     }
+    resultEl.classList.add("win");
+    sfx(reward.type==="coins" && reward.coins<100 ? "ko" : "win");
     refreshCoinUI();
     persistSave();
-    spinning=false;
-    btn.disabled=false;
-  });
+    refreshSpinBadge();
+  }
+  // the title's Spin button says "LIMITED" while the limited item isn't yours yet
+  function refreshSpinBadge(){
+    const item = save.event && EVENT_POOL[save.event.index];
+    document.getElementById("spinBadge").hidden = !item || save.unlocked.includes(item.id);
+  }
 
-  /* ================= NAV ================= */
+  /* ================= SCREENS ================= */
   function goToScreen(screenId){
-    document.querySelectorAll(".navbtn").forEach(b=>b.classList.toggle("active", b.dataset.screen===screenId));
     document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
     document.getElementById(screenId).classList.add("active");
+    document.body.classList.toggle("on-title", screenId==="titleScreen");
     if(screenId==="battleScreen") enterBattle(); else leaveBattle();
-    if(screenId==="customizeScreen") renderPreview();
-    if(screenId==="homeScreen") resizeHomeCanvas();
-    if(screenId==="ranksScreen") renderRanks();
+    viewMode = screenId==="battleScreen" ? "battle" : screenId==="customizeScreen" ? "closet" : "title";
+    if(screenId==="customizeScreen"){ buildCustTabs(); buildCustGrid(true); renderMoves(); }
+    if(screenId==="spinScreen"){ drawWheel(); }
+    if(screenId==="titleScreen"){ refreshTitleOutfit(); refreshSpinBadge(); }
+    refreshTopStats();
     persistSave();
   }
-  document.querySelectorAll(".navbtn").forEach(btn=>{
-    btn.addEventListener("click", ()=>goToScreen(btn.dataset.screen));
-  });
-  document.querySelectorAll(".homeNavBtn").forEach(btn=>{
-    btn.addEventListener("click", ()=>goToScreen(btn.dataset.screen));
-  });
+  document.querySelectorAll("[data-back]").forEach(b=>b.addEventListener("click", ()=>{ sfx("tick"); goToScreen("titleScreen"); }));
 
-  /* ================= TITLE SCREEN ================= */
+  function refreshTitleOutfit(){
+    try{
+      if(window.MokuMoint) document.getElementById("titleOutfit").innerHTML = MokuMoint.outfitSVG(MokuMoint.closet().equipped);
+    }catch(e){ /* the hero picture works without the outfit */ }
+  }
+
+  /* ================= START SCREEN ================= */
   document.getElementById("titleStartBtn").addEventListener("click", ()=>{
-    document.body.classList.remove("on-title");
-    goToScreen("homeScreen");
+    audioUnlock();
+    resetBattle(true);
+    goToScreen("battleScreen");
   });
+  document.getElementById("titleCustomizeBtn").addEventListener("click", ()=>{ audioUnlock(); sfx("tick"); goToScreen("customizeScreen"); });
+  document.getElementById("titleSpinBtn").addEventListener("click", ()=>{ audioUnlock(); sfx("tick"); goToScreen("spinScreen"); });
+  window.addEventListener("storage", e=>{ if(e.key===null || e.key==="moku:moint:closet"){ refreshTitleOutfit(); syncFighterModels(); } });
+  window.addEventListener("pageshow", ()=>{ refreshTitleOutfit(); syncFighterModels(); });
 
   /* ================= INIT ================= */
   buildCustTabs();
-  buildCustGrid();
-  renderPreview();
-  resetBattle();
-  // the first battle should use the saved level (it used Lv.1 CPUs until the next battle before)
-  loadSave().then(()=>{ buildCustGrid(); renderPreview(); refreshMoveLabels(); refreshEventUI(); resetBattle(); });
+  resetBattle(false);
+  initThree();
+  resize3D();
+  syncFighterModels();
+  refreshTitleOutfit();
+  loadSave().then(()=>{ refreshMoveLabels(); refreshEventUI(); refreshSpinBadge(); resetBattle(false); refreshTopStats(); });
   requestAnimationFrame(loop);
-  requestAnimationFrame(()=>{ resizeHomeCanvas(); });
-  requestAnimationFrame(homeBgLoop);
 
 })();
 </script>
