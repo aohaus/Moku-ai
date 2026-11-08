@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<script src="shared/moku-errors.js?v=20261107"></script>
-<script src="shared/moku-gate.js?v=20261107"></script>
+<script src="shared/moku-errors.js?v=20261108"></script>
+<script src="shared/moku-gate.js?v=20261108"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Moku Series</title>
 <!-- Icons: made by scripts/make-icons.py. Bump ?v= when they change so browsers refetch. -->
@@ -2307,6 +2307,11 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     var p = readJSON('moku:moku-dropper:progress');
     return DROPPER_RACES.filter(function (r) { return dropperFirst(p, r); }).length;
   }
+  // Moku Mall: 10 の店を全部開けたことのあるモールの数(progress.cleared、最大4)
+  function mallCleared() {
+    var p = readJSON('moku:moku-mall:progress');
+    return p && Array.isArray(p.cleared) ? p.cleared.filter(Boolean).length : 0;
+  }
   var GAMES = [
     {
       name: 'Angry Mokumoku',
@@ -2914,6 +2919,35 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
       }
     },
     {
+      name: 'Moku Mall',
+      card: 'mml',
+      gameId: 'moku-mall',
+      // 完了 = 4つのモールすべてで、一度は10の店を全部開けた(progress.cleared)
+      isCompleted: function () {
+        if (isExplicitlyMarked('completed', 'mml')) return true;
+        return mallCleared() >= 4;
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'mml')) return true;
+        var p = readJSON('moku:moku-mall:progress');
+        return Boolean(p && p.played > 0);
+      },
+      progress: function () {
+        if (this.isCompleted()) return 1;
+        var p = readJSON('moku:moku-mall:progress');
+        // 開けた店(今のモール、10)を少しと、クリアしたモール(4)を大きく
+        var open = p && Array.isArray(p.stores) ? p.stores.filter(function (v) { return v !== null; }).length : 0;
+        return Math.min(1, mallCleared() / 4 * 0.85 + open / 10 * 0.15);
+      },
+      badge: function () {
+        var p = readJSON('moku:moku-mall:progress');
+        if (!p || !this.isPlayed()) return null;
+        var caught = (p.caught | 0) + (p.superCaught | 0);
+        var malls = '🏪 ' + mallCleared() + ' / 4 malls filled';
+        return caught ? malls + ' · 🚨 ' + caught + ' caught' : malls;
+      }
+    },
+    {
       name: 'Mokuball',
       card: null,
       gameId: 'mokuball',
@@ -2967,7 +3001,8 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     mbr: { title: 'Luckiest Steps', read: function () { var p = readJSON('moku:moku-bridge:progress'); return p && p.bestLucky; }, fmt: function (n) { return n + ' in a row 🍀'; } },
     mch: { title: 'Strongest CPU Beaten', read: function () { var p = readJSON('moku:moku-chess:progress'); return p && p.best; }, fmt: function (n) { return 'Lv.' + n + ' / 10'; } },
     mwr: { title: 'Riddles Solved', read: riddlesSolved, fmt: function (n) { return n + ' / ' + riddleTotal() + ' 🧩'; } },
-    mdp: { title: 'Races Won', read: dropperWins, fmt: function (n) { return n + ' / ' + DROPPER_RACES.length + ' 🥇'; } }
+    mdp: { title: 'Races Won', read: dropperWins, fmt: function (n) { return n + ' / ' + DROPPER_RACES.length + ' 🥇'; } },
+    mml: { title: 'Most Coins', read: function () { var p = readJSON('moku:moku-mall:progress'); return p && p.bestCoins; }, fmt: function (n) { return '$' + num(n); } }
   };
   function myRecords() {
     var out = {};
@@ -3132,12 +3167,16 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     mdp: { name: 'Moku Dropper', gameId: 'moku-dropper', genre: '3D Drop Race', cta: 'Drop', hi: '#A79BFF', lo: '#3F3590', newUntil: '2026-12-01',
            tag: 'Drop down the Great Tree!',
            desc: 'Jump into a hole and fall down the inside of the Great Tree. Every floor has two holes. Dodge flying snacks and race two Moku Fight rivals to the purple portal. Can you get 1st? Made from an idea by one of our young game designers!',
-           moint: { cap: true, how: 'Clear a round: +15. Win a race: +30 to +80. No bonks: +10. First clear of each round: +20 to +300.' } }
+           moint: { cap: true, how: 'Clear a round: +15. Win a race: +30 to +80. No bonks: +10. First clear of each round: +20 to +300.' } },
+    mml: { name: 'Moku Mall', gameId: 'moku-mall', genre: 'Mall Builder', cta: 'Build', hi: '#FF8A9E', lo: '#7A2433', newUntil: '2026-12-08',
+           tag: 'Build it. Guard it. Grow it!',
+           desc: 'Open shops to earn coins, hire guards, and run around as Moku to stop robbers at the ATMs. Fill all 10 stores to unlock the next mall. Made by one of our young game designers!',
+           moint: { cap: true, how: 'Catch a robber: +30. Catch a Super Robber: +50. Fill every store in a mall for the first time: +100 to +500.' } }
   };
   var SHELVES = [
     { title: 'Action & Sports', sub: 'Fling, kick, fight, race', cards: ['mdp', 'mfg', 'mfr', 'mkt', 'br', 'mk', 'am'] },
     { title: 'Puzzle & Brain',  sub: 'Think, match, merge',      cards: ['mwr', 'mch', 'md', 'so', 'mm'] },
-    { title: 'Cozy & Create',   sub: 'Take it slow',             cards: ['mw6', 'mrc', 'fm', 'mf', 'mb', 'mc'] },
+    { title: 'Cozy & Create',   sub: 'Take it slow',             cards: ['mml', 'mw6', 'mrc', 'fm', 'mf', 'mb', 'mc'] },
     { title: 'Party & Arcade',  sub: 'Play with friends',        cards: ['mbr', 'mw', 'mr'] }
   ];
   // Today's Pick rotates daily through titles whose screenshot shows real gameplay.
@@ -4448,9 +4487,9 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
   };
 })();
 </script>
-<script src="shared/moku-account.js?v=20261107"></script>
-<script src="shared/moku-transfer.js?v=20261107"></script>
-<script src="shared/moku-moint.js?v=20261107"></script>
+<script src="shared/moku-account.js?v=20261108"></script>
+<script src="shared/moku-transfer.js?v=20261108"></script>
+<script src="shared/moku-moint.js?v=20261108"></script>
 <script>
 // ---------- Invites (SPEC.md §7) ----------
 // Friends waiting for you in a multiplayer game, at the top of the hub:

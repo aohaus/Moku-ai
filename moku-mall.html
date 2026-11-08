@@ -1,0 +1,2138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script src="shared/moku-errors.js?v=20261108"></script>
+<script src="shared/moku-gate.js?v=20261108"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Moku Mall</title>
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<!--
+  Moku Mall
+  子どもが別の Claude で作った「Moku Mall Tycoon」(v0.11、2026-11 時点)を、2026-11-08 にシリーズへ取り込んだもの。
+  以後はこのリポジトリの Claude Code で開発する(CLAUDE.md §2)。
+  - 子どもの設計はそのまま: 10 の店・4 つのモール・泥棒とスーパー泥棒・警備員・Superpower・Check・悪いお客さん、調整済みの数値。
+  - 取り込み時に変えたこと(保護者と相談済み):
+    ・名前を「Moku Mall」に(参考にしたゲームの名前を外す)。実在のモール名を架空の名前に
+      (Ombak → Moku's Garden Mall、Suria KLCC → Moku Sunshine Resort Mall。最初のモールは Moku's 1st Mall)。
+    ・固定の名前の Leaderboard と、何もしない Ranked Mode を外した(記録はハブの Achievements の Most Coins)。
+    ・セーブ(moku:moku-mall:progress)で Continue が本当に続きから遊べる。クラウドセーブの対象。
+    ・Moint: 泥棒をつかまえる 30 / スーパー泥棒 50(1日 500 まで)、モールの初クリア 100 / 200 / 300 / 500(1回きり)。
+    ・横向き専用(縦持ちは回転のお願い)。画面が小さい時は全体を縮めてモールを画面に収める(VIEW_MIN_W / VIEW_MIN_H)。
+    ・Game Over などの文言を少しやわらかく(怖くない・温かい)。Web Audio の効果音。
+    ・今いるモールを Malls で押すと店が全部消えるバグを直した。
+  セーブ: moku:moku-mall:progress(SPEC.md §13)
+-->
+<style>
+:root { --hi:#FF8A9E; --lo:#7A2433; }
+* { box-sizing:border-box; margin:0; padding:0; }
+body { background:#3A8C3F; font-family:'Arial Rounded MT Bold',Arial,sans-serif;
+  overflow:hidden; width:100vw; height:100vh; user-select:none; -webkit-user-select:none;
+  -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; }
+canvas { display:block; width:100vw; height:100vh; touch-action:none; }
+
+#coinHud { position:fixed; top:14px; right:14px;
+  background:linear-gradient(135deg,#F5A623,#E8850A);
+  border-radius:30px; padding:8px 16px 8px 10px;
+  display:flex; align-items:center; gap:8px;
+  box-shadow:0 4px 14px rgba(0,0,0,.35); border:3px solid #D4750A; z-index:100; min-width:150px; }
+.coin-circle { width:36px;height:36px; background:radial-gradient(circle at 35% 35%,#FFE066,#E8A500);
+  border-radius:50%; border:3px solid #C47A00; flex-shrink:0; }
+.coin-text { color:white; }
+.coin-amount { font-size:1.2rem; font-weight:900; line-height:1; text-shadow:0 1px 3px rgba(0,0,0,.4); }
+.coin-rate   { font-size:.68rem; opacity:.9; font-weight:700; }
+
+#sidebar { position:fixed; left:10px; top:50%; transform:translateY(-50%);
+  display:flex; flex-direction:column; gap:10px; z-index:100; }
+.side-btn { width:56px;height:56px; background:#2C3E6B; border-radius:50%;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,.4);
+  border:3px solid #3D5080; transition:transform .15s; color:white; }
+.side-btn:hover { transform:scale(1.1); }
+.side-btn .sicon { font-size:1.2rem; }
+.side-btn .slabel { font-size:.5rem; font-weight:700; margin-top:1px; }
+
+#joystickWrap { position:fixed; bottom:22px; right:22px; width:116px; height:116px; z-index:200; }
+#joystickBase { width:116px;height:116px; background:rgba(0,0,0,.28);
+  border-radius:50%; border:3px solid rgba(255,255,255,.25); position:relative; }
+#joystickKnob { width:46px;height:46px;
+  background:radial-gradient(circle at 38% 35%,rgba(255,255,255,.6),rgba(255,255,255,.1));
+  border:3px solid rgba(255,255,255,.5); border-radius:50%;
+  position:absolute; left:50%;top:50%; transform:translate(-50%,-50%);
+  box-shadow:0 3px 10px rgba(0,0,0,.4); pointer-events:none; }
+
+/* SUPERPOWER BUTTON */
+#superpowerBtn {
+  position:fixed; bottom:28px; left:76px; z-index:200;
+  width:80px; height:80px; border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,#A855F7,#6D28D9);
+  border:4px solid #C084FC; box-shadow:0 4px 18px rgba(109,40,217,.6);
+  cursor:pointer; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; transition:transform .15s;
+  color:white; font-weight:900; }
+#superpowerBtn:hover { transform:scale(1.08); }
+#superpowerBtn .sp-icon { font-size:1.8rem; line-height:1; }
+#superpowerBtn .sp-label { font-size:.55rem; font-weight:900; margin-top:2px; letter-spacing:.5px; }
+#superpowerBtn .sp-cd { font-size:.6rem; font-weight:900; color:#DDD6FE; }
+#superpowerBtn.cooling {
+  background:radial-gradient(circle at 35% 35%,#6B7280,#374151);
+  border-color:#9CA3AF; box-shadow:0 4px 14px rgba(0,0,0,.4); }
+
+/* CHECK BUTTON */
+#checkBtn {
+  position:fixed; bottom:118px; left:76px; z-index:200;
+  width:68px; height:68px; border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,#F59E0B,#D97706);
+  border:3px solid #FCD34D; box-shadow:0 4px 14px rgba(245,158,11,.5);
+  cursor:pointer; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; color:white; font-weight:900; }
+#checkBtn .ck-icon { font-size:1.4rem; }
+#checkBtn .ck-label { font-size:.5rem; font-weight:900; }
+#checkBtn .ck-cd { font-size:.58rem; color:#FEF3C7; }
+#checkBtn.cooling { background:radial-gradient(circle at 35% 35%,#6B7280,#374151); border-color:#9CA3AF; }
+
+.modal-overlay { display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,.55); z-index:300; align-items:center; justify-content:center; }
+.modal-overlay.open { display:flex; }
+.modal-box { background:#2C3E6B; border-radius:20px; width:320px; max-width:90vw;
+  overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,.6); animation:popIn .25s ease; }
+@keyframes popIn { from{transform:scale(.8);opacity:0} to{transform:scale(1);opacity:1} }
+.modal-title-bar { background:#3A4F85; padding:14px 18px;
+  display:flex; align-items:center; justify-content:space-between; }
+.modal-title-bar h2 { color:white; font-size:1.05rem; }
+.close-x { background:#E74C3C; color:white; border:none; border-radius:10px;
+  width:32px;height:32px; font-size:1rem; font-weight:900;
+  cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.modal-list { padding:12px; display:flex; flex-direction:column; gap:8px; }
+.mall-row { background:#5DADE2; border-radius:14px; padding:12px 16px;
+  display:flex;align-items:center;gap:10px; cursor:pointer; transition:filter .15s; border:3px solid #3498DB; }
+.mall-row:hover { filter:brightness(1.1); }
+.mall-row.locked { background:#4A5568;border-color:#606878;cursor:default; }
+.mall-row-icon { font-size:1.2rem; }
+.mall-row-name { color:white;font-weight:900;font-size:.88rem;flex:1; }
+
+/* SECURITY SHOP PANEL */
+#secShop { position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+  background:#1E3A5F; border-radius:20px 20px 0 0;
+  padding:16px 18px 28px; width:100%; max-width:500px;
+  display:none; z-index:201; box-shadow:0 -6px 30px rgba(0,0,0,.5); }
+#secShop h3 { color:white; font-size:.95rem; margin-bottom:10px; text-align:center; }
+.sec-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.sec-card { background:#2D4E7A; border-radius:12px; padding:12px 10px; text-align:center;
+  cursor:pointer; border:2px solid #4A6FA0; transition:all .15s; }
+.sec-card:hover { border-color:#FFD700; }
+.sec-card .sc-icon { font-size:1.5rem; margin-bottom:4px; }
+.sec-card .sc-name { color:white; font-size:.72rem; font-weight:800; }
+.sec-card .sc-cost { margin-top:5px; background:#E74C3C; color:white;
+  font-size:.68rem; font-weight:900; border-radius:8px; padding:2px 7px; display:inline-block; }
+.sec-card .sc-count { color:#7DD3FC; font-size:.62rem; margin-top:3px; }
+.close-sec-btn { position:absolute; top:10px; right:12px;
+  background:#E74C3C; color:white; border:none;
+  border-radius:8px; padding:3px 9px; font-weight:900; cursor:pointer; font-size:.78rem; }
+
+#storePanel { position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+  background:#2C3E6B; border-radius:20px 20px 0 0;
+  padding:14px 18px 26px; width:100%; max-width:480px;
+  display:none; z-index:200; box-shadow:0 -6px 30px rgba(0,0,0,.5); }
+#storePanel h3 { color:white;font-size:.95rem;margin-bottom:10px;text-align:center; }
+.sgrid { display:grid;grid-template-columns:1fr 1fr;gap:7px; }
+.scard { background:#3A5080; border-radius:12px; padding:10px 8px;
+  text-align:center; cursor:pointer; border:2px solid #5A70A0; transition:all .15s; }
+.scard:hover:not(.bought) { border-color:#FFD700; }
+.scard.bought { opacity:.5;cursor:default; }
+.scard .sui { font-size:1.4rem;margin-bottom:3px; }
+.scard .sn  { color:white;font-size:.7rem;font-weight:800; }
+.scard .sc  { margin-top:4px; background:#E74C3C; color:white;
+  font-size:.66rem;font-weight:900; border-radius:8px;padding:2px 7px;display:inline-block; }
+.scard.bought .sc { background:#27AE60; }
+.close-panel-btn { position:absolute;top:10px;right:12px;
+  background:#E74C3C;color:white;border:none;
+  border-radius:8px;padding:3px 9px;font-weight:900;cursor:pointer;font-size:.78rem; }
+
+#mokuSpeech { position:fixed; bottom:158px; right:14px;
+  background:white; border-radius:14px 14px 4px 14px;
+  padding:8px 12px; font-size:.74rem; font-weight:700;
+  max-width:155px; line-height:1.4; color:#2C3E6B; z-index:99;
+  border:2px solid #5BBFB5; pointer-events:none; animation:fadeSlide .4s ease; }
+@keyframes fadeSlide { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+
+#toast { position:fixed; top:68px; left:50%; transform:translateX(-50%) translateY(-80px);
+  background:#2C3E6B; color:white; padding:8px 18px; border-radius:20px;
+  font-weight:800; font-size:.8rem; z-index:500;
+  transition:transform .3s ease; white-space:nowrap; box-shadow:0 4px 14px rgba(0,0,0,.4); }
+#toast.show { transform:translateX(-50%) translateY(0); }
+
+#robberAlert { position:fixed; top:76px; left:50%; transform:translateX(-50%);
+  background:#E74C3C; color:white; padding:7px 16px; border-radius:20px;
+  font-weight:900; font-size:.82rem; z-index:400; display:none;
+  box-shadow:0 4px 14px rgba(0,0,0,.4); animation:pulse .6s ease infinite alternate; }
+@keyframes pulse { from{opacity:1} to{opacity:.5} }
+
+/* GAME OVER */
+#gameOver { position:fixed; inset:0; background:rgba(0,0,0,.75);
+  z-index:600; display:none; align-items:center; justify-content:center; }
+#gameOver.show { display:flex; }
+#gameOverBox { background:#1E1E3F; border-radius:24px; padding:36px 28px;
+  text-align:center; max-width:300px; border:3px solid #E74C3C;
+  box-shadow:0 10px 40px rgba(231,76,60,.5); animation:popIn .4s ease; }
+#gameOverBox h2 { color:#E74C3C; font-size:1.8rem; margin-bottom:8px; }
+#gameOverBox p { color:#DDD; font-size:.88rem; margin-bottom:20px; line-height:1.6; }
+#restartBtn { background:linear-gradient(135deg,#E74C3C,#C0392B); color:white;
+  border:none; border-radius:14px; padding:12px 28px;
+  font-size:1rem; font-weight:900; cursor:pointer; transition:transform .15s; }
+#restartBtn:hover { transform:scale(1.05); }
+
+/* CHECK RESULT */
+#checkResult { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(0);
+  background:#1E3A5F; border:3px solid #60A5FA; border-radius:20px;
+  padding:20px 24px; text-align:center; z-index:500; transition:transform .3s ease;
+  min-width:220px; box-shadow:0 8px 30px rgba(0,0,0,.5); }
+#checkResult.show { transform:translate(-50%,-50%) scale(1); }
+#checkResult h3 { color:white; font-size:1rem; margin-bottom:10px; }
+#checkResult p { color:#93C5FD; font-size:.82rem; line-height:1.6; }
+#checkResult button { margin-top:12px; background:#3B82F6; color:white; border:none;
+  border-radius:10px; padding:7px 18px; font-weight:900; cursor:pointer; font-size:.8rem; }
+
+/* ── Moku Series 共通(SPEC.md §4・§5): タイトル画面だけの枠・ハブへのリンク・バージョン ── */
+#title-frame { position:fixed; inset:14px; border:3px solid var(--hi); border-radius:10px;
+  pointer-events:none; z-index:710; }
+#title-frame::after { content:''; position:absolute; inset:5px; border:1px solid var(--lo); border-radius:8px; }
+#hub-link { position:fixed; top:calc(22px + env(safe-area-inset-top,0px)); right:calc(26px + env(safe-area-inset-right,0px));
+  z-index:720; color:var(--hi); font-weight:800; font-size:13px; text-decoration:none; letter-spacing:.02em;
+  animation:hubPulse 2.2s ease-in-out infinite; }
+@keyframes hubPulse { 0%,100%{opacity:.75} 50%{opacity:1} }
+#buildInfo { position:fixed; left:calc(24px + env(safe-area-inset-left,0px)); bottom:calc(20px + env(safe-area-inset-bottom,0px));
+  z-index:720; color:rgba(255,255,255,.28); font-size:10.5px; pointer-events:none; }
+body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display:none; }
+
+/* タイトル画面の Moku(Closet の服つき)と Moint */
+#titleHero { position:relative; width:120px; height:120px; margin:0 auto 6px; animation:heroFloat 3s ease-in-out infinite;
+  filter:drop-shadow(0 8px 18px rgba(0,0,0,.4)) drop-shadow(0 0 14px rgba(255,138,158,.35)); }
+#titleHero img, #titleOutfit, #titleOutfit svg { position:absolute; inset:0; width:100%; height:100%; }
+@keyframes heroFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+#titleMoint { margin-top:14px; color:#FFE08A; font-size:.72rem; font-weight:800; display:none; }
+#titleMoint .today { color:rgba(255,255,255,.55); font-weight:700; }
+.home-btn { width:100%; padding:14px; color:white; border:none; border-radius:14px; font-size:1rem; font-weight:900;
+  cursor:pointer; transition:transform .15s; letter-spacing:.5px; font-family:inherit; }
+.home-btn:active { transform:scale(.97); }
+#continueBtn { margin-bottom:10px; background:linear-gradient(135deg,#5BBFB5,#3D9E94); box-shadow:0 4px 14px rgba(91,191,181,.5); }
+#newGameBtn { background:linear-gradient(135deg,#E8A020,#C47A00); box-shadow:0 4px 14px rgba(232,160,32,.5); }
+#newGameBtn.confirm { background:linear-gradient(135deg,#E8664A,#B8442A); }
+.home-sub { font-size:.62rem; font-weight:700; opacity:.85; margin-top:2px; letter-spacing:0; }
+
+/* セーフエリア(iPhone のノッチ) */
+#coinHud { top:calc(14px + env(safe-area-inset-top,0px)); right:calc(14px + env(safe-area-inset-right,0px)); }
+#sidebar { left:calc(10px + env(safe-area-inset-left,0px)); }
+#superpowerBtn { left:calc(76px + env(safe-area-inset-left,0px)); bottom:calc(28px + env(safe-area-inset-bottom,0px)); }
+#checkBtn { left:calc(76px + env(safe-area-inset-left,0px)); bottom:calc(118px + env(safe-area-inset-bottom,0px)); }
+#joystickWrap { right:calc(22px + env(safe-area-inset-right,0px)); bottom:calc(22px + env(safe-area-inset-bottom,0px)); }
+#mokuSpeech { right:calc(14px + env(safe-area-inset-right,0px)); }
+.modal-box { max-height:calc(100vh - 24px); overflow-y:auto; }
+
+/* 背の低い横画面(iPhone の横持ち): 店とガードの一覧を横に広げて、画面に収める */
+@media (max-height:520px) {
+  #storePanel { max-width:640px; padding:10px 14px 14px; }
+  #storePanel h3, #secShop h3 { margin-bottom:6px; font-size:.85rem; }
+  .sgrid { grid-template-columns:repeat(5,1fr); gap:5px; }
+  .scard { padding:6px 4px; }
+  .scard .sui { font-size:1.1rem; margin-bottom:1px; }
+  #secShop { padding:10px 14px 14px; }
+  #checkBtn { bottom:calc(112px + env(safe-area-inset-bottom,0px)); }
+  #mokuSpeech { bottom:auto; top:calc(80px + env(safe-area-inset-top,0px)); }
+  #titleHero { width:76px; height:76px; margin-bottom:2px; }
+  #homeScreen .home-card { padding:12px 28px 12px !important; }
+  #homeScreen .home-title { font-size:1.55rem !important; }
+  .home-btn { padding:10px; }
+}
+
+/* 横向き専用(SPEC.md §4): 縦持ちのスマホ・タブレットでは回転をお願いする */
+#rotate-hint { display:none; position:fixed; inset:0; z-index:2000; background:#1E3A5F;
+  flex-direction:column; align-items:center; justify-content:center; gap:16px; color:white;
+  font-size:18px; font-weight:800; text-align:center; padding:24px; }
+#rotate-hint span { font-size:56px; animation:rotSpin 1.5s ease-in-out infinite alternate; }
+@keyframes rotSpin { from{transform:rotate(-30deg)} to{transform:rotate(60deg)} }
+@media (max-width:900px) and (orientation:portrait) {
+  #rotate-hint { display:flex; }
+  #title-frame, #hub-link, #buildInfo { display:none !important; }
+}
+</style>
+<script src="shared/moku-account.js?v=20261108" data-mode="background"></script>
+<script src="shared/moku-moint.js?v=20261108" data-mode="none"></script>
+</head>
+<body class="on-title">
+<div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
+<div id="title-frame"></div>
+<a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
+<div id="buildInfo">v1.0.0 · Updated Nov 8, 2026</div>
+<canvas id="c"></canvas>
+
+<div id="coinHud">
+  <div class="coin-circle"></div>
+  <div class="coin-text">
+    <div class="coin-amount" id="coinAmt">$500</div>
+    <div class="coin-rate"  id="coinRate">+0/s</div>
+  </div>
+</div>
+
+<div id="sidebar">
+  <div class="side-btn" onclick="openModal('mallsModal')"><div class="sicon">🏪</div><div class="slabel">Malls</div></div>
+  <div class="side-btn" onclick="openModal('settingsModal')"><div class="sicon">☰</div><div class="slabel">Settings</div></div>
+  <div class="side-btn" onclick="goHome()"><div class="sicon">🏠</div><div class="slabel">Menu</div></div>
+</div>
+
+<!-- SUPERPOWER BUTTON (bottom-left) -->
+<div id="superpowerBtn" onclick="activateSuperpower()">
+  <div class="sp-icon">⚡</div>
+  <div class="sp-label">SUPERPOWER</div>
+  <div class="sp-cd" id="spCd">READY</div>
+</div>
+
+<!-- CHECK CUSTOMER BUTTON -->
+<div id="checkBtn" onclick="doCheck()">
+  <div class="ck-icon">🔍</div>
+  <div class="ck-label">CHECK</div>
+  <div class="ck-cd" id="ckCd">READY</div>
+</div>
+
+<div id="joystickWrap">
+  <div id="joystickBase"><div id="joystickKnob"></div></div>
+</div>
+
+<div id="robberAlert">⚠️ ROBBER IN THE MALL!</div>
+<div id="mokuSpeech">Hoot! Walk around and tap stores! 🛍️</div>
+<div id="toast"></div>
+
+<!-- CHECK RESULT POPUP -->
+<div id="checkResult">
+  <h3 id="checkTitle">Investigation Report</h3>
+  <p id="checkBody"></p>
+  <button onclick="closeCheck()">Got it!</button>
+</div>
+
+<!-- GAME OVER -->
+<div id="gameOver">
+  <div id="gameOverBox">
+    <div style="font-size:3rem">🦉💦</div>
+    <h2>GAME OVER</h2>
+    <p id="gameOverMsg">Oh no, the mall ran out of coins!<br>Your unlocked malls are safe.<br>Let's build again!</p>
+    <button id="restartBtn" onclick="restartGame()">🔄 Try Again</button>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="mallsModal">
+  <div class="modal-box">
+    <div class="modal-title-bar"><h2>Malls</h2><button class="close-x" onclick="closeModal('mallsModal')">✕</button></div>
+    <div class="modal-list">
+      <div id="mallList"></div>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal-box">
+    <div class="modal-title-bar"><h2>⚙️ Settings</h2><button class="close-x" onclick="closeModal('settingsModal')">✕</button></div>
+    <div class="modal-list"><div style="color:white;font-size:.82rem;padding:6px;line-height:1.9">
+      <b>Moku Mall</b><br>
+      🦉 Joystick (bottom-right) moves Moku<br>
+      ⚡ Superpower stuns ALL robbers (35s CD)<br>
+      🔍 Check nearby customers — 1 per min<br>
+      🛡️ Buy Security Guards outside the mall<br>
+      🚨 Super Robber requires Superpower!<br>
+      💸 Game over if you run out of coins!<br>
+      🪙 Catch robbers to earn Moints!
+    </div>
+    <button id="soundBtn" onclick="toggleSound()" style="background:#3A4F85;color:white;border:2px solid #5A70A0;border-radius:12px;padding:9px;font-weight:900;font-size:.82rem;cursor:pointer;font-family:inherit">🔊 Sound: On</button>
+    </div>
+  </div>
+</div>
+
+<!-- STORE PANEL -->
+<div id="storePanel">
+  <button class="close-panel-btn" onclick="closeStorePanel()">✕</button>
+  <h3 id="storePanelTitle">🏪 Open a Store Here</h3>
+  <div class="sgrid" id="storeGrid"></div>
+</div>
+
+<!-- SECURITY SHOP -->
+<div id="secShop">
+  <button class="close-sec-btn" onclick="closeSecShop()">✕</button>
+  <h3>🛡️ Security Guard Shop</h3>
+  <div class="sec-grid">
+    <div class="sec-card" onclick="buyGuard('outside')">
+      <div class="sc-icon">👮</div>
+      <div class="sc-name">Outside Guard</div>
+      <div class="sc-cost">$800</div>
+      <div class="sc-count" id="outsideCount">0 hired</div>
+    </div>
+    <div class="sec-card" onclick="buyGuard('inside')">
+      <div class="sc-icon">🦺</div>
+      <div class="sc-name">Inside Guard</div>
+      <div class="sc-cost">$1,200</div>
+      <div class="sc-count" id="insideCount">0 hired</div>
+    </div>
+  </div>
+</div>
+
+<!-- HOME SCREEN(タイトル画面) -->
+<div id="homeScreen" style="
+  position:fixed;inset:0;z-index:700;
+  display:flex;align-items:center;justify-content:center;
+  flex-direction:column;
+">
+  <canvas id="homeBg" style="position:absolute;inset:0;width:100%;height:100%;"></canvas>
+  <div style="position:relative;z-index:1;text-align:center;padding:20px;">
+    <!-- Moku(Moku Closet の服・表情つき。SPEC.md §8 / §13) -->
+    <div id="titleHero"><img src="brand/mokumoku-hero.png" alt="Moku"><span id="titleOutfit"></span></div>
+
+    <div class="home-card" style="
+      background:rgba(0,0,0,0.45);
+      border-radius:24px;padding:22px 32px 20px;
+      backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+      border:2px solid rgba(255,255,255,0.15);
+      box-shadow:0 12px 40px rgba(0,0,0,0.5);
+      min-width:260px;
+    ">
+      <div class="home-title" style="font-size:2rem;font-weight:900;color:white;letter-spacing:1px;text-shadow:0 2px 8px rgba(0,0,0,0.5)">
+        Moku Mall
+      </div>
+      <div style="font-size:0.72rem;color:#5BBFB5;font-weight:700;margin-bottom:18px;letter-spacing:2px">
+        BUILD · DEFEND · EXPAND
+      </div>
+
+      <button id="continueBtn" class="home-btn" onclick="startGame(false)">
+        ▶ Continue Game<div class="home-sub" id="continueSub"></div>
+      </button>
+
+      <button id="newGameBtn" class="home-btn" onclick="newGameTap()">
+        🆕 New Game
+      </button>
+
+      <div id="titleMoint">🪙 <span id="tmBal">0</span> Moints <span class="today" id="tmToday"></span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// CANVAS
+// ══════════════════════════════════════════════
+const canvas=document.getElementById('c'), ctx=canvas.getContext('2d');
+// 横向き専用。画面が小さい(iPhone の横持ちなど)時は、モール全体が入るように描く範囲を広げて縮小表示する。
+// canvas の内部サイズ = CSS の大きさ ÷ viewScale(描画コードは canvas.width/height をそのまま使う)。
+const VIEW_MIN_W=1000, VIEW_MIN_H=860;
+let viewScale=1;
+function resize(){
+  const w=window.innerWidth,h=window.innerHeight;
+  viewScale=Math.min(1,w/VIEW_MIN_W,h/VIEW_MIN_H);
+  canvas.width=Math.round(w/viewScale); canvas.height=Math.round(h/viewScale);
+}
+resize(); window.addEventListener('resize',resize);
+// タップ位置(CSS px)→ canvas の座標
+function toCanvas(e){
+  const r=canvas.getBoundingClientRect();
+  return {x:(e.clientX-r.left)*canvas.width/r.width, y:(e.clientY-r.top)*canvas.height/r.height};
+}
+
+// ══════════════════════════════════════════════
+// SOUND(Web Audio で合成。iOS は最初のタップで resume)
+// ══════════════════════════════════════════════
+const GAME_ID='moku-mall';
+const SETTINGS_KEY='moku:moku-mall:settings';
+let soundOn=true;
+try{ const st=JSON.parse(localStorage.getItem(SETTINGS_KEY)||'null'); if(st&&st.sound===false) soundOn=false; }catch(e){}
+let AC=null;
+function audio(){
+  if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return null; } }
+  if(AC.state==='suspended') AC.resume();
+  return AC;
+}
+document.addEventListener('pointerdown',()=>{ if(soundOn) audio(); },{passive:true});
+function tone(freq,dur,type,vol,delay,slide){
+  if(!soundOn||!AC||AC.state!=='running') return;
+  const t=AC.currentTime+(delay||0);
+  const o=AC.createOscillator(), g=AC.createGain();
+  o.type=type||'sine'; o.frequency.setValueAtTime(freq,t);
+  if(slide) o.frequency.exponentialRampToValueAtTime(freq*slide,t+dur);
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol||0.1,t+0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+dur+0.03);
+}
+const SFX={
+  buy(){ tone(880,.12,'triangle',.12); tone(1320,.2,'triangle',.1,.08); },
+  alarm(){ tone(660,.18,'triangle',.08); tone(520,.2,'triangle',.08,.2); tone(660,.18,'triangle',.08,.4); },
+  caught(){ [523,659,784,1047].forEach((f,i)=>tone(f,.18,'triangle',.1,i*.07)); },
+  steal(){ tone(420,.4,'sawtooth',.04,0,.5); },
+  power(){ tone(260,.55,'sine',.12,0,4); tone(520,.45,'triangle',.06,.05,3); },
+  unlock(){ [523,659,784,1047,1319].forEach((f,i)=>tone(f,.24,'triangle',.1,i*.09)); },
+  tap(){ tone(700,.07,'sine',.07); },
+  over(){ [392,330,262].forEach((f,i)=>tone(f,.32,'triangle',.08,i*.2)); },
+};
+function toggleSound(){
+  soundOn=!soundOn;
+  try{ localStorage.setItem(SETTINGS_KEY,JSON.stringify({version:1,sound:soundOn})); }catch(e){}
+  if(soundOn){ audio(); SFX.tap(); }
+  updateSoundBtn();
+}
+function updateSoundBtn(){ const b=document.getElementById('soundBtn'); if(b) b.textContent=soundOn?'🔊 Sound: On':'🔈 Sound: Off'; }
+
+// ══════════════════════════════════════════════
+// LAYOUT
+// ══════════════════════════════════════════════
+const TILE=44, SKEW=0.60, WALL_H=52;
+const STORE_W=5, STORE_H=3, AISLE=3, MARGIN=2, ROWS=5;
+const ROW_H=STORE_H+1;
+const TOTAL_W=MARGIN+STORE_W+AISLE+STORE_W+MARGIN; // 17
+const TOTAL_H=MARGIN*2+ROWS*ROW_H;                  // 24
+// Forecourt area in front of mall (below)
+const FORE_H=4; // extra tile rows below mall for guard shop area
+let camX=0,camY=0;
+
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+let coins=500,coinsPerSec=0,coinFrac=0,lastTS=0,gameRunning=false;
+
+const STORE_DEFS=[
+  {name:"Seed Café",    icon:"☕",color:"#E67E22",cost:125, income:5, sale:true},
+  {name:"Moku Ramen",   icon:"🍜",color:"#C0392B",cost:1200,income:12},
+  {name:"Talon Tacos",  icon:"🌮",color:"#D35400",cost:200, income:8, sale:true},
+  {name:"Plumage Fits", icon:"👗",color:"#8E44AD",cost:1000,income:20,sale:true},
+  {name:"Hoot Kicks",   icon:"👟",color:"#2980B9",cost:1500,income:15},
+  {name:"Arcade Nest",  icon:"🕹️",color:"#16A085",cost:3500,income:35},
+  {name:"Hootflix",     icon:"🎬",color:"#2C3E50",cost:1000,income:40,sale:true},
+  {name:"Wing Spa",     icon:"💆",color:"#1ABC9C",cost:1400,income:28,sale:true},
+  {name:"Tech Nest",    icon:"💻",color:"#34495E",cost:5000,income:50},
+  {name:"Woodland Books",icon:"📚",color:"#795548",cost:1800,income:18},
+];
+let slots=[];
+for(let r=0;r<ROWS;r++){
+  slots.push({side:'left', row:r,storeIdx:null,hovered:false});
+  slots.push({side:'right',row:r,storeIdx:null,hovered:false});
+}
+let selectedSlot=null;
+
+const ATM_POSITIONS=[
+  {tx:MARGIN+STORE_W+0.6,        ty:MARGIN+0.6},
+  {tx:MARGIN+STORE_W+AISLE-1.6,  ty:MARGIN+ROW_H*2+0.6},
+  {tx:MARGIN+STORE_W+0.6,        ty:MARGIN+ROW_H*4+0.6},
+];
+
+// ══════════════════════════════════════════════
+// MALL PROGRESSION
+// ══════════════════════════════════════════════
+const MALL_DEFS=[
+  {name:"Moku's 1st Mall",icon:"🌀",unlocked:true,
+   bg:'#3A8C3F',wallTop:'#B0C4DE',wallFront:'#D0D8E8',wallSide:'#9AAABB',
+   floor1:'#DCDCDC',floor2:'#C4C4C4',outerFloor:'#D4761A',aisle:'#E8A020'},
+  {name:"Sunset Plaza",icon:"🌅",unlocked:false,
+   bg:'#7B2D0A',wallTop:'#E8854A',wallFront:'#C0522A',wallSide:'#8B3010',
+   floor1:'#C87840',floor2:'#A85828',outerFloor:'#8B3A10',aisle:'#FF6B20'},
+  {name:"Moku's Garden Mall",icon:"🌊",unlocked:false,
+   bg:'#B0BEC5',wallTop:'#ECEFF1',wallFront:'#CFD8DC',wallSide:'#90A4AE',
+   floor1:'#ECEFF1',floor2:'#CFD8DC',outerFloor:'#78909C',aisle:'#4FC3F7'},
+  {name:"Moku Sunshine Resort Mall",icon:"🏙️",unlocked:false,
+   bg:'#050D1A',wallTop:'#1A3A6A',wallFront:'#0D2040',wallSide:'#0A1830',
+   floor1:'#0D1F3C',floor2:'#091628',outerFloor:'#0A1428',aisle:'#00BFFF'},
+];
+let currentMall=0;
+
+// ══════════════════════════════════════════════
+// SAVE / MOINT(SPEC.md §13)
+// moku:moku-mall:progress = { version, gameId, coins, currentMall, unlocked, stores[10], guards{outside,inside},
+//   cleared[4](一度でも全部の店を開けたモール), caught, superCaught, bestCoins, played, mointClaims{mall0..3}, updatedAt }
+// New Game で戻すのは遊びの状態(コイン・モール・店・ガード)だけ。記録と Moint の受け取り済みは残す。
+// ══════════════════════════════════════════════
+const SAVE_KEY='moku:moku-mall:progress';
+const MALL_CLEAR_MOINT=[100,200,300,500];   // モールの初クリア(1回きり、上限の外)
+const CATCH_MOINT=30, SUPER_CATCH_MOINT=50; // 泥棒をつかまえる(毎回、1日 500 まで)
+function freshProgress(){
+  return {version:1,gameId:GAME_ID,coins:500,currentMall:0,unlocked:1,stores:Array(10).fill(null),
+    guards:{outside:0,inside:0},cleared:[false,false,false,false],caught:0,superCaught:0,bestCoins:500,
+    played:0,mointClaims:{},updatedAt:null};
+}
+let prog=freshProgress(), hasSave=false;
+try{
+  const raw=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');
+  if(raw&&raw.version===1){ prog=Object.assign(freshProgress(),raw); hasSave=true; }
+}catch(e){}
+function saveProgress(){
+  prog.coins=Math.floor(coins);
+  prog.currentMall=currentMall;
+  prog.unlocked=MALL_DEFS.filter(m=>m.unlocked).length;
+  prog.stores=slots.map(s=>s.storeIdx);
+  prog.guards={outside:outsideGuardCount,inside:insideGuardCount};
+  prog.bestCoins=Math.max(prog.bestCoins|0,Math.floor(coins));
+  prog.updatedAt=new Date().toISOString();
+  try{ localStorage.setItem(SAVE_KEY,JSON.stringify(prog)); hasSave=true; }catch(e){}
+}
+function earnMoint(amount,capped){
+  if(!(window.MokuMoint&&MokuMoint.earn)) return 0;
+  try{ return MokuMoint.earn(GAME_ID,amount,capped?undefined:{capped:false})||0; }catch(e){ return 0; }
+}
+
+function isMallComplete(){return slots.every(s=>s.storeIdx!==null);}
+function checkMallCompletion(){
+  if(!isMallComplete()) return;
+  // 初クリアの Moint(モールごとに1回だけ)
+  if(!prog.cleared[currentMall]){
+    prog.cleared[currentMall]=true;
+    const claim='mall'+currentMall;
+    if(!prog.mointClaims[claim]){
+      prog.mointClaims[claim]=true;
+      const got=earnMoint(MALL_CLEAR_MOINT[currentMall],false);
+      if(got) setTimeout(()=>showToast(`🪙 First time filling ${MALL_DEFS[currentMall].name}! +${got} Moints`),2600);
+    }
+  }
+  const next=currentMall+1;
+  if(next<MALL_DEFS.length&&!MALL_DEFS[next].unlocked){
+    MALL_DEFS[next].unlocked=true;
+    showToast(`🎉 ${MALL_DEFS[next].name} unlocked!`);
+    setBubble('New mall unlocked! 🏪✨');
+    SFX.unlock();
+    setTimeout(()=>{openModal('mallsModal');renderMallList();},1200);
+  } else if(next>=MALL_DEFS.length){
+    showToast('🏆 Every store in every mall is open!');
+    setBubble('You did it! Best mall owner ever! 🦉👑');
+    SFX.unlock();
+  }
+  saveProgress();
+}
+function selectMall(idx){
+  if(!MALL_DEFS[idx].unlocked) return;
+  // 今いるモールを押した時は何もしない(以前は店が全部消えていた)
+  if(idx===currentMall){ closeModal('mallsModal'); return; }
+  currentMall=idx; coinsPerSec=0;
+  slots.forEach(s=>s.storeIdx=null);
+  shoppers=[]; for(let i=0;i<5;i++) spawnShopper();
+  robbers=[]; robberSpawnTimer=0; guards=[];
+  setGuardCounts(0,0);
+  document.getElementById('robberAlert').style.display='none';
+  closeModal('mallsModal');
+  showToast(`🏪 Welcome to ${MALL_DEFS[idx].name}!`);
+  setBubble("New mall! Let's go! 🦉");
+  saveProgress();
+}
+function renderMallList(){
+  const el=document.getElementById('mallList'); if(!el) return;
+  el.innerHTML=MALL_DEFS.map((m,i)=>{
+    const filled=i===currentMall?slots.filter(s=>s.storeIdx!==null).length:0;
+    const total=slots.length;
+    const progress=i===currentMall?` (${filled}/${total})`:'';
+    if(m.unlocked){
+      const border=i===currentMall?' style="border-color:#FFD700"':'';
+      return `<div class="mall-row"${border} onclick="selectMall(${i});renderMallList()">
+        <div class="mall-row-icon">${m.icon}</div>
+        <div class="mall-row-name">${m.name}${progress}${i===currentMall?' ✓':''}</div></div>`;
+    } else {
+      const hint=i===currentMall+1?`Fill all ${slots.length} stores`:'Locked';
+      return `<div class="mall-row locked"><div class="mall-row-icon">🔒</div>
+        <div class="mall-row-name">${m.name} — ${hint}</div></div>`;
+    }
+  }).join('');
+}
+
+// ══════════════════════════════════════════════
+// MOKU
+// ══════════════════════════════════════════════
+const moku={tx:MARGIN+STORE_W+AISLE/2, ty:MARGIN+ROW_H*2, speed:0.18, facingLeft:false};
+
+// ══════════════════════════════════════════════
+// SHOPPERS  (1-2 are secretly BAD CUSTOMERS)
+// ══════════════════════════════════════════════
+const SC=['#E74C3C','#3498DB','#2ECC71','#F39C12','#9B59B6','#E91E63'];
+let shoppers=[];
+let badCustomerIndices=[]; // which shopper indices are bad
+
+function spawnShopper(){
+  if(shoppers.length>=7) return;
+  shoppers.push({
+    tx:MARGIN+Math.random()*(TOTAL_W-MARGIN*2),
+    ty:MARGIN+Math.random()*(TOTAL_H-MARGIN*2),
+    dir:Math.random()>.5?1:-1,
+    speed:0.010+Math.random()*.005,
+    wobble:Math.random()*Math.PI*2,
+    shirt:SC[Math.floor(Math.random()*SC.length)],
+    pants:SC[Math.floor(Math.random()*SC.length)],
+    facingLeft:Math.random()>.5,
+    isBad:false,   // revealed only on check
+    revealed:false,
+  });
+}
+function assignBadCustomers(){
+  badCustomerIndices=[];
+  if(shoppers.length<2) return;
+  const count=1+Math.floor(Math.random()*2); // 1 or 2
+  const indices=new Set();
+  while(indices.size<count) indices.add(Math.floor(Math.random()*shoppers.length));
+  indices.forEach(i=>{ shoppers[i].isBad=true; badCustomerIndices.push(i); });
+}
+for(let i=0;i<5;i++) spawnShopper();
+assignBadCustomers();
+
+// ══════════════════════════════════════════════
+// ROBBERS  (max 1 normal + occasional super)
+// ══════════════════════════════════════════════
+let robbers=[];
+let robberSpawnTimer=0;
+const ROBBER_INTERVAL=30000;
+const FIRST_ROBBER_DELAY=15000;
+let firstRobberNormal=false;
+// 最初の泥棒は 15 秒後(以前は setTimeout だったので、Continue のたびに予約が重なっていた)
+function scheduleFirstRobber(){ robberSpawnTimer=ROBBER_INTERVAL-FIRST_ROBBER_DELAY; firstRobberNormal=true; }
+
+function spawnRobber(isSuper){
+  if(robbers.filter(r=>r.phase!=='dead').length>=1) return;
+  const atm=ATM_POSITIONS[Math.floor(Math.random()*ATM_POSITIONS.length)];
+  const edge=Math.random()>.5?'left':'right';
+  robbers.push({
+    tx:edge==='left'?0.2:TOTAL_W-0.2,
+    ty:MARGIN+Math.random()*(TOTAL_H-MARGIN*2),
+    targetAtm:atm, phase:'approach',
+    stunTimer:0, alpha:1,
+    speed:isSuper?0.024:0.016,
+    isSuper:!!isSuper,
+    facingLeft:false,
+  });
+  document.getElementById('robberAlert').textContent=isSuper?'👑 SUPER ROBBER!':'⚠️ ROBBER IN THE MALL!';
+  document.getElementById('robberAlert').style.background=isSuper?'#7C3AED':'#E74C3C';
+  document.getElementById('robberAlert').style.display='block';
+  setTimeout(()=>document.getElementById('robberAlert').style.display='none',4000);
+  showToast(isSuper?'👑 SUPER ROBBER — use your Superpower!':'🚨 ROBBER IN THE MALL!');
+  setBubble(isSuper?'Super Robber! Use ⚡ Superpower!':'Chase that robber! 🚨');
+  SFX.alarm();
+}
+
+// ══════════════════════════════════════════════
+// SECURITY GUARDS
+// ══════════════════════════════════════════════
+let guards=[];
+let outsideGuardCount=0, insideGuardCount=0;
+
+function buyGuard(type){
+  const cost=type==='outside'?800:1200;
+  if(coins<cost){showToast(`❌ Need $${cost}`);return;}
+  coins-=cost;
+  addGuard(type);
+  showToast(`🛡️ ${type==='outside'?'Outside':'Inside'} Guard hired!`);
+  SFX.buy();
+  saveProgress();
+}
+function setGuardCounts(o,i){
+  outsideGuardCount=o; insideGuardCount=i;
+  document.getElementById('outsideCount').textContent=outsideGuardCount+' hired';
+  document.getElementById('insideCount').textContent=insideGuardCount+' hired';
+}
+// ガードを1人置く(買った時と、セーブから戻す時)
+function addGuard(type){
+  const isOutside=type==='outside';
+  // Patrol zone
+  const px=isOutside?MARGIN+STORE_W+AISLE/2:MARGIN+STORE_W+AISLE/2;
+  const py=isOutside?TOTAL_H+FORE_H/2:MARGIN+ROW_H;
+  guards.push({
+    tx:px+(Math.random()-.5)*3, ty:py+(Math.random()-.5)*2,
+    type, facingLeft:false,
+    speed:0.05+Math.random()*0.025, // 0.05 to 0.075
+    wobble:Math.random()*Math.PI*2,
+    patrolCx:px, patrolCy:isOutside?TOTAL_H+FORE_H/2:MARGIN+ROW_H*2,
+    patrolR:isOutside?3.5:2.5,
+  });
+  if(isOutside) setGuardCounts(outsideGuardCount+1,insideGuardCount);
+  else setGuardCounts(outsideGuardCount,insideGuardCount+1);
+}
+function closeSecShop(){document.getElementById('secShop').style.display='none';}
+
+// ══════════════════════════════════════════════
+// SUPERPOWER
+// ══════════════════════════════════════════════
+let spCooldown=0;
+const SP_CD=35000;
+let spActive=false, spFlashTimer=0;
+
+function activateSuperpower(){
+  if(spCooldown>0){showToast(`⏳ Superpower ready in ${Math.ceil(spCooldown/1000)}s`);return;}
+  spCooldown=SP_CD; spActive=true; spFlashTimer=1500;
+  // Stun ALL robbers (including super robbers)
+  robbers.forEach(rob=>{
+    if(rob.phase!=='dead'){
+      rob.phase='stunned'; rob.stunTimer=5000;
+    }
+  });
+  showToast('⚡ SUPERPOWER! All robbers stunned!');
+  setBubble('SUPERPOWER activated! ⚡🦉');
+  SFX.power();
+}
+
+// ══════════════════════════════════════════════
+// CHECK CUSTOMER
+// ══════════════════════════════════════════════
+let checkCooldown=0;
+const CHECK_CD=60000;
+
+function doCheck(){
+  if(checkCooldown>0){showToast(`⏳ Check ready in ${Math.ceil(checkCooldown/1000)}s`);return;}
+  checkCooldown=CHECK_CD;
+  // Find nearest shopper to Moku
+  let nearest=null, nearDist=Infinity;
+  shoppers.forEach((sh,i)=>{
+    const dx=moku.tx-sh.tx, dy=moku.ty-sh.ty;
+    const d=Math.sqrt(dx*dx+dy*dy);
+    if(d<nearDist){nearDist=d;nearest={sh,i};}
+  });
+  const title=document.getElementById('checkTitle');
+  const body=document.getElementById('checkBody');
+  if(!nearest||nearDist>3.5){
+    title.textContent='No one nearby!';
+    body.textContent='Walk closer to a customer first. 🦉';
+  } else {
+    nearest.sh.revealed=true;
+    if(nearest.sh.isBad){
+      title.textContent='🕵️ Sneaky Customer Found!';
+      body.textContent=`Shopper #${nearest.i+1} was helping the robbers get away! They went home, so robbers can't escape from you now.`;
+      // Remove them
+      shoppers.splice(nearest.i,1);
+      badCustomerIndices=badCustomerIndices.filter(x=>x!==nearest.i).map(x=>x>nearest.i?x-1:x);
+    } else {
+      title.textContent='✅ Innocent Customer';
+      body.textContent=`Shopper #${nearest.i+1} is a normal customer. Nothing suspicious here! 🛍️`;
+    }
+  }
+  document.getElementById('checkResult').classList.add('show');
+  SFX.tap();
+}
+function closeCheck(){document.getElementById('checkResult').classList.remove('show');}
+
+// ══════════════════════════════════════════════
+// COIN POPUPS
+// ══════════════════════════════════════════════
+let coinPopups=[];
+function spawnCoinPopup(sx,sy,amt,color){
+  coinPopups.push({x:sx,y:sy,txt:(amt>0?'+':'')+`$${amt}`,life:1.3,vy:-1.5,color:color||'#FFD700'});
+}
+
+// ══════════════════════════════════════════════
+// JOYSTICK
+// ══════════════════════════════════════════════
+const jBase=document.getElementById('joystickBase');
+const jKnob=document.getElementById('joystickKnob');
+let jActive=false,jDx=0,jDy=0;
+const J_MAX=30;
+function jStart(e){jActive=true;jMove(e);}
+function jMove(e){
+  if(!jActive) return;
+  const t=e.touches?e.touches[0]:e;
+  const r=jBase.getBoundingClientRect();
+  let dx=t.clientX-r.left-r.width/2, dy=t.clientY-r.top-r.height/2;
+  const d=Math.sqrt(dx*dx+dy*dy);
+  if(d>J_MAX){dx=dx/d*J_MAX;dy=dy/d*J_MAX;}
+  jDx=dx;jDy=dy;
+  jKnob.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;
+}
+function jEnd(){jActive=false;jDx=0;jDy=0;jKnob.style.transform='translate(-50%,-50%)';}
+jBase.addEventListener('touchstart',jStart,{passive:true});
+jBase.addEventListener('touchmove',jMove,{passive:true});
+jBase.addEventListener('touchend',jEnd);
+jBase.addEventListener('mousedown',jStart);
+window.addEventListener('mousemove',jMove);
+window.addEventListener('mouseup',jEnd);
+const keys={};
+window.addEventListener('keydown',e=>keys[e.key]=true);
+window.addEventListener('keyup',  e=>keys[e.key]=false);
+
+// ══════════════════════════════════════════════
+// COORDINATES
+// ══════════════════════════════════════════════
+function getOrigin(){
+  const W=canvas.width,H=canvas.height;
+  return {ox:W/2-(TOTAL_W*TILE)/2-camX, oy:H/2-(TOTAL_H*TILE)/2-camY};
+}
+function t2s(tx,ty){
+  const {ox,oy}=getOrigin(),H=canvas.height;
+  return {x:ox+tx*TILE, y:(oy+ty*TILE)*SKEW+H*(1-SKEW)*0.5};
+}
+function s2t(sx,sy){
+  const {ox,oy}=getOrigin(),H=canvas.height;
+  const rawY=(sy-H*(1-SKEW)*0.5)/SKEW;
+  return {tx:(sx-ox)/TILE, ty:(rawY-oy)/TILE};
+}
+function getSlotRect(slot){
+  const ty=MARGIN+slot.row*ROW_H;
+  const tx=slot.side==='left'?MARGIN:MARGIN+STORE_W+AISLE;
+  return {tx,ty,tw:STORE_W,th:STORE_H};
+}
+
+// ══════════════════════════════════════════════
+// COLOUR UTILS
+// ══════════════════════════════════════════════
+function adj(hex,amt){
+  let r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return `rgb(${Math.max(0,Math.min(255,r+amt))},${Math.max(0,Math.min(255,g+amt))},${Math.max(0,Math.min(255,b+amt))})`;
+}
+
+// ══════════════════════════════════════════════
+// DRAW UTILS
+// ══════════════════════════════════════════════
+function rr(x,y,w,h,r){
+  ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
+}
+function box3D(sx,sy,w,h,wallH,cTop,cRight,cFront){
+  const dx=wallH*0.55,dy=wallH*0.38;
+  ctx.fillStyle=cTop;
+  ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx+w,sy);
+  ctx.lineTo(sx+w+dx,sy-dy);ctx.lineTo(sx+dx,sy-dy);ctx.closePath();ctx.fill();
+  ctx.fillStyle=cRight;
+  ctx.beginPath();ctx.moveTo(sx+w,sy);ctx.lineTo(sx+w+dx,sy-dy);
+  ctx.lineTo(sx+w+dx,sy-dy+h);ctx.lineTo(sx+w,sy+h);ctx.closePath();ctx.fill();
+  ctx.fillStyle=cFront;ctx.fillRect(sx,sy,w,h);
+}
+
+// ══════════════════════════════════════════════
+// DRAW SCENE
+// ══════════════════════════════════════════════
+function drawScene(){
+  const W=canvas.width,H=canvas.height;
+  const {ox,oy}=getOrigin();
+  const mW=TOTAL_W*TILE, mH=TOTAL_H*TILE;
+
+  // Themed background
+  const theme=MALL_DEFS[currentMall];
+
+  if(currentMall===0){
+    // ── MALL 0: Green park/grass ──
+    const g0=ctx.createLinearGradient(0,0,0,H);
+    g0.addColorStop(0,'#4CAF6A');g0.addColorStop(1,'#2D6E30');
+    ctx.fillStyle=g0;ctx.fillRect(0,0,W,H);
+    // Clouds
+    ctx.fillStyle='rgba(255,255,255,0.18)';
+    [[W*0.2,H*0.08,55],[W*0.6,H*0.06,70],[W*0.85,H*0.1,42]].forEach(([cx,cy,r])=>{
+      ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(cx+r*0.7,cy+6,r*0.65,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(cx-r*0.5,cy+8,r*0.55,0,Math.PI*2);ctx.fill();
+    });
+
+  } else if(currentMall===1){
+    // ── MALL 1: SUNSET PLAZA — Grand Canyon sunset ──
+    // Sky gradient: deep purple-blue top → fiery orange-gold at horizon
+    const gSky=ctx.createLinearGradient(0,0,0,H*0.62);
+    gSky.addColorStop(0,'#1A0A2E');
+    gSky.addColorStop(0.25,'#4A1060');
+    gSky.addColorStop(0.55,'#C0380A');
+    gSky.addColorStop(0.78,'#FF6B10');
+    gSky.addColorStop(1,'#FFB020');
+    ctx.fillStyle=gSky;ctx.fillRect(0,0,W,H*0.62);
+
+    // Sun glow on horizon
+    const sunG=ctx.createRadialGradient(W*0.55,H*0.58,0,W*0.55,H*0.58,W*0.45);
+    sunG.addColorStop(0,'rgba(255,240,120,0.95)');
+    sunG.addColorStop(0.15,'rgba(255,180,30,0.7)');
+    sunG.addColorStop(0.4,'rgba(255,100,10,0.3)');
+    sunG.addColorStop(1,'rgba(255,60,0,0)');
+    ctx.fillStyle=sunG;ctx.fillRect(0,0,W,H*0.65);
+
+    // Sun disc
+    ctx.fillStyle='rgba(255,248,180,0.95)';
+    ctx.beginPath();ctx.arc(W*0.55,H*0.57,28,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(255,255,220,1)';
+    ctx.beginPath();ctx.arc(W*0.55,H*0.57,14,0,Math.PI*2);ctx.fill();
+
+    // Dramatic clouds — dark with orange lit edges
+    const cloudData=[
+      [W*0.05,H*0.12,W*0.22,H*0.07,'rgba(80,20,10,0.85)','rgba(255,140,30,0.6)'],
+      [W*0.35,H*0.08,W*0.18,H*0.055,'rgba(60,10,40,0.8)','rgba(255,160,40,0.5)'],
+      [W*0.65,H*0.10,W*0.28,H*0.07,'rgba(90,25,10,0.85)','rgba(255,130,20,0.55)'],
+      [W*0.80,H*0.18,W*0.16,H*0.05,'rgba(70,15,30,0.75)','rgba(255,150,35,0.45)'],
+      [W*0.1, H*0.22,W*0.20,H*0.06,'rgba(50,10,30,0.7)','rgba(255,120,25,0.4)'],
+    ];
+    cloudData.forEach(([cx,cy,cw,ch,dark,light])=>{
+      // Dark cloud body
+      ctx.fillStyle=dark;
+      ctx.beginPath();ctx.ellipse(cx,cy,cw,ch,0,0,Math.PI*2);ctx.fill();
+      // Lit bottom edge
+      ctx.fillStyle=light;
+      ctx.beginPath();ctx.ellipse(cx,cy+ch*0.4,cw*0.9,ch*0.45,0,0,Math.PI*2);ctx.fill();
+    });
+
+    // Canyon layers — deep gorge perspective
+    // Bottom ground: deep red-brown
+    const gGround=ctx.createLinearGradient(0,H*0.58,0,H);
+    gGround.addColorStop(0,'#8B1A00');gGround.addColorStop(0.4,'#5C0F00');gGround.addColorStop(1,'#2A0500');
+    ctx.fillStyle=gGround;ctx.fillRect(0,H*0.58,W,H*0.42);
+
+    // Canyon walls — layered rock strata
+    const layers=[
+      {y:0.60,h:0.06,c:'#B52800',lc:'#D44020'},
+      {y:0.65,h:0.05,c:'#8B2000',lc:'#AA3010'},
+      {y:0.69,h:0.06,c:'#6A1800',lc:'#8A2808'},
+      {y:0.74,h:0.05,c:'#501000',lc:'#701808'},
+      {y:0.78,h:0.07,c:'#380A00',lc:'#581208'},
+      {y:0.84,h:0.16,c:'#200500',lc:'#380800'},
+    ];
+    layers.forEach(l=>{
+      // Left canyon wall
+      ctx.fillStyle=l.c;
+      ctx.beginPath();
+      ctx.moveTo(0,H*l.y);ctx.lineTo(W*0.38,H*l.y);
+      ctx.lineTo(W*0.32,H*(l.y+l.h));ctx.lineTo(0,H*(l.y+l.h));
+      ctx.closePath();ctx.fill();
+      // Left wall highlight
+      ctx.fillStyle=l.lc;
+      ctx.beginPath();
+      ctx.moveTo(0,H*l.y);ctx.lineTo(W*0.38,H*l.y);
+      ctx.lineTo(W*0.38,H*l.y+6);ctx.lineTo(0,H*l.y+6);
+      ctx.closePath();ctx.fill();
+      // Right canyon wall
+      ctx.fillStyle=l.c;
+      ctx.beginPath();
+      ctx.moveTo(W,H*l.y);ctx.lineTo(W*0.62,H*l.y);
+      ctx.lineTo(W*0.68,H*(l.y+l.h));ctx.lineTo(W,H*(l.y+l.h));
+      ctx.closePath();ctx.fill();
+      ctx.fillStyle=l.lc;
+      ctx.beginPath();
+      ctx.moveTo(W,H*l.y);ctx.lineTo(W*0.62,H*l.y);
+      ctx.lineTo(W*0.62,H*l.y+6);ctx.lineTo(W,H*l.y+6);
+      ctx.closePath();ctx.fill();
+    });
+
+    // River at bottom of canyon — snaking reflection
+    const riverG=ctx.createLinearGradient(0,H*0.88,0,H);
+    riverG.addColorStop(0,'#4A6A8A');riverG.addColorStop(1,'#203050');
+    ctx.fillStyle=riverG;
+    ctx.beginPath();
+    ctx.moveTo(W*0.44,H*0.88);ctx.lineTo(W*0.56,H*0.88);
+    ctx.bezierCurveTo(W*0.58,H*0.91,W*0.52,H*0.93,W*0.54,H*0.96);
+    ctx.bezierCurveTo(W*0.56,H*0.99,W*0.48,H*1.0,W*0.46,H*1.0);
+    ctx.bezierCurveTo(W*0.44,H*0.97,W*0.50,H*0.94,W*0.48,H*0.91);
+    ctx.bezierCurveTo(W*0.46,H*0.89,W*0.44,H*0.88,W*0.44,H*0.88);
+    ctx.closePath();ctx.fill();
+    // River shimmer
+    ctx.strokeStyle='rgba(180,220,255,0.35)';ctx.lineWidth=1.5;
+    for(let i=0;i<4;i++){
+      ctx.beginPath();
+      ctx.moveTo(W*0.46+i*5,H*0.90);ctx.lineTo(W*0.50+i*3,H*0.94);
+      ctx.stroke();
+    }
+
+  } else if(currentMall===2){
+    // ── MALL 2: OMBAK — Modern curved building, overcast KL sky ──
+    const gOmb=ctx.createLinearGradient(0,0,0,H);
+    gOmb.addColorStop(0,'#B8C4CC');gOmb.addColorStop(0.5,'#9AAAB4');gOmb.addColorStop(1,'#7A8A94');
+    ctx.fillStyle=gOmb;ctx.fillRect(0,0,W,H);
+
+    // Overcast cloud layers
+    ctx.fillStyle='rgba(255,255,255,0.25)';
+    for(let i=0;i<6;i++){
+      const cxc=W*(0.1+i*0.17), cyc=H*(0.05+i%3*0.06), rc=W*(0.12+i%2*0.06);
+      ctx.beginPath();ctx.ellipse(cxc,cyc,rc,H*0.04,0,0,Math.PI*2);ctx.fill();
+    }
+    ctx.fillStyle='rgba(200,210,218,0.4)';
+    for(let i=0;i<4;i++){
+      const cxc=W*(0.05+i*0.28), cyc=H*(0.12+i%2*0.05), rc=W*(0.15+i%3*0.05);
+      ctx.beginPath();ctx.ellipse(cxc,cyc,rc,H*0.035,0,0,Math.PI*2);ctx.fill();
+    }
+
+    // Background skyscrapers (silver glass towers like the photo)
+    const towers=[
+      {x:W*0.02,w:W*0.06,h:H*0.55,c:'#8A9AA4'},
+      {x:W*0.10,w:W*0.05,h:H*0.65,c:'#7A8C96'},
+      {x:W*0.17,w:W*0.07,h:H*0.50,c:'#909EA8'},
+      {x:W*0.72,w:W*0.08,h:H*0.60,c:'#8A9AA4'},
+      {x:W*0.82,w:W*0.10,h:H*0.72,c:'#788896'},
+      {x:W*0.92,w:W*0.06,h:H*0.50,c:'#8A9AA4'},
+    ];
+    towers.forEach(t=>{
+      const tg=ctx.createLinearGradient(t.x,0,t.x+t.w,0);
+      tg.addColorStop(0,'rgba(100,120,130,0.85)');
+      tg.addColorStop(0.5,'rgba(160,180,190,0.7)');
+      tg.addColorStop(1,'rgba(100,115,125,0.8)');
+      ctx.fillStyle=tg;
+      ctx.fillRect(t.x,H-t.h,t.w,t.h);
+      // Glass reflection lines
+      ctx.strokeStyle='rgba(255,255,255,0.12)';ctx.lineWidth=1;
+      for(let r=0;r<8;r++){
+        ctx.beginPath();
+        ctx.moveTo(t.x,H-t.h+r*t.h/8);ctx.lineTo(t.x+t.w,H-t.h+r*t.h/8);
+        ctx.stroke();
+      }
+    });
+
+    // The Ombak building — iconic curved wave roof
+    // Ground/plaza
+    const gPlaza=ctx.createLinearGradient(0,H*0.78,0,H);
+    gPlaza.addColorStop(0,'#C8CDD0');gPlaza.addColorStop(1,'#9AAAB0');
+    ctx.fillStyle=gPlaza;ctx.fillRect(0,H*0.78,W,H*0.22);
+    // Concentric circle plaza pattern
+    ctx.strokeStyle='rgba(150,160,165,0.5)';ctx.lineWidth=2;
+    for(let r=1;r<=5;r++){
+      ctx.beginPath();ctx.arc(W*0.5,H*1.05,H*r*0.12,0,Math.PI*2);ctx.stroke();
+    }
+
+    // Building base — tiered platform
+    ctx.fillStyle='#8A9AA4';
+    ctx.beginPath();
+    ctx.moveTo(W*0.08,H*0.78);ctx.lineTo(W*0.92,H*0.78);
+    ctx.lineTo(W*0.95,H*0.85);ctx.lineTo(W*0.05,H*0.85);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#9AAAB4';
+    ctx.beginPath();
+    ctx.moveTo(W*0.10,H*0.72);ctx.lineTo(W*0.90,H*0.72);
+    ctx.lineTo(W*0.92,H*0.78);ctx.lineTo(W*0.08,H*0.78);ctx.closePath();ctx.fill();
+
+    // Glass curtain wall (colourful like the photo)
+    const glassG=ctx.createLinearGradient(W*0.3,0,W*0.9,0);
+    glassG.addColorStop(0,'rgba(60,140,180,0.7)');
+    glassG.addColorStop(0.25,'rgba(80,180,160,0.65)');
+    glassG.addColorStop(0.5,'rgba(100,160,200,0.7)');
+    glassG.addColorStop(0.75,'rgba(140,100,180,0.6)');
+    glassG.addColorStop(1,'rgba(60,120,160,0.65)');
+    ctx.fillStyle=glassG;
+    ctx.beginPath();
+    ctx.moveTo(W*0.28,H*0.72);ctx.lineTo(W*0.92,H*0.72);
+    ctx.lineTo(W*0.90,H*0.62);ctx.lineTo(W*0.26,H*0.62);ctx.closePath();ctx.fill();
+    // Glass panel lines
+    ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=1;
+    for(let i=0;i<14;i++){
+      const gx=W*0.28+i*(W*0.64/14);
+      ctx.beginPath();ctx.moveTo(gx,H*0.62);ctx.lineTo(gx,H*0.72);ctx.stroke();
+    }
+    // Wavy roof (the iconic Ombak wave)
+    const roofG=ctx.createLinearGradient(0,H*0.5,0,H*0.65);
+    roofG.addColorStop(0,'#C8CDD0');roofG.addColorStop(1,'#8A9AA4');
+    ctx.fillStyle=roofG;
+    ctx.beginPath();
+    ctx.moveTo(W*0.05,H*0.72);
+    ctx.bezierCurveTo(W*0.15,H*0.68,W*0.25,H*0.55,W*0.4,H*0.58);
+    ctx.bezierCurveTo(W*0.5,H*0.60,W*0.55,H*0.52,W*0.65,H*0.54);
+    ctx.bezierCurveTo(W*0.75,H*0.56,W*0.85,H*0.62,W*0.95,H*0.60);
+    ctx.lineTo(W*0.95,H*0.72);ctx.lineTo(W*0.05,H*0.72);ctx.closePath();ctx.fill();
+    // Diamond pattern on left roof
+    ctx.strokeStyle='rgba(180,190,195,0.5)';ctx.lineWidth=1;
+    for(let i=0;i<8;i++) for(let j=0;j<3;j++){
+      const dx2=W*0.08+i*W*0.022,dy2=H*0.63+j*H*0.025;
+      ctx.beginPath();ctx.moveTo(dx2,dy2-H*0.012);ctx.lineTo(dx2+W*0.011,dy2);
+      ctx.lineTo(dx2,dy2+H*0.012);ctx.lineTo(dx2-W*0.011,dy2);ctx.closePath();ctx.stroke();
+    }
+    // Palm trees
+    [[W*0.24,H*0.75],[W*0.35,H*0.77],[W*0.62,H*0.76],[W*0.74,H*0.75]].forEach(([px,py])=>{
+      ctx.fillStyle='#5A7A40';ctx.fillRect(px-3,py-H*0.08,6,H*0.08);
+      ctx.fillStyle='#4A8A30';
+      for(let a=-1.2;a<=1.2;a+=0.4){
+        ctx.beginPath();ctx.moveTo(px,py-H*0.08);
+        ctx.quadraticCurveTo(px+Math.cos(a)*30,py-H*0.1,px+Math.cos(a)*50,py-H*0.07);
+        ctx.lineWidth=2;ctx.strokeStyle='#4A8A30';ctx.stroke();
+      }
+    });
+    // Sign
+    ctx.fillStyle='rgba(0,120,180,0.9)';
+    rr(W*0.38,H*0.80,W*0.24,28,8);ctx.fill();
+    ctx.fillStyle='white';ctx.font='bold 14px Arial';ctx.textAlign='center';
+    ctx.fillText("🌊 Moku's Garden Mall",W*0.5,H*0.80+19);
+
+  } else if(currentMall===3){
+    // ── MALL 3: SURIA KLCC — KL night with fountains & Twin Towers ──
+    // Deep night sky
+    const gNight=ctx.createLinearGradient(0,0,0,H);
+    gNight.addColorStop(0,'#03060F');gNight.addColorStop(0.4,'#050D1A');gNight.addColorStop(1,'#081528');
+    ctx.fillStyle=gNight;ctx.fillRect(0,0,W,H);
+
+    // Stars
+    for(let i=0;i<80;i++){
+      const sx2=(Math.sin(i*137.508)*0.5+0.5)*W;
+      const sy2=(Math.cos(i*97.341)*0.5+0.5)*H*0.45;
+      const pulse=0.4+0.6*Math.sin(lastTS*0.001+i);
+      ctx.fillStyle=`rgba(255,255,255,${pulse*0.8})`;
+      ctx.beginPath();ctx.arc(sx2,sy2,i%5===0?1.5:0.8,0,Math.PI*2);ctx.fill();
+    }
+
+    // Background buildings with warm window lights
+    const bgBuildings=[
+      {x:0,    w:W*0.08,h:H*0.5, c:'#0A1525'},
+      {x:W*0.1,w:W*0.06,h:H*0.42,c:'#0C1828'},
+      {x:W*0.78,w:W*0.08,h:H*0.48,c:'#0A1525'},
+      {x:W*0.88,w:W*0.12,h:H*0.38,c:'#0C1828'},
+    ];
+    bgBuildings.forEach(b=>{
+      ctx.fillStyle=b.c;ctx.fillRect(b.x,H-b.h,b.w,b.h);
+      // Windows
+      for(let wr=0;wr<12;wr++) for(let wc2=0;wc2<4;wc2++){
+        if(Math.random()<0.45||wr===0){
+          ctx.fillStyle=`rgba(255,${180+Math.random()*75},${50+Math.random()*50},${0.5+Math.random()*0.4})`;
+          ctx.fillRect(b.x+wc2*(b.w/4)+2,H-b.h+wr*(b.h/12)+2,b.w/4-4,b.h/12-3);
+        }
+      }
+    });
+
+    // TWIN TOWERS — iconic silhouette
+    const drawTower=(tx,bw,th)=>{
+      // Main shaft
+      ctx.fillStyle='#1A2A40';
+      ctx.beginPath();
+      ctx.moveTo(tx-bw/2,H*0.80);ctx.lineTo(tx+bw/2,H*0.80);
+      ctx.lineTo(tx+bw*0.42,H-th);ctx.lineTo(tx-bw*0.42,H-th);ctx.closePath();ctx.fill();
+      // Ribbed segments
+      for(let seg=0;seg<12;seg++){
+        const sy2=H*0.80-seg*(th*0.8/12);
+        const sw2=bw*(0.42+seg*0.005);
+        ctx.fillStyle=`rgba(200,220,255,${0.06+seg*0.005})`;
+        ctx.fillRect(tx-sw2,sy2,sw2*2,3);
+      }
+      // Spire
+      ctx.fillStyle='rgba(220,235,255,0.9)';
+      ctx.beginPath();ctx.moveTo(tx-4,H-th);ctx.lineTo(tx+4,H-th);
+      ctx.lineTo(tx,H-th-H*0.09);ctx.closePath();ctx.fill();
+      // Antenna glow
+      ctx.fillStyle='rgba(255,100,100,0.9)';
+      ctx.beginPath();ctx.arc(tx,H-th-H*0.09,3,0,Math.PI*2);ctx.fill();
+      // Tower lit windows
+      for(let wr=2;wr<18;wr++) for(let wc2=-1;wc2<=1;wc2++){
+        if(Math.sin(wr*7+wc2*3)>0){
+          ctx.fillStyle='rgba(255,240,150,0.6)';
+          ctx.fillRect(tx+wc2*8-3,H*0.80-wr*(th*0.8/20),6,3);
+        }
+      }
+    };
+    drawTower(W*0.42,W*0.12,H*0.48);
+    drawTower(W*0.58,W*0.12,H*0.48);
+    // Sky Bridge
+    ctx.fillStyle='rgba(180,210,255,0.7)';
+    ctx.fillRect(W*0.44,H*0.42,W*0.12,5);
+    ctx.fillRect(W*0.455,H*0.38,3,H*0.045);
+    ctx.fillRect(W*0.515,H*0.38,3,H*0.045);
+
+    // Suria KLCC mall building (low, wide, lit up)
+    ctx.fillStyle='#0F1E30';
+    ctx.fillRect(W*0.28,H*0.72,W*0.44,H*0.10);
+    // Mall facade windows lit warm
+    for(let i=0;i<18;i++){
+      ctx.fillStyle=`rgba(255,${150+i*4},30,0.65)`;
+      ctx.fillRect(W*0.29+i*W*0.023,H*0.73,W*0.018,H*0.04);
+    }
+    // Suria sign
+    ctx.fillStyle='rgba(255,200,50,0.9)';
+    ctx.font='bold 11px Arial';ctx.textAlign='center';
+    ctx.fillText('MOKU SUNSHINE RESORT',W*0.5,H*0.755);
+
+    // Reflection pool
+    const poolG=ctx.createLinearGradient(0,H*0.82,0,H);
+    poolG.addColorStop(0,'#040D1C');poolG.addColorStop(1,'#020810');
+    ctx.fillStyle=poolG;ctx.fillRect(0,H*0.82,W,H*0.18);
+    // Reflection of towers in water
+    ctx.save();ctx.globalAlpha=0.3;
+    ctx.scale(1,-1);ctx.translate(0,-H*2*0.82);
+    drawTower(W*0.42,W*0.10,H*0.22);
+    drawTower(W*0.58,W*0.10,H*0.22);
+    ctx.restore();
+
+    // COLOURFUL FOUNTAINS — the signature of this photo
+    const fountainColors=[
+      '#FF0088','#0088FF','#00FFCC','#FF4400','#AA00FF',
+      '#00FF88','#FF8800','#0044FF','#FF0044','#44FF00',
+    ];
+    const now=lastTS*0.001;
+    for(let f=0;f<20;f++){
+      const fx=W*0.15+f*(W*0.70/20);
+      const fHeight=H*0.10+Math.sin(now*1.5+f*0.7)*H*0.08+Math.cos(now*0.8+f*1.1)*H*0.04;
+      const fc=fountainColors[f%fountainColors.length];
+      // Jet
+      ctx.strokeStyle=fc.replace(')',',0.8)').replace('rgb','rgba');
+      ctx.lineWidth=2.5;
+      ctx.shadowBlur=8;ctx.shadowColor=fc;
+      ctx.beginPath();
+      ctx.moveTo(fx,H*0.82);
+      ctx.quadraticCurveTo(fx+Math.sin(now+f)*12,H*0.82-fHeight*0.6,fx+Math.sin(now*0.5+f)*6,H*0.82-fHeight);
+      ctx.stroke();
+      // Glow dot at tip
+      ctx.fillStyle=fc;
+      ctx.beginPath();ctx.arc(fx+Math.sin(now*0.5+f)*6,H*0.82-fHeight,3,0,Math.PI*2);ctx.fill();
+      // Water reflection
+      ctx.strokeStyle=fc.replace(')',',0.25)').replace('rgb','rgba');
+      ctx.lineWidth=1.5;
+      ctx.beginPath();
+      ctx.moveTo(fx,H*0.82);ctx.lineTo(fx+Math.sin(now*0.5+f)*4,H*0.82+fHeight*0.3);
+      ctx.stroke();
+      ctx.shadowBlur=0;
+    }
+  }
+
+  ctx.save();
+  ctx.transform(1,0,0,SKEW,0,H*(1-SKEW)*0.5);
+
+  // ── PERIMETER WALL ──
+  const WX=ox-TILE,WY=oy-TILE,WW=mW+TILE*2,WH=mH+TILE*2;
+  const OWH=60,odx=OWH*0.55,ody=OWH*0.38;
+  ctx.fillStyle='rgba(0,0,0,0.15)';ctx.fillRect(WX+6,WY+6,WW,WH);
+  // Top wall
+  ctx.fillStyle=theme.wallTop;
+  ctx.beginPath();ctx.moveTo(WX,WY);ctx.lineTo(WX+WW,WY);
+  ctx.lineTo(WX+WW+odx,WY-ody);ctx.lineTo(WX+odx,WY-ody);ctx.closePath();ctx.fill();
+  ctx.fillStyle=theme.wallFront;ctx.fillRect(WX,WY,WW,OWH);
+  ctx.fillStyle=theme.wallSide;
+  ctx.beginPath();ctx.moveTo(WX+WW,WY);ctx.lineTo(WX+WW+odx,WY-ody);
+  ctx.lineTo(WX+WW+odx,WY-ody+OWH);ctx.lineTo(WX+WW,WY+OWH);ctx.closePath();ctx.fill();
+  // Left/right walls
+  ctx.fillStyle=theme.wallFront;ctx.fillRect(WX,WY,TILE,WH);
+  ctx.fillStyle=theme.wallSide;ctx.fillRect(WX+WW-TILE,WY,TILE,WH);
+  // Bottom wall
+  ctx.fillStyle=theme.wallFront;ctx.fillRect(WX,WY+WH-TILE,WW,TILE);
+  // Wall windows
+  for(let i=0;i<5;i++){
+    const wx=WX+60+i*(WW-120)/4;
+    ctx.fillStyle='rgba(100,140,200,0.45)';ctx.fillRect(wx,WY+6,28,OWH-10);
+    ctx.fillStyle='rgba(200,220,255,0.3)';ctx.fillRect(wx+2,WY+8,24,8);
+  }
+
+  // ── FORECOURT (guard area below mall) ──
+  const fcY=oy+mH;
+  const fcH=FORE_H*TILE;
+  ctx.fillStyle='#8B9BAA';ctx.fillRect(ox,fcY,mW,fcH);
+  // Paving tiles
+  for(let c=0;c<TOTAL_W;c++){
+    for(let r=0;r<FORE_H;r++){
+      ctx.strokeStyle='rgba(0,0,0,0.12)';ctx.lineWidth=1;
+      ctx.strokeRect(ox+c*TILE,fcY+r*TILE,TILE,TILE);
+    }
+  }
+  // Forecourt sign
+  const signW=120,signX=ox+mW/2-signW/2,signY=fcY+10;
+  box3D(signX,signY,signW,36,14,'#1A4A8A','#0D2A5A','#1E5FAD');
+  ctx.fillStyle='white';ctx.font='bold 13px Arial';ctx.textAlign='center';
+  ctx.fillText('🛡️ Security Shop',ox+mW/2,signY+25);
+  ctx.font='bold 9px Arial';ctx.fillStyle='#93C5FD';
+  ctx.fillText('(tap to hire guards)',ox+mW/2,signY+43);
+
+  // ── MALL FLOOR ──
+  ctx.fillStyle=theme.outerFloor;ctx.fillRect(ox-10,oy-10,mW+20,mH+20);
+  const tSz=22;
+  for(let r=0;r*tSz<mH+tSz;r++){
+    for(let c=0;c*tSz<mW+tSz;c++){
+      ctx.fillStyle=(r+c)%2===0?theme.floor1:theme.floor2;
+      ctx.fillRect(ox+c*tSz,oy+r*tSz,tSz,tSz);
+    }
+  }
+  // Aisle
+  const ax=ox+(MARGIN+STORE_W)*TILE;
+  ctx.fillStyle='rgba(255,255,255,0.07)';ctx.fillRect(ax,oy,AISLE*TILE,mH);
+  ctx.strokeStyle=theme.aisle;ctx.lineWidth=5;ctx.setLineDash([18,12]);
+  ctx.beginPath();ctx.moveTo(ax+AISLE*TILE/2,oy+8);ctx.lineTo(ax+AISLE*TILE/2,oy+mH-8);
+  ctx.stroke();ctx.setLineDash([]);
+
+  // ── STORE SLOTS ──
+  slots.forEach(slot=>{
+    const r=getSlotRect(slot);
+    const sx=ox+r.tx*TILE,sy=oy+r.ty*TILE,sw=r.tw*TILE,sh=r.th*TILE;
+    if(slot.storeIdx!==null){
+      const sd=STORE_DEFS[slot.storeIdx];
+      const cTop=adj(sd.color,+60),cSide=adj(sd.color,-50);
+      const dx=WALL_H*0.55,dy=WALL_H*0.38;
+      // Back top
+      ctx.fillStyle=cTop;
+      ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx+sw,sy);
+      ctx.lineTo(sx+sw+dx,sy-dy);ctx.lineTo(sx+dx,sy-dy);ctx.closePath();ctx.fill();
+      // Side wall
+      if(slot.side==='left'){
+        ctx.fillStyle=cSide;
+        ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx,sy+sh);
+        ctx.lineTo(sx+dx,sy+sh-dy);ctx.lineTo(sx+dx,sy-dy);ctx.closePath();ctx.fill();
+      } else {
+        ctx.fillStyle=cSide;
+        ctx.beginPath();ctx.moveTo(sx+sw,sy);ctx.lineTo(sx+sw,sy+sh);
+        ctx.lineTo(sx+sw+dx,sy+sh-dy);ctx.lineTo(sx+sw+dx,sy-dy);ctx.closePath();ctx.fill();
+      }
+      // Front
+      ctx.fillStyle=sd.color;ctx.fillRect(sx,sy,sw,sh);
+      // Window
+      ctx.fillStyle='rgba(160,210,255,0.35)';ctx.fillRect(sx+8,sy+7,sw-16,sh*0.42);
+      ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=1.5;
+      ctx.beginPath();
+      ctx.moveTo(sx+8+(sw-16)/2,sy+7);ctx.lineTo(sx+8+(sw-16)/2,sy+7+sh*0.42);
+      ctx.moveTo(sx+8,sy+7+sh*0.42/2);ctx.lineTo(sx+8+sw-16,sy+7+sh*0.42/2);
+      ctx.stroke();
+      // Counter
+      ctx.fillStyle=adj(sd.color,-55);ctx.fillRect(sx+2,sy+sh-18,sw-4,18);
+      ctx.fillStyle=adj(sd.color,-30);ctx.fillRect(sx+2,sy+sh-20,sw-4,5);
+      // Icon
+      ctx.font=`${TILE*0.68}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(sd.icon,sx+sw/2,sy+sh/2-2);
+      ctx.fillStyle='white';ctx.font='bold 9px Arial';ctx.fillText(sd.name,sx+sw/2,sy+sh-8);
+      // Income badge
+      ctx.fillStyle='#27AE60';rr(sx+3,sy+3,48,15,5);ctx.fill();
+      ctx.fillStyle='white';ctx.font='bold 8px Arial';ctx.fillText(`+$${sd.income}/s`,sx+27,sy+11);
+      if(sd.sale){
+        ctx.fillStyle='#E74C3C';rr(sx+sw-44,sy+3,40,15,5);ctx.fill();
+        ctx.fillStyle='white';ctx.font='bold 7px Arial';ctx.fillText('🔥 SALE',sx+sw-24,sy+11);
+      }
+    } else {
+      const dx=WALL_H*0.55,dy=WALL_H*0.38;
+      ctx.fillStyle=slot.hovered?'rgba(255,200,0,0.18)':'rgba(255,255,255,0.06)';
+      ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx+sw,sy);
+      ctx.lineTo(sx+sw+dx,sy-dy);ctx.lineTo(sx+dx,sy-dy);ctx.closePath();ctx.fill();
+      ctx.fillStyle=slot.hovered?'rgba(255,200,0,0.12)':'rgba(255,255,255,0.05)';
+      ctx.fillRect(sx,sy,sw,sh);
+      ctx.strokeStyle=slot.hovered?'#FFD700':'rgba(255,255,255,0.18)';
+      ctx.lineWidth=2;ctx.strokeRect(sx+1,sy+1,sw-2,sh-2);
+      drawLock(sx+sw/2,sy+sh/2,1.0);
+      ctx.fillStyle='rgba(255,60,60,0.9)';rr(sx+sw/2-36,sy+sh-22,72,18,8);ctx.fill();
+      ctx.fillStyle='white';ctx.font='bold 8px Arial';ctx.textAlign='center';
+      ctx.fillText('Tap to Open Store',sx+sw/2,sy+sh-10);
+    }
+  });
+
+  // Benches
+  for(let r=0;r<ROWS;r++){
+    const by=oy+(MARGIN+r*ROW_H+1)*TILE;
+    box3D(ax+5,by+4,16,22,10,'#F5C840','#B08820','#F0B830');
+    box3D(ax+AISLE*TILE-21,by+4,16,22,10,'#F5C840','#B08820','#F0B830');
+  }
+  // Trash cans
+  [0.25,2.25,4.25].forEach(rf=>{
+    const ty2=oy+(MARGIN+rf*ROW_H)*TILE;
+    box3D(ax-20,ty2,14,20,8,'#2ECC71','#1A8A40','#27AE60');
+    box3D(ax+AISLE*TILE+6,ty2,14,20,8,'#2ECC71','#1A8A40','#27AE60');
+  });
+  // ATMs
+  ATM_POSITIONS.forEach(atm=>{
+    const sp={x:ox+atm.tx*TILE,y:oy+atm.ty*TILE};drawATM(sp.x,sp.y);
+  });
+  // Entry sign
+  const entryW=(AISLE+2)*TILE,entryX=ax-TILE;
+  box3D(entryX,oy+mH-12,entryW,14,18,'#5DADE2','#2980B9','#3498DB');
+  ctx.fillStyle='white';ctx.font='bold 15px Arial';ctx.textAlign='center';
+  ctx.fillText("Moku's Mall",entryX+entryW/2,oy+mH+7);
+
+  // Superpower flash
+  if(spFlashTimer>0){
+    ctx.fillStyle=`rgba(167,139,250,${spFlashTimer/1500*0.25})`;
+    ctx.fillRect(ox,oy,mW,mH);
+  }
+
+  ctx.restore(); // end perspective
+
+  // ── CHARACTERS ──
+  // Sort everything by ty for depth
+  const entities=[
+    ...shoppers.map(s=>({...s,type:'shopper'})),
+    ...guards.map(g=>({...g,type:'guard'})),
+    {...moku,type:'moku'},
+    ...robbers.filter(r=>r.phase!=='dead').map(r=>({...r,type:'robber'})),
+  ];
+  entities.sort((a,b)=>a.ty-b.ty);
+
+  entities.forEach(e=>{
+    const sp=t2s(e.tx,e.ty);
+    if(e.type==='shopper') drawShopper(sp.x,sp.y,e.shirt,e.pants,e.facingLeft,e.isBad&&e.revealed);
+    else if(e.type==='guard') drawGuard(sp.x,sp.y,e.type==='outside',e.facingLeft);
+    else if(e.type==='moku'){
+      if(spFlashTimer>0){
+        // Glow ring
+        ctx.save();
+        ctx.shadowBlur=30;ctx.shadowColor='#A855F7';
+        drawMoku(sp.x,sp.y,moku.facingLeft);
+        ctx.restore();
+      } else drawMoku(sp.x,sp.y,moku.facingLeft);
+    }
+    else if(e.type==='robber'){
+      ctx.save();ctx.globalAlpha=e.alpha;
+      drawRobber(sp.x,sp.y,e.phase==='stunned',e.facingLeft,e.isSuper);
+      if(e.phase==='stunned'){
+        ctx.fillStyle='#FFD700';ctx.font='bold 11px Arial';ctx.textAlign='center';
+        ctx.fillText(`😵 ${Math.ceil(e.stunTimer/1000)}s`,sp.x,sp.y-48);
+      }
+      ctx.restore();
+    }
+  });
+
+  // Coin popups
+  coinPopups.forEach(p=>{
+    ctx.save();ctx.globalAlpha=p.life;
+    ctx.fillStyle=p.color||'#FFD700';ctx.font='bold 13px Arial';ctx.textAlign='center';
+    ctx.fillText(p.txt,p.x,p.y);ctx.restore();
+  });
+}
+
+// ══════════════════════════════════════════════
+// ATM
+// ══════════════════════════════════════════════
+function drawATM(sx,sy){
+  const w=24,h=40,wh=16,dx=wh*0.55,dy=wh*0.38;
+  ctx.fillStyle='#78909C';
+  ctx.beginPath();ctx.moveTo(sx-w/2,sy-h);ctx.lineTo(sx+w/2,sy-h);
+  ctx.lineTo(sx+w/2+dx,sy-h-dy);ctx.lineTo(sx-w/2+dx,sy-h-dy);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#546E7A';
+  ctx.beginPath();ctx.moveTo(sx+w/2,sy-h);ctx.lineTo(sx+w/2+dx,sy-h-dy);
+  ctx.lineTo(sx+w/2+dx,sy-dy);ctx.lineTo(sx+w/2,sy);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#607D8B';ctx.fillRect(sx-w/2,sy-h,w,h);
+  ctx.fillStyle='#29B6F6';ctx.fillRect(sx-w/2+3,sy-h+4,w-6,13);
+  ctx.fillStyle='rgba(255,255,255,0.35)';ctx.fillRect(sx-w/2+3,sy-h+4,w-6,4);
+  ctx.fillStyle='#1A237E';ctx.fillRect(sx-w/2+4,sy-h+21,w-8,9);
+  for(let r=0;r<2;r++) for(let c=0;c<3;c++){
+    ctx.fillStyle='#3F51B5';ctx.fillRect(sx-w/2+6+c*6,sy-h+23+r*4,4,3);
+  }
+  ctx.fillStyle='#263238';ctx.fillRect(sx-w/2+5,sy-h+32,w-10,2);
+  ctx.font='9px serif';ctx.textAlign='center';ctx.fillText('🏧',sx,sy-h/2);
+}
+
+// ══════════════════════════════════════════════
+// LOCK
+// ══════════════════════════════════════════════
+function drawLock(cx,cy,s){
+  ctx.fillStyle='rgba(255,200,0,0.85)';
+  ctx.strokeStyle='rgba(255,200,0,0.85)';ctx.lineWidth=4*s;
+  ctx.beginPath();ctx.arc(cx,cy-12*s,8*s,Math.PI,0);ctx.stroke();
+  rr(cx-11*s,cy-7*s,22*s,18*s,4*s);ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,0.35)';
+  ctx.beginPath();ctx.arc(cx,cy+1*s,3.5*s,0,Math.PI*2);ctx.fill();
+  ctx.fillRect(cx-1.5*s,cy+3*s,3*s,5*s);
+}
+
+// ══════════════════════════════════════════════
+// MOKU
+// ══════════════════════════════════════════════
+function drawMoku(sx,sy,flip){
+  ctx.save();if(flip){ctx.scale(-1,1);sx=-sx;}
+  ctx.fillStyle='rgba(0,0,0,0.18)';
+  ctx.beginPath();ctx.ellipse(sx,sy+2,14,4,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#E8A020';
+  ctx.beginPath();ctx.ellipse(sx-4,sy,5,3,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(sx+4,sy,5,3,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#A07840';
+  ctx.beginPath();ctx.moveTo(sx+12,sy-28);ctx.lineTo(sx+18,sy-32);
+  ctx.lineTo(sx+18,sy-10);ctx.lineTo(sx+12,sy-6);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#E0BC80';
+  ctx.beginPath();ctx.moveTo(sx-12,sy-28);ctx.lineTo(sx+12,sy-28);
+  ctx.lineTo(sx+18,sy-32);ctx.lineTo(sx-6,sy-32);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#D4A96A';ctx.fillRect(sx-12,sy-28,24,22);
+  ctx.fillStyle='#F5EBD8';
+  ctx.beginPath();ctx.ellipse(sx,sy-18,7,9,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#5BBFB5';
+  ctx.beginPath();ctx.ellipse(sx-5,sy-20,5,3,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(sx+5,sy-20,5,3,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#3D9E94';ctx.beginPath();ctx.arc(sx,sy-20,2.5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#A07840';
+  ctx.beginPath();ctx.moveTo(sx+12,sy-50);ctx.lineTo(sx+17,sy-54);
+  ctx.lineTo(sx+17,sy-30);ctx.lineTo(sx+12,sy-34);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#E0BC80';
+  ctx.beginPath();ctx.moveTo(sx-13,sy-50);ctx.lineTo(sx+12,sy-50);
+  ctx.lineTo(sx+17,sy-54);ctx.lineTo(sx-8,sy-54);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#D4A96A';ctx.beginPath();ctx.arc(sx,sy-40,13,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#F5EBD8';ctx.beginPath();ctx.ellipse(sx,sy-39,8.5,8,0,0,Math.PI*2);ctx.fill();
+  [-4,4].forEach(ex=>{
+    ctx.fillStyle='#111';ctx.beginPath();ctx.arc(sx+ex,sy-40,3,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='white';ctx.beginPath();ctx.arc(sx+ex-1,sy-41.5,1,0,Math.PI*2);ctx.fill();
+  });
+  ctx.fillStyle='#E8A020';ctx.beginPath();ctx.ellipse(sx,sy-35,2.5,2,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#4CAF78';
+  ctx.save();ctx.translate(sx,sy-53);ctx.rotate(-0.3);
+  ctx.beginPath();ctx.ellipse(0,0,3,6,0,0,Math.PI*2);ctx.fill();ctx.restore();
+  ctx.restore();
+}
+
+// ══════════════════════════════════════════════
+// SHOPPER 3D (bad customers show subtle red tint if revealed)
+// ══════════════════════════════════════════════
+function drawShopper(sx,sy,shirt,pants,flip,isBadRevealed){
+  ctx.save();if(flip){ctx.scale(-1,1);sx=-sx;}
+  if(isBadRevealed){ctx.shadowBlur=12;ctx.shadowColor='#E74C3C';}
+  ctx.fillStyle='rgba(0,0,0,0.15)';
+  ctx.beginPath();ctx.ellipse(sx,sy+1,9,3,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=pants||'#34495E';
+  ctx.fillRect(sx-5,sy-13,4,11);ctx.fillRect(sx+1,sy-13,4,11);
+  ctx.fillStyle='rgba(0,0,0,0.22)';ctx.fillRect(sx+5,sy-13,2,11);
+  ctx.fillStyle=isBadRevealed?'#8B0000':shirt||'#3498DB';
+  ctx.fillRect(sx-6,sy-26,13,14);
+  ctx.fillStyle='rgba(255,255,255,0.15)';ctx.fillRect(sx-6,sy-26,13,4);
+  ctx.fillStyle='rgba(0,0,0,0.22)';ctx.fillRect(sx+7,sy-26,3,14);
+  ctx.fillStyle=isBadRevealed?'#8B0000':shirt||'#3498DB';
+  ctx.fillRect(sx-9,sy-26,4,9);ctx.fillRect(sx+5,sy-26,4,9);
+  ctx.fillStyle='#FDBCB4';ctx.beginPath();ctx.arc(sx,sy-31,6.5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(200,100,80,0.25)';ctx.beginPath();ctx.arc(sx+2,sy-31,6.5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#2C1F0E';ctx.beginPath();ctx.arc(sx,sy-35.5,5.5,Math.PI,0);ctx.fill();
+  ctx.fillStyle='#333';
+  ctx.beginPath();ctx.arc(sx-2,sy-32,1,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(sx+2,sy-32,1,0,Math.PI*2);ctx.fill();
+  // Bad customer: show 😈 above head
+  if(isBadRevealed){
+    ctx.font='14px serif';ctx.textAlign='center';ctx.fillText('😈',sx,sy-44);
+  }
+  ctx.restore();
+}
+
+// ══════════════════════════════════════════════
+// GUARD 3D
+// ══════════════════════════════════════════════
+function drawGuard(sx,sy,isOutside,flip){
+  ctx.save();if(flip){ctx.scale(-1,1);sx=-sx;}
+  ctx.fillStyle='rgba(0,0,0,0.15)';
+  ctx.beginPath();ctx.ellipse(sx,sy+1,9,3,0,0,Math.PI*2);ctx.fill();
+  // Legs (dark blue)
+  ctx.fillStyle='#1A237E';
+  ctx.fillRect(sx-5,sy-13,4,11);ctx.fillRect(sx+1,sy-13,4,11);
+  ctx.fillStyle='rgba(0,0,0,0.2)';ctx.fillRect(sx+5,sy-13,2,11);
+  // Body (hi-vis yellow/navy)
+  const bodyCol=isOutside?'#FFD600':'#283593';
+  ctx.fillStyle=bodyCol;ctx.fillRect(sx-6,sy-26,13,14);
+  ctx.fillStyle='rgba(255,255,255,0.2)';ctx.fillRect(sx-6,sy-26,13,4);
+  ctx.fillStyle='rgba(0,0,0,0.2)';ctx.fillRect(sx+7,sy-26,3,14);
+  // Badge
+  ctx.fillStyle='#1565C0';ctx.fillRect(sx-3,sy-24,7,5);
+  ctx.fillStyle='rgba(255,255,255,0.8)';ctx.font='bold 4px Arial';ctx.textAlign='center';
+  ctx.fillText('SEC',sx+.5,sy-20);
+  ctx.fillStyle=bodyCol;ctx.fillRect(sx-9,sy-26,4,9);ctx.fillRect(sx+5,sy-26,4,9);
+  // Head
+  ctx.fillStyle='#FDBCB4';ctx.beginPath();ctx.arc(sx,sy-31,6.5,0,Math.PI*2);ctx.fill();
+  // Cap
+  ctx.fillStyle='#1A237E';ctx.fillRect(sx-7,sy-38,14,7);
+  ctx.fillStyle='#283593';ctx.fillRect(sx-5,sy-37,10,5);
+  // Cap brim
+  ctx.fillStyle='#0D1642';ctx.fillRect(sx-8,sy-32,16,3);
+  // Eyes
+  ctx.fillStyle='#333';
+  ctx.beginPath();ctx.arc(sx-2,sy-32,1,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(sx+2,sy-32,1,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+}
+
+// ══════════════════════════════════════════════
+// ROBBER 3D (super robber is purple + bigger)
+// ══════════════════════════════════════════════
+function drawRobber(sx,sy,stunned,flip,isSuper){
+  ctx.save();if(flip){ctx.scale(-1,1);sx=-sx;}
+  const scale=isSuper?1.35:1;
+  const s=scale;
+  ctx.fillStyle='rgba(0,0,0,0.2)';
+  ctx.beginPath();ctx.ellipse(sx,sy+1,9*s,3*s,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=stunned?'#666':(isSuper?'#4C1D95':'#1A1A2E');
+  ctx.fillRect(sx-5*s,sy-13*s,4*s,11*s);ctx.fillRect(sx+1*s,sy-13*s,4*s,11*s);
+  ctx.fillStyle='rgba(255,255,255,0.08)';ctx.fillRect(sx+5*s,sy-13*s,2*s,11*s);
+  const bodyCol=stunned?'#777':(isSuper?'#6D28D9':'#2C2C2C');
+  ctx.fillStyle=bodyCol;ctx.fillRect(sx-6*s,sy-26*s,13*s,14*s);
+  if(!stunned){
+    ctx.fillStyle=isSuper?'rgba(196,181,253,0.25)':'rgba(255,255,255,0.13)';
+    for(let i=0;i<3;i++) ctx.fillRect(sx-6*s,sy-26*s+i*5*s,13*s,2*s);
+  }
+  ctx.fillStyle='rgba(0,0,0,0.3)';ctx.fillRect(sx+7*s,sy-26*s,3*s,14*s);
+  ctx.fillStyle=bodyCol;
+  ctx.fillRect(sx-9*s,sy-26*s,4*s,9*s);ctx.fillRect(sx+5*s,sy-26*s,4*s,9*s);
+  // Bag (bigger for super)
+  ctx.fillStyle=isSuper?'#92400E':'#8B6914';
+  ctx.fillRect(sx+3*s,sy-19*s,9*s,10*s);
+  ctx.strokeStyle=isSuper?'#451A03':'#5A4010';ctx.lineWidth=1;
+  ctx.strokeRect(sx+3*s,sy-19*s,9*s,10*s);
+  if(isSuper){
+    ctx.font=`${9*s}px serif`;ctx.textAlign='center';
+    ctx.fillText('💰',sx+7*s,sy-12*s);
+  }
+  // Head
+  ctx.fillStyle=stunned?'#AAAAAA':'#FDBCB4';
+  ctx.beginPath();ctx.arc(sx,sy-31*s,6.5*s,0,Math.PI*2);ctx.fill();
+  const maskCol=stunned?'rgba(100,100,100,0.85)':(isSuper?'rgba(76,29,149,0.92)':'rgba(18,18,18,0.88)');
+  ctx.fillStyle=maskCol;ctx.beginPath();ctx.arc(sx,sy-31*s,6.5*s,0,Math.PI*2);ctx.fill();
+  // Eyes
+  const eyeCol=stunned?'#FFD700':(isSuper?'#C084FC':'#FF2200');
+  ctx.fillStyle=eyeCol;
+  ctx.beginPath();ctx.arc(sx-2.5*s,sy-31*s,2*s,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(sx+2.5*s,sy-31*s,2*s,0,Math.PI*2);ctx.fill();
+  // Super crown
+  if(isSuper&&!stunned){
+    ctx.fillStyle='#FFD700';
+    ctx.font=`${14*s}px serif`;ctx.textAlign='center';
+    ctx.fillText('👑',sx,sy-37*s);
+  }
+  if(stunned){
+    ['⭐','✨','⭐'].forEach((star,i)=>{
+      ctx.font=`${9*s}px serif`;ctx.textAlign='center';
+      const a=Date.now()*0.003+i*Math.PI*2/3;
+      ctx.fillText(star,sx+Math.cos(a)*11*s,sy-44*s+Math.sin(a)*4*s);
+    });
+  }
+  ctx.restore();
+}
+
+// ══════════════════════════════════════════════
+// GAME LOOP
+// ══════════════════════════════════════════════
+function loop(ts){
+  if(!gameRunning){requestAnimationFrame(loop);return;}
+  const dt=Math.min(ts-lastTS,80);lastTS=ts;
+
+  // Passive income
+  coinFrac+=coinsPerSec*dt/1000;
+  if(coinFrac>=1){coins+=Math.floor(coinFrac);coinFrac%=1;}
+  document.getElementById('coinAmt').textContent='$'+Math.floor(coins).toLocaleString();
+  document.getElementById('coinRate').textContent=`+${coinsPerSec}/s`;
+
+  // Superpower cooldown
+  if(spCooldown>0){
+    spCooldown=Math.max(0,spCooldown-dt);
+    const btn=document.getElementById('superpowerBtn');
+    if(spCooldown>0){
+      btn.classList.add('cooling');
+      document.getElementById('spCd').textContent=`${Math.ceil(spCooldown/1000)}s`;
+    } else {
+      btn.classList.remove('cooling');
+      document.getElementById('spCd').textContent='READY';
+    }
+  }
+  if(spFlashTimer>0) spFlashTimer=Math.max(0,spFlashTimer-dt);
+
+  // Check cooldown
+  if(checkCooldown>0){
+    checkCooldown=Math.max(0,checkCooldown-dt);
+    const btn=document.getElementById('checkBtn');
+    if(checkCooldown>0){
+      btn.classList.add('cooling');
+      document.getElementById('ckCd').textContent=`${Math.ceil(checkCooldown/1000)}s`;
+    } else {
+      btn.classList.remove('cooling');
+      document.getElementById('ckCd').textContent='READY';
+    }
+  }
+
+  const minX=MARGIN+0.3, maxX=TOTAL_W-MARGIN-0.3;
+  const minY=MARGIN+0.3, maxY=TOTAL_H+FORE_H-0.3; // Moku can go into forecourt
+
+  // MOKU MOVE
+  let mdx=jDx/J_MAX, mdy=jDy/J_MAX;
+  if(keys['ArrowLeft']||keys['a'])  mdx-=1;
+  if(keys['ArrowRight']||keys['d']) mdx+=1;
+  if(keys['ArrowUp']||keys['w'])    mdy-=1;
+  if(keys['ArrowDown']||keys['s'])  mdy+=1;
+  const mlen=Math.sqrt(mdx*mdx+mdy*mdy);
+  if(mlen>1){mdx/=mlen;mdy/=mlen;}
+  if(Math.abs(mdx)>0.05) moku.facingLeft=mdx<0;
+  moku.tx=Math.max(minX,Math.min(maxX,moku.tx+mdx*moku.speed*dt/TILE));
+  moku.ty=Math.max(MARGIN+0.3,Math.min(maxY,moku.ty+mdy*moku.speed*dt/TILE));
+
+  // Open security shop if Moku walks into forecourt
+  const inForecourt=moku.ty>TOTAL_H+0.5;
+  if(inForecourt&&document.getElementById('secShop').style.display==='none'&&
+     document.getElementById('storePanel').style.display==='none'){
+    document.getElementById('secShop').style.display='block';
+  }
+
+  // BAD CUSTOMERS: if near a robber, push robber away from Moku
+  shoppers.forEach(sh=>{
+    if(!sh.isBad) return;
+    robbers.forEach(rob=>{
+      if(rob.phase==='dead'||rob.phase==='stunned') return;
+      const rdx=moku.tx-rob.tx, rdy=moku.ty-rob.ty;
+      const rdist=Math.sqrt(rdx*rdx+rdy*rdy);
+      if(rdist<2.5){
+        // Push robber away from moku direction
+        rob.tx-=rdx/rdist*0.04;
+        rob.ty-=rdy/rdist*0.04;
+      }
+    });
+  });
+
+  // SHOPPERS
+  shoppers.forEach(sh=>{
+    sh.wobble+=0.025;
+    sh.tx+=Math.cos(sh.wobble)*sh.speed*dt/TILE;
+    sh.ty+=sh.dir*sh.speed*0.5*dt/TILE;
+    sh.tx=Math.max(minX,Math.min(maxX,sh.tx));
+    sh.ty=Math.max(MARGIN+0.3,Math.min(TOTAL_H-MARGIN-0.3,sh.ty));
+    if(sh.ty>=TOTAL_H-MARGIN-0.3) sh.dir=-1;
+    if(sh.ty<=MARGIN+0.3) sh.dir=1;
+    sh.facingLeft=Math.cos(sh.wobble)<0;
+  });
+
+  // GUARDS — patrol their zone, intercept robbers
+  guards.forEach(g=>{
+    g.wobble+=0.02;
+    let tx=g.patrolCx+Math.cos(g.wobble)*g.patrolR;
+    let ty=g.patrolCy+Math.sin(g.wobble)*g.patrolR*0.5;
+    // Chase nearest robber in patrol zone
+    let nearRob=null,nearD=Infinity;
+    robbers.forEach(rob=>{
+      if(rob.phase==='dead') return;
+      const dx=g.tx-rob.tx,dy=g.ty-rob.ty;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(d<nearD){nearD=d;nearRob=rob;}
+    });
+    if(nearRob&&nearD<5){
+      tx=nearRob.tx; ty=nearRob.ty;
+      if(nearD<0.9&&nearRob.phase!=='stunned'){
+        nearRob.phase='stunned'; nearRob.stunTimer=4000;
+        showToast('🛡️ Guard caught a robber!');
+      }
+    }
+    // Move toward target
+    const ddx=tx-g.tx,ddy=ty-g.ty;
+    const dd=Math.sqrt(ddx*ddx+ddy*ddy);
+    if(dd>0.1){
+      const spd=g.speed*dt/TILE;
+      g.tx+=ddx/dd*spd; g.ty+=ddy/dd*spd;
+      g.facingLeft=ddx<0;
+    }
+  });
+
+  // ROBBERS
+  robberSpawnTimer+=dt;
+  if(robberSpawnTimer>ROBBER_INTERVAL){
+    // 20% chance to spawn super robber(ゲーム開始・再開後の最初の1人はふつうの泥棒)
+    spawnRobber(firstRobberNormal?false:Math.random()<0.2);
+    firstRobberNormal=false;
+    robberSpawnTimer=0;
+  }
+
+  robbers.forEach(rob=>{
+    if(rob.phase==='dead') return;
+    if(rob.phase==='stunned'){
+      rob.stunTimer-=dt;
+      rob.alpha=0.65+Math.sin(Date.now()*0.012)*0.35;
+      if(rob.stunTimer<=0){
+        rob.phase='dead';rob.alpha=0;
+        coins+=200;
+        const sp=t2s(rob.tx,rob.ty);
+        spawnCoinPopup(sp.x,sp.y-20,200,'#FFD700');
+        // Moint: 泥棒 30 / スーパー泥棒 50(1日 500 まで)
+        if(rob.isSuper) prog.superCaught=(prog.superCaught|0)+1; else prog.caught=(prog.caught|0)+1;
+        const mo=earnMoint(rob.isSuper?SUPER_CATCH_MOINT:CATCH_MOINT,true);
+        showToast((rob.isSuper?'👑 Super Robber caught! +$200':'💰 Robber caught! +$200')+(mo?` · 🪙 +${mo} Moints`:''));
+        setBubble('Got them! 🦉💪');
+        SFX.caught();
+        saveProgress();
+        if(!robbers.some(r=>r.phase!=='dead'))
+          document.getElementById('robberAlert').style.display='none';
+      }
+      return;
+    }
+    // Move toward ATM
+    const dx=rob.targetAtm.tx-rob.tx,dy=rob.targetAtm.ty-rob.ty;
+    const dist=Math.sqrt(dx*dx+dy*dy);
+    if(dist>0.4){
+      rob.tx+=dx/dist*rob.speed*dt/TILE;
+      rob.ty+=dy/dist*rob.speed*dt/TILE;
+      rob.facingLeft=dx<0;
+    } else if(rob.phase==='approach'){
+      // Reached ATM — steal money
+      rob.phase='rob';
+      const stolen=Math.floor(100+Math.random()*400); // 100-500
+      const actualStolen=Math.min(stolen,coins);
+      coins=Math.max(0,coins-actualStolen);
+      const sp=t2s(rob.tx,rob.ty);
+      spawnCoinPopup(sp.x,sp.y-20,-actualStolen,'#E74C3C');
+      showToast(`💸 Robber stole $${actualStolen}!`);
+      setBubble(`They stole $${actualStolen}! 😤`);
+      SFX.steal();
+      // Check game over
+      if(coins<=0){ triggerGameOver(); return; }
+    }
+    // Super robber: cannot be stunned by touch alone — needs superpower
+    if(!rob.isSuper){
+      const cdx=moku.tx-rob.tx,cdy=moku.ty-rob.ty;
+      if(Math.sqrt(cdx*cdx+cdy*cdy)<0.85&&rob.phase!=='stunned'){
+        rob.phase='stunned';rob.stunTimer=5000;
+      }
+    }
+  });
+  robbers=robbers.filter(r=>r.phase!=='dead'||r.alpha>0);
+
+  // Coin popups
+  coinPopups.forEach(p=>{p.y+=p.vy;p.life-=0.015;});
+  coinPopups=coinPopups.filter(p=>p.life>0);
+
+  if(Math.random()<0.002&&shoppers.length<7) spawnShopper();
+
+  drawScene();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(ts=>{lastTS=ts;requestAnimationFrame(loop);});
+
+// Robber spawning started by startGame()
+
+// ══════════════════════════════════════════════
+// GAME OVER
+// ══════════════════════════════════════════════
+function triggerGameOver(){
+  gameRunning=false;
+  document.getElementById('gameOver').classList.add('show');
+  SFX.over();
+  // セーブは「やり直した後」の状態にしておく(閉じても Game Over のまま戻らない)
+  resetRun(); saveProgress();
+}
+// 遊びの状態だけを最初に戻す(開いたモールはそのまま)
+function resetRun(){
+  coins=500;coinsPerSec=0;coinFrac=0;
+  slots.forEach(s=>s.storeIdx=null);
+  guards=[];setGuardCounts(0,0);
+  robbers=[];
+}
+function restartGame(){
+  resetRun();
+  shoppers=[];for(let i=0;i<5;i++) spawnShopper();
+  assignBadCustomers();
+  spCooldown=0;checkCooldown=0;spFlashTimer=0;spActive=false;
+  document.getElementById('superpowerBtn').classList.remove('cooling');
+  document.getElementById('spCd').textContent='READY';
+  document.getElementById('checkBtn').classList.remove('cooling');
+  document.getElementById('ckCd').textContent='READY';
+  document.getElementById('robberAlert').style.display='none';
+  document.getElementById('gameOver').classList.remove('show');
+  gameRunning=true;
+  scheduleFirstRobber();
+  saveProgress();
+}
+
+// ══════════════════════════════════════════════
+// CLICK — STORE / FORECOURT
+// ══════════════════════════════════════════════
+canvas.addEventListener('click',e=>{
+  const c=toCanvas(e);
+  const t=s2t(c.x,c.y);
+  // Forecourt tap
+  if(t.ty>TOTAL_H&&t.ty<TOTAL_H+FORE_H&&t.tx>0&&t.tx<TOTAL_W){
+    document.getElementById('secShop').style.display='block'; return;
+  }
+  for(let i=0;i<slots.length;i++){
+    const sr=getSlotRect(slots[i]);
+    if(t.tx>=sr.tx&&t.tx<=sr.tx+sr.tw&&t.ty>=sr.ty&&t.ty<=sr.ty+sr.th){
+      openStorePanel(i); return;
+    }
+  }
+  closeStorePanel();
+  closeSecShop();
+});
+
+canvas.addEventListener('mousemove',e=>{
+  const c=toCanvas(e);
+  const t=s2t(c.x,c.y);
+  slots.forEach(slot=>{
+    const sr=getSlotRect(slot);
+    slot.hovered=t.tx>=sr.tx&&t.tx<=sr.tx+sr.tw&&t.ty>=sr.ty&&t.ty<=sr.ty+sr.th;
+  });
+  canvas.style.cursor=slots.some(s=>s.hovered)||(t.ty>TOTAL_H&&t.ty<TOTAL_H+FORE_H)?'pointer':'default';
+});
+
+// ══════════════════════════════════════════════
+// STORE PANEL
+// ══════════════════════════════════════════════
+function openStorePanel(idx){
+  selectedSlot=idx;
+  const slot=slots[idx];
+  const grid=document.getElementById('storeGrid');
+  const title=document.getElementById('storePanelTitle');
+  if(slot.storeIdx!==null){
+    const sd=STORE_DEFS[slot.storeIdx];
+    title.textContent=`${sd.icon} ${sd.name} — $${sd.income}/s`;
+    grid.innerHTML=`<div style="color:#AAD;font-size:.8rem;grid-column:1/-1;text-align:center;padding:10px">
+      Open & earning <b style="color:#2ECC71">$${sd.income}/s</b> 🎉</div>`;
+  } else {
+    title.textContent='🏪 Open a Store Here';grid.innerHTML='';
+    STORE_DEFS.forEach((sd,i)=>{
+      const placed=slots.some(s=>s.storeIdx===i);
+      const afford=coins>=sd.cost;
+      const sale=sd.sale?`<div style="background:#FF4136;color:white;font-size:.58rem;font-weight:900;border-radius:5px;padding:1px 5px;display:inline-block;margin-bottom:2px">🔥 SALE</div><br>`:'';
+      const card=document.createElement('div');
+      card.className='scard'+(placed?' bought':'');
+      card.innerHTML=`<div class="sui">${sd.icon}</div><div class="sn">${sd.name}</div>${sale}
+        <div class="sc">${placed?'✓ Placed':afford?'$'+sd.cost.toLocaleString():'🔒 $'+sd.cost.toLocaleString()}</div>`;
+      if(!placed) card.onclick=()=>buyStore(i);
+      grid.appendChild(card);
+    });
+  }
+  document.getElementById('storePanel').style.display='block';
+}
+function buyStore(idx){
+  if(selectedSlot===null) return;
+  const sd=STORE_DEFS[idx];
+  if(coins<sd.cost){showToast(`❌ Need $${sd.cost.toLocaleString()}`);return;}
+  coins-=sd.cost; slots[selectedSlot].storeIdx=idx; coinsPerSec+=sd.income;
+  const sr=getSlotRect(slots[selectedSlot]);
+  const sp=t2s(sr.tx+STORE_W/2,sr.ty+STORE_H/2);
+  spawnCoinPopup(sp.x,sp.y,sd.income);
+  showToast(`${sd.icon} ${sd.name} opened! +$${sd.income}/s`);
+  setBubble(`Hoot! ${sd.name} is open! 🎉`);
+  SFX.buy();
+  closeStorePanel(); if(shoppers.length<7) spawnShopper();
+  saveProgress();
+  checkMallCompletion();
+}
+function closeStorePanel(){document.getElementById('storePanel').style.display='none';selectedSlot=null;}
+
+// ══════════════════════════════════════════════
+// MODALS / UI
+// ══════════════════════════════════════════════
+function openModal(id){
+  document.getElementById(id).classList.add('open');
+  if(id==='mallsModal') renderMallList();
+}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(m=>{
+  m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});
+});
+
+function setBubble(txt){
+  const b=document.getElementById('mokuSpeech');
+  b.style.animation='none';b.textContent=txt;
+  void b.offsetWidth;b.style.animation='fadeSlide .4s ease';
+}
+const quips=['Hoot! Buy more stores! 🦉','Coins rolling in! 💰','Moku Mall rules! 🚀',
+  'Watch out for robbers! 🚨','Love my bow-tie! 🎀','Buy security guards! 🛡️',
+  'Use Superpower on Super Robbers! ⚡','Check suspicious customers! 🔍'];
+let qi=0;
+setInterval(()=>{if(!robbers.some(r=>r.phase!=='dead')) setBubble(quips[qi++%quips.length]);},7000);
+
+let toastT;
+function showToast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2400);
+}
+
+// Passive coin sparks
+setInterval(()=>{
+  slots.filter(s=>s.storeIdx!==null).forEach(s=>{
+    const sr=getSlotRect(s);const sp=t2s(sr.tx+STORE_W/2,sr.ty);
+    spawnCoinPopup(sp.x+(Math.random()-.5)*20,sp.y,STORE_DEFS[s.storeIdx].income);
+  });
+},2200);
+
+renderMallList();
+
+// ══════════════════════════════════════════════
+// HOME SCREEN
+// ══════════════════════════════════════════════
+let homeAnimFrame=0;
+function drawHomeBg(){
+  const hc=document.getElementById('homeBg');
+  if(!hc) return;
+  hc.width=window.innerWidth; hc.height=window.innerHeight;
+  const hx=hc.getContext('2d');
+  const W=hc.width,H=hc.height;
+  homeAnimFrame+=0.5;
+  // Gradient sky
+  const grd=hx.createLinearGradient(0,0,0,H);
+  grd.addColorStop(0,'#0D2B55'); grd.addColorStop(1,'#1A5276');
+  hx.fillStyle=grd; hx.fillRect(0,0,W,H);
+  // Stars
+  hx.fillStyle='rgba(255,255,255,0.8)';
+  for(let i=0;i<60;i++){
+    const sx=Math.sin(i*137.5)*W*0.48+W*0.5;
+    const sy=Math.cos(i*97.3)*H*0.35+H*0.1;
+    const pulse=0.5+0.5*Math.sin(homeAnimFrame*0.05+i);
+    hx.globalAlpha=pulse*0.9;
+    hx.beginPath();hx.arc(sx,sy,i%4===0?2:1,0,Math.PI*2);hx.fill();
+  }
+  hx.globalAlpha=1;
+  // Rolling ground
+  hx.fillStyle='#2D6E30';
+  hx.fillRect(0,H*0.72,W,H*0.28);
+  hx.fillStyle='#3A8C3F';
+  hx.fillRect(0,H*0.70,W,H*0.06);
+  // Tiny animated mall silhouette
+  hx.fillStyle='rgba(255,255,255,0.07)';
+  const bx=W*0.5-80,by=H*0.5;
+  hx.fillRect(bx,by,160,H*0.22);
+  hx.fillRect(bx+20,by-30,40,30);
+  hx.fillRect(bx+100,by-20,30,20);
+  // Floating coins
+  for(let i=0;i<5;i++){
+    const cx2=W*0.15+i*W*0.18;
+    const cy2=H*0.85+Math.sin(homeAnimFrame*0.04+i*1.2)*10;
+    hx.fillStyle='rgba(232,160,32,0.6)';
+    hx.beginPath();hx.arc(cx2,cy2,8,0,Math.PI*2);hx.fill();
+    hx.fillStyle='rgba(255,220,80,0.4)';
+    hx.beginPath();hx.arc(cx2-2,cy2-2,4,0,Math.PI*2);hx.fill();
+  }
+  if(document.getElementById('homeScreen').style.display!=='none')
+    requestAnimationFrame(drawHomeBg);
+}
+
+// セーブから遊びの状態を戻す(ページを開いた時に1回)
+function applySave(){
+  const n=Math.max(1,Math.min(MALL_DEFS.length,prog.unlocked|0));
+  MALL_DEFS.forEach((m,i)=>m.unlocked=i<n);
+  currentMall=Math.max(0,Math.min(n-1,prog.currentMall|0));
+  coins=prog.coins|0; coinFrac=0;
+  slots.forEach((s,i)=>{ const v=Array.isArray(prog.stores)?prog.stores[i]:null;
+    s.storeIdx=(Number.isInteger(v)&&v>=0&&v<STORE_DEFS.length)?v:null; });
+  // 同じ店が2つある壊れたセーブは後の方を外す
+  const seen=new Set(); slots.forEach(s=>{ if(s.storeIdx!==null){ if(seen.has(s.storeIdx)) s.storeIdx=null; else seen.add(s.storeIdx); } });
+  coinsPerSec=slots.reduce((t,s)=>t+(s.storeIdx!==null?STORE_DEFS[s.storeIdx].income:0),0);
+  guards=[]; setGuardCounts(0,0);
+  const g=prog.guards||{};
+  for(let i=0;i<Math.min(20,g.outside|0);i++) addGuard('outside');
+  for(let i=0;i<Math.min(20,g.inside|0);i++) addGuard('inside');
+  if(coins<=0) resetRun();
+}
+if(hasSave) applySave();
+
+function startGame(isNew){
+  if(isNew){
+    // Full reset(記録と Moint の受け取り済みは残す)
+    coins=500;coinsPerSec=0;coinFrac=0;
+    currentMall=0;
+    slots.forEach(s=>s.storeIdx=null);
+    MALL_DEFS.forEach((m,i)=>{if(i>0) m.unlocked=false;});
+    shoppers=[];for(let i=0;i<5;i++) spawnShopper();
+    assignBadCustomers();
+    robbers=[];guards=[];
+    setGuardCounts(0,0);
+    spCooldown=0;checkCooldown=0;spFlashTimer=0;spActive=false;
+    document.getElementById('robberAlert').style.display='none';
+  }
+  prog.played=(prog.played|0)+1;
+  document.getElementById('homeScreen').style.display='none';
+  document.body.classList.remove('on-title');
+  gameRunning=true;
+  scheduleFirstRobber();
+  saveProgress();
+}
+
+// 🏠 Menu: 保存してタイトル画面へ(ハブへ戻れる)
+function goHome(){
+  if(!gameRunning) return;
+  saveProgress();
+  gameRunning=false;
+  robbers=[];
+  document.getElementById('robberAlert').style.display='none';
+  closeStorePanel(); closeSecShop(); closeCheck();
+  document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'));
+  document.getElementById('homeScreen').style.display='flex';
+  document.body.classList.add('on-title');
+  refreshTitle();
+  drawHomeBg();
+}
+
+// New Game はセーブがある時だけ2回押しで確認
+let newGameArmed=0;
+function newGameTap(){
+  const b=document.getElementById('newGameBtn');
+  if(!hasSave||Date.now()<newGameArmed){ newGameArmed=0; startGame(true); return; }
+  newGameArmed=Date.now()+3000;
+  b.classList.add('confirm'); b.textContent='Tap again to start over';
+  SFX.tap();
+  setTimeout(()=>{ if(Date.now()>=newGameArmed){ b.classList.remove('confirm'); b.textContent='🆕 New Game'; } },3100);
+}
+
+function refreshTitle(){
+  const cont=document.getElementById('continueBtn');
+  cont.style.display=hasSave?'block':'none';
+  document.getElementById('continueSub').textContent=hasSave?`${MALL_DEFS[currentMall].name} · $${Math.floor(coins).toLocaleString()}`:'';
+  const ng=document.getElementById('newGameBtn');
+  ng.classList.remove('confirm'); ng.textContent=hasSave?'🆕 New Game':'▶ Play';
+  try{ document.getElementById('titleOutfit').innerHTML=MokuMoint.outfitSVG(MokuMoint.closet().equipped); }catch(e){}
+  try{
+    document.getElementById('tmBal').textContent=MokuMoint.balance().toLocaleString('en-US');
+    document.getElementById('tmToday').textContent='· Today '+MokuMoint.earnedToday(GAME_ID)+' / '+MokuMoint.DAILY_GAME_CAP;
+    document.getElementById('titleMoint').style.display='block';
+  }catch(e){}
+}
+refreshTitle();
+updateSoundBtn();
+
+// 自動保存(コインは毎秒増えるので5秒ごと)と、ページを閉じる・隠す時
+setInterval(()=>{ if(gameRunning) saveProgress(); },5000);
+document.addEventListener('visibilitychange',()=>{ if(document.hidden&&gameRunning) saveProgress(); });
+window.addEventListener('pagehide',()=>{ if(gameRunning) saveProgress(); });
+
+// Start home screen animation
+drawHomeBg();
+// Don't auto-start the game loop robber timer — wait for startGame()
+
+</script>
+
+</body>
+</html>
