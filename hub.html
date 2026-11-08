@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<script src="shared/moku-errors.js?v=20261108c"></script>
-<script src="shared/moku-gate.js?v=20261108c"></script>
+<script src="shared/moku-errors.js?v=20261108b"></script>
+<script src="shared/moku-gate.js?v=20261108b"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Moku Series</title>
 <!-- Icons: made by scripts/make-icons.py. Bump ?v= when they change so browsers refetch. -->
@@ -2948,6 +2948,32 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
       }
     },
     {
+      name: 'Sir CEO Moku',
+      card: 'ceo',
+      gameId: 'ceo-moku',
+      // 会話の部屋なので「全部クリア」はない。来た日数とクイズの正解で少しずつ進む
+      isCompleted: function () { return isExplicitlyMarked('completed', 'ceo'); },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'ceo')) return true;
+        var m = readJSON('moku:ceo-moku:memory');
+        return Boolean(m && m.visits > 0);
+      },
+      progress: function () {
+        var m = readJSON('moku:ceo-moku:memory');
+        if (!m) return 0;
+        return Math.min(1, ((m.days | 0) + (m.quiz && m.quiz.wins | 0)) / 40);
+      },
+      badge: function () {
+        var m = readJSON('moku:ceo-moku:memory');
+        if (!m || !this.isPlayed()) return null;
+        var line = '🎩 ' + (m.days | 0) + (m.days === 1 ? ' visit' : ' visits');
+        var wins = m.quiz ? m.quiz.wins | 0 : 0;
+        if (wins) line += ' · 🧩 ' + wins + ' quiz' + (wins === 1 ? '' : 'zes');
+        if (m.bonusTotal) line += ' · 🎁 +' + num(m.bonusTotal);
+        return line;
+      }
+    },
+    {
       name: 'Mokuball',
       card: null,
       gameId: 'mokuball',
@@ -3002,7 +3028,8 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     mch: { title: 'Strongest CPU Beaten', read: function () { var p = readJSON('moku:moku-chess:progress'); return p && p.best; }, fmt: function (n) { return 'Lv.' + n + ' / 10'; } },
     mwr: { title: 'Riddles Solved', read: riddlesSolved, fmt: function (n) { return n + ' / ' + riddleTotal() + ' 🧩'; } },
     mdp: { title: 'Races Won', read: dropperWins, fmt: function (n) { return n + ' / ' + DROPPER_RACES.length + ' 🥇'; } },
-    mml: { title: 'Most Coins', read: function () { var p = readJSON('moku:moku-mall:progress'); return p && p.bestCoins; }, fmt: function (n) { return '$' + num(n); } }
+    mml: { title: 'Most Coins', read: function () { var p = readJSON('moku:moku-mall:progress'); return p && p.bestCoins; }, fmt: function (n) { return '$' + num(n); } },
+    ceo: { title: 'Pop Quizzes Solved', read: function () { var m = readJSON('moku:ceo-moku:memory'); return m && m.quiz && m.quiz.wins; }, fmt: function (n) { return n + ' 🧩'; } }
   };
   function myRecords() {
     var out = {};
@@ -3171,7 +3198,11 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     mml: { name: 'Moku Mall', gameId: 'moku-mall', genre: 'Mall Builder', cta: 'Build', hi: '#FF8A9E', lo: '#7A2433', newUntil: '2026-12-08',
            tag: 'Build it. Guard it. Grow it!',
            desc: 'Open shops to earn coins, hire guards, and run around as Moku to stop robbers at the ATMs. Fill all 10 stores to unlock the next mall. Made by one of our young game designers!',
-           moint: { cap: true, how: 'Catch a robber: +30. Catch a Super Robber: +50. Fill every store in a mall for the first time: +100 to +500.' } }
+           moint: { cap: true, how: 'Catch a robber: +30. Catch a Super Robber: +50. Fill every store in a mall for the first time: +100 to +500.' } },
+    ceo: { name: 'Sir CEO Moku', gameId: 'ceo-moku', genre: 'Chat & Quiz', cta: 'Visit', hi: '#D9925A', lo: '#6A3A1C', newUntil: '2026-12-08',
+           tag: 'Meet the boss of Moku games!',
+           desc: 'Visit Sir CEO Moku in his office. He picks a game for you every day, gives surprise quizzes, and listens to your game ideas. He is a little silly… and a little greedy.',
+           moint: { how: 'CEO\'s Pick: play his pick of the day, then come back for a 20% CEO Bonus on the Moints you earned there. Pop Quiz: +100 (once a day).' } }
   };
   // For "Get the latest games & updates" (shared/moku-account.js): the games
   // this hub lists, so it can say which ones the last update didn't know about.
@@ -3181,7 +3212,7 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
   var SHELVES = [
     { title: 'Action & Sports', sub: 'Fling, kick, fight, race', cards: ['mdp', 'mfg', 'mfr', 'mkt', 'br', 'mk', 'am'] },
     { title: 'Puzzle & Brain',  sub: 'Think, match, merge',      cards: ['mwr', 'mch', 'md', 'so', 'mm'] },
-    { title: 'Cozy & Create',   sub: 'Take it slow',             cards: ['mml', 'mw6', 'mrc', 'fm', 'mf', 'mb', 'mc'] },
+    { title: 'Cozy & Create',   sub: 'Take it slow',             cards: ['ceo', 'mml', 'mw6', 'mrc', 'fm', 'mf', 'mb', 'mc'] },
     { title: 'Party & Arcade',  sub: 'Play with friends',        cards: ['mbr', 'mw', 'mr'] }
   ];
   // Today's Pick rotates daily through titles whose screenshot shows real gameplay.
@@ -4492,9 +4523,9 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
   };
 })();
 </script>
-<script src="shared/moku-account.js?v=20261108c"></script>
-<script src="shared/moku-transfer.js?v=20261108c"></script>
-<script src="shared/moku-moint.js?v=20261108c"></script>
+<script src="shared/moku-account.js?v=20261108b"></script>
+<script src="shared/moku-transfer.js?v=20261108b"></script>
+<script src="shared/moku-moint.js?v=20261108b"></script>
 <script>
 // ---------- Invites (SPEC.md §7) ----------
 // Friends waiting for you in a multiplayer game, at the top of the hub:
