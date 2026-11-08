@@ -597,7 +597,7 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
         el.textContent = full.slice(0, n);
         if (n % 3 === 1 && full[n - 1] !== ' ') blip();
         if (n >= full.length) done();
-      }, ja() ? 40 : 26);   // 日本語は1文字が長いので少しゆっくり
+      }, ja() ? 57 : 37);   // 1文字ずつ出す間隔(ms)。2026-11-08 に「早い」の声で前(英 26 / 日 40)の 7 割の速さにした。日本語は1文字が長いので少しゆっくり
       typing = { finish: done };
     });
   }
