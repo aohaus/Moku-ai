@@ -264,7 +264,7 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v1.0.3 · Updated Nov 8, 2026</div>
+<div id="buildInfo">v1.0.4 · Updated Nov 8, 2026</div>
 <canvas id="c"></canvas>
 
 <div id="coinHud">
@@ -1727,7 +1727,7 @@ function loop(ts){
       if(rob.phase==='dead'||rob.phase==='stunned') return;
       const rdx=moku.tx-rob.tx, rdy=moku.ty-rob.ty;
       const rdist=Math.sqrt(rdx*rdx+rdy*rdy);
-      if(rdist<2.5){
+      if(rdist<2.5&&rdist>0.01){ // 0 で割ると位置が NaN になるので、ぴったり重なった時は押さない
         // Push robber away from moku direction
         rob.tx-=rdx/rdist*0.04;
         rob.ty-=rdy/rdist*0.04;
@@ -1808,6 +1808,21 @@ function loop(ts){
       }
       return;
     }
+    // 盗んだあとは近い方の横の出口へ走って逃げる(以前は ATM の前に居座り、次の泥棒も来なかった)。
+    // 逃げている間もつかまえられる。出口に着いたら消える(Moint・+$200 はなし)。
+    if(rob.phase==='escape'){
+      const ex=rob.exitTx-rob.tx;
+      if(Math.abs(ex)>0.2){
+        rob.tx+=Math.sign(ex)*rob.speed*1.2*dt/TILE;
+        rob.facingLeft=ex<0;
+      } else {
+        rob.phase='dead'; rob.alpha=0;
+        showToast('💨 The robber ran away!');
+        if(!robbers.some(r=>r.phase!=='dead'))
+          document.getElementById('robberAlert').style.display='none';
+        return;
+      }
+    } else {
     // Move toward ATM
     const dx=rob.targetAtm.tx-rob.tx,dy=rob.targetAtm.ty-rob.ty;
     const dist=Math.sqrt(dx*dx+dy*dy);
@@ -1816,8 +1831,9 @@ function loop(ts){
       rob.ty+=dy/dist*rob.speed*dt/TILE;
       rob.facingLeft=dx<0;
     } else if(rob.phase==='approach'){
-      // Reached ATM — steal money
-      rob.phase='rob';
+      // Reached ATM — steal money, then run for the nearest side exit
+      rob.phase='escape';
+      rob.exitTx=rob.tx<TOTAL_W/2?0.2:TOTAL_W-0.2;
       const stolen=Math.floor(100+Math.random()*400); // 100-500
       const actualStolen=Math.min(stolen,coins);
       coins=Math.max(0,coins-actualStolen);
@@ -1828,6 +1844,7 @@ function loop(ts){
       SFX.steal();
       // Check game over
       if(coins<=0){ triggerGameOver(); return; }
+    }
     }
     // Super robber: cannot be stunned by touch alone — needs superpower
     if(!rob.isSuper){
