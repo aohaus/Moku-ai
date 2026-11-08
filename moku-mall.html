@@ -264,7 +264,7 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v1.0.0 · Updated Nov 8, 2026</div>
+<div id="buildInfo">v1.0.1 · Updated Nov 8, 2026</div>
 <canvas id="c"></canvas>
 
 <div id="coinHud">
@@ -419,19 +419,23 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
 // ══════════════════════════════════════════════
 const canvas=document.getElementById('c'), ctx=canvas.getContext('2d');
 // 横向き専用。画面が小さい(iPhone の横持ちなど)時は、モール全体が入るように描く範囲を広げて縮小表示する。
-// canvas の内部サイズ = CSS の大きさ ÷ viewScale(描画コードは canvas.width/height をそのまま使う)。
+// 描画コードは「論理サイズ」VW × VH(= CSS の大きさ ÷ viewScale)の座標で描く。
+// 実際の canvas は Retina でぼやけないよう、画面の画素数(devicePixelRatio、最大2)ぶん細かくし、
+// 毎フレームの最初に setTransform(pxRatio) で論理座標 → 画素に合わせる。
 const VIEW_MIN_W=1000, VIEW_MIN_H=860;
-let viewScale=1;
+let viewScale=1, VW=0, VH=0, pxRatio=1;
 function resize(){
   const w=window.innerWidth,h=window.innerHeight;
   viewScale=Math.min(1,w/VIEW_MIN_W,h/VIEW_MIN_H);
-  canvas.width=Math.round(w/viewScale); canvas.height=Math.round(h/viewScale);
+  VW=Math.round(w/viewScale); VH=Math.round(h/viewScale);
+  pxRatio=Math.min(window.devicePixelRatio||1,2)*viewScale;
+  canvas.width=Math.round(VW*pxRatio); canvas.height=Math.round(VH*pxRatio);
 }
 resize(); window.addEventListener('resize',resize);
-// タップ位置(CSS px)→ canvas の座標
+// タップ位置(CSS px)→ 論理座標
 function toCanvas(e){
   const r=canvas.getBoundingClientRect();
-  return {x:(e.clientX-r.left)*canvas.width/r.width, y:(e.clientY-r.top)*canvas.height/r.height};
+  return {x:(e.clientX-r.left)*VW/r.width, y:(e.clientY-r.top)*VH/r.height};
 }
 
 // ══════════════════════════════════════════════
@@ -843,15 +847,15 @@ window.addEventListener('keyup',  e=>keys[e.key]=false);
 // COORDINATES
 // ══════════════════════════════════════════════
 function getOrigin(){
-  const W=canvas.width,H=canvas.height;
+  const W=VW,H=VH;
   return {ox:W/2-(TOTAL_W*TILE)/2-camX, oy:H/2-(TOTAL_H*TILE)/2-camY};
 }
 function t2s(tx,ty){
-  const {ox,oy}=getOrigin(),H=canvas.height;
+  const {ox,oy}=getOrigin(),H=VH;
   return {x:ox+tx*TILE, y:(oy+ty*TILE)*SKEW+H*(1-SKEW)*0.5};
 }
 function s2t(sx,sy){
-  const {ox,oy}=getOrigin(),H=canvas.height;
+  const {ox,oy}=getOrigin(),H=VH;
   const rawY=(sy-H*(1-SKEW)*0.5)/SKEW;
   return {tx:(sx-ox)/TILE, ty:(rawY-oy)/TILE};
 }
@@ -894,7 +898,8 @@ function box3D(sx,sy,w,h,wallH,cTop,cRight,cFront){
 // DRAW SCENE
 // ══════════════════════════════════════════════
 function drawScene(){
-  const W=canvas.width,H=canvas.height;
+  ctx.setTransform(pxRatio,0,0,pxRatio,0,0);
+  const W=VW,H=VH;
   const {ox,oy}=getOrigin();
   const mW=TOTAL_W*TILE, mH=TOTAL_H*TILE;
 
