@@ -70,6 +70,7 @@ Mokuball は実装済みだがハブ未公開(準備中)。
     - Moku Word Riddles: `#C4D04A` / `#56601A`(オリーブ。鉛筆と葉っぱのノートの色)
     - Moku Dropper: `#A79BFF` / `#3F3590`(ライラック。木の根元の紫のポータルの色)
     - Moku Mall: `#FF8A9E` / `#7A2433`(ローズ。ショッピングバッグの色)
+    - Sir CEO Moku: `#D9925A` / `#6A3A1C`(マホガニー。社長の机の色)
     - 追加タイトルは新規ペアを定義(既存と被らない色相を選ぶ)
 - **タイポグラフィ**: `-apple-system, "Segoe UI", Roboto, sans-serif`。見出しは `font-weight: 800`、字間 `0.01〜0.04em`。
 - **タイトル画面メニューの統一(2026-08-14〜)**: フォント**ファミリー**はゲームごとの世界観を尊重して統一しない(Angry MokumokuはCourier New、他はArial/システムフォントのままでよい)。ただし**サイズ・太さ・揃え方・行間**は統一する。
@@ -308,7 +309,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
 - 他のタイトルで Moint を配る・使う場合も同じキーを読み書きする。`balance` は 0 未満にしない。
 - **他のゲームへの展開**(2026-10-25〜、1本ずつ): 相場は「1回遊ぶ(2〜3分)と 50〜150、毎日遊べば 300 Moint の物が1日1個買える」。
   - 配る時は `MokuMoint.earn(gameId, amount)`。毎回もらえる分(勝ち・クリアなど)は**1ゲーム1日 500 まで**(`DAILY_GAME_CAP`)。1回きりの実績は `{ capped: false }` で上限の外。今日の分は `moku:moint:earned` = `{ version: 1, day, games: { gameId: n }, updatedAt }`(クラウドセーブではこの端末の値を使う)。実績を受け取ったかどうかはそのゲーム自身のセーブに記録する(2台で食い違った時、ゲームごとに選ばせるため)。
-  - **ハブの印**: `hub.html` の `CATALOG` に `moint: { how, cap }` を書いたゲームは、タイルの左上に小さい金色のMコインが付き、詳細シートに「Earn Moints」(もらい方の説明。`cap` があれば今日の分 n / 500)が出る。今は Moku Fight / Moku Bridge / Moku Drop / Moyomoyo / MK Mobile / Moku Chess / Moku Word Riddles / Moku Dropper / Moku Rhythm Cafe / Moku Bento / Moku Future Run / Moku Mall。
+  - **ハブの印**: `hub.html` の `CATALOG` に `moint: { how, cap }` を書いたゲームは、タイルの左上に小さい金色のMコインが付き、詳細シートに「Earn Moints」(もらい方の説明。`cap` があれば今日の分 n / 500)が出る。今は Moku Fight / Moku Bridge / Moku Drop / Moyomoyo / MK Mobile / Moku Chess / Moku Word Riddles / Moku Dropper / Moku Rhythm Cafe / Moku Bento / Moku Future Run / Moku Mall / Sir CEO Moku。
   - 次の候補: Moku Kart(独自コインがあるので実績だけにするか要相談)など。
 - **Moku Drop**(2026-10-26〜): ビンがいっぱいになった(JAR FULL)時の画面に内訳と今日の分 n / 500。途中で 🔄 でやり直した回は払わない。
   - 毎回(上限 500/日): スコア 100 点ごとに 1(1回で最大 150。コンボで点が大きく伸びるので Moyomoyo より割る数を大きくした)。自己ベスト更新 +30(ベストが 0 の初回は除く)。
@@ -367,6 +368,12 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
   - 泥棒は ATM で盗んだあと、近い方の横の出口へ走って逃げ、着いたら消える(逃げている間もつかまえられる。逃げられた分の Moint・+$200 はなし)。取り込み前は ATM の前に居座り、スーパー泥棒だと次の泥棒も来なかった。悪いお客さんはモールを切り替えるたびに1〜2人入れ直す。
   - 背景(v1.1.0): モール名に合わせて描いた。Moku's Garden Mall = 晴れた花の庭(花壇・木・温室・バラのアーチ・チョウ)、Moku Sunshine Resort Mall = いちばん豪華な海辺のリゾート(太陽・海・ヤシ・噴水のプール・パラソル)。壁と床の色もそれぞれの雰囲気に合わせた(`MALL_DEFS`)。モールの建物が真ん中をおおうので、見どころは左右の端に置き、メニュー・Check / Superpower・ジョイスティックと重ならない高さにする。看板は右の壁と画面の端のすき間に入る大きさで描き、狭い時は短い名前にする(`drawSignBoard`)。
   - 画面: 横向き専用(縦持ちは `#rotate-hint`)。Retina では canvas を最大2倍の画素で描く(`pxRatio`。描画は論理サイズ `VW` × `VH` の座標)。モールの絵は決まった大きさ(`TILE` 44)なので、画面が 1000×860 より小さい時は canvas の内部サイズを広げて全体を縮小表示する(`VIEW_MIN_W` / `VIEW_MIN_H`、`toCanvas()` でタップ位置を直す)。背の低い画面(高さ 520px 以下)では店の一覧を 5 列にする。
+- **Sir CEO Moku**(`ceo-moku.html`、2026-11-08〜、v0.1.0。ハブの Cozy & Create、Achievements は Pop Quizzes Solved): Moku-ai games のオーナー「Sir CEO Moku」(シルクハット・モノクル・Moint Medallion。表情は Closet の Moods を会話に合わせて切り替え、大事なセリフで寄る)の社長室で会話する。会話はスクリプトで、外部への通信はしない。UI は英語で、口ぐせは文末の「…, moku」。
+  - **CEO's Pick**(+20% の CEO Bonus): 毎日1本、Moint を配るゲームから選ぶ(シード `ceo-pick-<日付>`、全員同じ、前日と同じにしない)。**+20% はゲームの外のボーナス**: 社長室で発表を聞いた時の、そのゲームの今日の「毎回もらえる分」(`MokuMoint.earnedToday`)を覚えておき、社長室に戻ってくると、そこから増えた分の 20%(切り捨て)を CEO Bonus として払う(`earn('ceo-moku', n, { capped: false })`)。各ゲームと `shared/moku-moint.js` は変えない。1回きりの実績はボーナスに入らない。ハブの Today's Pick とは別物。
+  - **Pop Quiz**(1日1問): Moku Word Riddles の問題(`data/riddles-db.md`、Easy を優先)を4択で。正解 100 Moint(`{ capped: false }`)。答える前に記録するので、読み直してもやり直せない。会話の途中で突然始まることもある。
+  - **ゲームのアイデア**: 160 文字まで。キーワードでコメント(★4 か ★5。子どもの案を下げない)+考えを深める質問。最新 10 件を覚えていて、次に来た時に話題にする。
+  - **寄付のおねだり**: ゲーム内の Moint 10 だけ。1日1回、残高 50 以上の時だけ。断っても何も起きない。
+  - 記録は `moku:ceo-moku:memory` = `{ version: 1, gameId, visits, days, firstDay, lastDay, log: [{ at, who, text }](最新 40), ideas: [{ day, text }], quiz: { day, wins, tries, seen }, donate: { askedDay, count, total }, pick: { day, gameId, base, paid }, bonusTotal, pokes, talks, updatedAt }`。音のオン/オフは `moku:ceo-moku:settings`。
 - **Moku Fight**(2026-10-25〜): 結果画面に内訳(コインが数え上がる)。タイトル画面に残高と今日の分。負けても減らない。
   - 毎回(上限 500/日): 勝ち Easy 30 / Normal 60 / Hard 120。ノーダメージで取ったラウンドがあれば +20。連勝ボーナスは2連勝目から1つごとに +10(最大 +50)。
   - 1回きり: ライバルごと・CPUの難易度ごとの初勝利 100 / 200 / 300(ゲストのライバルも)。Goro への初勝利は 500(その時の難易度の初勝利も済みにする)。新しい技を覚えた 50。技の練習を初めて終えた 10。

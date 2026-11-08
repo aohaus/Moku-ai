@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script src="shared/moku-errors.js?v=20261108b"></script>
+<script src="shared/moku-gate.js?v=20261108b"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Sir CEO Moku</title>
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<!--
+  Sir CEO Moku(MVP、2026-11-08)
+  Moku-ai games のオーナー「Sir CEO Moku」の社長室で、会話して遊ぶページ。ハブの Cozy & Create の棚に出している。
+  - 会話はスクリプト(AI は使わない。外部への通信もしない)。選択肢を押して進む。
+  - 記憶: moku:ceo-moku:memory に、訪れた日・会話の記録(最新 40 行)・ゲームのアイデア・クイズ・寄付を残す。
+    クラウドセーブ・引き継ぎコードの対象(moku: 接頭辞)。次に来た時のあいさつが変わる。
+  - CEO's Pick: 毎日1本おすすめを決める(日付からのシード、全員同じ)。+20% は**ゲームの外のボーナス**:
+    ここで発表を聞いた時の、そのゲームの今日の「毎回もらえる分」(MokuMoint.earnedToday)を覚えておき、
+    社長室に戻ってくると、そこから増えた分の 20% を CEO Bonus として払う(ceo-moku の Moint、上限の外)。
+    ゲームの中のコードと shared/moku-moint.js は変えない。記録は memory の pick = { day, gameId, base, paid }。
+    ハブの Today's Pick(スクリーンショットのある4本から)とは別物なので、名前を「CEO's Pick」にした。
+  - Pop Quiz: Moku Word Riddles の問題(data/riddles-db.md、shared/moku-riddles.js)から1日1問、4択。正解で 100 Moint(1日1回、上限の外)。
+  - Game idea: 子どもが書いたアイデアに、キーワードでコメントを返し、考えを深める質問をする。記憶に残る(最新 10 件)。
+  - Donation: ときどき 10 Moint の「寄付」をおねだりする(ゲーム内の Moint だけ。1日1回、残高 50 以上の時だけ。断っても何も起きない)。
+  - 表情: Moku Closet の Moods(表情)と、CEO の服(Top Hat / Monocle / Moint Medallion)を MokuMoint.outfitSVG() で重ねる。
+    大事なセリフでは Moku に寄る(#stage.close)。
+-->
+<style>
+:root {
+  --hi: #D9925A; --lo: #6A3A1C;               /* マホガニー(CEO の机の色) */
+  --ink: #3B2A20; --ink-soft: #8B6E57;
+  --paper: #FFF7E8; --paper-line: rgba(139,90,43,0.10);
+  --wood: #7A4A2C; --wood-dark: #4E2C17;
+  --round: "Fredoka", -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  background: #2E1A0E;
+  color: var(--ink);
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  overflow: hidden;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+#app {
+  position: fixed; inset: 0;
+  display: flex; flex-direction: column;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+
+/* ---------- 社長室 ---------- */
+#stage { position: relative; flex: 1 1 auto; min-height: 170px; overflow: hidden; cursor: pointer; }
+#room { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#ceo {
+  position: absolute; left: 50%;
+  bottom: calc(var(--dk, 80px) * 0.42);
+  width: var(--mk, 240px); aspect-ratio: 1 / 1;
+  transform: translateX(-50%);
+  transform-origin: 50% 45%;
+  transition: transform .45s cubic-bezier(.3,1.4,.5,1);
+}
+#ceo .bob { position: absolute; inset: 0; animation: bob 3s ease-in-out infinite; }
+#ceo img, #ceo .mm-outfit { position: absolute; inset: 0; width: 100%; height: 100%; display: block; object-fit: contain; }
+#ceo .face { position: absolute; inset: 0; }
+#ceo .face.pop { animation: facePop .32s ease-out; }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2.5%); } }
+@keyframes facePop { 0% { transform: scale(1); } 40% { transform: scale(1.05); } 100% { transform: scale(1); } }
+#stage.close #ceo { transform: translateX(-50%) translateY(6%) scale(1.32); }
+#stage.hop #ceo .bob { animation: hop .45s ease-out; }
+@keyframes hop { 0% { transform: translateY(0); } 35% { transform: translateY(-9%); } 100% { transform: translateY(0); } }
+#desk {
+  position: absolute; left: 50%; bottom: 0;
+  width: min(100%, calc(var(--mk, 240px) * 2.3)); height: var(--dk, 80px);
+  transform: translateX(-50%);
+  transition: transform .45s ease;
+}
+#stage.close #desk { transform: translateX(-50%) translateY(18%); }
+#desk svg { width: 100%; height: 100%; display: block; }
+
+/* ひとりごと */
+#thought {
+  position: absolute; z-index: 5;
+  left: 50%; bottom: calc(var(--dk, 80px) * 0.42 + var(--mk, 240px) * 0.86);
+  transform: translateX(8%);
+  max-width: min(260px, 60vw);
+  padding: 8px 12px; border-radius: 16px;
+  background: rgba(255,247,232,0.92); color: var(--ink-soft);
+  font: italic 600 13px/1.35 var(--round);
+  box-shadow: 0 4px 12px rgba(40,20,8,0.25);
+  opacity: 0; pointer-events: none; transition: opacity .35s ease;
+}
+#thought::after { content: ''; position: absolute; left: 14px; bottom: -10px; width: 10px; height: 10px; border-radius: 50%; background: rgba(255,247,232,0.92); }
+#thought.on { opacity: 1; }
+
+/* クイズのカード(Moku Word Riddles と同じ描き方) */
+#quizCard {
+  position: absolute; z-index: 6; left: 50%; top: 50%;
+  width: min(86%, 440px, calc((100% - 24px) * 1.6)); aspect-ratio: 16 / 10;
+  max-height: calc(100% - 24px);
+  transform: translate(-50%, -50%) rotate(-1.5deg) scale(.6); opacity: 0;
+  border-radius: 14px;
+  background: repeating-linear-gradient(180deg, transparent 0 25px, var(--paper-line) 25px 26px), var(--paper);
+  box-shadow: 0 6px 0 #E3CFA8, 0 14px 26px rgba(40,20,8,0.4);
+  overflow: hidden; pointer-events: none;
+  transition: transform .4s cubic-bezier(.3,1.4,.5,1), opacity .25s ease;
+  --u: 4px;
+}
+#quizCard.on { opacity: 1; transform: translate(-50%, -50%) rotate(-1.5deg) scale(1); }
+#quizCard .chip { position: absolute; left: 12px; bottom: 10px; font: 800 11px var(--round); letter-spacing: .06em; padding: 3px 9px; border-radius: 999px; color: #fff; background: #D9534F; }
+.pc { position: absolute; transform: translate(-50%, -50%) rotate(var(--r, 0deg)) scaleX(var(--fx, 1)); font-family: var(--round); font-weight: 700; line-height: 1; white-space: pre; color: var(--ink); }
+.pc.vert { display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * 0.6); }
+.pc.line { height: calc(var(--u) * 0.9); border-radius: 4px; background: var(--ink); }
+.pc.op { color: var(--ink-soft); font-weight: 600; }
+.pc.box { border: calc(var(--u) * 0.9) solid var(--ink); border-radius: calc(var(--u) * 1.5); }
+
+/* ---------- 会話ウィンドウ ---------- */
+#panel {
+  position: relative; flex: 0 0 auto;
+  width: min(100% - 20px, 720px);
+  margin: 0 auto 30px;
+  padding: 22px 18px 14px;
+  border-radius: 18px;
+  background: repeating-linear-gradient(180deg, transparent 0 27px, var(--paper-line) 27px 28px), var(--paper);
+  border: 3px solid var(--wood);
+  box-shadow: 0 5px 0 var(--wood-dark), 0 14px 30px rgba(0,0,0,0.35);
+}
+#nameTag {
+  position: absolute; top: -15px; left: 16px;
+  padding: 4px 14px 5px; border-radius: 10px;
+  background: linear-gradient(180deg, #A9673C, #7A4A2C);
+  color: #FFE9C7; font: 700 14px var(--round); letter-spacing: .02em;
+  box-shadow: 0 2px 0 var(--wood-dark);
+}
+#nameTag .crown { margin-right: 4px; }
+#line {
+  min-height: 3.2em;
+  font: 600 clamp(15px, 2.3vw + 8px, 19px)/1.45 var(--round);
+  color: var(--ink);
+  -webkit-user-select: text; user-select: text;
+  overflow-wrap: anywhere;
+}
+#line b { color: #A0522D; }
+#next { position: absolute; right: 16px; bottom: 10px; color: var(--hi); font-size: 14px; opacity: 0; animation: nudge 1s ease-in-out infinite; }
+#next.on { opacity: 1; }
+@keyframes nudge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
+#choices { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+#choices:empty { display: none; }
+#choices button, #choices a, .sheet button {
+  flex: 1 1 calc(50% - 8px); min-width: 130px; min-height: 44px;
+  padding: 9px 12px; border-radius: 14px;
+  border: 2px solid #E3CFA8; background: #FFFDF7; color: var(--ink);
+  font: 700 15px/1.2 var(--round); text-align: center; text-decoration: none;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  box-shadow: 0 3px 0 #E3CFA8; cursor: pointer;
+  transition: transform .08s ease, box-shadow .08s ease;
+  -webkit-appearance: none; appearance: none;
+}
+#choices button:active, #choices a:active, .sheet button:active { transform: translateY(3px); box-shadow: 0 0 0 #E3CFA8; }
+#choices .main { background: linear-gradient(180deg, #E9A86C, #C97B43); border-color: #A8612F; color: #fff; box-shadow: 0 3px 0 #874A22; }
+#choices .main:active { box-shadow: 0 0 0 #874A22; }
+#choices .soft { color: var(--ink-soft); }
+#choices .tag { font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 999px; background: #FFE3A6; color: #8A5A10; }
+#choices .main .tag { background: rgba(255,255,255,0.28); color: #fff; }
+#choices button.right { background: #DDF2D4; border-color: #8CC77E; box-shadow: 0 3px 0 #8CC77E; }
+#choices button.wrong { background: #F8DCD6; border-color: #E29C8E; box-shadow: 0 3px 0 #E29C8E; opacity: .8; }
+#choices button:disabled { cursor: default; }
+#ideaBox { flex: 1 1 100%; display: flex; gap: 8px; }
+#ideaBox textarea {
+  flex: 1; min-height: 64px; resize: none;
+  padding: 10px 12px; border-radius: 12px; border: 2px solid #E3CFA8; background: #fff;
+  font: 600 16px/1.35 var(--round); color: var(--ink);
+  -webkit-user-select: text; user-select: text;
+}
+#ideaBox textarea:focus { outline: 3px solid rgba(217,146,90,0.45); border-color: var(--hi); }
+
+/* ---------- 上のバー ---------- */
+#topBar {
+  position: fixed; z-index: 42;
+  top: calc(env(safe-area-inset-top, 0px) + 22px);
+  left: calc(env(safe-area-inset-left, 0px) + 24px);
+  display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center;
+  max-width: calc(100vw - 210px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+}
+#pickPill { order: 3; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 11px; border-radius: 999px; border: 0;
+  background: rgba(46,26,14,0.72); color: #FFE9C7;
+  font: 700 13px var(--round); cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+.pill.coin b { color: #FFD56A; }
+#pickPill { display: none; }
+#pickPill.on { display: inline-flex; }
+
+/* ---------- 共通フレーム(SPEC.md §4・§5)。メニューの時だけ出す ---------- */
+#title-frame { position: fixed; inset: 14px; border: 3px solid var(--hi); border-radius: 10px; pointer-events: none; z-index: 40; }
+#title-frame::after { content: ''; position: absolute; inset: 5px; border: 1px solid var(--lo); border-radius: 8px; }
+#hub-link {
+  position: fixed; z-index: 41;
+  top: calc(env(safe-area-inset-top, 0px) + 22px); right: calc(env(safe-area-inset-right, 0px) + 24px);
+  font-size: 14px; font-weight: 800; color: #FFD9A8; text-decoration: none;
+  text-shadow: 0 1px 3px rgba(40,20,8,0.8);
+  animation: hubLinkPulse 2.2s ease-in-out infinite;
+}
+@keyframes hubLinkPulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+#buildInfo {
+  position: fixed; z-index: 41;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 9px); left: calc(env(safe-area-inset-left, 0px) + 18px);
+  font-size: 10.5px; letter-spacing: 0.02em; color: rgba(255,255,255,0.28); pointer-events: none;
+}
+body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
+
+/* ---------- 会話の記録 ---------- */
+.sheetWrap {
+  position: fixed; inset: 0; z-index: 60; display: none;
+  align-items: center; justify-content: center; padding: 16px;
+  background: rgba(30,18,10,0.55);
+}
+.sheetWrap.on { display: flex; }
+.sheet {
+  width: min(100%, 520px); max-height: min(80vh, 640px); display: flex; flex-direction: column;
+  border-radius: 18px; background: var(--paper); border: 3px solid var(--wood);
+  box-shadow: 0 14px 30px rgba(0,0,0,0.4); overflow: hidden;
+}
+.sheet h2 { font: 700 18px var(--round); padding: 14px 16px 8px; color: var(--wood); }
+.sheet .body { overflow-y: auto; padding: 0 16px 10px; -webkit-overflow-scrolling: touch; }
+.sheet .foot { padding: 10px 16px 14px; display: flex; }
+.logRow { margin: 8px 0; font: 600 14px/1.4 var(--round); }
+.logRow .who { display: block; font-size: 11px; font-weight: 800; letter-spacing: .04em; color: var(--ink-soft); }
+.logRow.you { text-align: right; }
+.logRow.you .txt { display: inline-block; background: #FFE9C7; border-radius: 12px 12px 2px 12px; padding: 6px 10px; }
+.logRow.ceo .txt { display: inline-block; background: #fff; border-radius: 12px 12px 12px 2px; padding: 6px 10px; border: 1px solid #F0DDBE; }
+.logDay { text-align: center; font: 800 11px var(--round); color: var(--ink-soft); margin: 14px 0 4px; letter-spacing: .05em; }
+.empty { color: var(--ink-soft); font: 600 14px var(--round); padding: 10px 0; }
+
+/* 紙吹雪 */
+.confetti { position: fixed; z-index: 55; width: 9px; height: 13px; border-radius: 2px; pointer-events: none; animation: fall 1.6s ease-in forwards; }
+@keyframes fall { to { transform: translateY(70vh) rotate(540deg); opacity: 0; } }
+
+/* 背の低い横長の画面(スマホの横持ち): 左に社長室、右に会話ウィンドウ */
+@media (max-height: 500px) and (orientation: landscape) {
+  #app { flex-direction: row; align-items: center; }
+  #stage { align-self: stretch; }
+  #panel { width: min(54%, 470px); margin: 0 14px 0 4px; padding: 38px 12px 10px; max-height: calc(100% - 64px); overflow-y: auto; }
+  #nameTag { top: 8px; }
+  #line { min-height: 2.6em; font-size: 15px; }
+  #choices button, #choices a { min-height: 38px; padding: 6px 10px; font-size: 14px; min-width: 120px; }
+  #buildInfo { bottom: calc(env(safe-area-inset-bottom, 0px) + 6px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #ceo .bob, #next, #hub-link { animation: none; }
+}
+</style>
+</head>
+<body class="on-title">
+<div id="app">
+  <div id="stage" aria-label="Sir CEO Moku's office">
+    <svg id="room" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+      <defs>
+        <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F6DFB6"/><stop offset="1" stop-color="#EBC994"/></linearGradient>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F7A86B"/><stop offset=".55" stop-color="#FBC98A"/><stop offset="1" stop-color="#FFE4B0"/></linearGradient>
+        <linearGradient id="panelWood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9A5F38"/><stop offset="1" stop-color="#6E3F22"/></linearGradient>
+        <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8E5532"/><stop offset="1" stop-color="#5E3319"/></linearGradient>
+        <radialGradient id="glow" cx="50%" cy="40%" r="60%"><stop offset="0" stop-color="#FFE7B8" stop-opacity=".55"/><stop offset="1" stop-color="#FFE7B8" stop-opacity="0"/></radialGradient>
+        <pattern id="stripes" width="28" height="28" patternUnits="userSpaceOnUse"><rect width="14" height="28" fill="#000" opacity=".025"/></pattern>
+      </defs>
+      <!-- 壁紙 -->
+      <rect width="1000" height="700" fill="url(#wall)"/>
+      <rect width="1000" height="700" fill="url(#stripes)"/>
+      <!-- 窓: 夕焼けの森 -->
+      <g transform="translate(330 70)">
+        <rect x="-14" y="-14" width="368" height="268" rx="18" fill="#7A4A2C"/>
+        <rect width="340" height="240" rx="10" fill="url(#sky)"/>
+        <circle cx="236" cy="168" r="40" fill="#FFE08A"/>
+        <circle cx="236" cy="168" r="60" fill="#FFE08A" opacity=".25"/>
+        <path d="M0 186 Q40 150 80 176 Q120 140 168 172 Q214 136 262 170 Q300 148 340 168 L340 240 L0 240Z" fill="#7FAE6B"/>
+        <path d="M0 206 Q50 176 104 200 Q160 172 214 198 Q272 176 340 196 L340 240 L0 240Z" fill="#5E8F52"/>
+        <g fill="#4C7A43"><path d="M44 214 l14 -40 l14 40z"/><path d="M286 214 l12 -34 l12 34z"/><path d="M150 222 l10 -28 l10 28z"/></g>
+        <g fill="#fff" opacity=".85"><ellipse cx="70" cy="56" rx="34" ry="12"/><ellipse cx="96" cy="48" rx="22" ry="12"/><ellipse cx="270" cy="70" rx="26" ry="9"/></g>
+        <rect x="164" y="0" width="12" height="240" fill="#7A4A2C"/>
+        <rect x="0" y="114" width="340" height="10" fill="#7A4A2C"/>
+        <!-- カーテン -->
+        <path d="M-30 -24 Q20 110 -6 262 L-44 262 L-44 -24Z" fill="#C8584A"/>
+        <path d="M370 -24 Q320 110 346 262 L384 262 L384 -24Z" fill="#C8584A"/>
+        <rect x="-50" y="-30" width="440" height="16" rx="8" fill="#5E3319"/>
+      </g>
+      <!-- 本棚(左) -->
+      <g transform="translate(40 120)">
+        <rect width="200" height="330" rx="10" fill="#7A4A2C"/>
+        <rect x="12" y="12" width="176" height="306" rx="6" fill="#5E3319"/>
+        <rect x="12" y="110" width="176" height="10" fill="#7A4A2C"/>
+        <rect x="12" y="212" width="176" height="10" fill="#7A4A2C"/>
+        <g>
+          <rect x="22" y="40" width="18" height="70" rx="3" fill="#E98FC7"/><rect x="42" y="30" width="16" height="80" rx="3" fill="#6E7BFF"/>
+          <rect x="60" y="46" width="20" height="64" rx="3" fill="#FFC94A"/><rect x="82" y="36" width="14" height="74" rx="3" fill="#2EC4B6"/>
+          <!-- トロフィー -->
+          <path d="M128 64 h36 v12 q0 22 -18 26 q-18 -4 -18 -26z" fill="#F2C14E"/><rect x="140" y="100" width="12" height="6" fill="#D9A23A"/><rect x="132" y="104" width="28" height="6" rx="2" fill="#B9842A"/>
+        </g>
+        <g>
+          <!-- Moku のぬいぐるみ -->
+          <ellipse cx="60" cy="192" rx="28" ry="22" fill="#C99A6B"/><circle cx="50" cy="186" r="7" fill="#fff"/><circle cx="70" cy="186" r="7" fill="#fff"/>
+          <circle cx="50" cy="187" r="3.4" fill="#3B2A20"/><circle cx="70" cy="187" r="3.4" fill="#3B2A20"/><path d="M57 194 l3 5 l3 -5z" fill="#E8932A"/>
+          <path d="M44 168 l6 -10 l6 10z M64 168 l6 -10 l6 10z" fill="#C99A6B"/>
+          <rect x="110" y="150" width="18" height="62" rx="3" fill="#FF8A9E"/><rect x="130" y="160" width="22" height="52" rx="3" fill="#4CBE55"/><rect x="154" y="142" width="16" height="70" rx="3" fill="#B98CFF"/>
+        </g>
+        <g>
+          <!-- 植木鉢とサボテン -->
+          <rect x="36" y="282" width="40" height="34" rx="5" fill="#D9774A"/><path d="M56 282 v-40 q0 -10 8 -10 q8 0 8 10 v40z" fill="#6FAE5A"/><circle cx="64" cy="230" r="5" fill="#FF9FB5"/>
+          <!-- 地球儀 -->
+          <circle cx="140" cy="276" r="26" fill="#7EC4E8"/><path d="M124 266 q10 -10 20 0 q6 8 -4 14 q-10 6 -16 -2z M146 282 q8 -4 12 4 q-4 8 -12 4z" fill="#79B35E"/><rect x="132" y="302" width="16" height="12" rx="3" fill="#8B5A2B"/>
+        </g>
+      </g>
+      <!-- 額縁(右): 会社のポスター -->
+      <g transform="translate(770 110) rotate(2)">
+        <rect width="170" height="200" rx="10" fill="#7A4A2C"/>
+        <rect x="12" y="12" width="146" height="176" rx="6" fill="#FFF3DC"/>
+        <text x="85" y="58" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="24" fill="#A0522D">MOKU</text>
+        <text x="85" y="84" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="16" fill="#D9925A">GAMES INC.</text>
+        <path d="M40 160 L62 132 L84 146 L106 112 L130 120" stroke="#4CBE55" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M120 112 l14 4 l-6 12z" fill="#4CBE55"/>
+        <text x="85" y="178" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="600" font-size="11" fill="#8B6E57">(snack budget ↑)</text>
+      </g>
+      <!-- 観葉植物(右下) -->
+      <g transform="translate(830 360)">
+        <path d="M60 60 q-60 -40 -40 -110 q30 40 40 110z" fill="#6FAE5A"/><path d="M60 60 q40 -70 80 -80 q-10 60 -80 80z" fill="#5E9A4E"/><path d="M60 60 q0 -90 10 -130 q20 60 -10 130z" fill="#86C26E"/>
+        <path d="M24 60 h72 l-10 70 h-52z" fill="#C8784A"/><rect x="18" y="54" width="84" height="12" rx="6" fill="#B0643A"/>
+      </g>
+      <!-- 腰板と床 -->
+      <rect x="0" y="470" width="1000" height="230" fill="url(#panelWood)"/>
+      <g stroke="#5E3319" stroke-width="3" opacity=".5"><path d="M0 476 H1000"/><path d="M120 480 V700 M290 480 V700 M460 480 V700 M630 480 V700 M800 480 V700"/></g>
+      <rect x="0" y="620" width="1000" height="80" fill="url(#floor)"/>
+      <!-- 赤じゅうたん -->
+      <ellipse cx="500" cy="680" rx="380" ry="40" fill="#B4473C"/><ellipse cx="500" cy="680" rx="340" ry="30" fill="none" stroke="#E7B35A" stroke-width="4" stroke-dasharray="10 8"/>
+      <rect width="1000" height="700" fill="url(#glow)"/>
+    </svg>
+
+    <div id="ceo" aria-hidden="true">
+      <div class="bob">
+        <img src="brand/mokumoku-hero.png" alt="">
+        <div class="face" id="ceoFace"></div>
+      </div>
+    </div>
+
+    <div id="desk" aria-hidden="true">
+      <svg viewBox="0 0 600 150" preserveAspectRatio="none">
+        <defs><linearGradient id="deskTop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#B26E40"/><stop offset="1" stop-color="#8E532D"/></linearGradient></defs>
+        <rect x="0" y="26" width="600" height="124" rx="10" fill="#7A4424"/>
+        <rect x="0" y="14" width="600" height="26" rx="10" fill="url(#deskTop)"/>
+        <g stroke="#5E3319" stroke-width="3" opacity=".45" fill="none"><path d="M40 70 q260 -14 520 0"/><path d="M60 110 q240 -10 480 0"/></g>
+        <!-- 名札 -->
+        <rect x="200" y="58" width="200" height="50" rx="8" fill="#F2C14E" stroke="#B9842A" stroke-width="3"/>
+        <text x="300" y="91" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="22" fill="#5E3319">SIR CEO MOKU</text>
+      </svg>
+    </div>
+    <!-- 机の上の小物(机の天板より手前) -->
+    <svg id="deskToys" aria-hidden="true" viewBox="0 0 600 150" preserveAspectRatio="none" style="position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:min(100%, calc(var(--mk, 240px) * 2.3));height:var(--dk, 80px);pointer-events:none;overflow:visible">
+      <!-- マグカップ -->
+      <g transform="translate(470 -26)"><rect width="40" height="44" rx="8" fill="#FFF3DC" stroke="#D9C4A0" stroke-width="2"/><path d="M40 12 q16 0 16 12 q0 12 -16 12" stroke="#D9C4A0" stroke-width="5" fill="none"/><text x="20" y="30" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="14" fill="#C8584A">#1</text></g>
+      <!-- Moint の山 -->
+      <g transform="translate(80 -6)"><ellipse cx="22" cy="16" rx="22" ry="7" fill="#C98A14"/><ellipse cx="22" cy="10" rx="22" ry="7" fill="#E0A21B"/><ellipse cx="22" cy="4" rx="22" ry="7" fill="#F2C14E"/><text x="22" y="8" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="9" fill="#7A4A0C">M</text></g>
+      <!-- アヒル -->
+      <g transform="translate(150 -16)"><ellipse cx="18" cy="24" rx="18" ry="10" fill="#FFD84A"/><circle cx="26" cy="12" r="9" fill="#FFD84A"/><circle cx="29" cy="10" r="1.8" fill="#3B2A20"/><path d="M34 13 l8 2 l-8 3z" fill="#F28A2E"/></g>
+    </svg>
+
+    <div id="thought" aria-live="polite"></div>
+    <div id="quizCard" aria-live="polite"></div>
+  </div>
+
+  <div id="panel">
+    <div id="nameTag"><span class="crown">🎩</span>Sir CEO Moku</div>
+    <div id="line" aria-live="polite"></div>
+    <div id="next">▼</div>
+    <div id="choices"></div>
+  </div>
+</div>
+
+<div id="topBar">
+  <button class="pill coin" id="coinPill" type="button" aria-label="Moints">🪙 <b id="coinVal">0</b></button>
+  <span class="pill" id="pickPill"></span>
+  <button class="pill" id="soundBtn" type="button" aria-label="Sound">🔊</button>
+</div>
+
+<div class="sheetWrap" id="logSheet" role="dialog" aria-modal="true" aria-label="Our talks">
+  <div class="sheet">
+    <h2>📜 Our Talks</h2>
+    <div class="body" id="logBody"></div>
+    <div class="foot"><button type="button" id="logClose">Close</button></div>
+  </div>
+</div>
+
+<div id="title-frame"></div>
+<a id="hub-link" href="index.html">🦉 Moku Series ▶</a>
+<div id="buildInfo">v0.1.0 · Updated Nov 8, 2026</div>
+
+<script src="shared/moku-account.js?v=20261108b" data-mode="background"></script>
+<script src="shared/moku-moint.js?v=20261108b" data-mode="none"></script>
+<script src="shared/moku-random.js?v=20261108b"></script>
+<script src="shared/moku-riddles.js?v=20261108b"></script>
+<script>
+(function () {
+  'use strict';
+
+  var GAME_ID = 'ceo-moku';
+  var MEM_KEY = 'moku:ceo-moku:memory';
+  var PICK_BONUS = 0.2;                          // CEO's Pick で稼いだ分の 2 割を、社長室に戻ったら払う
+  var SETTINGS_KEY = 'moku:ceo-moku:settings';
+  var QUIZ_MOINTS = 100;                         // 突発クイズの正解(1日1回、上限の外)
+  var DONATION = 10;                             // おねだりする寄付(ゲーム内の Moint だけ)
+  var DONATION_MIN_BALANCE = 50;                 // これより少ない子にはおねだりしない
+  var LOG_MAX = 40, IDEAS_MAX = 10, SEEN_MAX = 60;
+
+  // CEO's Pick の候補 = Moint を配っているゲーム(SPEC.md §13)
+  var PICKS = [
+    { id: 'moku-fight', name: 'Moku Fight', file: 'moku-fight.html', icon: '🥋', why: 'Practice your moves. A CEO must be ready for anything. Even a pillow fight.' },
+    { id: 'moku-bridge', name: 'Moku Bridge', file: 'moku-bridge.html', icon: '🌉', why: 'Left or right? It is like business. Mostly luck. Do not tell anyone.' },
+    { id: 'moku-drop', name: 'Moku Drop', file: 'moku-drop.html', icon: '🫧', why: 'Merging things is what big companies do. Practice now.' },
+    { id: 'moyomoyo', name: 'Moyomoyo', file: 'moyomoyo.html', icon: '🟣', why: 'Squishy gummies. Very relaxing. I play it in meetings.' },
+    { id: 'mk-mobile', name: 'MK Mobile', file: 'mk-mobile.html', icon: '⚽', why: 'Teamwork! I am the captain. Of the snack table.' },
+    { id: 'moku-chess', name: 'Moku Chess', file: 'moku-chess.html', icon: '♟️', why: 'Chess makes you look smart. Like me. Look at my monocle.' },
+    { id: 'moku-word-riddles', name: 'Moku Word Riddles', file: 'moku-word-riddles.html', icon: '🧩', why: 'Words are power. Also, I wrote some of the riddles. Maybe.' },
+    { id: 'moku-dropper', name: 'Moku Dropper', file: 'moku-dropper.html', icon: '🌳', why: 'Falling down a giant tree. Safely! I checked. Twice.' },
+    { id: 'moku-rhythm', name: 'Moku Rhythm Cafe', file: 'moku-rhythm.html', icon: '🎵', why: 'Tap to the beat. My foot does it all day under the desk.' },
+    { id: 'moku-bento', name: 'Moku Bento', file: 'moku-bento.html', icon: '🍱', why: 'Lunch boxes! Make one for me too. Extra rice.' },
+    { id: 'moku-future-run', name: 'Moku Future Run', file: 'moku-future-run.html', icon: '🏃', why: 'Run, jump, slide! I would join, but my hat might fall off.' },
+    { id: 'moku-mall', name: 'Moku Mall', file: 'moku-mall.html', icon: '🛍️', why: 'Running shops! Finally, a game about MONEY. My favorite.' }
+  ];
+  var PICK_BY_ID = {};
+  PICKS.forEach(function (p) { PICK_BY_ID[p.id] = p; });
+
+  // CEO の服(Moku Closet のアイテム)。表情は Moods から
+  var CEO_OUTFIT = { head: 'top-hat', face: 'monocle', neck: 'moint-medallion' };
+  var MOOD = {
+    usual: null, happy: 'mood-happy', wink: 'mood-wink', laugh: 'mood-laughing', surprised: 'mood-surprised',
+    sweat: 'mood-sweat', sideEye: 'mood-side-eye', sleepy: 'mood-sleepy', showOff: 'mood-show-off',
+    moint: 'mood-moint-eyes', star: 'mood-star-eyes', heart: 'mood-heart-eyes', meh: 'mood-meh', cry: 'mood-crying', cookie: 'mood-cookie-eyes'
+  };
+
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function readJSON(key) { try { var raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; } catch (e) { return null; } }
+  function writeJSON(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) {} }
+  function dayStr(d) { d = d || new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function daysBetween(a, b) { return Math.round((new Date(b + 'T12:00:00') - new Date(a + 'T12:00:00')) / 86400000); }
+  function rand(list) { return list[Math.floor(Math.random() * list.length)]; }
+  function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  var M = window.MokuMoint || null;
+
+  // ---------- 記憶 ----------
+  function loadMem() {
+    var m = readJSON(MEM_KEY);
+    if (!m || m.version !== 1) m = { version: 1, gameId: GAME_ID };
+    m.visits = m.visits || 0;
+    m.days = m.days || 0;
+    m.log = Array.isArray(m.log) ? m.log : [];
+    m.ideas = Array.isArray(m.ideas) ? m.ideas : [];
+    m.quiz = m.quiz || { day: null, wins: 0, tries: 0, seen: [] };
+    if (!Array.isArray(m.quiz.seen)) m.quiz.seen = [];
+    m.donate = m.donate || { askedDay: null, count: 0, total: 0 };
+    m.pokes = m.pokes || 0;
+    m.talks = m.talks || 0;
+    return m;
+  }
+  var mem = loadMem();
+  function saveMem() { mem.updatedAt = new Date().toISOString(); writeJSON(MEM_KEY, mem); }
+  function remember(who, text) {
+    mem.log.push({ at: new Date().toISOString(), who: who, text: String(text).replace(/<[^>]+>/g, '').slice(0, 200) });
+    if (mem.log.length > LOG_MAX) mem.log = mem.log.slice(-LOG_MAX);
+    saveMem();
+  }
+  function playerName() {
+    var u = readJSON('moku:account:user');
+    var n = u && u.displayName ? String(u.displayName) : '';
+    return n || 'friend';
+  }
+
+  // ---------- 音(Web Audio で合成) ----------
+  var settings = readJSON(SETTINGS_KEY) || { sound: true };
+  var actx = null;
+  function audio() {
+    if (!settings.sound) return null;
+    try {
+      if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === 'suspended') actx.resume();
+    } catch (e) { actx = null; }
+    return actx;
+  }
+  function tone(freq, dur, type, vol, when) {
+    var a = audio(); if (!a) return;
+    var t = a.currentTime + (when || 0);
+    var o = a.createOscillator(), g = a.createGain();
+    o.type = type || 'square'; o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(vol || 0.04, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + dur + 0.02);
+  }
+  function blip() { tone(520 + Math.random() * 120, 0.05, 'square', 0.025); }
+  function chime() { [660, 880, 1320].forEach(function (f, i) { tone(f, 0.25, 'triangle', 0.07, i * 0.09); }); }
+  function boop() { tone(240, 0.22, 'sine', 0.08); tone(180, 0.28, 'sine', 0.06, 0.12); }
+  function coin() { tone(988, 0.08, 'square', 0.05); tone(1319, 0.22, 'square', 0.05, 0.08); }
+  document.addEventListener('pointerdown', function () { audio(); }, { once: true });
+  function paintSound() { $('soundBtn').textContent = settings.sound ? '🔊' : '🔈'; }
+  $('soundBtn').addEventListener('click', function () { settings.sound = !settings.sound; writeJSON(SETTINGS_KEY, settings); paintSound(); });
+  paintSound();
+
+  // ---------- Moint の表示 ----------
+  function paintCoins() { $('coinVal').textContent = (M ? M.balance() : 0).toLocaleString('en-US'); }
+  if (M && M.onChange) M.onChange(paintCoins);
+  window.addEventListener('storage', paintCoins);
+  paintCoins();
+
+  // ---------- CEO の見た目 ----------
+  function setMood(name) {
+    var face = $('ceoFace');
+    var id = MOOD[name] !== undefined ? MOOD[name] : null;
+    if (face.getAttribute('data-mood') === String(id)) return;
+    face.setAttribute('data-mood', String(id));
+    if (!M) return;
+    var eq = { head: CEO_OUTFIT.head, face: CEO_OUTFIT.face, neck: CEO_OUTFIT.neck, mood: id };
+    face.innerHTML = M.outfitSVG(eq);
+    face.classList.remove('pop'); void face.offsetWidth; face.classList.add('pop');
+  }
+  function closeUp(on) { $('stage').classList.toggle('close', !!on); }
+  function hop() { var s = $('stage'); s.classList.remove('hop'); void s.offsetWidth; s.classList.add('hop'); }
+
+  // 机と Moku の大きさを、画面の大きさから決める
+  function layout() {
+    var st = $('stage'), w = st.clientWidth, h = st.clientHeight;
+    var dk = Math.max(52, Math.min(110, h * 0.2));
+    var mk = Math.max(120, Math.min((h - 70) * 0.95, w * 0.72, 360));
+    st.style.setProperty('--dk', dk + 'px');
+    st.style.setProperty('--mk', mk + 'px');
+    var card = $('quizCard');
+    card.style.setProperty('--u', (card.clientWidth / 100) + 'px');
+  }
+  window.addEventListener('resize', layout);
+
+  // ---------- 会話 ----------
+  var typing = null, tapWait = null, busy = false;
+  function typeLine(html) {
+    var el = $('line');
+    // タグを壊さないよう、文字だけを1つずつ出す
+    var tmp = document.createElement('div'); tmp.innerHTML = html;
+    var full = tmp.textContent, n = 0;
+    return new Promise(function (resolve) {
+      function done() { clearInterval(timer); typing = null; el.innerHTML = html; resolve(); }
+      el.textContent = '';
+      var timer = setInterval(function () {
+        n += 1;
+        el.textContent = full.slice(0, n);
+        if (n % 3 === 1 && full[n - 1] !== ' ') blip();
+        if (n >= full.length) done();
+      }, 26);
+      typing = { finish: done };
+    });
+  }
+  function tapToGo() { $('next').classList.add('on'); return new Promise(function (r) { tapWait = function () { $('next').classList.remove('on'); tapWait = null; r(); }; }); }
+  $('panel').addEventListener('click', function (e) {
+    if (e.target.closest('button, a, textarea')) return;
+    if (typing) typing.finish(); else if (tapWait) tapWait();
+  });
+  // lines: [{ t, mood, close }] — 最後の行は待たずに次へ(選択肢を出すため)
+  function talk(lines) {
+    busy = true;
+    hideThought();
+    $('choices').innerHTML = '';
+    var i = 0;
+    function step() {
+      if (i >= lines.length) { busy = false; return Promise.resolve(); }
+      var ln = typeof lines[i] === 'string' ? { t: lines[i] } : lines[i];
+      setMood(ln.mood || 'usual');
+      closeUp(ln.close);
+      if (ln.hop) hop();
+      var text = ln.t.replace(/\{name\}/g, esc(playerName()));
+      return typeLine(text).then(function () {
+        remember('ceo', text);
+        i += 1;
+        if (i < lines.length) return tapToGo().then(step);
+        busy = false;
+      });
+    }
+    return step();
+  }
+  // options: [{ label, value, cls, tag, href, log }]
+  function ask(options) {
+    return new Promise(function (resolve) {
+      var box = $('choices');
+      box.innerHTML = '';
+      options.forEach(function (o) {
+        var el = document.createElement(o.href ? 'a' : 'button');
+        if (o.href) el.href = o.href; else el.type = 'button';
+        el.className = o.cls || '';
+        el.innerHTML = esc(o.label) + (o.tag ? ' <span class="tag">' + esc(o.tag) + '</span>' : '');
+        el.addEventListener('click', function () {
+          if (o.href) { remember('you', o.label); return; }
+          if (o.log !== false) remember('you', o.label);
+          resolve(o.value);
+        });
+        box.appendChild(el);
+      });
+      armIdle();
+    });
+  }
+
+  // ---------- ひとりごと(しばらく何もしないと) ----------
+  var MUTTER = [
+    '(Hmm… should everything in the hub be gold? Yes. No. Maybe.)',
+    '(Where did I put my coffee… again…)',
+    '(Moku Kart needs a donut lane. Write that down, moku.)',
+    '(If I nap now, will anyone notice? …They will.)',
+    '(Note to self: buy a bigger desk. And a smaller hat.)',
+    '(Who ate my cookie? …Oh. It was me.)',
+    '(Being a CEO is hard. Mostly the sitting part.)',
+    '(I should practice my CEO laugh. Ho ho ho. No, that is Santa.)'
+  ];
+  var idleTimer = null, thoughtTimer = null;
+  function hideThought() { $('thought').classList.remove('on'); }
+  function armIdle() {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(function () {
+      if (busy || document.hidden) return armIdle();
+      var th = $('thought');
+      th.textContent = rand(MUTTER);
+      th.classList.add('on');
+      setMood(rand(['sideEye', 'sleepy', 'meh']));
+      clearTimeout(thoughtTimer);
+      thoughtTimer = setTimeout(function () { hideThought(); if (!busy) setMood('usual'); }, 5200);
+      armIdle();
+    }, 14000 + Math.random() * 9000);
+  }
+
+  // Moku をつつく
+  var POKES = [
+    { t: 'Hey! No poking the CEO, moku.', mood: 'surprised' },
+    { t: 'That tickles. Stop. …Okay, one more.', mood: 'laugh' },
+    { t: 'I am a VERY important owl, you know.', mood: 'showOff' },
+    { t: 'Poke me again and I will… sigh loudly, moku.', mood: 'meh' }
+  ];
+  $('stage').addEventListener('click', function (e) {
+    if (busy || e.target.closest('#quizCard')) return;
+    var line = POKES[mem.pokes % POKES.length];
+    mem.pokes += 1; saveMem();
+    hop(); boop();
+    var th = $('thought');
+    th.textContent = line.t; th.classList.add('on'); setMood(line.mood);
+    clearTimeout(thoughtTimer);
+    thoughtTimer = setTimeout(function () { hideThought(); if (!busy) setMood('usual'); }, 2600);
+  });
+
+  // ---------- CEO's Pick ----------
+  function pickFor(day) {
+    var R = window.MokuRandom;
+    var r = R ? R.create('ceo-pick-' + day) : null;
+    var i = r ? r.int(0, PICKS.length - 1) : (parseInt(day.replace(/-/g, ''), 10) % PICKS.length);
+    var y = new Date(day + 'T12:00:00'); y.setDate(y.getDate() - 1);
+    var ry = R ? R.create('ceo-pick-' + dayStr(y)) : null;
+    var yi = ry ? ry.int(0, PICKS.length - 1) : -1;
+    if (i === yi) i = (i + 1) % PICKS.length;   // 2日続けて同じにしない
+    return PICKS[i];
+  }
+  var today = dayStr();
+  var pick = pickFor(today);
+  function earnedIn(id) { return M && M.earnedToday ? M.earnedToday(id) : 0; }
+  function pickIsOn() { return !!(mem.pick && mem.pick.day === today && mem.pick.gameId === pick.id); }
+  function turnPickOn() {
+    // 発表を聞いた時点で、そのゲームで今日もうもらった分を基準にする(それより前の分はボーナスにしない)
+    mem.pick = { day: today, gameId: pick.id, base: earnedIn(pick.id), paid: 0 };
+    saveMem();
+    paintPick();
+  }
+  // 社長室に戻ってきた時に払うボーナス(まだ払っていない分)
+  function pendingBonus() {
+    if (!pickIsOn()) return 0;
+    var earned = Math.max(0, earnedIn(pick.id) - (mem.pick.base | 0));
+    return Math.max(0, Math.floor(earned * PICK_BONUS) - (mem.pick.paid | 0));
+  }
+  function payBonus() {
+    var n = pendingBonus();
+    if (!n || !M) return 0;
+    var got = M.earn(GAME_ID, n, { capped: false });
+    mem.pick.paid = (mem.pick.paid | 0) + n;
+    mem.bonusTotal = (mem.bonusTotal | 0) + got;
+    saveMem();
+    paintPick();
+    return got;
+  }
+  function paintPick() {
+    var el = $('pickPill');
+    var paid = pickIsOn() ? (mem.pick.paid | 0) : 0;
+    el.textContent = pick.icon + ' ' + pick.name + ' · +20% bonus' + (paid ? ' (+' + paid + ')' : '');
+    el.classList.toggle('on', pickIsOn());
+  }
+  // ゲームから戻ってきたら、ボーナスの表示を新しくする
+  window.addEventListener('pageshow', paintPick);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) { paintPick(); paintCoins(); } });
+
+  function bonusTalk() {
+    var earned = Math.max(0, earnedIn(pick.id) - (mem.pick.base | 0));
+    var got = payBonus();
+    if (!got) return Promise.resolve();
+    coin(); setTimeout(chime, 250); confetti();
+    return talk([
+      { t: 'Ah! You played ' + pick.icon + ' <b>' + esc(pick.name) + '</b> and earned <b>' + earned + ' Moints</b> today. Nice work, moku!', mood: 'star', close: true, hop: true },
+      { t: 'As promised, here is your <b>CEO Bonus: +' + got + ' Moints</b>. 20%! From my own pocket. My pocket is crying, moku.', mood: 'moint' }
+    ]);
+  }
+
+  function announcePick() {
+    turnPickOn();
+    return talk([
+      { t: 'Now, business. Today\'s <b>CEO\'s Pick</b> is…', mood: 'showOff', close: true },
+      { t: pick.icon + ' <b>' + esc(pick.name) + '</b>! ' + esc(pick.why), mood: 'happy', hop: true },
+      { t: 'Play it today, then come back to my office. I will pay you a <b>CEO Bonus</b>: <b>20%</b> of the Moints you earn there. You are welcome, moku.', mood: 'wink' }
+    ]);
+  }
+
+  // ---------- あいさつ ----------
+  function greeting() {
+    var lines = [];
+    var name = '{name}';
+    var last = mem.lastDay;
+    var gap = last ? daysBetween(last, today) : null;
+    if (!mem.visits) {
+      lines.push({ t: 'Oh! A visitor! Welcome to my office, ' + name + '.', mood: 'surprised', hop: true });
+      lines.push({ t: 'I am <b>Sir CEO Moku</b>. I own all the Moku games. All of them, moku.', mood: 'showOff', close: true });
+      lines.push({ t: 'I also play them every day. For work. It is VERY serious work.', mood: 'wink' });
+    } else if (gap === 0) {
+      lines.push({ t: rand(['Back again, ' + name + '? I am a busy owl, you know. …Okay, sit down.', 'You again! Did you miss me? Of course you did, moku.']), mood: 'sideEye' });
+    } else if (gap >= 7) {
+      lines.push({ t: 'Where have you been, ' + name + '?! ' + gap + ' days! The company missed you. A little. Okay, a lot, moku.', mood: 'cry', close: true });
+    } else {
+      lines.push({ t: rand(['Welcome back, ' + name + '! Good timing. I just finished my nap. I mean, my meeting.', 'Ah, ' + name + '! My favorite player. Do not tell the others, moku.']), mood: 'happy', hop: true });
+    }
+    // 前に聞いたアイデアを覚えている
+    var idea = mem.ideas[mem.ideas.length - 1];
+    if (idea && idea.day !== today && gap !== 0) {
+      lines.push({ t: 'I keep thinking about your idea: “' + esc(idea.text.slice(0, 60)) + (idea.text.length > 60 ? '…' : '') + '”. Still thinking. Very hard, moku.', mood: 'star' });
+    }
+    if (mem.quiz.wins >= 3 && gap !== 0) lines.push({ t: 'You solved ' + mem.quiz.wins + ' of my quizzes. Are you after my job?', mood: 'sweat' });
+    if (mem.donate.count && gap !== 0 && Math.random() < 0.5) lines.push({ t: 'Thanks again for the donation. The cookies were… I mean, the company is doing great.', mood: 'cookie' });
+
+    if (mem.lastDay !== today) mem.days += 1;
+    mem.visits += 1;
+    mem.lastDay = today;
+    if (!mem.firstDay) mem.firstDay = today;
+    saveMem();
+    return talk(lines);
+  }
+
+  // ---------- メニュー ----------
+  function menu(say) {
+    document.body.classList.add('on-title');
+    var p = say ? talk([{ t: say, mood: 'usual' }]) : Promise.resolve();
+    return p.then(function () {
+      var opts = [];
+      var bonus = pendingBonus();
+      if (bonus) opts.push({ label: '🎁 Get my CEO Bonus', value: 'bonus', cls: 'main', tag: '+' + bonus });
+      opts.push({ label: pick.icon + ' Play ' + pick.name, value: 'play', cls: bonus ? '' : 'main', tag: '+20% bonus', href: pick.file });
+      if (mem.quiz.day !== today) opts.push({ label: '🧩 Pop Quiz', value: 'quiz', tag: '+' + QUIZ_MOINTS });
+      opts.push({ label: '💡 I have a game idea', value: 'idea' });
+      opts.push({ label: '💬 Let\'s chat', value: 'chat' });
+      opts.push({ label: '📜 Our talks', value: 'log', cls: 'soft', log: false });
+      opts.push({ label: '👋 Bye!', value: 'bye', cls: 'soft' });
+      return ask(opts);
+    }).then(function (v) {
+      document.body.classList.remove('on-title');
+      if (v === 'bonus') return bonusTalk().then(function () { return menu(rand(MENU_LINES)); });
+      if (v === 'quiz') return quiz(false);
+      if (v === 'idea') return ideaTalk();
+      if (v === 'chat') return chat();
+      if (v === 'log') { openLog(); return menu(); }
+      if (v === 'bye') return bye();
+    });
+  }
+  var MENU_LINES = ['What else, moku?', 'Anything else? My calendar is… very empty. I mean full.', 'Next item on the agenda, moku?', 'I have time. CEOs always have time for VIPs.'];
+
+  // ---------- 突発クイズ ----------
+  var riddles = null;
+  function loadRiddles() {
+    if (riddles) return Promise.resolve(riddles);
+    var R = window.MokuRiddles;
+    if (!R) return Promise.resolve(null);
+    var cached = null;
+    try { cached = localStorage.getItem('mokuwr-riddles-db'); } catch (e) {}
+    return fetch('data/riddles-db.md', { cache: 'no-cache' })
+      .then(function (r) { if (!r.ok) throw new Error('riddles ' + r.status); return r.text(); })
+      .catch(function () { if (cached) return cached; throw new Error('no riddles'); })
+      .then(function (md) { riddles = R.load(md).slice(); return riddles; })
+      .catch(function () { return null; });
+  }
+  function chooseRiddle(list) {
+    var seen = {};
+    mem.quiz.seen.forEach(function (id) { seen[id] = 1; });
+    var pool = list.filter(function (r) { return r.level === 1 && !seen[r.id] && r.choices.length >= 3; });
+    if (!pool.length) pool = list.filter(function (r) { return r.level <= 2 && !seen[r.id] && r.choices.length >= 3; });
+    if (!pool.length) pool = list.filter(function (r) { return r.choices.length >= 3; });
+    return pool.length ? rand(pool) : null;
+  }
+  var COLORS = { ink: '#3B2A20', accent: '#D9534F', red: '#D9534F', blue: '#3C7DD9', green: '#4E9A4A', orange: '#E8832A', purple: '#8A5BD1', brown: '#8B5A2B', soft: '#B9A48C' };
+  function renderCard(r) {
+    var html = '';
+    r.art.forEach(function (p) {
+      var style = 'left:' + p.x + '%;top:' + p.y + '%;';
+      if (p.line) { html += '<span class="pc line" style="' + style + 'width:' + p.line + '%"></span>'; return; }
+      if (p.box) { html += '<span class="pc box" style="' + style + 'width:' + p.box[0] + '%;height:' + p.box[1] + '%"></span>'; return; }
+      style += 'font-size:calc(var(--u) * ' + p.s + ');';
+      if (p.c) style += 'color:' + (COLORS[p.c] || p.c) + ';';
+      if (p.r) style += '--r:' + p.r + 'deg;';
+      if (p.fx) style += '--fx:' + p.fx + ';';
+      if (p.sp) style += 'letter-spacing:' + p.sp + 'em;';
+      var cls = 'pc' + (p.op ? ' op' : '') + (p.vert ? ' vert' : '');
+      var inner = p.parts ? p.parts.map(function (part) { return '<span style="color:' + (COLORS[part[1]] || part[1]) + '">' + esc(part[0]) + '</span>'; }).join('')
+        : p.vert ? p.t.split('').map(function (ch) { return '<span>' + esc(ch) + '</span>'; }).join('') : esc(p.t);
+      html += '<span class="' + cls + '" style="' + style + '">' + inner + '</span>';
+    });
+    html += '<span class="chip">POP QUIZ</span>';
+    var card = $('quizCard');
+    card.innerHTML = html;
+    card.classList.add('on');
+    layout();
+  }
+  function hideCard() { $('quizCard').classList.remove('on'); }
+
+  function quiz(surprise) {
+    var intro = surprise
+      ? [{ t: 'WAIT! Stop right there, moku!', mood: 'surprised', close: true, hop: true }, { t: 'It is time for a… <b>POP QUIZ!</b> Solve it and I pay you <b>' + QUIZ_MOINTS + ' Moints</b>. From my own pocket. Ouch.', mood: 'showOff' }]
+      : [{ t: 'A quiz? You like danger, moku. Okay. Solve it for <b>' + QUIZ_MOINTS + ' Moints</b>.', mood: 'showOff', close: true }];
+    return talk(intro).then(loadRiddles).then(function (list) {
+      var r = list && chooseRiddle(list);
+      if (!r) return menu('Oh no. I lost my quiz cards. Next time, moku!');
+      mem.quiz.seen.push(r.id);
+      if (mem.quiz.seen.length > SEEN_MAX) mem.quiz.seen = mem.quiz.seen.slice(-SEEN_MAX);
+      mem.quiz.tries += 1;
+      mem.quiz.day = today;           // 1日1問(まちがえても、その日はもうなし)
+      saveMem();
+      renderCard(r);
+      closeUp(false);
+      var opts = [r.answer].concat(r.choices.slice(0, 3));
+      opts = window.MokuRandom ? MokuRandom.create(r.id + today).shuffle(opts) : opts.sort(function () { return Math.random() - 0.5; });
+      return talk([{ t: 'What word or phrase is hiding in this card? 🤔', mood: 'wink' }]).then(function () {
+        return ask(opts.map(function (o) { return { label: o, value: o }; }));
+      }).then(function (ans) {
+        var btns = $('choices').querySelectorAll('button');
+        var ok = window.MokuRiddles ? MokuRiddles.isCorrect(r.id, ans) : ans === r.answer;
+        btns.forEach(function (b) {
+          b.disabled = true;
+          if (window.MokuRiddles ? MokuRiddles.isCorrect(r.id, b.textContent) : b.textContent === r.answer) b.classList.add('right');
+          else if (b.textContent === ans) b.classList.add('wrong');
+        });
+        var why = esc(r.why) + (r.example ? ' <i>“' + esc(r.example) + '”</i>' : '');
+        if (ok) {
+          var got = M ? M.earn(GAME_ID, QUIZ_MOINTS, { capped: false }) : 0;
+          mem.quiz.wins += 1; saveMem();
+          chime(); setTimeout(coin, 300); confetti();
+          return wait(700).then(function () {
+            return talk([
+              { t: 'Correct?! …Correct. ' + why, mood: 'surprised', close: true },
+              { t: 'Here are your <b>' + got + ' Moints</b>. Spend them wisely. Or on hats, moku.', mood: 'moint' }
+            ]);
+          });
+        }
+        boop();
+        return wait(700).then(function () {
+          return talk([
+            { t: 'Ha! Not quite. It was <b>' + esc(r.answer.toUpperCase()) + '</b>. ' + why, mood: 'laugh', close: true },
+            { t: 'Do not worry. I got it wrong too. The first 12 times. Come back tomorrow, moku!', mood: 'wink' }
+          ]);
+        });
+      }).then(function () { hideCard(); return menu(rand(MENU_LINES)); });
+    });
+  }
+
+  // ---------- ゲームのアイデア ----------
+  var IDEA_RULES = [
+    { re: /race|kart|car|drive|fast|speed|track|bike/, say: 'Vroom! Speed is exciting, moku. What is the silliest thing on your track?', mood: 'star' },
+    { re: /puzzle|match|block|drop|brain|maze|riddle/, say: 'A puzzle! My brain loves puzzles. My brain also loves naps.', mood: 'happy' },
+    { re: /fight|battle|ninja|sword|robot|monster|boss/, say: 'Action! Just remember: nobody gets really hurt. Only bonked. Gently, moku.', mood: 'showOff' },
+    { re: /food|cook|cake|cookie|pizza|bento|candy|sweet|ice cream|donut|snack/, say: 'Food?! My stomach says YES. That is my best business advice, moku.', mood: 'cookie' },
+    { re: /animal|cat|dog|fish|pet|bird|owl|bunny|rabbit|horse|dino/, say: 'Animals! Cute things win. I am cute. Ask anyone. Ask my mom.', mood: 'heart' },
+    { re: /space|rocket|planet|star|alien|moon/, say: 'To space! Big question: who pays for the rocket? …Not me, moku.', mood: 'sweat' },
+    { re: /music|song|dance|sing|rhythm|piano|drum/, say: 'A beat! Can I sing in it? Please? I am very good. (I am not.)', mood: 'laugh' },
+    { re: /city|build|house|tree|forest|garden|nature|farm|plant/, say: 'Building! Remember our rule: keep lots of green. Trees make everyone happy, moku.', mood: 'happy' },
+    { re: /money|shop|store|mall|sell|buy|coin|bank|business/, say: 'MONEY?! Finally! Someone who speaks my language, moku!', mood: 'moint' },
+    { re: /friend|team|together|party|multi|online|class/, say: 'With friends! Games are better together. Even I have friends. Two. Maybe three.', mood: 'wink' },
+    { re: /school|study|learn|english|math|homework|quiz/, say: 'A learning game! Smart. Like a tutor that tells jokes. I approve, moku.', mood: 'star' }
+  ];
+  var IDEA_QUESTIONS = [
+    'Who is the hero? Is it me? It is me, right?',
+    'What makes it fun the 10th time you play?',
+    'What is the very first thing the player does?',
+    'How do you win? And what happens when you lose?',
+    'Draw it on paper first. Then tell the team. Real game makers do that!',
+    'What would make your friends laugh out loud?'
+  ];
+  function ideaTalk() {
+    return talk([{ t: 'A new game idea? Tell me everything, moku. I am ready. (I have my notebook. It is a cookie box.)', mood: 'star', close: true }]).then(function () {
+      return new Promise(function (resolve) {
+        var box = $('choices');
+        box.innerHTML = '<div id="ideaBox"><textarea id="ideaText" maxlength="160" placeholder="My idea is a game where…" aria-label="Your game idea"></textarea></div>';
+        var send = document.createElement('button'); send.type = 'button'; send.className = 'main'; send.textContent = '📨 Tell Sir CEO';
+        var back = document.createElement('button'); back.type = 'button'; back.className = 'soft'; back.textContent = 'Never mind';
+        box.appendChild(send); box.appendChild(back);
+        send.addEventListener('click', function () {
+          var v = $('ideaText').value.replace(/\s+/g, ' ').trim();
+          if (v.length < 3) { $('ideaText').focus(); return; }
+          resolve(v);
+        });
+        back.addEventListener('click', function () { resolve(null); });
+        setTimeout(function () { try { $('ideaText').focus(); } catch (e) {} }, 50);
+      });
+    }).then(function (text) {
+      if (!text) return menu('Okay! My door is always open. Well, mostly, moku.');
+      remember('you', text);
+      mem.ideas.push({ day: today, text: text.slice(0, 160) });
+      if (mem.ideas.length > IDEAS_MAX) mem.ideas = mem.ideas.slice(-IDEAS_MAX);
+      saveMem();
+      var low = text.toLowerCase();
+      var rule = null;
+      for (var i = 0; i < IDEA_RULES.length; i++) if (IDEA_RULES[i].re.test(low)) { rule = IDEA_RULES[i]; break; }
+      var stars = 4 + (text.length % 2);       // CEO の評価はいつも ★4 か ★5(子どもの案を下げない)
+      var lines = [
+        { t: rule ? rule.say : 'Hmm… interesting… VERY interesting. I have no idea what to say, so: GREAT, moku!', mood: rule ? rule.mood : 'sideEye', close: true, hop: true },
+        { t: 'Sir CEO\'s rating: <b>' + '⭐'.repeat(stars) + '</b>. ' + rand(IDEA_QUESTIONS), mood: 'showOff' }
+      ];
+      if (mem.ideas.length >= 3) lines.push({ t: 'That is idea number ' + mem.ideas.length + '! I keep them all in my cookie box, moku.', mood: 'happy' });
+      return talk(lines).then(function () { return menu(rand(MENU_LINES)); });
+    });
+  }
+
+  // ---------- おしゃべり ----------
+  var CHATS = [
+    { q: 'Quick question. Do you like snacks?', mood: 'cookie', a: [
+      { label: 'Yes! 🍪', r: 'Correct answer. You may stay, moku.', mood: 'happy' },
+      { label: 'Not really', r: '…I will pretend I did not hear that. More for me, moku.', mood: 'sweat' }] },
+    { q: 'What is harder: being a CEO, or doing homework?', mood: 'sideEye', a: [
+      { label: 'Homework!', r: 'Exactly! That is why I became a CEO. No homework. Only… paperwork. Oh no.', mood: 'surprised' },
+      { label: 'Being a CEO!', r: 'Thank you! Finally someone understands me, moku.', mood: 'cry' }] },
+    { q: 'I want to buy something for the office. A jet, or a scooter?', mood: 'star', a: [
+      { label: 'A jet! ✈️', r: 'Great idea! …I checked my wallet. Scooter it is, moku.', mood: 'sweat' },
+      { label: 'A scooter 🛴', r: 'Smart and cheap. You think like a CEO, moku.', mood: 'wink' }] },
+    { q: 'Guess how many Moints I have.', mood: 'showOff', a: [
+      { label: 'A million!', r: 'Ho ho! Yes! …Maybe not a million. Maybe twelve.', mood: 'laugh' },
+      { label: 'Zero?', r: 'Zero?! …How did you know, moku.', mood: 'sweat' }] },
+    { q: 'Do owls need sleep? Asking for a friend. The friend is me.', mood: 'sleepy', a: [
+      { label: 'Yes, sleep!', r: 'Then this meeting is now a nap meeting. Zzz… just kidding, moku.', mood: 'sleepy' },
+      { label: 'No, work!', r: 'You sound like my calendar. Scary, moku.', mood: 'surprised' }] },
+    { q: 'Rain or sunshine?', mood: 'happy', a: [
+      { label: 'Sunshine ☀️', r: 'Me too. My office window has the best sunset. Look!', mood: 'happy' },
+      { label: 'Rain ☔', r: 'Rain is cozy. Good for indoor games. Good for business, moku!', mood: 'moint' }] },
+    { q: 'If you were the CEO for one day, what would you do first?', mood: 'sideEye', a: [
+      { label: 'Free snacks!', r: 'A snack-loving leader. I like you. Do not take my job, moku.', mood: 'cookie' },
+      { label: 'Make a new game', r: 'A builder! Tell me your idea anytime. Press “I have a game idea”, moku.', mood: 'star' }] }
+  ];
+  // 最近遊んだゲームの話(この端末のセーブがあるか、だけを見る)
+  function playedGames() {
+    var out = [];
+    PICKS.forEach(function (p) {
+      try { for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.indexOf('moku:' + p.id + ':') === 0) { out.push(p); break; } } } catch (e) {}
+    });
+    return out;
+  }
+  function chat() {
+    mem.talks += 1; saveMem();
+    var played = playedGames();
+    var useGame = played.length && Math.random() < 0.35;
+    var c = useGame ? null : CHATS[(mem.talks + Math.floor(Math.random() * 3)) % CHATS.length];
+    var p = useGame
+      ? (function () {
+          var g = rand(played);
+          return talk([{ t: 'I saw you played ' + g.icon + ' <b>' + esc(g.name) + '</b>. Me too! Was it fun?', mood: 'happy', close: true }]).then(function () {
+            return ask([{ label: 'So fun!', value: 1 }, { label: 'It was hard…', value: 0 }]);
+          }).then(function (v) {
+            return talk([v ? { t: 'Good! Fun is our #1 product, moku.', mood: 'showOff' } : { t: 'Hard is good. It means you are getting stronger. I lose all the time. ALL the time, moku.', mood: 'wink' }]);
+          });
+        })()
+      : talk([{ t: c.q, mood: c.mood, close: true }]).then(function () {
+          return ask(c.a.map(function (a, i) { return { label: a.label, value: i }; }));
+        }).then(function (i) { var a = c.a[i]; return talk([{ t: a.r, mood: a.mood, hop: true }]); });
+    return p.then(function () {
+      // ときどき突発クイズか、寄付のおねだり
+      if (mem.quiz.day !== today && Math.random() < 0.3) return quiz(true);
+      if (canAskDonation() && Math.random() < 0.35) return donation();
+      return menu(rand(MENU_LINES));
+    });
+  }
+
+  // ---------- 寄付のおねだり(ゲーム内の Moint だけ。断っても何も起きない) ----------
+  function canAskDonation() { return !!M && mem.donate.askedDay !== today && M.balance() >= DONATION_MIN_BALANCE; }
+  function donation() {
+    mem.donate.askedDay = today; saveMem();
+    return talk([
+      { t: 'Psst. ' + '{name}' + '. Come closer.', mood: 'sideEye', close: true },
+      { t: 'The Moku Company is a little short on… snack money. Could you donate <b>' + DONATION + ' Moints</b>? It is totally fine to say no, moku.', mood: 'moint' }
+    ]).then(function () {
+      return ask([{ label: '🪙 Donate ' + DONATION, value: 1, cls: 'main' }, { label: 'Nope!', value: 0 }]);
+    }).then(function (yes) {
+      if (yes && M && M.balance() >= DONATION) {
+        M.add(-DONATION);
+        mem.donate.count += 1; mem.donate.total += DONATION; saveMem();
+        coin();
+        return talk([
+          { t: 'THANK YOU! I will spend it wisely. On cookies. …For the company, of course.', mood: 'cookie', hop: true },
+          { t: 'Your name is now on my Wall of Kind Birds. Donations so far: <b>' + mem.donate.total + ' Moints</b>.', mood: 'heart' }
+        ]);
+      }
+      return talk([{ t: 'Fair! A smart businessbird keeps their Moints. I respect that, moku.', mood: 'showOff' }]);
+    }).then(function () { return menu(rand(MENU_LINES)); });
+  }
+
+  // ---------- さよなら ----------
+  function bye() {
+    return talk([
+      { t: rand(['Bye, {name}! Go play. That is an order from the CEO, moku.', 'See you! Play my pick, then come back for your 20% bonus, moku!', 'Off you go! I will just… sit here. Being important.']), mood: 'wink', hop: true }
+    ]).then(function () {
+      return ask([{ label: pick.icon + ' Play ' + pick.name, href: pick.file, cls: 'main', tag: '+20% bonus' }, { label: '🎮 All games', href: 'hub.html' }, { label: '↩ Wait, one more thing', value: 'back', cls: 'soft' }]);
+    }).then(function () { return menu(rand(MENU_LINES)); });
+  }
+
+  // ---------- 会話の記録 ----------
+  function openLog() {
+    var body = $('logBody'), html = '', lastDay = '';
+    if (!mem.log.length) html = '<p class="empty">No talks yet.</p>';
+    mem.log.forEach(function (row) {
+      var d = new Date(row.at);
+      var label = isNaN(d) ? '' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      if (label !== lastDay) { html += '<div class="logDay">' + esc(label) + '</div>'; lastDay = label; }
+      html += '<div class="logRow ' + (row.who === 'you' ? 'you' : 'ceo') + '"><span class="who">' + (row.who === 'you' ? 'YOU' : 'SIR CEO MOKU') + '</span><span class="txt">' + esc(row.text) + '</span></div>';
+    });
+    body.innerHTML = html;
+    $('logSheet').classList.add('on');
+    body.scrollTop = body.scrollHeight;
+  }
+  $('logClose').addEventListener('click', function () { $('logSheet').classList.remove('on'); });
+  $('logSheet').addEventListener('click', function (e) { if (e.target === $('logSheet')) $('logSheet').classList.remove('on'); });
+  $('coinPill').addEventListener('click', function () {
+    var th = $('thought');
+    th.textContent = 'You have ' + $('coinVal').textContent + ' Moints. Not that I am counting. (I am counting.)';
+    th.classList.add('on'); setMood('moint');
+    clearTimeout(thoughtTimer);
+    thoughtTimer = setTimeout(function () { hideThought(); if (!busy) setMood('usual'); }, 3000);
+  });
+
+  function confetti() {
+    var colors = ['#F2C14E', '#E98FC7', '#4CBE55', '#6E7BFF', '#FF8A5B'];
+    for (var i = 0; i < 26; i++) {
+      var c = document.createElement('span');
+      c.className = 'confetti';
+      c.style.left = (10 + Math.random() * 80) + 'vw';
+      c.style.top = (5 + Math.random() * 20) + 'vh';
+      c.style.background = colors[i % colors.length];
+      c.style.animationDelay = (Math.random() * 0.3) + 's';
+      document.body.appendChild(c);
+      setTimeout(function (el) { return function () { el.remove(); }; }(c), 2100);
+    }
+  }
+
+  // ---------- はじまり ----------
+  layout();
+  setMood('usual');
+  paintPick();
+  loadRiddles();
+  greeting().then(function () {
+    var first = !pickIsOn();
+    var p = first ? announcePick() : bonusTalk();
+    return p.then(function () {
+      if (!first && mem.quiz.day !== today && Math.random() < 0.35) return quiz(true);
+      return menu(first ? 'So, what shall we do, moku?' : rand(MENU_LINES));
+    });
+  });
+})();
+</script>
+</body>
+</html>
