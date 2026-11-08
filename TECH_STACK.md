@@ -17,7 +17,7 @@
 ```
 ブラウザ (iPhone / iPad / Android / PC、モバイル優先)
   ├─ index.html(入口・ログイン) / hub.html(ゲーム一覧) / hollow.html / admin.html(保護者用・日本語)
-  ├─ <game>.html × 22(単一HTML。Canvas 2D 中心、4本は three.js)
+  ├─ <game>.html × 22(単一HTML。Canvas 2D 中心、5本は three.js)
   └─ shared/*.js(アカウント・ゲート・通貨・エラー収集などの共通 UMD/IIFE スクリプト)
         │  fetch (CORS, Bearer トークン)
         ▼
@@ -36,7 +36,7 @@ AWS ap-southeast-5(スタック moku-backend)
 | --- | --- |
 | 言語 | 素の HTML / CSS / JavaScript(ES2017+ 程度。モジュール `import` は使っていない、`<script>` タグで読む) |
 | 構成 | 1ゲーム = 1ファイル(`kebab-case.html`)。HTML/CSS/JS はインライン。ブラウザで直接開いても動く |
-| 描画 | Canvas 2D が基本。3D は **three.js r128**(cdnjs)を `flying-moku.html` / `moku-future-run.html` / `moku-rane.html` / `moku-dropper.html` の4本で使用。UI は DOM/CSS |
+| 描画 | Canvas 2D が基本。3D は **three.js r128**(cdnjs)を `flying-moku.html` / `moku-future-run.html` / `moku-rane.html` / `moku-dropper.html` / `angry-moku-battle-royal.html` の5本で使用。UI は DOM/CSS |
 | 外部ライブラリ | three.js r128 のみ(`https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js`)。**CDN 経由のみ、バンドラー導入はしない** |
 | フォント | 基本はシステムフォント(`-apple-system, "Segoe UI", Roboto, sans-serif`)。一部ページで Google Fonts(Fredoka / Plus Jakarta Sans / Press Start 2P) |
 | 音 | 音源ファイルなし。**Web Audio API で合成**。iOS 対策で最初のタップで `AudioContext.resume()` |
