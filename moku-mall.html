@@ -264,7 +264,7 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v1.0.2 · Updated Nov 8, 2026</div>
+<div id="buildInfo">v1.0.3 · Updated Nov 8, 2026</div>
 <canvas id="c"></canvas>
 
 <div id="coinHud">
@@ -515,6 +515,7 @@ for(let r=0;r<ROWS;r++){
   slots.push({side:'right',row:r,storeIdx:null,hovered:false});
 }
 let selectedSlot=null;
+let wasInForecourt=false;
 
 const ATM_POSITIONS=[
   {tx:MARGIN+STORE_W+0.6,        ty:MARGIN+0.6},
@@ -1710,12 +1711,14 @@ function loop(ts){
   moku.tx=Math.max(minX,Math.min(maxX,moku.tx+mdx*moku.speed*dt/TILE));
   moku.ty=Math.max(MARGIN+0.3,Math.min(maxY,moku.ty+mdy*moku.speed*dt/TILE));
 
-  // Open security shop if Moku walks into forecourt
+  // Open security shop when Moku walks INTO the forecourt.
+  // 入った瞬間だけ開く(以前は毎フレーム判定していたので、✕ で閉じてもすぐ開き直った。
+  // また最初は style.display が空なので、一度閉じるまで歩いても開かなかった)
   const inForecourt=moku.ty>TOTAL_H+0.5;
-  if(inForecourt&&document.getElementById('secShop').style.display==='none'&&
-     document.getElementById('storePanel').style.display==='none'){
+  if(inForecourt&&!wasInForecourt&&document.getElementById('storePanel').style.display!=='block'){
     document.getElementById('secShop').style.display='block';
   }
+  wasInForecourt=inForecourt;
 
   // BAD CUSTOMERS: if near a robber, push robber away from Moku
   shoppers.forEach(sh=>{
