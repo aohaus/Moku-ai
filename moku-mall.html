@@ -264,7 +264,7 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v1.0.4 · Updated Nov 8, 2026</div>
+<div id="buildInfo">v1.0.5 · Updated Nov 8, 2026</div>
 <canvas id="c"></canvas>
 
 <div id="coinHud">
@@ -870,6 +870,8 @@ function getSlotRect(slot){
 // ══════════════════════════════════════════════
 // COLOUR UTILS
 // ══════════════════════════════════════════════
+// 同じ k なら毎回同じ 0〜1 の値(背景の窓の明かりをフレームごとに変えないため)
+function winRand(k,salt){ const x=Math.sin(k*12.9898+salt*78.233)*43758.5453; return x-Math.floor(x); }
 function adj(hex,amt){
   let r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
   return `rgb(${Math.max(0,Math.min(255,r+amt))},${Math.max(0,Math.min(255,g+amt))},${Math.max(0,Math.min(255,b+amt))})`;
@@ -1160,12 +1162,13 @@ function drawScene(){
       {x:W*0.78,w:W*0.08,h:H*0.48,c:'#0A1525'},
       {x:W*0.88,w:W*0.12,h:H*0.38,c:'#0C1828'},
     ];
-    bgBuildings.forEach(b=>{
+    bgBuildings.forEach((b,bi)=>{
       ctx.fillStyle=b.c;ctx.fillRect(b.x,H-b.h,b.w,b.h);
-      // Windows
+      // Windows — 毎フレーム Math.random() だとちらつくので、窓ごとに決まった値(winRand)を使う
       for(let wr=0;wr<12;wr++) for(let wc2=0;wc2<4;wc2++){
-        if(Math.random()<0.45||wr===0){
-          ctx.fillStyle=`rgba(255,${180+Math.random()*75},${50+Math.random()*50},${0.5+Math.random()*0.4})`;
+        const k=bi*1000+wr*10+wc2;
+        if(winRand(k,0)<0.45||wr===0){
+          ctx.fillStyle=`rgba(255,${180+winRand(k,1)*75},${50+winRand(k,2)*50},${0.5+winRand(k,3)*0.4})`;
           ctx.fillRect(b.x+wc2*(b.w/4)+2,H-b.h+wr*(b.h/12)+2,b.w/4-4,b.h/12-3);
         }
       }
