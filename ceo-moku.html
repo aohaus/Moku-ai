@@ -25,6 +25,9 @@
     shared/moku-riddles.js)から1日1問、元のゲームと同じ自由記述。3回まで答えられ、まちがえるとヒント → 頭文字。正解で 100 Moint(上限の外)。
   - Game idea: 子どもが書いたアイデアに、キーワードでコメントを返し、考えを深める質問をする。記憶に残る(最新 10 件)。
   - Donation: ときどき 10 Moint の「寄付」をおねだりする(ゲーム内の Moint だけ。1日1回、残高 50 以上の時だけ。断っても何も起きない)。
+  - 日本語モード(v0.3.0〜、保護者と決めた CLAUDE.md §4 の例外。このページだけ): 上の 🌐 ボタンで英語 ⇄ 日本語。
+    日本語の社長は一人称「ワタシ」・語尾「〜モク」。セリフは tr(英語, 日本語) / L([英語, 日本語]) で両方を持つ。
+    Riddle の問題・ヒント・用例と、答えの入力は英語のまま(英語の練習のため)。選んだことばは moku:ceo-moku:settings の lang。
   - 表情: Moku Closet の Moods(表情)と、CEO の服(Top Hat / Monocle / Moint Medallion)を MokuMoint.outfitSVG() で重ねる。
     大事なセリフでは Moku に寄る(#stage.close)。
 -->
@@ -136,6 +139,15 @@ body {
   box-shadow: 0 2px 0 var(--wood-dark);
 }
 #nameTag .crown { margin-right: 4px; }
+/* ことばの切りかえ(このページだけ。会話ウィンドウの右上) */
+#langBtn {
+  position: absolute; top: -14px; right: 16px;
+  padding: 4px 11px 5px; border-radius: 10px; border: 2px solid #E3CFA8;
+  background: #FFFDF7; color: var(--wood);
+  font: 700 13px var(--round); cursor: pointer;
+  box-shadow: 0 2px 0 #E3CFA8;
+}
+#langBtn:active { transform: translateY(2px); box-shadow: none; }
 #line {
   min-height: 3.2em;
   font: 600 clamp(15px, 2.3vw + 8px, 19px)/1.45 var(--round);
@@ -254,6 +266,7 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
   #stage { align-self: stretch; }
   #panel { width: min(54%, 470px); margin: 0 14px 0 4px; padding: 38px 12px 10px; max-height: calc(100% - 64px); overflow-y: auto; }
   #nameTag { top: 8px; }
+  #langBtn { top: 8px; right: 10px; }
   #line { min-height: 2.6em; font-size: 15px; }
   #choices button, #choices a { min-height: 38px; padding: 6px 10px; font-size: 14px; min-width: 120px; }
   #buildInfo { bottom: calc(env(safe-area-inset-bottom, 0px) + 6px); }
@@ -378,7 +391,8 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
   </div>
 
   <div id="panel">
-    <div id="nameTag"><span class="crown">🎩</span>Sir CEO Moku</div>
+    <div id="nameTag"><span class="crown">🎩</span><span id="nameTagText">Sir CEO Moku</span></div>
+    <button id="langBtn" type="button">🌐 日本語</button>
     <div id="line" aria-live="polite"></div>
     <div id="next">▼</div>
     <div id="choices"></div>
@@ -393,7 +407,7 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
 
 <div class="sheetWrap" id="logSheet" role="dialog" aria-modal="true" aria-label="Our talks">
   <div class="sheet">
-    <h2>📜 Our Talks</h2>
+    <h2 id="logTitle">📜 Our Talks</h2>
     <div class="body" id="logBody"></div>
     <div class="foot"><button type="button" id="logClose">Close</button></div>
   </div>
@@ -401,7 +415,7 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
 
 <div id="title-frame"></div>
 <a id="hub-link" href="index.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.2.0 · Updated Nov 8, 2026</div>
+<div id="buildInfo">v0.3.0 · Updated Nov 8, 2026</div>
 
 <script src="shared/moku-account.js?v=20261108b" data-mode="background"></script>
 <script src="shared/moku-moint.js?v=20261108b" data-mode="none"></script>
@@ -422,42 +436,6 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
   var DONATION_MIN_BALANCE = 50;                 // これより少ない子にはおねだりしない
   var LOG_MAX = 40, IDEAS_MAX = 10, SEEN_MAX = 60;
 
-  // CEO's Pick = ハブの Today's Pick。hub.html の FEATURED(['mfg', 'mkt', 'am', 'mc'])と同じ順番にする
-  // saves: そのゲームのセーブのキーの頭(遊んだかどうかを見る)。moint: Moint を配るゲーム
-  var PICKS = [
-    { card: 'mfg', id: 'moku-fight', name: 'Moku Fight', file: 'moku-fight.html', icon: '🥋', moint: true, saves: ['moku:moku-fight:'],
-      why: 'Practice your moves. A CEO must be ready for anything. Even a pillow fight.' },
-    { card: 'mkt', id: 'moku-kart', name: 'Moku Kart Dash', file: 'moku-kart.html', icon: '🏎️', moint: false, saves: ['moku_kart_'],
-      why: 'Vroom! A CEO must be fast. Fast at meetings. Fast at lunch. Mostly lunch.' },
-    { card: 'am', id: 'angry-mokumoku', name: 'Angry Mokumoku', file: 'angry-mokumoku.html', icon: '🪶', moint: false, saves: ['amoku-', 'moku:angry-mokumoku:'],
-      why: 'Fling, crash, boom! It is how I deal with my emails.' },
-    { card: 'mc', id: 'mokucity', name: 'Moku City', file: 'mokucity.html', icon: '🏙️', moint: false, saves: ['moku:mokucity:'],
-      why: 'Build a city! Keep lots of trees, moku. I want a park next to my office.' }
-  ];
-  // おしゃべりの話題にするゲーム(この端末のセーブがあるもの)
-  var TALK_GAMES = [
-    { id: 'moku-fight', name: 'Moku Fight', file: 'moku-fight.html', icon: '🥋', why: 'Practice your moves. A CEO must be ready for anything. Even a pillow fight.' },
-    { id: 'moku-bridge', name: 'Moku Bridge', file: 'moku-bridge.html', icon: '🌉', why: 'Left or right? It is like business. Mostly luck. Do not tell anyone.' },
-    { id: 'moku-drop', name: 'Moku Drop', file: 'moku-drop.html', icon: '🫧', why: 'Merging things is what big companies do. Practice now.' },
-    { id: 'moyomoyo', name: 'Moyomoyo', file: 'moyomoyo.html', icon: '🟣', why: 'Squishy gummies. Very relaxing. I play it in meetings.' },
-    { id: 'mk-mobile', name: 'MK Mobile', file: 'mk-mobile.html', icon: '⚽', why: 'Teamwork! I am the captain. Of the snack table.' },
-    { id: 'moku-chess', name: 'Moku Chess', file: 'moku-chess.html', icon: '♟️', why: 'Chess makes you look smart. Like me. Look at my monocle.' },
-    { id: 'moku-word-riddles', name: 'Moku Word Riddles', file: 'moku-word-riddles.html', icon: '🧩', why: 'Words are power. Also, I wrote some of the riddles. Maybe.' },
-    { id: 'moku-dropper', name: 'Moku Dropper', file: 'moku-dropper.html', icon: '🌳', why: 'Falling down a giant tree. Safely! I checked. Twice.' },
-    { id: 'moku-rhythm', name: 'Moku Rhythm Cafe', file: 'moku-rhythm.html', icon: '🎵', why: 'Tap to the beat. My foot does it all day under the desk.' },
-    { id: 'moku-bento', name: 'Moku Bento', file: 'moku-bento.html', icon: '🍱', why: 'Lunch boxes! Make one for me too. Extra rice.' },
-    { id: 'moku-future-run', name: 'Moku Future Run', file: 'moku-future-run.html', icon: '🏃', why: 'Run, jump, slide! I would join, but my hat might fall off.' },
-    { id: 'moku-mall', name: 'Moku Mall', file: 'moku-mall.html', icon: '🛍️', why: 'Running shops! Finally, a game about MONEY. My favorite.' }
-  ];
-
-  // CEO の服(Moku Closet のアイテム)。表情は Moods から
-  var CEO_OUTFIT = { head: 'top-hat', face: 'monocle', neck: 'moint-medallion' };
-  var MOOD = {
-    usual: null, happy: 'mood-happy', wink: 'mood-wink', laugh: 'mood-laughing', surprised: 'mood-surprised',
-    sweat: 'mood-sweat', sideEye: 'mood-side-eye', sleepy: 'mood-sleepy', showOff: 'mood-show-off',
-    moint: 'mood-moint-eyes', star: 'mood-star-eyes', heart: 'mood-heart-eyes', meh: 'mood-meh', cry: 'mood-crying', cookie: 'mood-cookie-eyes'
-  };
-
   var $ = function (id) { return document.getElementById(id); };
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function readJSON(key) { try { var raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; } catch (e) { return null; } }
@@ -467,6 +445,52 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
   function rand(list) { return list[Math.floor(Math.random() * list.length)]; }
   function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
   var M = window.MokuMoint || null;
+
+  // ---------- ことば(このページだけ日本語モードがある。CLAUDE.md §4 の例外) ----------
+  // 英語が初期値。日本語の社長は一人称「ワタシ」、語尾が「〜モク」。Riddle の問題・ヒント・用例は英語のまま(英語の練習のため)。
+  var settings = readJSON(SETTINGS_KEY) || {};
+  if (settings.sound === undefined) settings.sound = true;
+  if (settings.lang !== 'ja') settings.lang = 'en';
+  function ja() { return settings.lang === 'ja'; }
+  function tr(en, jp) { return ja() ? jp : en; }
+  // [英語, 日本語] の組から今のことばの方
+  function L(pair) { return Array.isArray(pair) ? (ja() ? pair[1] : pair[0]) : pair; }
+
+  // CEO's Pick = ハブの Today's Pick。hub.html の FEATURED(['mfg', 'mkt', 'am', 'mc'])と同じ順番にする
+  // saves: そのゲームのセーブのキーの頭(遊んだかどうかを見る)。moint: Moint を配るゲーム
+  var PICKS = [
+    { card: 'mfg', id: 'moku-fight', name: 'Moku Fight', file: 'moku-fight.html', icon: '🥋', moint: true, saves: ['moku:moku-fight:'],
+      why: ['Practice your moves. A CEO must be ready for anything. Even a pillow fight.', 'わざの練習モク。社長はいつでも戦えないといけないモク。まくら投げでもモク。'] },
+    { card: 'mkt', id: 'moku-kart', name: 'Moku Kart Dash', file: 'moku-kart.html', icon: '🏎️', moint: false, saves: ['moku_kart_'],
+      why: ['Vroom! A CEO must be fast. Fast at meetings. Fast at lunch. Mostly lunch.', 'ブーン!社長ははやくないとダメモク。会議もはやい、お昼ごはんもはやい。…ほぼお昼ごはんモク。'] },
+    { card: 'am', id: 'angry-mokumoku', name: 'Angry Mokumoku', file: 'angry-mokumoku.html', icon: '🪶', moint: false, saves: ['amoku-', 'moku:angry-mokumoku:'],
+      why: ['Fling, crash, boom! It is how I deal with my emails.', 'とばして、ぶつけて、ドカーン!ワタシのメールの片づけ方と同じモク。'] },
+    { card: 'mc', id: 'mokucity', name: 'Moku City', file: 'mokucity.html', icon: '🏙️', moint: false, saves: ['moku:mokucity:'],
+      why: ['Build a city! Keep lots of trees, moku. I want a park next to my office.', '街づくりモク!木をたくさん残すモク。ワタシの会社のとなりに公園がほしいモク。'] }
+  ];
+  // おしゃべりの話題にするゲーム(この端末のセーブがあるもの)
+  var TALK_GAMES = [
+    { id: 'moku-fight', name: 'Moku Fight', icon: '🥋' },
+    { id: 'moku-bridge', name: 'Moku Bridge', icon: '🌉' },
+    { id: 'moku-drop', name: 'Moku Drop', icon: '🫧' },
+    { id: 'moyomoyo', name: 'Moyomoyo', icon: '🟣' },
+    { id: 'mk-mobile', name: 'MK Mobile', icon: '⚽' },
+    { id: 'moku-chess', name: 'Moku Chess', icon: '♟️' },
+    { id: 'moku-word-riddles', name: 'Moku Word Riddles', icon: '🧩' },
+    { id: 'moku-dropper', name: 'Moku Dropper', icon: '🌳' },
+    { id: 'moku-rhythm', name: 'Moku Rhythm Cafe', icon: '🎵' },
+    { id: 'moku-bento', name: 'Moku Bento', icon: '🍱' },
+    { id: 'moku-future-run', name: 'Moku Future Run', icon: '🏃' },
+    { id: 'moku-mall', name: 'Moku Mall', icon: '🛍️' }
+  ];
+
+  // CEO の服(Moku Closet のアイテム)。表情は Moods から
+  var CEO_OUTFIT = { head: 'top-hat', face: 'monocle', neck: 'moint-medallion' };
+  var MOOD = {
+    usual: null, happy: 'mood-happy', wink: 'mood-wink', laugh: 'mood-laughing', surprised: 'mood-surprised',
+    sweat: 'mood-sweat', sideEye: 'mood-side-eye', sleepy: 'mood-sleepy', showOff: 'mood-show-off',
+    moint: 'mood-moint-eyes', star: 'mood-star-eyes', heart: 'mood-heart-eyes', meh: 'mood-meh', cry: 'mood-crying', cookie: 'mood-cookie-eyes'
+  };
 
   // ---------- 記憶 ----------
   function loadMem() {
@@ -493,11 +517,10 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
   function playerName() {
     var u = readJSON('moku:account:user');
     var n = u && u.displayName ? String(u.displayName) : '';
-    return n || 'friend';
+    return n || tr('friend', 'キミ');
   }
 
   // ---------- 音(Web Audio で合成) ----------
-  var settings = readJSON(SETTINGS_KEY) || { sound: true };
   var actx = null;
   function audio() {
     if (!settings.sound) return null;
@@ -520,8 +543,9 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
   function boop() { tone(240, 0.22, 'sine', 0.08); tone(180, 0.28, 'sine', 0.06, 0.12); }
   function coin() { tone(988, 0.08, 'square', 0.05); tone(1319, 0.22, 'square', 0.05, 0.08); }
   document.addEventListener('pointerdown', function () { audio(); }, { once: true });
+  function saveSettings() { writeJSON(SETTINGS_KEY, settings); }
   function paintSound() { $('soundBtn').textContent = settings.sound ? '🔊' : '🔈'; }
-  $('soundBtn').addEventListener('click', function () { settings.sound = !settings.sound; writeJSON(SETTINGS_KEY, settings); paintSound(); });
+  $('soundBtn').addEventListener('click', function () { settings.sound = !settings.sound; saveSettings(); paintSound(); });
   paintSound();
 
   // ---------- Moint の表示 ----------
@@ -557,7 +581,9 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
   window.addEventListener('resize', layout);
 
   // ---------- 会話 ----------
-  var typing = null, tapWait = null, busy = false;
+  var typing = null, tapWait = null, busy = false, atMenu = false;
+  // 直前のセリフがまだ読まれていない(選択肢を出していない)なら、次に話す前にタップを待つ
+  var pendingTap = false;
   function typeLine(html) {
     var el = $('line');
     // タグを壊さないよう、文字だけを1つずつ出す
@@ -571,23 +597,26 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
         el.textContent = full.slice(0, n);
         if (n % 3 === 1 && full[n - 1] !== ' ') blip();
         if (n >= full.length) done();
-      }, 26);
+      }, ja() ? 57 : 37);   // 1文字ずつ出す間隔(ms)。2026-11-08 に「早い」の声で前(英 26 / 日 40)の 7 割の速さにした。日本語は1文字が長いので少しゆっくり
       typing = { finish: done };
     });
   }
   function tapToGo() { $('next').classList.add('on'); return new Promise(function (r) { tapWait = function () { $('next').classList.remove('on'); tapWait = null; r(); }; }); }
   $('panel').addEventListener('click', function (e) {
-    if (e.target.closest('button, a, textarea')) return;
+    if (e.target.closest('button, a, textarea, input')) return;
     if (typing) typing.finish(); else if (tapWait) tapWait();
   });
   // lines: [{ t, mood, close }] — 最後の行は待たずに次へ(選択肢を出すため)
   function talk(lines) {
     busy = true;
+    atMenu = false;
     hideThought();
     $('choices').innerHTML = '';
     var i = 0;
+    var before = pendingTap ? tapToGo() : Promise.resolve();
+    pendingTap = false;
     function step() {
-      if (i >= lines.length) { busy = false; return Promise.resolve(); }
+      if (i >= lines.length) { busy = false; pendingTap = lines.length > 0; return Promise.resolve(); }
       var ln = typeof lines[i] === 'string' ? { t: lines[i] } : lines[i];
       setMood(ln.mood || 'usual');
       closeUp(ln.close);
@@ -598,12 +627,14 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
         i += 1;
         if (i < lines.length) return tapToGo().then(step);
         busy = false;
+        pendingTap = true;
       });
     }
-    return step();
+    return before.then(step);
   }
   // options: [{ label, value, cls, tag, href, log }]
   function ask(options) {
+    pendingTap = false;
     return new Promise(function (resolve) {
       var box = $('choices');
       box.innerHTML = '';
@@ -625,47 +656,45 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
 
   // ---------- ひとりごと(しばらく何もしないと) ----------
   var MUTTER = [
-    '(Hmm… should everything in the hub be gold? Yes. No. Maybe.)',
-    '(Where did I put my coffee… again…)',
-    '(Moku Kart needs a donut lane. Write that down, moku.)',
-    '(If I nap now, will anyone notice? …They will.)',
-    '(Note to self: buy a bigger desk. And a smaller hat.)',
-    '(Who ate my cookie? …Oh. It was me.)',
-    '(Being a CEO is hard. Mostly the sitting part.)',
-    '(I should practice my CEO laugh. Ho ho ho. No, that is Santa.)'
+    ['(Hmm… should everything in the hub be gold? Yes. No. Maybe.)', '(うーん…ハブを全部金色にしようかな。いや、やめよう。いや…モク)'],
+    ['(Where did I put my coffee… again…)', '(ワタシのコーヒー、どこに置いたモク…また…)'],
+    ['(Moku Kart needs a donut lane. Write that down, moku.)', '(Moku Kart にドーナツのコースを作るモク。メモしとくモク)'],
+    ['(If I nap now, will anyone notice? …They will.)', '(今おひるねしたら、バレるモク?…バレるモク)'],
+    ['(Note to self: buy a bigger desk. And a smaller hat.)', '(メモ: もっと大きい机を買う。帽子はもっと小さくするモク)'],
+    ['(Who ate my cookie? …Oh. It was me.)', '(ワタシのクッキー食べたのだれモク?…あ。ワタシだったモク)'],
+    ['(Being a CEO is hard. Mostly the sitting part.)', '(社長はたいへんモク。主に、すわってるところがモク)'],
+    ['(I should practice my CEO laugh. Ho ho ho. No, that is Santa.)', '(社長っぽい笑い方の練習モク。ホッホッホー。…それはサンタさんモク)']
   ];
   var idleTimer = null, thoughtTimer = null;
   function hideThought() { $('thought').classList.remove('on'); }
+  function think(text, mood, ms) {
+    var th = $('thought');
+    th.textContent = text; th.classList.add('on'); setMood(mood);
+    clearTimeout(thoughtTimer);
+    thoughtTimer = setTimeout(function () { hideThought(); if (!busy) setMood('usual'); }, ms);
+  }
   function armIdle() {
     clearTimeout(idleTimer);
     idleTimer = setTimeout(function () {
       if (busy || document.hidden) return armIdle();
-      var th = $('thought');
-      th.textContent = rand(MUTTER);
-      th.classList.add('on');
-      setMood(rand(['sideEye', 'sleepy', 'meh']));
-      clearTimeout(thoughtTimer);
-      thoughtTimer = setTimeout(function () { hideThought(); if (!busy) setMood('usual'); }, 5200);
+      think(L(rand(MUTTER)), rand(['sideEye', 'sleepy', 'meh']), 5200);
       armIdle();
     }, 14000 + Math.random() * 9000);
   }
 
   // Moku をつつく
   var POKES = [
-    { t: 'Hey! No poking the CEO, moku.', mood: 'surprised' },
-    { t: 'That tickles. Stop. …Okay, one more.', mood: 'laugh' },
-    { t: 'I am a VERY important owl, you know.', mood: 'showOff' },
-    { t: 'Poke me again and I will… sigh loudly, moku.', mood: 'meh' }
+    { t: ['Hey! No poking the CEO, moku.', 'こら!社長をつつかないでモク。'], mood: 'surprised' },
+    { t: ['That tickles. Stop. …Okay, one more.', 'くすぐったいモク。やめて。…あと1回だけならいいモク。'], mood: 'laugh' },
+    { t: ['I am a VERY important owl, you know.', 'ワタシはとってもエライふくろうなんだモク。'], mood: 'showOff' },
+    { t: ['Poke me again and I will… sigh loudly, moku.', 'もう1回つついたら…大きなため息をつくモク。'], mood: 'meh' }
   ];
   $('stage').addEventListener('click', function (e) {
     if (busy || e.target.closest('#quizCard')) return;
     var line = POKES[mem.pokes % POKES.length];
     mem.pokes += 1; saveMem();
     hop(); boop();
-    var th = $('thought');
-    th.textContent = line.t; th.classList.add('on'); setMood(line.mood);
-    clearTimeout(thoughtTimer);
-    thoughtTimer = setTimeout(function () { hideThought(); if (!busy) setMood('usual'); }, 2600);
+    think(L(line.t), line.mood, 2600);
   });
 
   // ---------- CEO's Pick ----------
@@ -706,7 +735,7 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
     var earned = Math.max(0, earnedIn(pick.id) - (mem.pick.base | 0));
     return Math.max(0, Math.floor(earned * PICK_BONUS) - (mem.pick.paid | 0));
   }
-  function bonusLabel() { return pick.moint ? '+20% bonus' : '+' + PLAY_BONUS + ' bonus'; }
+  function bonusLabel() { return pick.moint ? tr('+20% bonus', '+20%') : tr('+' + PLAY_BONUS + ' bonus', '+' + PLAY_BONUS); }
   function payBonus() {
     var n = pendingBonus();
     if (!n || !M) return 0;
@@ -720,36 +749,44 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
   function paintPick() {
     var el = $('pickPill');
     var paid = pickIsOn() ? (mem.pick.paid | 0) : 0;
-    el.textContent = pick.icon + ' ' + pick.name + ' · ' + (paid ? 'Bonus +' + paid + ' ✓' : bonusLabel());
+    el.textContent = pick.icon + ' ' + pick.name + ' · ' + (paid ? tr('Bonus +', 'ボーナス +') + paid + ' ✓' : bonusLabel());
     el.classList.toggle('on', pickIsOn());
   }
   // ゲームから戻ってきたら、ボーナスの表示を新しくする
   window.addEventListener('pageshow', paintPick);
   document.addEventListener('visibilitychange', function () { if (!document.hidden) { paintPick(); paintCoins(); } });
 
+  function gameTag(g) { return g.icon + ' <b>' + esc(g.name) + '</b>'; }
   function bonusTalk() {
     var earned = Math.max(0, earnedIn(pick.id) - (mem.pick.base | 0));
     var got = payBonus();
     if (!got) return Promise.resolve();
     coin(); setTimeout(chime, 250); confetti();
     if (!pick.moint) return talk([
-      { t: 'Ah! You played ' + pick.icon + ' <b>' + esc(pick.name) + '</b> today. I saw your new record. Nice work, moku!', mood: 'star', close: true, hop: true },
-      { t: 'As promised, here is your <b>Play Bonus: +' + got + ' Moints</b>. From my own pocket. My pocket is crying, moku.', mood: 'moint' }
+      { t: tr('Ah! You played ' + gameTag(pick) + ' today. I saw your new record. Nice work, moku!',
+              'おっ!今日は ' + gameTag(pick) + ' で遊んだモク?新しい記録、見たモク。よくやったモク!'), mood: 'star', close: true, hop: true },
+      { t: tr('As promised, here is your <b>Play Bonus: +' + got + ' Moints</b>. From my own pocket. My pocket is crying, moku.',
+              '約束どおり、<b>プレイボーナス +' + got + ' Moint</b> モク。ワタシのポケットから出すモク。ポケットが泣いてるモク。'), mood: 'moint' }
     ]);
     return talk([
-      { t: 'Ah! You played ' + pick.icon + ' <b>' + esc(pick.name) + '</b> and earned <b>' + earned + ' Moints</b> today. Nice work, moku!', mood: 'star', close: true, hop: true },
-      { t: 'As promised, here is your <b>CEO Bonus: +' + got + ' Moints</b>. 20%! From my own pocket. My pocket is crying, moku.', mood: 'moint' }
+      { t: tr('Ah! You played ' + gameTag(pick) + ' and earned <b>' + earned + ' Moints</b> today. Nice work, moku!',
+              'おっ!今日は ' + gameTag(pick) + ' で <b>' + earned + ' Moint</b> かせいだモク。よくやったモク!'), mood: 'star', close: true, hop: true },
+      { t: tr('As promised, here is your <b>CEO Bonus: +' + got + ' Moints</b>. 20%! From my own pocket. My pocket is crying, moku.',
+              '約束どおり、<b>社長ボーナス +' + got + ' Moint</b>(20%)モク。ワタシのポケットから出すモク。ポケットが泣いてるモク。'), mood: 'moint' }
     ]);
   }
 
   function announcePick() {
     turnPickOn();
     return talk([
-      { t: 'Now, business. Did you see <b>Today\'s Pick</b> at the top of the hub? I picked it. Me. Personally.', mood: 'showOff', close: true },
-      { t: pick.icon + ' <b>' + esc(pick.name) + '</b>! ' + esc(pick.why), mood: 'happy', hop: true },
+      { t: tr('Now, business. Did you see <b>Today\'s Pick</b> at the top of the hub? I picked it. Me. Personally.',
+              'さて、お仕事の話モク。ハブのいちばん上の <b>Today\'s Pick</b> を見たモク?あれはワタシが選んだモク。ワタシが。じきじきにモク。'), mood: 'showOff', close: true },
+      { t: gameTag(pick) + '! ' + esc(L(pick.why)), mood: 'happy', hop: true },
       pick.moint
-        ? { t: 'Play it today, then come back to my office. I will pay you a <b>CEO Bonus</b>: <b>20%</b> of the Moints you earn there. You are welcome, moku.', mood: 'wink' }
-        : { t: 'Play it today and make a new record, then come back to my office. I will pay you a <b>Play Bonus of ' + PLAY_BONUS + ' Moints</b>. You are welcome, moku.', mood: 'wink' }
+        ? { t: tr('Play it today, then come back to my office. I will pay you a <b>CEO Bonus</b>: <b>20%</b> of the Moints you earn there. You are welcome, moku.',
+                  '今日それで遊んだら、社長室にもどってくるモク。そこでかせいだ Moint の <b>20%</b> を<b>社長ボーナス</b>であげるモク。えっへんモク。'), mood: 'wink' }
+        : { t: tr('Play it today and make a new record, then come back to my office. I will pay you a <b>Play Bonus of ' + PLAY_BONUS + ' Moints</b>. You are welcome, moku.',
+                  '今日それで遊んで記録を作ったら、社長室にもどってくるモク。<b>プレイボーナス ' + PLAY_BONUS + ' Moint</b> をあげるモク。えっへんモク。'), mood: 'wink' }
     ]);
   }
 
@@ -760,23 +797,31 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
     var last = mem.lastDay;
     var gap = last ? daysBetween(last, today) : null;
     if (!mem.visits) {
-      lines.push({ t: 'Oh! A visitor! Welcome to my office, ' + name + '.', mood: 'surprised', hop: true });
-      lines.push({ t: 'I am <b>Sir CEO Moku</b>. I own all the Moku games. All of them, moku.', mood: 'showOff', close: true });
-      lines.push({ t: 'I also play them every day. For work. It is VERY serious work.', mood: 'wink' });
+      lines.push({ t: tr('Oh! A visitor! Welcome to my office, ' + name + '.', 'おっ!お客さんモク!ようこそ社長室へ、' + name + '。'), mood: 'surprised', hop: true });
+      lines.push({ t: tr('I am <b>Sir CEO Moku</b>. I own all the Moku games. All of them, moku.', 'ワタシは<b>モク社長</b>モク。Moku のゲームは全部ワタシの会社のものモク。全部モク。'), mood: 'showOff', close: true });
+      lines.push({ t: tr('I also play them every day. For work. It is VERY serious work.', '毎日ぜんぶ遊んでるモク。お仕事で。とーってもマジメなお仕事モク。'), mood: 'wink' });
     } else if (gap === 0) {
-      lines.push({ t: rand(['Back again, ' + name + '? I am a busy owl, you know. …Okay, sit down.', 'You again! Did you miss me? Of course you did, moku.']), mood: 'sideEye' });
+      lines.push({ t: L(rand([
+        ['Back again, ' + name + '? I am a busy owl, you know. …Okay, sit down.', 'また来たモク、' + name + '?ワタシはいそがしいふくろうなんだモク。…まあ、すわるモク。'],
+        ['You again! Did you miss me? Of course you did, moku.', 'またキミモク!ワタシに会いたかったモク?そりゃそうモク。']
+      ])), mood: 'sideEye' });
     } else if (gap >= 7) {
-      lines.push({ t: 'Where have you been, ' + name + '?! ' + gap + ' days! The company missed you. A little. Okay, a lot, moku.', mood: 'cry', close: true });
+      lines.push({ t: tr('Where have you been, ' + name + '?! ' + gap + ' days! The company missed you. A little. Okay, a lot, moku.',
+                         name + '、どこ行ってたモク?!' + gap + '日も!会社はさびしかったモク。ちょっとだけ。…いや、すごくモク。'), mood: 'cry', close: true });
     } else {
-      lines.push({ t: rand(['Welcome back, ' + name + '! Good timing. I just finished my nap. I mean, my meeting.', 'Ah, ' + name + '! My favorite player. Do not tell the others, moku.']), mood: 'happy', hop: true });
+      lines.push({ t: L(rand([
+        ['Welcome back, ' + name + '! Good timing. I just finished my nap. I mean, my meeting.', 'おかえりモク、' + name + '!ちょうどおひるねが終わったところモク。…じゃなくて、会議モク。'],
+        ['Ah, ' + name + '! My favorite player. Do not tell the others, moku.', 'おっ、' + name + '!ワタシのいちばんのお気に入りプレイヤーモク。みんなにはナイショモク。']
+      ])), mood: 'happy', hop: true });
     }
     // 前に聞いたアイデアを覚えている
     var idea = mem.ideas[mem.ideas.length - 1];
     if (idea && idea.day !== today && gap !== 0) {
-      lines.push({ t: 'I keep thinking about your idea: “' + esc(idea.text.slice(0, 60)) + (idea.text.length > 60 ? '…' : '') + '”. Still thinking. Very hard, moku.', mood: 'star' });
+      var q = '“' + esc(idea.text.slice(0, 60)) + (idea.text.length > 60 ? '…' : '') + '”';
+      lines.push({ t: tr('I keep thinking about your idea: ' + q + '. Still thinking. Very hard, moku.', 'キミのアイデア ' + q + ' のこと、ずっと考えてるモク。まだ考え中モク。すごーく考えてるモク。'), mood: 'star' });
     }
-    if (mem.quiz.wins >= 3 && gap !== 0) lines.push({ t: 'You solved ' + mem.quiz.wins + ' of my quizzes. Are you after my job?', mood: 'sweat' });
-    if (mem.donate.count && gap !== 0 && Math.random() < 0.5) lines.push({ t: 'Thanks again for the donation. The cookies were… I mean, the company is doing great.', mood: 'cookie' });
+    if (mem.quiz.wins >= 3 && gap !== 0) lines.push({ t: tr('You solved ' + mem.quiz.wins + ' of my quizzes. Are you after my job?', 'ワタシのクイズを ' + mem.quiz.wins + ' 問も解いたモク。まさか社長の座をねらってるモク?'), mood: 'sweat' });
+    if (mem.donate.count && gap !== 0 && Math.random() < 0.5) lines.push({ t: tr('Thanks again for the donation. The cookies were… I mean, the company is doing great.', 'この前は寄付をありがとうモク。クッキーはおいしかっ…じゃなくて、会社は絶好調モク。'), mood: 'cookie' });
 
     if (mem.lastDay !== today) mem.days += 1;
     mem.visits += 1;
@@ -787,29 +832,38 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
   }
 
   // ---------- メニュー ----------
+  var MENU_LINES = [
+    ['What else, moku?', 'ほかには何するモク?'],
+    ['Anything else? My calendar is… very empty. I mean full.', 'ほかに用はあるモク?ワタシの予定は…ガラガラ。じゃなくて、ぎっしりモク。'],
+    ['Next item on the agenda, moku?', '次の議題はなにモク?'],
+    ['I have time. CEOs always have time for VIPs.', '時間ならあるモク。社長はVIPのためならいつでもヒマモク。']
+  ];
+  function menuLine() { return L(rand(MENU_LINES)); }
   function menu(say) {
     document.body.classList.add('on-title');
     var p = say ? talk([{ t: say, mood: 'usual' }]) : Promise.resolve();
     return p.then(function () {
       var opts = [];
       var bonus = pendingBonus();
-      if (bonus) opts.push({ label: '🎁 Get my CEO Bonus', value: 'bonus', cls: 'main', tag: '+' + bonus });
-      opts.push({ label: pick.icon + ' Play ' + pick.name, value: 'play', cls: bonus ? '' : 'main', tag: pickIsOn() && mem.pick.paid && !pick.moint ? '' : (pick.moint ? '+20%' : '+' + PLAY_BONUS), href: pick.file });
-      opts.push({ label: '💡 I have a game idea', value: 'idea' });
-      opts.push({ label: '💬 Let\'s chat', value: 'chat' });
-      opts.push({ label: '📜 Our talks', value: 'log', cls: 'soft', log: false });
-      opts.push({ label: '👋 Bye!', value: 'bye', cls: 'soft' });
-      return ask(opts);
+      if (bonus) opts.push({ label: tr('🎁 Get my CEO Bonus', '🎁 社長ボーナスをもらう'), value: 'bonus', cls: 'main', tag: '+' + bonus });
+      opts.push({ label: pick.icon + tr(' Play ', ' ') + pick.name + tr('', ' で遊ぶ'), value: 'play', cls: bonus ? '' : 'main', tag: pickIsOn() && mem.pick.paid && !pick.moint ? '' : (pick.moint ? '+20%' : '+' + PLAY_BONUS), href: pick.file });
+      opts.push({ label: tr('💡 I have a game idea', '💡 ゲームのアイデアがある'), value: 'idea' });
+      opts.push({ label: tr('💬 Let\'s chat', '💬 おしゃべりしよう'), value: 'chat' });
+      opts.push({ label: tr('📜 Our talks', '📜 これまでの話'), value: 'log', cls: 'soft', log: false });
+      opts.push({ label: tr('👋 Bye!', '👋 またね!'), value: 'bye', cls: 'soft' });
+      var a = ask(opts);
+      atMenu = true;
+      return a;
     }).then(function (v) {
+      atMenu = false;
       document.body.classList.remove('on-title');
-      if (v === 'bonus') return bonusTalk().then(function () { return menu(rand(MENU_LINES)); });
+      if (v === 'bonus') return bonusTalk().then(function () { return menu(menuLine()); });
       if (v === 'idea') return ideaTalk();
       if (v === 'chat') return chat();
       if (v === 'log') { openLog(); return menu(); }
       if (v === 'bye') return bye();
     });
   }
-  var MENU_LINES = ['What else, moku?', 'Anything else? My calendar is… very empty. I mean full.', 'Next item on the agenda, moku?', 'I have time. CEOs always have time for VIPs.'];
 
   // ---------- 突発クイズ ----------
   var riddles = null;
@@ -865,15 +919,16 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
       return '<span style="white-space:nowrap">' + esc(w.split('').map(function (ch, i) { return i === 0 || !/[A-Z0-9]/.test(ch) ? ch : '_'; }).join(' ')) + '</span>';
     }).join(' / ');
   }
-  // 自由記述の答えを1つ受け取る(null = あきらめた)
+  // 自由記述の答えを1つ受け取る(null = あきらめた)。答えは英語で入れる
   function askAnswer(placeholder) {
+    pendingTap = false;
     return new Promise(function (resolve) {
       var box = $('choices');
-      box.innerHTML = '<div id="answerBox"><input id="answerText" type="text" maxlength="40" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" aria-label="Your answer"></div>';
+      box.innerHTML = '<div id="answerBox"><input id="answerText" type="text" maxlength="40" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" lang="en" aria-label="Your answer"></div>';
       var input = $('answerText');
       input.placeholder = placeholder;
-      var check = document.createElement('button'); check.type = 'button'; check.className = 'main'; check.textContent = '✓ Check';
-      var give = document.createElement('button'); give.type = 'button'; give.className = 'soft'; give.textContent = 'I give up';
+      var check = document.createElement('button'); check.type = 'button'; check.className = 'main'; check.textContent = tr('✓ Check', '✓ これで答える');
+      var give = document.createElement('button'); give.type = 'button'; give.className = 'soft'; give.textContent = tr('I give up', 'こうさん');
       box.appendChild(check); box.appendChild(give);
       function send() {
         var v = input.value.replace(/\s+/g, ' ').trim();
@@ -882,8 +937,8 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
         resolve(v);
       }
       check.addEventListener('click', send);
-      input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); send(); } });
-      give.addEventListener('click', function () { remember('you', 'I give up'); resolve(null); });
+      input.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); send(); } });
+      give.addEventListener('click', function () { remember('you', give.textContent); resolve(null); });
       armIdle();
       setTimeout(function () { try { input.focus(); } catch (e) {} }, 60);
     });
@@ -892,12 +947,13 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
   // 突発クイズ(おしゃべりの途中で出る。1日1問)
   function quiz() {
     var intro = [
-      { t: 'WAIT! Stop right there, moku!', mood: 'surprised', close: true, hop: true },
-      { t: 'It is time for a… <b>POP QUIZ!</b> Type the answer and I pay you <b>' + QUIZ_MOINTS + ' Moints</b>. From my own pocket. Ouch.', mood: 'showOff' }
+      { t: tr('WAIT! Stop right there, moku!', 'ちょっと待ったモク!'), mood: 'surprised', close: true, hop: true },
+      { t: tr('It is time for a… <b>POP QUIZ!</b> Type the answer and I pay you <b>' + QUIZ_MOINTS + ' Moints</b>. From my own pocket. Ouch.',
+              'ぬきうち<b>クイズ</b>の時間モク!答えを英語で書いて当てたら <b>' + QUIZ_MOINTS + ' Moint</b> あげるモク。ワタシのポケットから。いたたモク。'), mood: 'showOff' }
     ];
     return talk(intro).then(loadRiddles).then(function (list) {
       var r = list && chooseRiddle(list);
-      if (!r) return menu('Oh no. I lost my quiz cards. Next time, moku!');
+      if (!r) return menu(tr('Oh no. I lost my quiz cards. Next time, moku!', 'あれ、クイズのカードをなくしたモク。また今度モク!'));
       mem.quiz.seen.push(r.id);
       if (mem.quiz.seen.length > SEEN_MAX) mem.quiz.seen = mem.quiz.seen.slice(-SEEN_MAX);
       mem.quiz.tries += 1;
@@ -910,11 +966,12 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
       var words = r.answer.split(' ').length;
       function attempt(n) {
         var prompt = n === 1
-          ? { t: 'What word or phrase is hiding in this card? 🤔 Type it in!' + (words > 1 ? ' (' + words + ' words)' : ''), mood: 'wink' }
+          ? { t: tr('What word or phrase is hiding in this card? 🤔 Type it in!' + (words > 1 ? ' (' + words + ' words)' : ''),
+                    'このカードにかくれている英語はなにモク?🤔 英語で書くモク!' + (words > 1 ? '(' + words + '語)' : '')), mood: 'wink' }
           : n === 2
-            ? { t: 'Nope! Here is a hint: <b>' + esc(r.clue) + '</b>', mood: 'sideEye' }
-            : { t: 'Last try, moku! It looks like this: <b>' + letterHint(r.answer) + '</b>', mood: 'sweat' };
-        return talk([prompt]).then(function () { return askAnswer(n === 1 ? 'Your answer…' : 'Try again…'); }).then(function (ans) {
+            ? { t: tr('Nope! Here is a hint: <b>' + esc(r.clue) + '</b>', 'ブブー!ヒントをあげるモク: <b>' + esc(r.clue) + '</b>'), mood: 'sideEye' }
+            : { t: tr('Last try, moku! It looks like this: <b>' + letterHint(r.answer) + '</b>', 'これがラストモク!こんな形モク: <b>' + letterHint(r.answer) + '</b>'), mood: 'sweat' };
+        return talk([prompt]).then(function () { return askAnswer(n === 1 ? tr('Your answer…', '英語で答え…') : tr('Try again…', 'もう一回…')); }).then(function (ans) {
           if (ans === null) return false;
           if (isRight(ans)) return true;
           boop();
@@ -925,67 +982,71 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
         });
       }
       return attempt(1).then(function (ok) {
+        var answer = '<b>' + esc(r.answer.toUpperCase()) + '</b>';
         if (ok) {
           var got = M ? M.earn(GAME_ID, QUIZ_MOINTS, { capped: false }) : 0;
           mem.quiz.wins += 1; saveMem();
           chime(); setTimeout(coin, 300); confetti();
           return wait(500).then(function () {
             return talk([
-              { t: 'Correct?! …Correct. It is <b>' + esc(r.answer.toUpperCase()) + '</b>! ' + why, mood: 'surprised', close: true },
-              { t: 'Here are your <b>' + got + ' Moints</b>. Spend them wisely. Or on hats, moku.', mood: 'moint' }
+              { t: tr('Correct?! …Correct. It is ' + answer + '! ' + why, '正解…?!…正解モク。答えは ' + answer + ' モク!' + why), mood: 'surprised', close: true },
+              { t: tr('Here are your <b>' + got + ' Moints</b>. Spend them wisely. Or on hats, moku.', '<b>' + got + ' Moint</b> どうぞモク。大事に使うモク。…帽子でもいいモク。'), mood: 'moint' }
             ]);
           });
         }
         return wait(300).then(function () {
           return talk([
-            { t: 'Ha! It was <b>' + esc(r.answer.toUpperCase()) + '</b>. ' + why, mood: 'laugh', close: true },
-            { t: 'Do not worry. I got it wrong too. The first 12 times. There will be another quiz tomorrow, moku!', mood: 'wink' }
+            { t: tr('Ha! It was ' + answer + '. ' + why, 'ざんねんモク!答えは ' + answer + ' だったモク。' + why), mood: 'laugh', close: true },
+            { t: tr('Do not worry. I got it wrong too. The first 12 times. There will be another quiz tomorrow, moku!', '気にしないモク。ワタシも12回まちがえたモク。明日もまたクイズを出すモク!'), mood: 'wink' }
           ]);
         });
-      }).then(function () { hideCard(); return menu(rand(MENU_LINES)); });
+      }).then(function () { hideCard(); return menu(menuLine()); });
     });
   }
 
   // ---------- ゲームのアイデア ----------
   var IDEA_RULES = [
-    { re: /race|kart|car|drive|fast|speed|track|bike/, say: 'Vroom! Speed is exciting, moku. What is the silliest thing on your track?', mood: 'star' },
-    { re: /puzzle|match|block|drop|brain|maze|riddle/, say: 'A puzzle! My brain loves puzzles. My brain also loves naps.', mood: 'happy' },
-    { re: /fight|battle|ninja|sword|robot|monster|boss/, say: 'Action! Just remember: nobody gets really hurt. Only bonked. Gently, moku.', mood: 'showOff' },
-    { re: /food|cook|cake|cookie|pizza|bento|candy|sweet|ice cream|donut|snack/, say: 'Food?! My stomach says YES. That is my best business advice, moku.', mood: 'cookie' },
-    { re: /animal|cat|dog|fish|pet|bird|owl|bunny|rabbit|horse|dino/, say: 'Animals! Cute things win. I am cute. Ask anyone. Ask my mom.', mood: 'heart' },
-    { re: /space|rocket|planet|star|alien|moon/, say: 'To space! Big question: who pays for the rocket? …Not me, moku.', mood: 'sweat' },
-    { re: /music|song|dance|sing|rhythm|piano|drum/, say: 'A beat! Can I sing in it? Please? I am very good. (I am not.)', mood: 'laugh' },
-    { re: /city|build|house|tree|forest|garden|nature|farm|plant/, say: 'Building! Remember our rule: keep lots of green. Trees make everyone happy, moku.', mood: 'happy' },
-    { re: /money|shop|store|mall|sell|buy|coin|bank|business/, say: 'MONEY?! Finally! Someone who speaks my language, moku!', mood: 'moint' },
-    { re: /friend|team|together|party|multi|online|class/, say: 'With friends! Games are better together. Even I have friends. Two. Maybe three.', mood: 'wink' },
-    { re: /school|study|learn|english|math|homework|quiz/, say: 'A learning game! Smart. Like a tutor that tells jokes. I approve, moku.', mood: 'star' }
+    { re: /race|kart|car|drive|fast|speed|track|bike|レース|カート|車|くるま|はやい|速い|自転車/, say: ['Vroom! Speed is exciting, moku. What is the silliest thing on your track?', 'ブーン!スピードはワクワクするモク。コースにある、いちばんヘンなものはなにモク?'], mood: 'star' },
+    { re: /puzzle|match|block|drop|brain|maze|riddle|パズル|なぞ|謎|めいろ|迷路|ブロック/, say: ['A puzzle! My brain loves puzzles. My brain also loves naps.', 'パズルモク!ワタシの脳みそはパズルが大好きモク。おひるねも大好きモク。'], mood: 'happy' },
+    { re: /fight|battle|ninja|sword|robot|monster|boss|たたかい|戦|バトル|忍者|にんじゃ|ロボット|モンスター|ボス/, say: ['Action! Just remember: nobody gets really hurt. Only bonked. Gently, moku.', 'アクションモク!でも、だれも本当にケガしないようにモク。ポコッとやさしくモク。'], mood: 'showOff' },
+    { re: /food|cook|cake|cookie|pizza|bento|candy|sweet|ice cream|donut|snack|食べ|たべ|料理|りょうり|ケーキ|クッキー|ピザ|弁当|べんとう|おかし|お菓子|アイス|ドーナツ|ごはん/, say: ['Food?! My stomach says YES. That is my best business advice, moku.', 'たべもの?!ワタシのおなかが「やるモク!」って言ってるモク。社長の一番のアドバイスモク。'], mood: 'cookie' },
+    { re: /animal|cat|dog|fish|pet|bird|owl|bunny|rabbit|horse|dino|動物|どうぶつ|ねこ|猫|いぬ|犬|さかな|魚|ペット|鳥|とり|ふくろう|うさぎ|恐竜|きょうりゅう/, say: ['Animals! Cute things win. I am cute. Ask anyone. Ask my mom.', 'どうぶつモク!かわいいは最強モク。ワタシもかわいいモク。ワタシのママに聞くモク。'], mood: 'heart' },
+    { re: /space|rocket|planet|star|alien|moon|宇宙|うちゅう|ロケット|星|ほし|月|つき/, say: ['To space! Big question: who pays for the rocket? …Not me, moku.', '宇宙へモク!大問題: ロケット代はだれが払うモク?…ワタシじゃないモク。'], mood: 'sweat' },
+    { re: /music|song|dance|sing|rhythm|piano|drum|音楽|おんがく|歌|うた|ダンス|リズム|ピアノ|ドラム/, say: ['A beat! Can I sing in it? Please? I am very good. (I am not.)', '音楽モク!ワタシも歌っていいモク?すごく上手モク。(上手じゃないモク)'], mood: 'laugh' },
+    { re: /city|build|house|tree|forest|garden|nature|farm|plant|街|まち|町|建|家|いえ|木|森|もり|庭|にわ|畑|はたけ|自然/, say: ['Building! Remember our rule: keep lots of green. Trees make everyone happy, moku.', 'ものづくりモク!会社のルールを忘れずに: 緑をたくさん残すモク。木があるとみんなうれしいモク。'], mood: 'happy' },
+    { re: /money|shop|store|mall|sell|buy|coin|bank|business|お金|おかね|店|みせ|ショップ|モール|売|買|コイン|銀行/, say: ['MONEY?! Finally! Someone who speaks my language, moku!', 'お金?!やっと話の合う人が来たモク!'], mood: 'moint' },
+    { re: /friend|team|together|party|multi|online|class|友|とも|みんな|チーム|パーティ|いっしょ|一緒|クラス/, say: ['With friends! Games are better together. Even I have friends. Two. Maybe three.', '友だちとモク!ゲームはみんなでやるともっと楽しいモク。ワタシにも友だちがいるモク。2人。いや3人モク。'], mood: 'wink' },
+    { re: /school|study|learn|english|math|homework|quiz|学校|がっこう|勉強|べんきょう|英語|えいご|算数|さんすう|宿題|しゅくだい|クイズ/, say: ['A learning game! Smart. Like a tutor that tells jokes. I approve, moku.', '勉強のゲームモク!かしこいモク。ジョークを言う家庭教師みたいモク。社長が許可するモク。'], mood: 'star' }
   ];
   var IDEA_QUESTIONS = [
-    'Who is the hero? Is it me? It is me, right?',
-    'What makes it fun the 10th time you play?',
-    'What is the very first thing the player does?',
-    'How do you win? And what happens when you lose?',
-    'Draw it on paper first. Then tell the team. Real game makers do that!',
-    'What would make your friends laugh out loud?'
+    ['Who is the hero? Is it me? It is me, right?', '主人公はだれモク?ワタシ?ワタシだよねモク?'],
+    ['What makes it fun the 10th time you play?', '10回目に遊んでも楽しいのは、どうしてモク?'],
+    ['What is the very first thing the player does?', 'プレイヤーがいちばん最初にすることはなにモク?'],
+    ['How do you win? And what happens when you lose?', 'どうしたら勝ちモク?負けたらどうなるモク?'],
+    ['Draw it on paper first. Then tell the team. Real game makers do that!', 'まず紙に絵をかいてみるモク。それからチームに話すモク。本物のゲーム作りの人もそうするモク!'],
+    ['What would make your friends laugh out loud?', '友だちが大笑いするのは、どんなところモク?']
   ];
   function ideaTalk() {
-    return talk([{ t: 'A new game idea? Tell me everything, moku. I am ready. (I have my notebook. It is a cookie box.)', mood: 'star', close: true }]).then(function () {
+    return talk([{ t: tr('A new game idea? Tell me everything, moku. I am ready. (I have my notebook. It is a cookie box.)',
+                         '新しいゲームのアイデア?ぜんぶ聞かせるモク。準備OKモク。(メモ帳はあるモク。クッキーの箱だけどモク)'), mood: 'star', close: true }]).then(function () {
+      pendingTap = false;
       return new Promise(function (resolve) {
         var box = $('choices');
-        box.innerHTML = '<div id="ideaBox"><textarea id="ideaText" maxlength="160" placeholder="My idea is a game where…" aria-label="Your game idea"></textarea></div>';
-        var send = document.createElement('button'); send.type = 'button'; send.className = 'main'; send.textContent = '📨 Tell Sir CEO';
-        var back = document.createElement('button'); back.type = 'button'; back.className = 'soft'; back.textContent = 'Never mind';
+        box.innerHTML = '<div id="ideaBox"><textarea id="ideaText" maxlength="160" aria-label="Your game idea"></textarea></div>';
+        $('ideaText').placeholder = tr('My idea is a game where…', 'こんなゲーム: …');
+        var send = document.createElement('button'); send.type = 'button'; send.className = 'main'; send.textContent = tr('📨 Tell Sir CEO', '📨 社長に話す');
+        var back = document.createElement('button'); back.type = 'button'; back.className = 'soft'; back.textContent = tr('Never mind', 'やっぱりやめる');
         box.appendChild(send); box.appendChild(back);
         send.addEventListener('click', function () {
           var v = $('ideaText').value.replace(/\s+/g, ' ').trim();
-          if (v.length < 3) { $('ideaText').focus(); return; }
+          if (v.length < 2) { $('ideaText').focus(); return; }
           resolve(v);
         });
         back.addEventListener('click', function () { resolve(null); });
         setTimeout(function () { try { $('ideaText').focus(); } catch (e) {} }, 50);
       });
     }).then(function (text) {
-      if (!text) return menu('Okay! My door is always open. Well, mostly, moku.');
+      if (!text) return menu(tr('Okay! My door is always open. Well, mostly, moku.', 'わかったモク!社長室のドアはいつでも開いてるモク。…だいたいモク。'));
       remember('you', text);
       mem.ideas.push({ day: today, text: text.slice(0, 160) });
       if (mem.ideas.length > IDEAS_MAX) mem.ideas = mem.ideas.slice(-IDEAS_MAX);
@@ -995,37 +1056,38 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
       for (var i = 0; i < IDEA_RULES.length; i++) if (IDEA_RULES[i].re.test(low)) { rule = IDEA_RULES[i]; break; }
       var stars = 4 + (text.length % 2);       // CEO の評価はいつも ★4 か ★5(子どもの案を下げない)
       var lines = [
-        { t: rule ? rule.say : 'Hmm… interesting… VERY interesting. I have no idea what to say, so: GREAT, moku!', mood: rule ? rule.mood : 'sideEye', close: true, hop: true },
-        { t: 'Sir CEO\'s rating: <b>' + '⭐'.repeat(stars) + '</b>. ' + rand(IDEA_QUESTIONS), mood: 'showOff' }
+        { t: rule ? L(rule.say) : tr('Hmm… interesting… VERY interesting. I have no idea what to say, so: GREAT, moku!', 'ふむ…おもしろい…すごーくおもしろいモク。なんて言えばいいか分からないから…最高モク!'),
+          mood: rule ? rule.mood : 'sideEye', close: true, hop: true },
+        { t: tr('Sir CEO\'s rating: ', '社長の評価: ') + '<b>' + '⭐'.repeat(stars) + '</b>. ' + L(rand(IDEA_QUESTIONS)), mood: 'showOff' }
       ];
-      if (mem.ideas.length >= 3) lines.push({ t: 'That is idea number ' + mem.ideas.length + '! I keep them all in my cookie box, moku.', mood: 'happy' });
-      return talk(lines).then(function () { return menu(rand(MENU_LINES)); });
+      if (mem.ideas.length >= 3) lines.push({ t: tr('That is idea number ' + mem.ideas.length + '! I keep them all in my cookie box, moku.', 'これで ' + mem.ideas.length + ' こめのアイデアモク!ぜんぶクッキーの箱にしまってあるモク。'), mood: 'happy' });
+      return talk(lines).then(function () { return menu(menuLine()); });
     });
   }
 
   // ---------- おしゃべり ----------
   var CHATS = [
-    { q: 'Quick question. Do you like snacks?', mood: 'cookie', a: [
-      { label: 'Yes! 🍪', r: 'Correct answer. You may stay, moku.', mood: 'happy' },
-      { label: 'Not really', r: '…I will pretend I did not hear that. More for me, moku.', mood: 'sweat' }] },
-    { q: 'What is harder: being a CEO, or doing homework?', mood: 'sideEye', a: [
-      { label: 'Homework!', r: 'Exactly! That is why I became a CEO. No homework. Only… paperwork. Oh no.', mood: 'surprised' },
-      { label: 'Being a CEO!', r: 'Thank you! Finally someone understands me, moku.', mood: 'cry' }] },
-    { q: 'I want to buy something for the office. A jet, or a scooter?', mood: 'star', a: [
-      { label: 'A jet! ✈️', r: 'Great idea! …I checked my wallet. Scooter it is, moku.', mood: 'sweat' },
-      { label: 'A scooter 🛴', r: 'Smart and cheap. You think like a CEO, moku.', mood: 'wink' }] },
-    { q: 'Guess how many Moints I have.', mood: 'showOff', a: [
-      { label: 'A million!', r: 'Ho ho! Yes! …Maybe not a million. Maybe twelve.', mood: 'laugh' },
-      { label: 'Zero?', r: 'Zero?! …How did you know, moku.', mood: 'sweat' }] },
-    { q: 'Do owls need sleep? Asking for a friend. The friend is me.', mood: 'sleepy', a: [
-      { label: 'Yes, sleep!', r: 'Then this meeting is now a nap meeting. Zzz… just kidding, moku.', mood: 'sleepy' },
-      { label: 'No, work!', r: 'You sound like my calendar. Scary, moku.', mood: 'surprised' }] },
-    { q: 'Rain or sunshine?', mood: 'happy', a: [
-      { label: 'Sunshine ☀️', r: 'Me too. My office window has the best sunset. Look!', mood: 'happy' },
-      { label: 'Rain ☔', r: 'Rain is cozy. Good for indoor games. Good for business, moku!', mood: 'moint' }] },
-    { q: 'If you were the CEO for one day, what would you do first?', mood: 'sideEye', a: [
-      { label: 'Free snacks!', r: 'A snack-loving leader. I like you. Do not take my job, moku.', mood: 'cookie' },
-      { label: 'Make a new game', r: 'A builder! Tell me your idea anytime. Press “I have a game idea”, moku.', mood: 'star' }] }
+    { q: ['Quick question. Do you like snacks?', 'ちょっと質問モク。おかしは好きモク?'], mood: 'cookie', a: [
+      { label: ['Yes! 🍪', '好き!🍪'], r: ['Correct answer. You may stay, moku.', '正解モク。ここにいていいモク。'], mood: 'happy' },
+      { label: ['Not really', 'そんなに'], r: ['…I will pretend I did not hear that. More for me, moku.', '…聞かなかったことにするモク。ワタシの分がふえるモク。'], mood: 'sweat' }] },
+    { q: ['What is harder: being a CEO, or doing homework?', '社長と宿題、どっちがたいへんモク?'], mood: 'sideEye', a: [
+      { label: ['Homework!', '宿題!'], r: ['Exactly! That is why I became a CEO. No homework. Only… paperwork. Oh no.', 'そのとおりモク!だから社長になったモク。宿題はないモク。書類はあるけど…。あれ?モク。'], mood: 'surprised' },
+      { label: ['Being a CEO!', '社長!'], r: ['Thank you! Finally someone understands me, moku.', 'ありがとうモク!やっと分かってくれる人がいたモク。'], mood: 'cry' }] },
+    { q: ['I want to buy something for the office. A jet, or a scooter?', '会社に何か買いたいモク。ジェット機とキックボード、どっちモク?'], mood: 'star', a: [
+      { label: ['A jet! ✈️', 'ジェット機!✈️'], r: ['Great idea! …I checked my wallet. Scooter it is, moku.', 'いいねモク!…おさいふを見たモク。キックボードにするモク。'], mood: 'sweat' },
+      { label: ['A scooter 🛴', 'キックボード 🛴'], r: ['Smart and cheap. You think like a CEO, moku.', 'かしこくてお安いモク。キミは社長の考え方をしてるモク。'], mood: 'wink' }] },
+    { q: ['Guess how many Moints I have.', 'ワタシが Moint をいくつ持ってるか当ててモク。'], mood: 'showOff', a: [
+      { label: ['A million!', '100万!'], r: ['Ho ho! Yes! …Maybe not a million. Maybe twelve.', 'ホッホッ!そうモク!…100万はないかもモク。12くらいモク。'], mood: 'laugh' },
+      { label: ['Zero?', 'ゼロ?'], r: ['Zero?! …How did you know, moku.', 'ゼロ?!…なんで分かったモク。'], mood: 'sweat' }] },
+    { q: ['Do owls need sleep? Asking for a friend. The friend is me.', 'ふくろうって寝なきゃダメモク?友だちのために聞いてるモク。友だちはワタシモク。'], mood: 'sleepy', a: [
+      { label: ['Yes, sleep!', '寝なきゃ!'], r: ['Then this meeting is now a nap meeting. Zzz… just kidding, moku.', 'じゃあこの会議はおひるね会議モク。Zzz…うそモク。'], mood: 'sleepy' },
+      { label: ['No, work!', '働いて!'], r: ['You sound like my calendar. Scary, moku.', 'ワタシの予定表みたいなこと言うモク。こわいモク。'], mood: 'surprised' }] },
+    { q: ['Rain or sunshine?', '雨と晴れ、どっちが好きモク?'], mood: 'happy', a: [
+      { label: ['Sunshine ☀️', '晴れ ☀️'], r: ['Me too. My office window has the best sunset. Look!', 'ワタシもモク。社長室の窓から見える夕日はさいこうモク。見て!'], mood: 'happy' },
+      { label: ['Rain ☔', '雨 ☔'], r: ['Rain is cozy. Good for indoor games. Good for business, moku!', '雨もいいモク。おうちでゲーム日和モク。会社ももうかるモク!'], mood: 'moint' }] },
+    { q: ['If you were the CEO for one day, what would you do first?', '1日だけ社長になったら、最初になにするモク?'], mood: 'sideEye', a: [
+      { label: ['Free snacks!', 'おかし食べ放題!'], r: ['A snack-loving leader. I like you. Do not take my job, moku.', 'おかし好きの社長モク。気に入ったモク。でもワタシの席はゆずらないモク。'], mood: 'cookie' },
+      { label: ['Make a new game', '新しいゲームを作る'], r: ['A builder! Tell me your idea anytime. Press “I have a game idea”, moku.', '作る人モク!アイデアはいつでも聞くモク。「ゲームのアイデアがある」を押すモク。'], mood: 'star' }] }
   ];
   // 最近遊んだゲームの話(この端末のセーブがあるか、だけを見る)
   function playedGames() {
@@ -1052,20 +1114,21 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
     var p = useGame
       ? (function () {
           var g = rand(played);
-          return talk([{ t: 'I saw you played ' + g.icon + ' <b>' + esc(g.name) + '</b>. Me too! Was it fun?', mood: 'happy', close: true }]).then(function () {
-            return ask([{ label: 'So fun!', value: 1 }, { label: 'It was hard…', value: 0 }]);
+          return talk([{ t: tr('I saw you played ' + gameTag(g) + '. Me too! Was it fun?', gameTag(g) + ' で遊んだの、見たモク。ワタシも遊んだモク!楽しかったモク?'), mood: 'happy', close: true }]).then(function () {
+            return ask([{ label: tr('So fun!', 'すごく楽しい!'), value: 1 }, { label: tr('It was hard…', 'むずかしかった…'), value: 0 }]);
           }).then(function (v) {
-            return talk([v ? { t: 'Good! Fun is our #1 product, moku.', mood: 'showOff' } : { t: 'Hard is good. It means you are getting stronger. I lose all the time. ALL the time, moku.', mood: 'wink' }]);
+            return talk([v ? { t: tr('Good! Fun is our #1 product, moku.', 'よかったモク!「楽しい」はワタシの会社の一番の商品モク。'), mood: 'showOff' }
+                           : { t: tr('Hard is good. It means you are getting stronger. I lose all the time. ALL the time, moku.', 'むずかしいのはいいことモク。強くなってる証拠モク。ワタシはいつも負けてるモク。いつもモク。'), mood: 'wink' }]);
           });
         })()
-      : talk([{ t: c.q, mood: c.mood, close: true }]).then(function () {
-          return ask(c.a.map(function (a, i) { return { label: a.label, value: i }; }));
-        }).then(function (i) { var a = c.a[i]; return talk([{ t: a.r, mood: a.mood, hop: true }]); });
+      : talk([{ t: L(c.q), mood: c.mood, close: true }]).then(function () {
+          return ask(c.a.map(function (a, i) { return { label: L(a.label), value: i }; }));
+        }).then(function (i) { var a = c.a[i]; return talk([{ t: L(a.r), mood: a.mood, hop: true }]); });
     return p.then(function () {
       // ときどき突発クイズか、寄付のおねだり
       if (Math.random() < quizChance()) return quiz();
       if (canAskDonation() && Math.random() < 0.35) return donation();
-      return menu(rand(MENU_LINES));
+      return menu(menuLine());
     });
   }
 
@@ -1074,42 +1137,51 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
   function donation() {
     mem.donate.askedDay = today; saveMem();
     return talk([
-      { t: 'Psst. ' + '{name}' + '. Come closer.', mood: 'sideEye', close: true },
-      { t: 'The Moku Company is a little short on… snack money. Could you donate <b>' + DONATION + ' Moints</b>? It is totally fine to say no, moku.', mood: 'moint' }
+      { t: tr('Psst. {name}. Come closer.', 'ねえねえ、{name}。ちょっとこっちに来るモク。'), mood: 'sideEye', close: true },
+      { t: tr('The Moku Company is a little short on… snack money. Could you donate <b>' + DONATION + ' Moints</b>? It is totally fine to say no, moku.',
+              'Moku の会社、ちょっと…おやつ代が足りないモク。<b>' + DONATION + ' Moint</b> 寄付してくれないモク?ことわっても全然いいモク。'), mood: 'moint' }
     ]).then(function () {
-      return ask([{ label: '🪙 Donate ' + DONATION, value: 1, cls: 'main' }, { label: 'Nope!', value: 0 }]);
+      return ask([{ label: tr('🪙 Donate ' + DONATION, '🪙 ' + DONATION + ' 寄付する'), value: 1, cls: 'main' }, { label: tr('Nope!', 'やだ!'), value: 0 }]);
     }).then(function (yes) {
       if (yes && M && M.balance() >= DONATION) {
         M.add(-DONATION);
         mem.donate.count += 1; mem.donate.total += DONATION; saveMem();
         coin();
         return talk([
-          { t: 'THANK YOU! I will spend it wisely. On cookies. …For the company, of course.', mood: 'cookie', hop: true },
-          { t: 'Your name is now on my Wall of Kind Birds. Donations so far: <b>' + mem.donate.total + ' Moints</b>.', mood: 'heart' }
+          { t: tr('THANK YOU! I will spend it wisely. On cookies. …For the company, of course.', 'ありがとうモク!大事に使うモク。クッキーに。…もちろん会社のためモク。'), mood: 'cookie', hop: true },
+          { t: tr('Your name is now on my Wall of Kind Birds. Donations so far: <b>' + mem.donate.total + ' Moints</b>.', 'キミの名前を「やさしい鳥のかべ」に書いておいたモク。今までの寄付: <b>' + mem.donate.total + ' Moint</b>。'), mood: 'heart' }
         ]);
       }
-      return talk([{ t: 'Fair! A smart businessbird keeps their Moints. I respect that, moku.', mood: 'showOff' }]);
-    }).then(function () { return menu(rand(MENU_LINES)); });
+      return talk([{ t: tr('Fair! A smart businessbird keeps their Moints. I respect that, moku.', 'なるほどモク!かしこい鳥は Moint を大事にするモク。そんけいするモク。'), mood: 'showOff' }]);
+    }).then(function () { return menu(menuLine()); });
   }
 
   // ---------- さよなら ----------
   function bye() {
     return talk([
-      { t: rand(['Bye, {name}! Go play. That is an order from the CEO, moku.', 'See you! Play my pick, then come back for your bonus, moku!', 'Off you go! I will just… sit here. Being important.']), mood: 'wink', hop: true }
+      { t: L(rand([
+        ['Bye, {name}! Go play. That is an order from the CEO, moku.', 'またね、{name}!遊んでくるモク。社長命令モク。'],
+        ['See you! Play my pick, then come back for your bonus, moku!', 'またモク!おすすめで遊んだら、ボーナスをもらいにもどってくるモク!'],
+        ['Off you go! I will just… sit here. Being important.', 'いってらっしゃいモク!ワタシはここで…すわってるモク。エラそうに。']
+      ])), mood: 'wink', hop: true }
     ]).then(function () {
-      return ask([{ label: pick.icon + ' Play ' + pick.name, href: pick.file, cls: 'main', tag: pick.moint ? '+20%' : '+' + PLAY_BONUS }, { label: '🎮 All games', href: 'hub.html' }, { label: '↩ Wait, one more thing', value: 'back', cls: 'soft' }]);
-    }).then(function () { return menu(rand(MENU_LINES)); });
+      return ask([
+        { label: pick.icon + tr(' Play ', ' ') + pick.name + tr('', ' で遊ぶ'), href: pick.file, cls: 'main', tag: pick.moint ? '+20%' : '+' + PLAY_BONUS },
+        { label: tr('🎮 All games', '🎮 ゲーム一覧'), href: 'hub.html' },
+        { label: tr('↩ Wait, one more thing', '↩ ちょっと待って'), value: 'back', cls: 'soft' }
+      ]);
+    }).then(function () { return menu(menuLine()); });
   }
 
   // ---------- 会話の記録 ----------
   function openLog() {
     var body = $('logBody'), html = '', lastDay = '';
-    if (!mem.log.length) html = '<p class="empty">No talks yet.</p>';
+    if (!mem.log.length) html = '<p class="empty">' + tr('No talks yet.', 'まだ話していないモク。') + '</p>';
     mem.log.forEach(function (row) {
       var d = new Date(row.at);
-      var label = isNaN(d) ? '' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      var label = isNaN(d) ? '' : d.toLocaleDateString(ja() ? 'ja-JP' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       if (label !== lastDay) { html += '<div class="logDay">' + esc(label) + '</div>'; lastDay = label; }
-      html += '<div class="logRow ' + (row.who === 'you' ? 'you' : 'ceo') + '"><span class="who">' + (row.who === 'you' ? 'YOU' : 'SIR CEO MOKU') + '</span><span class="txt">' + esc(row.text) + '</span></div>';
+      html += '<div class="logRow ' + (row.who === 'you' ? 'you' : 'ceo') + '"><span class="who">' + (row.who === 'you' ? tr('YOU', 'キミ') : tr('SIR CEO MOKU', 'モク社長')) + '</span><span class="txt">' + esc(row.text) + '</span></div>';
     });
     body.innerHTML = html;
     $('logSheet').classList.add('on');
@@ -1118,11 +1190,26 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
   $('logClose').addEventListener('click', function () { $('logSheet').classList.remove('on'); });
   $('logSheet').addEventListener('click', function (e) { if (e.target === $('logSheet')) $('logSheet').classList.remove('on'); });
   $('coinPill').addEventListener('click', function () {
-    var th = $('thought');
-    th.textContent = 'You have ' + $('coinVal').textContent + ' Moints. Not that I am counting. (I am counting.)';
-    th.classList.add('on'); setMood('moint');
-    clearTimeout(thoughtTimer);
-    thoughtTimer = setTimeout(function () { hideThought(); if (!busy) setMood('usual'); }, 3000);
+    think(tr('You have ' + $('coinVal').textContent + ' Moints. Not that I am counting. (I am counting.)',
+             'キミは ' + $('coinVal').textContent + ' Moint 持ってるモク。べつに数えてないモク。(数えてるモク)'), 'moint', 3000);
+  });
+
+  // ---------- ことばの切りかえ ----------
+  function paintLang() {
+    document.documentElement.lang = ja() ? 'ja' : 'en';
+    $('langBtn').textContent = ja() ? '🌐 English' : '🌐 日本語';
+    $('langBtn').setAttribute('aria-label', ja() ? 'Switch to English' : '日本語にする');
+    $('nameTagText').textContent = tr('Sir CEO Moku', 'モク社長');
+    $('logTitle').textContent = tr('📜 Our Talks', '📜 これまでの話');
+    $('logClose').textContent = tr('Close', 'とじる');
+    paintPick();
+  }
+  $('langBtn').addEventListener('click', function () {
+    settings.lang = ja() ? 'en' : 'ja';
+    saveSettings();
+    paintLang();
+    // メニューの時はすぐに新しいことばで出し直す。会話の途中なら次のセリフから
+    if (atMenu && !busy) menu(tr('Okay! English it is, moku!', 'オッケー!ここからは日本語で話すモク!'));
   });
 
   function confetti() {
@@ -1142,13 +1229,13 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
   // ---------- はじまり ----------
   layout();
   setMood('usual');
-  paintPick();
+  paintLang();
   loadRiddles();
   greeting().then(function () {
     var first = !pickIsOn();
     var p = first ? announcePick() : bonusTalk();
     return p.then(function () {
-      return menu(first ? 'So, what shall we do, moku?' : rand(MENU_LINES));
+      return menu(first ? tr('So, what shall we do, moku?', 'さて、なにするモク?') : menuLine());
     });
   });
 })();
