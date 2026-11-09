@@ -154,7 +154,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
 - 表示用データは `hub.html` の `CATALOG`、進捗ロジックは従来どおり `GAMES`(同じ `card` キー)。新規タイトル追加時は両方+`SHELVES`+アイコンSVG+スクリーンショットを追加する。
 - **Moint の印**: `CATALOG[].moint` があるゲームはタイルの左上に金色のMコイン、詳細シートに「Earn Moints」(§13)。
 - **マルチプレイの印**(2026-10-30〜): `CATALOG[].multi = { how }` があるゲーム(友達とオンラインで遊べる。§14)はタイルの左上に青い「2人」バッジ(Mコインがあればその右)、詳細シートに「Play with Friends」。今は Moku Chess(Play a Friend)/ Moku Bridge(Challenge a Friend)/ Moku Word Riddles(Riddle Race)/ Moyomoyo(Multiplayer)/ Moku Wolf(Multiplayer)。
-- **Invites**(2026-10-31〜): ハブの一番上(Today's Pick の上)に、友達が待っているマルチプレイを最大4件出す(ログイン中だけ。なければ欄ごと出さない)。招待されてまだ入っていない部屋(Moku Wolf / Moyomoyo / Riddle Race のロビー。`GET /rooms?game=` の `joined: false`)→ 友達のチャレンジでまだ遊んでいないもの(Moku Bridge。`GET /challenges` の `yourTurn` で自分が作っていないもの)→ 自分の番のオンライン対局(Moku Chess。`GET /matches` の `yourTurn`)の順。開いた時・タブに戻った時・1分おきに読み直す(10秒以内の読み直しはしない)。どれかの API が失敗してもその分を出さないだけ。
+- **Invites**(2026-10-31〜): ハブの一番上(Today's Pick の上)に、友達が待っているマルチプレイを最大4件出す(ログイン中だけ。なければ欄ごと出さない)。招待されてまだ入っていない部屋(Moku Wolf / Moyomoyo / Riddle Race のロビー。`GET /rooms?game=` の `joined: false`)→ 友達のチャレンジでまだ遊んでいないもの(Moku Bridge。`GET /challenges` の `yourTurn` で自分が作っていないもの)→ 自分の番のオンライン対局(Moku Chess。`GET /matches` の `yourTurn`。相手が指してから管理画面の「対局のお知らせを出す時間」(初期値24時間)たったものは `inviteExpired` で出さない。対局は残り、Moku Chess の Your games から続けられる。2026-11-09〜)の順。開いた時・タブに戻った時・1分おきに読み直す(10秒以内の読み直しはしない)。どれかの API が失敗してもその分を出さないだけ。
   - ボタンは各ゲームへの直リンク: `moku-wolf.html?join=<コード>` / `moyomoyo.html?join=` / `moku-word-riddles.html?join=` / `moku-bridge.html?challenge=<id>` / `moku-chess.html?match=<id>`。ゲーム側はページを開いたらその部屋・対局に入り、URL からクエリを消す(再読み込みでくり返さない)。新しいマルチプレイのゲームは `hub.html` の Invites の `GAMES`(と部屋なら `ROOM_GAMES`)に足し、ゲーム側にも同じ直リンクを入れる。
 - **アイコンの角丸**(2026-10-30〜): ゲームアイコンのタイルは `border-radius: 18%`(以前は 26%。少し四角に寄せた)。My Games の行のアイコンも同じ、Achievements のカードの小さいアイコンは 8px。
 
@@ -282,7 +282,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
 - **ゲームの設定**(`/admin/settings`、管理画面の「⚙️ 設定」タブ、2026-11-01〜): 時間・回数などの決まりの数字を**コードに書かず**、保護者が初期値から変えられるようにする仕組み。
   - 設定は [`backend/src/settings.js`](backend/src/settings.js) の `SCHEMA` に1つずつ書く(`key`・グループ・日本語の名前と説明・単位・初期値・最小/最大)。管理画面のフォームは `SCHEMA` から自動で作るので、**設定を足す時は `SCHEMA` に1行足して、使う所で `(await settings.get())["<key>"]` を読むだけ**。
   - 保存は同じテーブルの `pk CONFIG / sk SETTINGS` に、初期値と違う値だけ。「初期値に戻す」で消える。変更はアクセスログに `admin_settings`(前→後)。ゲームの API は60秒キャッシュするので、変更は最大1分で効く。
-  - 今ある設定(グループ「マルチプレイ」): `rooms.inviteExpiryMinutes`(招待の有効時間、初期値60分、5〜1440分)・`rooms.lobbyMaxMinutes`(ロビーで待てる時間、初期値120分、10〜1440分)・`challenges.expiryMinutes`(チャレンジの有効時間、初期値60分、10〜20160分)。§13・§14。
+  - 今ある設定(グループ「マルチプレイ」): `rooms.inviteExpiryMinutes`(招待の有効時間、初期値60分、5〜1440分)・`rooms.lobbyMaxMinutes`(ロビーで待てる時間、初期値120分、10〜1440分)・`challenges.expiryMinutes`(チャレンジの有効時間、初期値60分、10〜20160分)・`matches.inviteHours`(対局のお知らせを出す時間、初期値24時間、1〜168時間)。§7・§13・§14。
 - **エラーの確認**(`/errors` `/admin/errors`、2026-10-25〜):
   - **収集**: [`shared/moku-errors.js`](shared/moku-errors.js) を**全ページの `<head>` の先頭**(`<meta charset>` の直後、ほかのどのスクリプトよりも前)で読み込む。予期しないエラー・Promise の未処理エラー・`<script>` の読み込み失敗(three.js の CDN など)を `POST /errors` へ送る。1回のページ表示で最大5件、同じエラーは1回だけ。cross-origin の「Script error.」・ブラウザ拡張・ResizeObserver の警告は送らない。セーブデータやPINは送らない。ログイン中ならトークンを本文に入れ、誰が影響を受けたかだけ分かるようにする(本文は text/plain の JSON にして CORS のプリフライトを出さない)。`aohaus.github.io`・`dechatgpt.com`・`localhost:3000` 以外では何もしない。
   - **まとめ方**: ページ+エラー文+ファイル+行が同じなら1件(`pk = ERR`、`sk` = シグネチャ)。回数・影響した人(ID)・最初/最後の日時・最後の端末/User-Agent/ゲームのバージョン(`#buildInfo`)/スタックを保持。最後の発生から60日で `ttl` により自動削除。

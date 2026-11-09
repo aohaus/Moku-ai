@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const { json } = require("./response");
 const { err, parseBody, tagOf, makeAuthenticate, findOpponent } = require("./playCommon");
 const MokuChessRules = require("./vendor/moku-chess-rules");
+const { createSettings } = require("./settings");
 
 // Online matches between two logged-in players (see API_SPEC.md "Matches").
 // First game: Moku Chess, played like letter chess — no clock; each player
@@ -108,7 +109,10 @@ function listView(row) {
 }
 
 function createMatchApi(store, config) {
-  const { authSecret, now = () => Date.now(), newId = () => crypto.randomBytes(8).toString("hex") } = config;
+  const {
+    authSecret, now = () => Date.now(), newId = () => crypto.randomBytes(8).toString("hex"),
+    settings = createSettings(store, { now }),
+  } = config;
   if (!authSecret || authSecret.length < 32) {
     throw new Error("AUTH_SECRET must be at least 32 characters");
   }
@@ -163,6 +167,12 @@ function createMatchApi(store, config) {
 
   async function listMatches(user) {
     const rows = (await store.listPlayerMatches(user.uid)).map(listView);
+    // Your turn, but the friend moved long ago (admin setting matches.inviteHours,
+    // 24 by default): the hub stops listing it under Invites. The game itself
+    // stays and can still be played from Moku Chess.
+    const staleMs = (await settings.get())["matches.inviteHours"] * 60 * 60 * 1000;
+    const t = now();
+    for (const r of rows) r.inviteExpired = r.yourTurn && t - (Date.parse(r.updatedAt) || 0) >= staleMs;
     // Your turn first, then the other active games, then finished; newest first in each.
     const rank = (r) => (r.yourTurn ? 0 : r.status === "active" ? 1 : 2);
     rows.sort((a, b) => rank(a) - rank(b) || (b.updatedAt || "").localeCompare(a.updatedAt || ""));

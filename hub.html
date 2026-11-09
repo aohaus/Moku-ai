@@ -4602,7 +4602,8 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     });
     var mat = results[ROOM_GAMES.length + 1];
     (mat && mat.matches || []).forEach(function (m) {
-      if (m.status !== 'active' || !m.yourTurn || !GAMES[m.game] || !m.opponent) return;
+      // inviteExpired: the friend moved over a day ago (admin setting); the game stays in Moku Chess
+      if (m.status !== 'active' || !m.yourTurn || m.inviteExpired || !GAMES[m.game] || !m.opponent) return;
       items.push({ game: m.game, from: m.opponent, verb: 'is waiting in', go: 'Play ▶', at: m.updatedAt,
         sub: "It's your move!", href: GAMES[m.game].page + '?match=' + encodeURIComponent(m.id), rank: 2 });
     });

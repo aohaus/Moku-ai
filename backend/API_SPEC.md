@@ -331,6 +331,7 @@ PINはどこにも記録しない。DynamoDB の `ttl` で90日後に自動削�
 | `rooms.inviteExpiryMinutes` | 60(分) | 5〜1440 | Rooms: 招待は1人ずつ、この時間入らなければ消える。ロビーにホストしかいないまま、この時間たつと部屋を閉じる |
 | `rooms.lobbyMaxMinutes` | 120(分) | 10〜1440 | Rooms: 作ってからこの時間たっても始まらないロビーは閉じる(人が入っていても) |
 | `challenges.expiryMinutes` | 60(分) | 10〜20160 | Challenges: 最後の動きからこの時間、もう1人が結果を送らなければ時間切れ |
+| `matches.inviteHours` | 24(時間) | 1〜168 | Matches: 自分の番の対局で、相手が指してからこの時間たったものに `GET /matches` が `inviteExpired: true` を付ける(ハブの Invites に出さない。対局はそのまま) |
 
 ## `PUT /admin/settings`
 
@@ -377,7 +378,8 @@ PINはどこにも記録しない。DynamoDB の `ttl` で90日後に自動削�
 
 ## `GET /matches`
 
-**200** `{ "matches": [ { "id", "game", "status", "you", "opponent": { "name", "tag" }, "turn", "yourTurn", "version", "result", "endReason", "updatedAt" } ], "yourTurn": 2 }`
+**200** `{ "matches": [ { "id", "game", "status", "you", "opponent": { "name", "tag" }, "turn", "yourTurn", "version", "result", "endReason", "updatedAt", "inviteExpired" } ], "yourTurn": 2 }`
+`inviteExpired`(2026-11-09〜): 自分の番で、最後の手から管理画面の設定 `matches.inviteHours`(初期値24時間)たった対局は `true`。ハブの Invites はこれを出さない(`yourTurn` はそのまま、対局も続けられる)。
 並びは「自分の番」→ ほかの進行中 → 終わった対局、それぞれ新しい順。`yourTurn` はハブの「Your turn!」バッジ用の数。
 
 ## `GET /matches/{id}?v=<version>`
