@@ -221,3 +221,23 @@ test("one player can't have more than 20 games going", async () => {
   const busy = await t.call("POST", "/matches", "sora", { game: "moku-chess", opponentTag: t.users.ren.tag });
   assert.equal(busy.body.error, "opponent_busy");
 });
+
+test("a match waiting on you drops out of the hub's Invites after a day, but stays playable", async () => {
+  const t = await setup();
+  const m = await newGame(t);
+  await t.call("POST", `/matches/${m.id}/move`, "aoi", { move: "e2e4", version: 0 });
+  t.tick(23 * 60 * 60 * 1000);
+  let row = (await t.call("GET", "/matches", "ren")).body.matches[0];
+  assert.deepEqual([row.yourTurn, row.inviteExpired], [true, false]);
+  t.tick(2 * 60 * 60 * 1000);
+  const list = (await t.call("GET", "/matches", "ren")).body;
+  row = list.matches[0];
+  assert.deepEqual([row.yourTurn, row.inviteExpired, list.yourTurn], [true, true, 1], "still Ren's move in Moku Chess");
+  assert.equal((await t.call("GET", "/matches", "aoi")).body.matches[0].inviteExpired, false, "only the player whose turn it is");
+  assert.equal((await t.call("POST", `/matches/${m.id}/move`, "ren", { move: "e7e5", version: 1 })).status, 200);
+
+  await t.store.putSettings({ values: { "matches.inviteHours": 48 } });
+  t.tick(61 * 1000);
+  t.tick(25 * 60 * 60 * 1000);
+  assert.equal((await t.call("GET", "/matches", "aoi")).body.matches[0].inviteExpired, false, "the admin's 48 hours");
+});

@@ -45,6 +45,17 @@ const SCHEMA = [
     min: 10,
     max: 20160,
   },
+  {
+    key: "matches.inviteHours",
+    group: "マルチプレイ",
+    label: "対局のお知らせを出す時間",
+    help: "Moku Chess の Play a Friend で自分の番になった対局は、相手が指してからこの時間がたつと、ハブの Invites に出なくなります(対局はそのまま残り、Moku Chess の Your games から続けられます)。",
+    type: "int",
+    unit: "時間",
+    default: 24,
+    min: 1,
+    max: 168,
+  },
 ];
 
 const BY_KEY = new Map(SCHEMA.map((s) => [s.key, s]));
