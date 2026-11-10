@@ -31,7 +31,8 @@
     Riddle の問題・ヒント・用例と、答えの入力は英語のまま(英語の練習のため)。選んだことばは moku:ceo-moku:settings の lang。
   - 窓の外(v0.4.1〜): 朝・昼・夕方・夜で空・太陽/月・丘の色が変わる(setSky()、端末の時計)。夜は星と遠くの家の明かり、部屋も少し暗く。
   - 外枠(#title-frame)は出さない(v0.4.1〜、社長室の絵をじゃましないように。SPEC.md §4 の例外)。
-  - じゆうに話す(Talk freely、v0.4.0〜): なんでも書けて、社長がキーワードで返事をする(AI なし)。名前・好きなものを覚える。
+  - おしゃべりしよう(v0.5.0〜。v0.4.0 の「じゆうに話す」と1つにした): なんでも書けて、社長がキーワードで返事をする(AI なし)。
+    最初と3回ごとに社長から話題(ボタン)をふる。名前・好きなものを覚える。
     困っていそうなことば(いじめ等)には、信じられる大人に話すよう伝える。途中で突発クイズも出る。
   - ハブの「ひょっこり」(v0.4.0〜): hub.html の左の端から社長が顔を出し、押すと ?from=peek でここへ来て、左から入ってくる。
   - 表情: Moku Closet の Moods(表情)と、CEO の服(Top Hat / Monocle / Moint Medallion)を MokuMoint.outfitSVG() で重ねる。
@@ -188,21 +189,23 @@ body {
 #choices button:disabled { cursor: default; }
 #ideaBox, #answerBox { flex: 1 1 100%; display: flex; gap: 8px; }
 /* じゆうに話す: 入力欄は会話ウィンドウに出しっぱなし(スマホのキーボードが毎回閉じないように) */
-#freeBox { display: flex; gap: 8px; margin-top: 10px; }
+#freeBox { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; margin-bottom: 18px; }  /* 下は ▼ の置き場所 */
 #freeBox[hidden] { display: none; }
-#freeBox input {
-  flex: 1; min-width: 0; min-height: 46px; padding: 8px 14px; border-radius: 12px; border: 2px solid #E3CFA8; background: #fff;
-  font: 600 16px/1.3 var(--round); color: var(--ink); -webkit-user-select: text; user-select: text;
+/* 入力欄は1行まるごと使う(2026-11-10、小さすぎたため)。ボタンはその下 */
+#freeBox textarea {
+  flex: 1 1 100%; min-width: 0; min-height: 76px; max-height: 30vh; resize: none;
+  padding: 10px 14px; border-radius: 14px; border: 2px solid #E3CFA8; background: #fff;
+  font: 600 17px/1.4 var(--round); color: var(--ink); -webkit-user-select: text; user-select: text;
 }
-#freeBox input:focus { outline: 3px solid rgba(217,146,90,0.45); border-color: var(--hi); }
+#freeBox textarea:focus { outline: 3px solid rgba(217,146,90,0.45); border-color: var(--hi); }
 #freeBox button {
-  flex: 0 0 auto; min-height: 46px; padding: 8px 14px; border-radius: 14px;
+  flex: 0 0 auto; min-height: 46px; padding: 8px 16px; border-radius: 14px;
   border: 2px solid #E3CFA8; background: #FFFDF7; color: var(--ink-soft);
   font: 700 15px var(--round); box-shadow: 0 3px 0 #E3CFA8; cursor: pointer;
 }
+#freeSend { flex: 1 1 auto !important; }
 #freeBox button.main { background: linear-gradient(180deg, #E9A86C, #C97B43); border-color: #A8612F; color: #fff; box-shadow: 0 3px 0 #874A22; }
 #freeBox button:active { transform: translateY(3px); box-shadow: none; }
-#choices .free { background: #FFF1D6; border-color: #E9B877; box-shadow: 0 3px 0 #E9B877; }
 /* ハブからひょっこり来た時: 社長が左から入ってくる */
 #stage.enter #ceo { animation: ceoEnter .7s cubic-bezier(.3,1.4,.5,1) both; }
 @keyframes ceoEnter { 0% { transform: translateX(-160%) rotate(-18deg); } 100% { transform: translateX(-50%) rotate(0deg); } }
@@ -444,7 +447,7 @@ body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
     <div id="next">▼</div>
     <div id="choices"></div>
     <div id="freeBox" hidden>
-      <input id="freeText" type="text" maxlength="120" autocomplete="off" enterkeyhint="send" aria-label="Say anything">
+      <textarea id="freeText" rows="2" maxlength="160" autocomplete="off" enterkeyhint="send" aria-label="Say anything"></textarea>
       <button id="freeSend" class="main" type="button">💬 Send</button>
       <button id="freeDone" class="soft" type="button">Done</button>
     </div>
@@ -466,7 +469,7 @@ body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
 </div>
 
 <a id="hub-link" href="index.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.4.2 · Updated Nov 10, 2026</div>
+<div id="buildInfo">v0.5.0 · Updated Nov 10, 2026</div>
 
 <script src="shared/moku-account.js?v=20261108b" data-mode="background"></script>
 <script src="shared/moku-moint.js?v=20261108b" data-mode="none"></script>
@@ -507,9 +510,9 @@ body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
   // [英語, 日本語] の組から今のことばの方
   function L(pair) { return Array.isArray(pair) ? (ja() ? pair[1] : pair[0]) : pair; }
 
-  // ---------- Moku用語(日本語のモク社長の話し方。子どもたちと決めたことば) ----------
+  // ---------- Moku用語(日本語のモクCEOの話し方。子どもたちと決めたことば) ----------
   // ・一人称: 「ワタクシ」か「モク」。「ワタシ」は使わない(2026-11-08)。
-  //     ワタクシ = 社長らしく、いばる時・ていねいな時(「ワタクシは<b>モク社長</b>モク」「ワタクシのポケットから出すモク」)。
+  //     ワタクシ = 社長らしく、いばる時・ていねいな時(「ワタクシは<b>モクCEO</b>モク」「ワタクシのポケットから出すモク」)。
   //     モク     = 気がゆるんだ時・ひとりごと・あまえる時(「モクのクッキー食べたのだれモク?…あ。モクだったモク」)。
   // ・語尾: 「〜モク」。
   // ・決まり文句(場面 → ことば)。新しい用語はここに [英語, 日本語] で足して、使う所で L(MOKU_WORDS.xxx) を読む。
@@ -880,7 +883,7 @@ body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
     var gap = last ? daysBetween(last, today) : null;
     if (!mem.visits) {
       lines.push({ t: tr('Oh! A visitor! Welcome to my office, ' + name + '.', 'おっ!お客さんモク!ようこそ社長室へ、' + name + '。'), mood: 'surprised', hop: true });
-      lines.push({ t: tr('I am <b>Sir CEO Moku</b>. I own all the Moku games. All of them, moku.', 'ワタクシは<b>モク社長</b>モク。Moku のゲームは全部ワタクシの会社のものモク。全部モク。'), mood: 'showOff', close: true });
+      lines.push({ t: tr('I am <b>Sir CEO Moku</b>. I own all the Moku games. All of them, moku.', 'ワタクシは<b>モクCEO</b>モク。Moku のゲームは全部ワタクシの会社のものモク。全部モク。'), mood: 'showOff', close: true });
       lines.push({ t: tr('I also play them every day. For work. It is VERY serious work.', '毎日ぜんぶ遊んでるモク。お仕事で。とーってもマジメなお仕事モク。'), mood: 'wink' });
     } else if (gap === 0) {
       lines.push({ t: L(rand([
@@ -934,7 +937,6 @@ body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
       if (bonus) opts.push({ label: tr('🎁 Get my CEO Bonus', '🎁 社長ボーナスをもらう'), value: 'bonus', cls: 'main', tag: '+' + bonus });
       opts.push({ label: pick.icon + tr(' Play ', ' ') + pick.name + tr('', ' で遊ぶ'), value: 'play', cls: bonus ? '' : 'main', tag: pickIsOn() && mem.pick.paid && !pick.moint ? '' : (pick.moint ? '+20%' : '+' + PLAY_BONUS), href: pick.file });
       opts.push({ label: tr('💡 I have a game idea', '💡 ゲームのアイデアがある'), value: 'idea' });
-      opts.push({ label: tr('🗣 Talk freely', '🗣 じゆうに話す'), value: 'free', cls: 'free' });
       opts.push({ label: tr('💬 Let\'s chat', '💬 おしゃべりしよう'), value: 'chat' });
       opts.push({ label: tr('📜 Our talks', '📜 これまでの話'), value: 'log', cls: 'soft', log: false });
       opts.push({ label: tr('👋 Bye!', '👋 またね!'), value: 'bye', cls: 'soft' });
@@ -946,8 +948,7 @@ body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
       document.body.classList.remove('on-title');
       if (v === 'bonus') return bonusTalk().then(function () { return menu(menuLine()); });
       if (v === 'idea') return ideaTalk();
-      if (v === 'chat') return chat();
-      if (v === 'free') return freeTalk(false);
+      if (v === 'chat') return freeTalk(false);
       if (v === 'log') { openLog(); return menu(); }
       if (v === 'bye') return bye();
     });
@@ -1189,17 +1190,43 @@ body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
     });
     return out;
   }
-  // 突発クイズはおしゃべりの途中だけで出る。その日のおしゃべりが増えるほど出やすく、3回目には必ず
-  function quizChance() {
-    if (mem.quiz.day === today) return 0;
-    var n = mem.chat && mem.chat.day === today ? mem.chat.n : 0;
-    return n >= 3 ? 1 : n === 2 ? 0.5 : 0.2;
-  }
-  function chat() {
+  // ---------- おしゃべりの話題(v0.5.0〜) ----------
+  // 「おしゃべりしよう」は入力欄つきの1つの会話(下の freeTalk)。社長は最初と、3回話すごとに、
+  // 自分から話題をふる(選択肢のボタン。ボタンを押しても、入力欄に書いてもよい)。
+  // 突発クイズ(1日1問)はその日3回目のことばから 30%、6回目で必ず。寄付のおねだりは話題のあとにときどき。
+  var CHAT_QUIZ_FROM = 3, CHAT_TOPIC_EVERY = 3;
+  function chatCount() { return mem.chat && mem.chat.day === today ? mem.chat.n : 0; }
+  function countChat() {
     mem.talks += 1;
     if (!mem.chat || mem.chat.day !== today) mem.chat = { day: today, n: 0 };
     mem.chat.n += 1;
     saveMem();
+  }
+  function quizNow() {
+    if (mem.quiz.day === today) return false;
+    var n = chatCount();
+    return n >= CHAT_QUIZ_FROM * 2 ? true : n >= CHAT_QUIZ_FROM ? Math.random() < 0.3 : false;
+  }
+  var topicSeq = 0;
+  // 話題に移る前: タップか、少したったら自動で進む(入力欄があるとタップに気づきにくいため)。
+  // その間に子どもが書いたら(topicSeq が変わる)、この話題はやめる
+  function thenTopic(ms) {
+    var s0 = topicSeq;
+    $('next').classList.add('on');
+    return new Promise(function (go) {
+      var done = false;
+      var finish = function () { if (done) return; done = true; $('next').classList.remove('on'); if (tapWait === tw) tapWait = null; go(); };
+      var tw = function () { finish(); };
+      tapWait = tw;
+      setTimeout(finish, ms || 2600);
+    }).then(function () {
+      if (!(freeOn && s0 === topicSeq && !busy)) return;
+      pendingTap = false;          // 待ったことを「読んだ」合図にする
+      return chatTopic();
+    });
+  }
+  function chatTopic() {
+    var mySeq = ++topicSeq;
     var played = playedGames();
     var useGame = played.length && Math.random() < 0.35;
     var c = useGame ? null : CHATS[(mem.talks + Math.floor(Math.random() * 3)) % CHATS.length];
@@ -1209,19 +1236,31 @@ body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
           return talk([{ t: tr('I saw you played ' + gameTag(g) + '. Me too! Was it fun?', gameTag(g) + ' で遊んだの、見たモク。モクも遊んだモク!楽しかったモク?'), mood: 'happy', close: true }]).then(function () {
             return ask([{ label: tr('So fun!', 'すごく楽しい!'), value: 1 }, { label: tr('It was hard…', 'むずかしかった…'), value: 0 }]);
           }).then(function (v) {
+            countChat();
             return talk([v ? { t: tr('Good! Fun is our #1 product, moku.', 'よかったモク!「楽しい」はワタクシの会社の一番の商品モク。'), mood: 'showOff' }
                            : { t: tr('Hard is good. It means you are getting stronger. I lose all the time. ALL the time, moku.', 'むずかしいのはいいことモク。強くなってる証拠モク。モクはいつも負けてるモク。いつもモク。'), mood: 'wink' }]);
           });
         })()
       : talk([{ t: L(c.q), mood: c.mood, close: true }]).then(function () {
           return ask(c.a.map(function (a, i) { return { label: L(a.label), value: i }; }));
-        }).then(function (i) { var a = c.a[i]; return talk([{ t: L(a.r), mood: a.mood, hop: true }]); });
+        }).then(function (i) { countChat(); var a = c.a[i]; return talk([{ t: L(a.r), mood: a.mood, hop: true }]); });
+    // ボタンを押して答えた時だけ続ける(入力欄に書いた時は、そちらの返事が続きになる)
     return p.then(function () {
-      // ときどき突発クイズか、寄付のおねだり
-      if (Math.random() < quizChance()) return quiz();
-      if (canAskDonation() && Math.random() < 0.35) return donation();
-      return menu(menuLine());
+      if (mySeq !== topicSeq || !freeOn) return;
+      pendingTap = false;
+      return afterChatTurn(true);
     });
+  }
+  // ひとこと話したあと: 突発クイズ / 寄付のおねだり / 社長からの新しい話題
+  function afterChatTurn(wasTopic) {
+    if (quizNow()) {
+      freeBoxShow(false);
+      return tapToGo().then(function () { return quiz(function () { return freeTalk(true); }); });
+    }
+    if (wasTopic && canAskDonation() && Math.random() < 0.35) {
+      return tapToGo().then(function () { return donation(function () { return freeTalk(true); }); });
+    }
+    if (!wasTopic && chatCount() % CHAT_TOPIC_EVERY === 0) return thenTopic();
   }
 
   // ---------- じゆうに話す(Talk freely、v0.4.0〜) ----------
@@ -1229,7 +1268,6 @@ body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
   // 名前(「〜って呼んで」)と好きなもの(「〜が好き」)を覚えて、あとの話や次のあいさつで使う。
   // 失礼なことば(isRude)には Moku用語の rude で返し、記憶には残さない。困っていそうな時は大人に話すよう伝える。
   // 入力欄(#freeBox)は会話ウィンドウに出しっぱなしにして、スマホのキーボードが毎回閉じないようにする。
-  var FREE_QUIZ_AFTER = 4;     // 自由会話でも、その日 4 回目のことばからクイズが出ることがある(1日1問は同じ)
   var SAD_RE = /いじめ|イジメ|たたかれ|叩かれ|なぐられ|殴られ|けられ|蹴られ|死にたい|しにたい|消えたい|きえたい|bull(y|ied|ying)|hurt me|hit me|kick(s|ed)? me|want to die|kill myself|nobody likes me/i;
   var GAME_WORDS = [
     { re: /moku fight|ファイト|格闘/i, id: 'moku-fight' }, { re: /bridge|ブリッジ|橋/i, id: 'moku-bridge' },
@@ -1345,7 +1383,7 @@ body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
     if (/how are you|how's it going|how are u|元気|げんき|調子/i.test(text))
       return { lines: [{ t: tr('I am great! I had three cookies today. Four. Okay, five. How about you, moku?', '元気モク!今日はクッキーを3まい食べたモク。4まい。…5まいモク。キミは元気モク?'), mood: 'cookie' }] };
     if (/who are you|what are you|your job|what do you do|だれ|誰|何者|なにもの|社長って/i.test(text))
-      return { lines: [{ t: tr('I am <b>Sir CEO Moku</b>, the owner of all the Moku games. My job is playing them. Very hard work, moku.', 'ワタクシは<b>モク社長</b>モク。Moku のゲームは全部ワタクシの会社のものモク。お仕事は遊ぶこと。たいへんなお仕事モク。'), mood: 'showOff', close: true }] };
+      return { lines: [{ t: tr('I am <b>Sir CEO Moku</b>, the owner of all the Moku games. My job is playing them. Very hard work, moku.', 'ワタクシは<b>モクCEO</b>モク。Moku のゲームは全部ワタクシの会社のものモク。お仕事は遊ぶこと。たいへんなお仕事モク。'), mood: 'showOff', close: true }] };
     if (/how old|your age|何歳|なんさい|いくつ\?|いくつ？/i.test(text))
       return { lines: [{ t: tr('I am… old enough to be a CEO and young enough to love cookies, moku.', 'ワタクシは…社長になれるくらい大人で、クッキーが大好きなくらい子どもモク。'), mood: 'wink' }] };
     if ((m = /favou?rite (food|colou?r|game|animal)|好きな(食べ物|たべもの|色|いろ|ゲーム|動物|どうぶつ)/i.exec(text))) {
@@ -1417,11 +1455,12 @@ body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
     document.body.classList.remove('on-title');
     var open = resume
       ? talk([{ t: tr('Okay, where were we? Keep talking, moku!', 'さて、どこまで話したっけモク?つづきをどうぞモク!'), mood: 'happy' }])
-      : talk([{ t: tr('Talk freely! Type anything you like. I am listening… mostly, moku.', 'じゆうに話そうモク!なんでも書いてモク。ちゃんと聞いてるモク…だいたいモク。'), mood: 'star', close: true, hop: true }]);
+      : talk([{ t: tr('Let\'s chat! Type anything you like, or tap an answer. I am listening… mostly, moku.', 'おしゃべりしようモク!なんでも書いてもいいし、ボタンを選んでもいいモク。ちゃんと聞いてるモク…だいたいモク。'), mood: 'star', close: true, hop: true }]);
     return open.then(function () {
       freeBoxShow(true);
       armIdle();
-      setTimeout(function () { try { $('freeText').focus(); } catch (e) {} }, 60);
+      // はじめて入った時は、社長から話題をふる
+      if (!resume) thenTopic(1800);
       return new Promise(function (done) { freeDoneFn = done; });
     });
   }
@@ -1449,24 +1488,18 @@ body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
     pendingTap = false;            // 前のセリフは読んだ合図
     if (isRude(v)) { rudeTalk(); return; }   // 記憶には残さない
     remember('you', v);
-    mem.talks += 1;
-    if (!mem.free || mem.free.day !== today) mem.free = { day: today, n: 0 };
-    mem.free.n += 1;
-    saveMem();
+    topicSeq++;                    // ボタンの話題の途中で書いた時は、その話題の続きはやめる
+    countChat();
     var res = freeReply(v);
     if (res.action === 'exit') { talk(res.lines).then(function () { freeEnd(); }); return; }
     if (res.action === 'quiz') { freeBoxShow(false); quiz(function () { return freeTalk(true); }); return; }
     talk(res.lines).then(function () {
       pendingTap = false;          // 入力欄が出ているので、次のことばはすぐ書ける
-      // その日 4 回目のことばから、ときどき突発クイズ(1日1問)
-      if (mem.quiz.day !== today && mem.free.n >= FREE_QUIZ_AFTER && Math.random() < (mem.free.n >= FREE_QUIZ_AFTER * 2 ? 1 : 0.25)) {
-        freeBoxShow(false);
-        return tapToGo().then(function () { return quiz(function () { return freeTalk(true); }); });
-      }
+      return afterChatTurn(false);
     });
   }
   $('freeSend').addEventListener('click', freeSend);
-  $('freeText').addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); freeSend(); } });
+  $('freeText').addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); freeSend(); } });
   $('freeDone').addEventListener('click', function () {
     if (busy) { if (typing) typing.finish(); return; }
     remember('you', $('freeDone').textContent);
@@ -1475,8 +1508,9 @@ body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
 
   // ---------- 寄付のおねだり(ゲーム内の Moint だけ。断っても何も起きない) ----------
   function canAskDonation() { return !!M && mem.donate.askedDay !== today && M.balance() >= DONATION_MIN_BALANCE; }
-  function donation() {
+  function donation(after) {
     mem.donate.askedDay = today; saveMem();
+    freeBoxShow(false);
     return talk([
       { t: tr('Psst. {name}. Come closer.', 'ねえねえ、{name}。ちょっとこっちに来るモク。'), mood: 'sideEye', close: true },
       { t: tr('The Moku Company is a little short on… snack money. Could you donate <b>' + DONATION + ' Moints</b>? It is totally fine to say no, moku.',
@@ -1494,7 +1528,7 @@ body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
         ]);
       }
       return talk([{ t: tr('Fair! A smart businessbird keeps their Moints. I respect that, moku.', 'なるほどモク!かしこい鳥は Moint を大事にするモク。そんけいするモク。'), mood: 'showOff' }]);
-    }).then(function () { return menu(menuLine()); });
+    }).then(function () { return after ? after() : menu(menuLine()); });
   }
 
   // ---------- さよなら ----------
@@ -1522,7 +1556,7 @@ body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
       var d = new Date(row.at);
       var label = isNaN(d) ? '' : d.toLocaleDateString(ja() ? 'ja-JP' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       if (label !== lastDay) { html += '<div class="logDay">' + esc(label) + '</div>'; lastDay = label; }
-      html += '<div class="logRow ' + (row.who === 'you' ? 'you' : 'ceo') + '"><span class="who">' + (row.who === 'you' ? tr('YOU', 'キミ') : tr('SIR CEO MOKU', 'モク社長')) + '</span><span class="txt">' + esc(row.text) + '</span></div>';
+      html += '<div class="logRow ' + (row.who === 'you' ? 'you' : 'ceo') + '"><span class="who">' + (row.who === 'you' ? tr('YOU', 'キミ') : tr('SIR CEO MOKU', 'モクCEO')) + '</span><span class="txt">' + esc(row.text) + '</span></div>';
     });
     body.innerHTML = html;
     $('logSheet').classList.add('on');
@@ -1540,7 +1574,7 @@ body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
     document.documentElement.lang = ja() ? 'ja' : 'en';
     $('langBtn').textContent = ja() ? '🌐 English' : '🌐 日本語';
     $('langBtn').setAttribute('aria-label', ja() ? 'Switch to English' : '日本語にする');
-    $('nameTagText').textContent = tr('Sir CEO Moku', 'モク社長');
+    $('nameTagText').textContent = tr('Sir CEO Moku', 'モクCEO');
     $('logTitle').textContent = tr('📜 Our Talks', '📜 これまでの話');
     $('logClose').textContent = tr('Close', 'とじる');
     if (typeof freeOn !== 'undefined' && freeOn) freeBoxShow(true);
