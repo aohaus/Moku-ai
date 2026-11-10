@@ -1769,6 +1769,51 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
   .hollow-plate b { font-size: 12.5px; }
   .hollow-plate small { font-size: 10px; }
 }
+/* ---------- Sir CEO Moku のひょっこり(2026-11-10〜)----------
+   ハブのいちばん前、左の端から Sir CEO Moku が顔を出して話しかける。押すと社長室(ceo-moku.html)へ。
+   1回の表示で1度だけ。ページ・シート・ポップアップが開いている時は出ない。 */
+#ceoPeek {
+  position: fixed; z-index: 25;
+  left: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 92px);
+  display: block; text-decoration: none; color: inherit;
+  pointer-events: none;
+  -webkit-tap-highlight-color: transparent;
+}
+#ceoPeek.on { pointer-events: auto; }
+html.me-open #ceoPeek { display: none; }
+#ceoPeek .peek-moku {
+  position: relative; display: block;
+  width: 116px; height: 116px;
+  transform: translateX(-120%) rotate(26deg);
+  transform-origin: 30% 80%;
+  transition: transform .55s cubic-bezier(.3,1.5,.5,1);
+  filter: drop-shadow(0 6px 10px rgba(0,0,0,0.45));
+}
+#ceoPeek.on .peek-moku { transform: translateX(-34%) rotate(18deg); animation: ceoPeekWiggle 2.4s ease-in-out .6s infinite; }
+#ceoPeek.bye .peek-moku { transform: translateX(-120%) rotate(26deg); animation: none; transition-duration: .4s; }
+#ceoPeek.go .peek-moku { transform: translateX(10%) rotate(0deg) scale(1.15); animation: none; transition-duration: .35s; }
+@keyframes ceoPeekWiggle { 0%, 100% { rotate: 0deg; } 50% { rotate: -6deg; } }
+#ceoPeek .peek-moku img, #ceoPeek .peek-moku .mm-outfit { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+#ceoPeek .peek-bubble {
+  position: absolute; left: 70px; bottom: 96px;
+  width: max-content; max-width: min(230px, calc(100vw - 96px));
+  padding: 10px 14px; border-radius: 16px;
+  background: #FFF8EC; color: #3B2A20;
+  font: 700 15px/1.35 -apple-system, "Segoe UI", Roboto, sans-serif;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+  opacity: 0; transform: translateY(8px) scale(.9); transform-origin: 10% 100%;
+  transition: opacity .3s ease .35s, transform .35s cubic-bezier(.3,1.5,.5,1) .35s;
+}
+#ceoPeek .peek-bubble::after {
+  content: ''; position: absolute; left: 22px; bottom: -9px;
+  border-width: 10px 8px 0 8px; border-style: solid; border-color: #FFF8EC transparent transparent transparent;
+}
+#ceoPeek .peek-bubble small { display: block; margin-top: 3px; font-size: 11.5px; font-weight: 800; color: #B5652F; letter-spacing: .02em; }
+#ceoPeek.on .peek-bubble { opacity: 1; transform: none; }
+#ceoPeek.bye .peek-bubble, #ceoPeek.go .peek-bubble { opacity: 0; transition-delay: 0s; }
+@media (prefers-reduced-motion: reduce) {
+  #ceoPeek.on .peek-moku { animation: none; }
+}
 </style>
 </head>
 <body>
@@ -4741,6 +4786,74 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
     vv.addEventListener('scroll', schedule);
   }
   schedule();
+})();
+</script>
+<!-- Sir CEO Moku のひょっこり(押すと社長室へ) -->
+<a id="ceoPeek" href="ceo-moku.html?from=peek" aria-label="Visit Sir CEO Moku" hidden>
+  <span class="peek-bubble"><span id="ceoPeekText"></span><small>Tap me ›</small></span>
+  <span class="peek-moku"><img src="brand/mokumoku-hero.png" alt=""><span id="ceoPeekOutfit"></span></span>
+</a>
+<script>
+// ---------- Sir CEO Moku のひょっこり(2026-11-10〜)----------
+// ハブを開いて少したつと、左の端から Sir CEO Moku が顔を出してひとこと言う。押すと社長室へ。
+// 言うことは社長室の記憶(moku:ceo-moku:memory)から: まだ来たことがない/今日のおすすめをまだ聞いていない/
+// CEO Bonus がたまっている(Moint のゲームの時)/それ以外はランダム。ハブの文言なので英語だけ(CLAUDE.md §4)。
+(function () {
+  'use strict';
+  var el = document.getElementById('ceoPeek');
+  if (!el) return;
+  function readJSON(k) { try { var r = localStorage.getItem(k); return r ? JSON.parse(r) : null; } catch (e) { return null; } }
+  function today() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  var RANDOM = [
+    'Wanna chat, moku?',
+    'I am bored. Talk to me, moku!',
+    'Got a new game idea? Tell me, moku!',
+    'Psst… I know a joke. Wanna hear it?',
+    'I might have a pop quiz for you…',
+    'Is it snack time yet, moku?'
+  ];
+  function line() {
+    var m = readJSON('moku:ceo-moku:memory');
+    if (!m || !m.visits) return 'Psst! I am Sir CEO Moku. Come visit my office, moku!';
+    var p = m.pick;
+    if (!p || p.day !== today()) return 'Today\'s Pick is MY pick. Come hear about it, moku!';
+    var M = window.MokuMoint;
+    if (M && M.earnedToday && p.gameId) {
+      var bonus = Math.floor(Math.max(0, M.earnedToday(p.gameId) - (p.base | 0)) * 0.2) - (p.paid | 0);
+      if (bonus > 0) return 'Your CEO Bonus is ready! Come get +' + bonus + ' Moints, moku!';
+    }
+    return RANDOM[Math.floor(Math.random() * RANDOM.length)];
+  }
+  function blocked() {
+    return document.documentElement.classList.contains('me-open') ||
+      document.querySelector('.mm-overlay') ||
+      document.querySelector('.open[id$="Overlay"], .sheet-overlay.open') ||
+      document.hidden;
+  }
+  var shown = false, tries = 0;
+  function show() {
+    if (shown) return;
+    if (blocked()) { if (++tries < 20) setTimeout(show, 3000); return; }   // ポップアップなどが閉じるまで待つ
+    shown = true;
+    document.getElementById('ceoPeekText').textContent = line();
+    var M = window.MokuMoint;
+    if (M && M.outfitSVG) document.getElementById('ceoPeekOutfit').innerHTML = M.outfitSVG({ head: 'top-hat', face: 'monocle', neck: 'moint-medallion', mood: 'mood-wink' });
+    el.hidden = false;
+    void el.offsetWidth;
+    el.classList.add('on');
+    setTimeout(function () {
+      if (el.classList.contains('go')) return;
+      el.classList.remove('on'); el.classList.add('bye');
+      setTimeout(function () { el.hidden = true; }, 600);
+    }, 10000);
+  }
+  // 押したら、Moku が少し飛び出してから社長室へ
+  el.addEventListener('click', function (e) {
+    e.preventDefault();
+    el.classList.remove('on'); el.classList.add('go');
+    setTimeout(function () { location.href = el.getAttribute('href'); }, 320);
+  });
+  setTimeout(show, 2500);
 })();
 </script>
 </body>
