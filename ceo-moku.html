@@ -237,6 +237,14 @@ body {
   box-shadow: 0 2px 8px rgba(0,0,0,0.25);
 }
 .pill.coin b { color: #FFD56A; }
+/* Moint のコイン(ハブの .tile-moint と同じ、真ん中に M の金色のコイン。絵文字の 🪙 は iPhone で銀色になるため) */
+.mcoin {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #FFE7A3, #F5B83D 60%, #D9931E);
+  box-shadow: inset 0 -1.5px 0 rgba(154,101,18,0.6), 0 1px 3px rgba(0,0,0,0.3);
+  color: #7A4A0C; font: 900 10.5px/1 -apple-system, "Segoe UI", Roboto, sans-serif;
+}
 #pickPill { display: none; }
 #pickPill.on { display: inline-flex; }
 
@@ -444,7 +452,7 @@ body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
 </div>
 
 <div id="topBar">
-  <button class="pill coin" id="coinPill" type="button" aria-label="Moints">🪙 <b id="coinVal">0</b></button>
+  <button class="pill coin" id="coinPill" type="button" aria-label="Moints"><span class="mcoin" aria-hidden="true">M</span><b id="coinVal">0</b></button>
   <span class="pill" id="pickPill"></span>
   <button class="pill" id="soundBtn" type="button" aria-label="Sound">🔊</button>
 </div>
@@ -458,7 +466,7 @@ body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
 </div>
 
 <a id="hub-link" href="index.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.4.1 · Updated Nov 10, 2026</div>
+<div id="buildInfo">v0.4.2 · Updated Nov 10, 2026</div>
 
 <script src="shared/moku-account.js?v=20261108b" data-mode="background"></script>
 <script src="shared/moku-moint.js?v=20261108b" data-mode="none"></script>
@@ -1474,7 +1482,7 @@ body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
       { t: tr('The Moku Company is a little short on… snack money. Could you donate <b>' + DONATION + ' Moints</b>? It is totally fine to say no, moku.',
               'Moku の会社、ちょっと…おやつ代が足りないモク。<b>' + DONATION + ' Moint</b> 寄付してくれないモク?ことわっても全然いいモク。'), mood: 'moint' }
     ]).then(function () {
-      return ask([{ label: tr('🪙 Donate ' + DONATION, '🪙 ' + DONATION + ' 寄付する'), value: 1, cls: 'main' }, { label: tr('Nope!', 'やだ!'), value: 0 }]);
+      return ask([{ label: tr('Donate ' + DONATION + ' Moints', DONATION + ' Moint 寄付する'), value: 1, cls: 'main' }, { label: tr('Nope!', 'やだ!'), value: 0 }]);
     }).then(function (yes) {
       if (yes && M && M.balance() >= DONATION) {
         M.add(-DONATION);
