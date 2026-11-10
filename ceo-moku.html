@@ -29,6 +29,8 @@
     日本語の社長の話し方は下の「Moku用語」(MOKU_WORDS の上のコメント)。一人称は「ワタクシ」か「モク」(「ワタシ」は使わない)・語尾「〜モク」。
     セリフは tr(英語, 日本語) / L([英語, 日本語]) で両方を持つ。
     Riddle の問題・ヒント・用例と、答えの入力は英語のまま(英語の練習のため)。選んだことばは moku:ceo-moku:settings の lang。
+  - 窓の外(v0.4.1〜): 朝・昼・夕方・夜で空・太陽/月・丘の色が変わる(setSky()、端末の時計)。夜は星と遠くの家の明かり、部屋も少し暗く。
+  - 外枠(#title-frame)は出さない(v0.4.1〜、社長室の絵をじゃましないように。SPEC.md §4 の例外)。
   - じゆうに話す(Talk freely、v0.4.0〜): なんでも書けて、社長がキーワードで返事をする(AI なし)。名前・好きなものを覚える。
     困っていそうなことば(いじめ等)には、信じられる大人に話すよう伝える。途中で突発クイズも出る。
   - ハブの「ひょっこり」(v0.4.0〜): hub.html の左の端から社長が顔を出し、押すと ?from=peek でここへ来て、左から入ってくる。
@@ -128,8 +130,8 @@ body {
 #panel {
   position: relative; flex: 0 0 auto;
   width: min(100% - 20px, 720px);
-  margin: 0 auto 30px;
-  padding: 22px 18px 14px;
+  margin: 0 auto 26px;
+  padding: 24px 18px 16px;
   border-radius: 18px;
   background: repeating-linear-gradient(180deg, transparent 0 27px, var(--paper-line) 27px 28px), var(--paper);
   border: 3px solid var(--wood);
@@ -153,7 +155,7 @@ body {
 }
 #langBtn:active { transform: translateY(2px); box-shadow: none; }
 #line {
-  min-height: 3.2em;
+  min-height: 4.4em;
   font: 600 clamp(15px, 2.3vw + 8px, 19px)/1.45 var(--round);
   color: var(--ink);
   -webkit-user-select: text; user-select: text;
@@ -239,8 +241,7 @@ body {
 #pickPill.on { display: inline-flex; }
 
 /* ---------- 共通フレーム(SPEC.md §4・§5)。メニューの時だけ出す ---------- */
-#title-frame { position: fixed; inset: 14px; border: 3px solid var(--hi); border-radius: 10px; pointer-events: none; z-index: 40; }
-#title-frame::after { content: ''; position: absolute; inset: 5px; border: 1px solid var(--lo); border-radius: 8px; }
+/* 外枠(#title-frame)はこのページでは出さない(2026-11-10、保護者の声。社長室の絵をじゃましないように) */
 #hub-link {
   position: fixed; z-index: 41;
   top: calc(env(safe-area-inset-top, 0px) + 22px); right: calc(env(safe-area-inset-right, 0px) + 24px);
@@ -254,7 +255,7 @@ body {
   bottom: calc(env(safe-area-inset-bottom, 0px) + 9px); left: calc(env(safe-area-inset-left, 0px) + 18px);
   font-size: 10.5px; letter-spacing: 0.02em; color: rgba(255,255,255,0.28); pointer-events: none;
 }
-body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
+body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
 
 /* ---------- 会話の記録 ---------- */
 .sheetWrap {
@@ -283,6 +284,11 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
 .confetti { position: fixed; z-index: 55; width: 9px; height: 13px; border-radius: 2px; pointer-events: none; animation: fall 1.6s ease-in forwards; }
 @keyframes fall { to { transform: translateY(70vh) rotate(540deg); opacity: 0; } }
 
+/* 縦持ち: 会話ウィンドウを上に広げる(下に寄って小さく見えたため。2026-11-10) */
+@media (orientation: portrait) {
+  #panel { min-height: clamp(190px, 31vh, 320px); }
+  #line { min-height: 5.4em; }
+}
 /* 背の低い横長の画面(スマホの横持ち): 左に社長室、右に会話ウィンドウ */
 @media (max-height: 500px) and (orientation: landscape) {
   #app { flex-direction: row; align-items: center; }
@@ -305,7 +311,7 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
     <svg id="room" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
       <defs>
         <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F6DFB6"/><stop offset="1" stop-color="#EBC994"/></linearGradient>
-        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F7A86B"/><stop offset=".55" stop-color="#FBC98A"/><stop offset="1" stop-color="#FFE4B0"/></linearGradient>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop id="sky0" offset="0" stop-color="#F7A86B"/><stop id="sky1" offset=".55" stop-color="#FBC98A"/><stop id="sky2" offset="1" stop-color="#FFE4B0"/></linearGradient>
         <linearGradient id="panelWood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9A5F38"/><stop offset="1" stop-color="#6E3F22"/></linearGradient>
         <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8E5532"/><stop offset="1" stop-color="#5E3319"/></linearGradient>
         <radialGradient id="glow" cx="50%" cy="40%" r="60%"><stop offset="0" stop-color="#FFE7B8" stop-opacity=".55"/><stop offset="1" stop-color="#FFE7B8" stop-opacity="0"/></radialGradient>
@@ -318,12 +324,21 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
       <g transform="translate(330 70)">
         <rect x="-14" y="-14" width="368" height="268" rx="18" fill="#7A4A2C"/>
         <rect width="340" height="240" rx="10" fill="url(#sky)"/>
-        <circle cx="236" cy="168" r="40" fill="#FFE08A"/>
-        <circle cx="236" cy="168" r="60" fill="#FFE08A" opacity=".25"/>
-        <path d="M0 186 Q40 150 80 176 Q120 140 168 172 Q214 136 262 170 Q300 148 340 168 L340 240 L0 240Z" fill="#7FAE6B"/>
-        <path d="M0 206 Q50 176 104 200 Q160 172 214 198 Q272 176 340 196 L340 240 L0 240Z" fill="#5E8F52"/>
-        <g fill="#4C7A43"><path d="M44 214 l14 -40 l14 40z"/><path d="M286 214 l12 -34 l12 34z"/><path d="M150 222 l10 -28 l10 28z"/></g>
-        <g fill="#fff" opacity=".85"><ellipse cx="70" cy="56" rx="34" ry="12"/><ellipse cx="96" cy="48" rx="22" ry="12"/><ellipse cx="270" cy="70" rx="26" ry="9"/></g>
+        <!-- 夜の星(時間帯で表示。setSky()) -->
+        <g id="winStars" fill="#FFF6D8" opacity="0">
+          <circle cx="40" cy="30" r="1.8"/><circle cx="92" cy="20" r="1.2"/><circle cx="130" cy="58" r="1.6"/><circle cx="58" cy="88" r="1.2"/>
+          <circle cx="200" cy="28" r="1.4"/><circle cx="300" cy="22" r="1.8"/><circle cx="318" cy="84" r="1.2"/><circle cx="214" cy="94" r="1.3"/>
+          <path d="M110 30 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -2z"/><path d="M280 60 l1.5 4 l4 1.5 l-4 1.5 l-1.5 4 l-1.5 -4 l-4 -1.5 l4 -1.5z"/>
+        </g>
+        <g id="winSun"><circle id="winSunHalo" cx="236" cy="168" r="60" fill="#FFE08A" opacity=".25"/><circle id="winSunDisc" cx="236" cy="168" r="40" fill="#FFE08A"/></g>
+        <!-- 月(夜だけ) -->
+        <g id="winMoon" opacity="0"><circle cx="250" cy="62" r="34" fill="#FFF3C4" opacity=".18"/><circle cx="250" cy="62" r="22" fill="#FFF3C4"/><circle cx="260" cy="56" r="20" fill="#263260"/></g>
+        <path id="winHill1" d="M0 186 Q40 150 80 176 Q120 140 168 172 Q214 136 262 170 Q300 148 340 168 L340 240 L0 240Z" fill="#7FAE6B"/>
+        <path id="winHill2" d="M0 206 Q50 176 104 200 Q160 172 214 198 Q272 176 340 196 L340 240 L0 240Z" fill="#5E8F52"/>
+        <g id="winTrees" fill="#4C7A43"><path d="M44 214 l14 -40 l14 40z"/><path d="M286 214 l12 -34 l12 34z"/><path d="M150 222 l10 -28 l10 28z"/></g>
+        <!-- 夜は遠くの家に明かり -->
+        <g id="winLights" fill="#FFD36B" opacity="0"><rect x="96" y="196" width="4" height="4" rx="1"/><rect x="226" y="190" width="4" height="4" rx="1"/><rect x="316" y="200" width="4" height="4" rx="1"/></g>
+        <g id="winClouds" fill="#fff" opacity=".85"><ellipse cx="70" cy="56" rx="34" ry="12"/><ellipse cx="96" cy="48" rx="22" ry="12"/><ellipse cx="270" cy="70" rx="26" ry="9"/></g>
         <rect x="164" y="0" width="12" height="240" fill="#7A4A2C"/>
         <rect x="0" y="114" width="340" height="10" fill="#7A4A2C"/>
         <!-- カーテン -->
@@ -379,6 +394,7 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
       <!-- 赤じゅうたん -->
       <ellipse cx="500" cy="680" rx="380" ry="40" fill="#B4473C"/><ellipse cx="500" cy="680" rx="340" ry="30" fill="none" stroke="#E7B35A" stroke-width="4" stroke-dasharray="10 8"/>
       <rect width="1000" height="700" fill="url(#glow)"/>
+      <rect id="roomTint" width="1000" height="700" fill="#1B2350" opacity="0"/>
     </svg>
 
     <div id="ceo" aria-hidden="true">
@@ -441,9 +457,8 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
   </div>
 </div>
 
-<div id="title-frame"></div>
 <a id="hub-link" href="index.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.4.0 · Updated Nov 10, 2026</div>
+<div id="buildInfo">v0.4.1 · Updated Nov 10, 2026</div>
 
 <script src="shared/moku-account.js?v=20261108b" data-mode="background"></script>
 <script src="shared/moku-moint.js?v=20261108b" data-mode="none"></script>
@@ -1544,6 +1559,36 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
       setTimeout(function (el) { return function () { el.remove(); }; }(c), 2100);
     }
   }
+
+  // ---------- 窓の外の景色(時間帯で変わる。2026-11-10〜) ----------
+  // 朝 5〜10時 / 昼 10〜16時 / 夕方 16〜19時 / 夜 19〜5時(端末の時計)。5分おきに見直す。?sky=morning などで確かめられる
+  var SKIES = {
+    morning: { sky: ['#9FD3F5', '#CDE9F7', '#FFF1D0'], sun: [70, 100, '#FFF2B0'], hill: ['#8CC27A', '#6FA85F', '#5B8F4E'], cloud: .95, stars: 0, moon: 0, lights: 0, tint: 0 },
+    day:     { sky: ['#6FB7EE', '#A9D8F5', '#E3F4FB'], sun: [250, 52, '#FFF6C2'], hill: ['#86BF6E', '#64A055', '#4F8A45'], cloud: .95, stars: 0, moon: 0, lights: 0, tint: 0 },
+    evening: { sky: ['#F7A86B', '#FBC98A', '#FFE4B0'], sun: [236, 168, '#FFE08A'], hill: ['#7FAE6B', '#5E8F52', '#4C7A43'], cloud: .85, stars: 0, moon: 0, lights: 0, tint: 0 },
+    night:   { sky: ['#1E2A5A', '#33407A', '#55598F'], sun: null, hill: ['#3E5A4E', '#2F4A40', '#26392F'], cloud: .22, stars: 1, moon: 1, lights: 1, tint: .14 }
+  };
+  function skyBand() {
+    var q = /[?&]sky=(morning|day|evening|night)\b/.exec(location.search);
+    if (q) return q[1];
+    var h = new Date().getHours();
+    return h >= 5 && h < 10 ? 'morning' : h >= 10 && h < 16 ? 'day' : h >= 16 && h < 19 ? 'evening' : 'night';
+  }
+  function setSky() {
+    var b = SKIES[skyBand()];
+    var set = function (id, attr, v) { var el = document.getElementById(id); if (el) el.setAttribute(attr, v); };
+    set('sky0', 'stop-color', b.sky[0]); set('sky1', 'stop-color', b.sky[1]); set('sky2', 'stop-color', b.sky[2]);
+    set('winSun', 'opacity', b.sun ? 1 : 0);
+    if (b.sun) {
+      ['winSunHalo', 'winSunDisc'].forEach(function (id) { set(id, 'cx', b.sun[0]); set(id, 'cy', b.sun[1]); set(id, 'fill', b.sun[2]); });
+    }
+    set('winHill1', 'fill', b.hill[0]); set('winHill2', 'fill', b.hill[1]); set('winTrees', 'fill', b.hill[2]);
+    set('winClouds', 'opacity', b.cloud);
+    set('winStars', 'opacity', b.stars); set('winMoon', 'opacity', b.moon); set('winLights', 'opacity', b.lights);
+    set('roomTint', 'opacity', b.tint);
+  }
+  setSky();
+  setInterval(setSky, 5 * 60 * 1000);
 
   // ---------- はじまり ----------
   // ハブの「ひょっこり」から来た時(?from=peek): 社長が左から入ってきて、ひとこと足す
