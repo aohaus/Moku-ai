@@ -41,7 +41,7 @@
 | Moku Dropper | `moku-dropper.html` | 3Dドロッパー(大きな木の幹の中を落ちてポータルへ。ライバルとレース) |
 | Moku Mall | `moku-mall.html` | モール経営+泥棒退治(店を開いて稼ぎ、ATM をねらう泥棒をつかまえる。4つのモール) |
 | Mokuball | `mokuball.html` | サッカー/ピンボール風(ハブ未公開) |
-| Sir CEO Moku | `ceo-moku.html` | 社長の Moku と会話する部屋(CEO's Pick のボーナス・Pop Quiz・ゲームのアイデア相談・じゆうに話す。ハブの左の端からひょっこり出てくる) |
+| Sir CEO Moku | `ceo-moku.html` | 社長の Moku と会話する部屋(CEO's Pick のボーナス・Pop Quiz・ゲームのアイデア相談・おしゃべり。ハブの左の端からひょっこり出てくる) |
 
 ハブは `index.html`(入口のスプラッシュ)と `hub.html`(ゲーム一覧)。最新の一覧は `hub.html` の `CATALOG` が正。
 

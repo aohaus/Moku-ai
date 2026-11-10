@@ -4832,10 +4832,19 @@ html.me-open #ceoPeek { display: none; }
       document.querySelector('.open[id$="Overlay"], .sheet-overlay.open') ||
       document.hidden;
   }
-  var shown = false, tries = 0;
+  // ハブを開くたび(戻るボタン・スワイプで戻った時も)に1回出す。
+  // iPhone の Safari は戻った時に前の画面をそのまま復元する(スクリプトは動き直さない)ので、
+  // pageshow(persisted)で状態を戻してからもう一度出す。ポップアップなどが開いている間は、閉じるまで待つ(あきらめない)。
+  var shown = false, waitTimer = null, hideTimer = null, goTimer = null;
+  function reset() {
+    shown = false;
+    clearTimeout(waitTimer); clearTimeout(hideTimer); clearTimeout(goTimer);
+    el.classList.remove('on', 'bye', 'go');
+    el.hidden = true;
+  }
   function show() {
     if (shown) return;
-    if (blocked()) { if (++tries < 20) setTimeout(show, 3000); return; }   // ポップアップなどが閉じるまで待つ
+    if (blocked()) { clearTimeout(waitTimer); waitTimer = setTimeout(show, 2000); return; }   // ポップアップなどが閉じるまで待つ
     shown = true;
     document.getElementById('ceoPeekText').textContent = line();
     var M = window.MokuMoint;
@@ -4843,19 +4852,29 @@ html.me-open #ceoPeek { display: none; }
     el.hidden = false;
     void el.offsetWidth;
     el.classList.add('on');
-    setTimeout(function () {
+    hideTimer = setTimeout(function () {
       if (el.classList.contains('go')) return;
       el.classList.remove('on'); el.classList.add('bye');
-      setTimeout(function () { el.hidden = true; }, 600);
+      hideTimer = setTimeout(function () { el.hidden = true; }, 600);
     }, 10000);
   }
+  function schedule(ms) { clearTimeout(waitTimer); waitTimer = setTimeout(show, ms); }
   // 押したら、Moku が少し飛び出してから社長室へ
   el.addEventListener('click', function (e) {
     e.preventDefault();
+    clearTimeout(hideTimer);
     el.classList.remove('on'); el.classList.add('go');
-    setTimeout(function () { location.href = el.getAttribute('href'); }, 320);
+    goTimer = setTimeout(function () { location.href = el.getAttribute('href'); }, 320);
   });
-  setTimeout(show, 2500);
+  // 戻るボタン・スワイプでハブに戻った時(ページが復元された時)
+  window.addEventListener('pageshow', function (e) {
+    if (e.persisted) { reset(); schedule(1500); }
+  });
+  // ほかのアプリやタブから戻った時、まだ出していなければ出す
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && !shown) schedule(1500);
+  });
+  schedule(2500);
 })();
 </script>
 </body>
