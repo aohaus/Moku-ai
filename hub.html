@@ -1774,28 +1774,35 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
    1回の表示で1度だけ。ページ・シート・ポップアップが開いている時は出ない。 */
 #ceoPeek {
   position: fixed; z-index: 25;
-  left: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 92px);
+  left: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 130px);
   display: block; text-decoration: none; color: inherit;
   pointer-events: none;
   -webkit-tap-highlight-color: transparent;
 }
 #ceoPeek.on { pointer-events: auto; }
 html.me-open #ceoPeek { display: none; }
-#ceoPeek .peek-moku {
-  position: relative; display: block;
-  width: 116px; height: 116px;
-  transform: translateX(-120%) rotate(26deg);
-  transform-origin: 30% 80%;
+/* 顔から上だけ: 口ばしの下(上から約 55%)から下を透明にぼかして消し(mask)、少しかたむけた頭を左の端から出す。
+   足やおなかは見えない。 */
+#ceoPeek .peek-moku { position: relative; display: block; width: 0; height: 0; }
+#ceoPeek .peek-crop {
+  position: absolute; left: 0; bottom: -40px;
+  width: 150px; height: 150px;
+  transform-origin: 30% 60%;
+  transform: translateX(-170px) rotate(32deg);
   transition: transform .55s cubic-bezier(.3,1.5,.5,1);
-  filter: drop-shadow(0 6px 10px rgba(0,0,0,0.45));
 }
-#ceoPeek.on .peek-moku { transform: translateX(-34%) rotate(18deg); animation: ceoPeekWiggle 2.4s ease-in-out .6s infinite; }
-#ceoPeek.bye .peek-moku { transform: translateX(-120%) rotate(26deg); animation: none; transition-duration: .4s; }
-#ceoPeek.go .peek-moku { transform: translateX(10%) rotate(0deg) scale(1.15); animation: none; transition-duration: .35s; }
+#ceoPeek.on .peek-crop { transform: translateX(-52px) rotate(22deg); animation: ceoPeekWiggle 2.4s ease-in-out .6s infinite; }
+#ceoPeek.bye .peek-crop { transform: translateX(-170px) rotate(32deg); animation: none; transition-duration: .4s; }
+#ceoPeek.go .peek-crop { transform: translateX(-40px) rotate(8deg) scale(1.1); animation: none; transition-duration: .3s; }
 @keyframes ceoPeekWiggle { 0%, 100% { rotate: 0deg; } 50% { rotate: -6deg; } }
-#ceoPeek .peek-moku img, #ceoPeek .peek-moku .mm-outfit { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+#ceoPeek .peek-doll {
+  position: absolute; inset: 0;
+  -webkit-mask-image: linear-gradient(to bottom, #000 50%, transparent 60%);
+          mask-image: linear-gradient(to bottom, #000 50%, transparent 60%);
+}
+#ceoPeek .peek-doll img, #ceoPeek .peek-doll .mm-outfit { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
 #ceoPeek .peek-bubble {
-  position: absolute; left: 70px; bottom: 96px;
+  position: absolute; left: 62px; bottom: 84px;
   width: max-content; max-width: min(230px, calc(100vw - 96px));
   padding: 10px 14px; border-radius: 16px;
   background: #FFF8EC; color: #3B2A20;
@@ -1812,7 +1819,7 @@ html.me-open #ceoPeek { display: none; }
 #ceoPeek.on .peek-bubble { opacity: 1; transform: none; }
 #ceoPeek.bye .peek-bubble, #ceoPeek.go .peek-bubble { opacity: 0; transition-delay: 0s; }
 @media (prefers-reduced-motion: reduce) {
-  #ceoPeek.on .peek-moku { animation: none; }
+  #ceoPeek.on .peek-crop { animation: none; }
 }
 </style>
 </head>
@@ -4791,7 +4798,7 @@ html.me-open #ceoPeek { display: none; }
 <!-- Sir CEO Moku のひょっこり(押すと社長室へ) -->
 <a id="ceoPeek" href="ceo-moku.html?from=peek" aria-label="Visit Sir CEO Moku" hidden>
   <span class="peek-bubble"><span id="ceoPeekText"></span><small>Tap me ›</small></span>
-  <span class="peek-moku"><img src="brand/mokumoku-hero.png" alt=""><span id="ceoPeekOutfit"></span></span>
+  <span class="peek-moku"><span class="peek-crop"><span class="peek-doll"><img src="brand/mokumoku-hero.png" alt=""><span id="ceoPeekOutfit"></span></span></span></span>
 </a>
 <script>
 // ---------- Sir CEO Moku のひょっこり(2026-11-10〜)----------
