@@ -1781,28 +1781,23 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
 }
 #ceoPeek.on { pointer-events: auto; }
 html.me-open #ceoPeek { display: none; }
-/* 顔から上だけ: 口ばしの下(上から約 55%)から下を透明にぼかして消し(mask)、少しかたむけた頭を左の端から出す。
-   足やおなかは見えない。 */
+/* 45° かたむいて、左の端から顔と体の少しだけが見える(足のほうは画面の外)。体はぼかさない。 */
 #ceoPeek .peek-moku { position: relative; display: block; width: 0; height: 0; }
 #ceoPeek .peek-crop {
-  position: absolute; left: 0; bottom: -40px;
+  position: absolute; left: 0; bottom: -60px;
   width: 150px; height: 150px;
-  transform-origin: 30% 60%;
-  transform: translateX(-170px) rotate(32deg);
+  transform-origin: 50% 50%;
+  transform: translateX(-190px) rotate(55deg);
   transition: transform .55s cubic-bezier(.3,1.5,.5,1);
 }
-#ceoPeek.on .peek-crop { transform: translateX(-52px) rotate(22deg); animation: ceoPeekWiggle 2.4s ease-in-out .6s infinite; }
-#ceoPeek.bye .peek-crop { transform: translateX(-170px) rotate(32deg); animation: none; transition-duration: .4s; }
-#ceoPeek.go .peek-crop { transform: translateX(-40px) rotate(8deg) scale(1.1); animation: none; transition-duration: .3s; }
-@keyframes ceoPeekWiggle { 0%, 100% { rotate: 0deg; } 50% { rotate: -6deg; } }
-#ceoPeek .peek-doll {
-  position: absolute; inset: 0;
-  -webkit-mask-image: linear-gradient(to bottom, #000 50%, transparent 60%);
-          mask-image: linear-gradient(to bottom, #000 50%, transparent 60%);
-}
+#ceoPeek.on .peek-crop { transform: translateX(-60px) rotate(45deg); animation: ceoPeekWiggle 2.4s ease-in-out .6s infinite; }
+#ceoPeek.bye .peek-crop { transform: translateX(-190px) rotate(55deg); animation: none; transition-duration: .4s; }
+#ceoPeek.go .peek-crop { transform: translateX(-30px) rotate(25deg) scale(1.1); animation: none; transition-duration: .3s; }
+@keyframes ceoPeekWiggle { 0%, 100% { rotate: 0deg; } 50% { rotate: -5deg; } }
+#ceoPeek .peek-doll { position: absolute; inset: 0; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4)); }
 #ceoPeek .peek-doll img, #ceoPeek .peek-doll .mm-outfit { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
 #ceoPeek .peek-bubble {
-  position: absolute; left: 62px; bottom: 84px;
+  position: absolute; left: 70px; bottom: 86px;
   width: max-content; max-width: min(230px, calc(100vw - 96px));
   padding: 10px 14px; border-radius: 16px;
   background: #FFF8EC; color: #3B2A20;
