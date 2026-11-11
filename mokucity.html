@@ -434,54 +434,37 @@ canvas#c {
   #questMoku, #questMoku.enter, #questMoku.leave { transition: none; }
 }
 
-/* ---------- on-screen touch controls (iPad / no-keyboard play) ---------- */
-/* Mirrors the keyboard cursor scheme (arrows + Enter) as thumb-reachable,
-   translucent buttons in the left/right landscape thumb zones. */
+/* ---------- on-screen controls ---------- */
+/* 2026-11-11 (v2.6.0): 十字キーと ✓ はやめた。マスを直接タップして建て、
+   ドラッグで動かし、ピンチで拡大縮小する。キーボード(矢印+Enter)は残す。
+   押しまちがいは「↶ Undo」で戻せる(置いてから5秒)。 */
 #touchControls {
   position: absolute; inset: 0;
   z-index: 14;
   pointer-events: none;
 }
-#dpad {
-  position: absolute;
-  left: calc(env(safe-area-inset-left, 0px) + 16px);
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
-  width: 140px; height: 140px;
-}
-.dbtn {
-  position: absolute;
-  width: 46px; height: 46px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.22);
-  background: rgba(255,255,255,0.07);
-  color: rgba(237,238,246,0.8);
-  font-size: 18px;
-  display: flex; align-items: center; justify-content: center;
-  pointer-events: auto;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-}
-.dbtn:active { background: rgba(255,255,255,0.2); }
-.dbtn.up { left: 47px; top: 0; }
-.dbtn.down { left: 47px; top: 94px; }
-.dbtn.left { left: 0; top: 47px; }
-.dbtn.right { left: 94px; top: 47px; }
-#placeBtn {
+canvas#c { cursor: pointer; touch-action: none; }
+canvas#c.dragging { cursor: grabbing; }
+#undoBtn {
   position: absolute;
   right: calc(env(safe-area-inset-right, 0px) + 16px);
   bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
-  width: 72px; height: 72px;
-  border-radius: 50%;
-  border: 1px solid rgba(76,190,138,0.45);
-  background: rgba(76,190,138,0.14);
-  color: #4CBE8A;
-  font-size: 26px; font-weight: 800;
-  display: flex; align-items: center; justify-content: center;
-  pointer-events: auto;
+  min-width: 96px; height: 48px;
+  padding: 0 16px;
+  border-radius: 24px;
+  border: 1px solid rgba(255,201,74,0.55);
+  background: rgba(10,8,18,0.78);
+  color: #FFC94A;
+  font: 800 16px -apple-system, "Segoe UI", Roboto, sans-serif;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.2s, transform 0.2s;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
-#placeBtn:active { background: rgba(76,190,138,0.3); }
+#undoBtn.show { opacity: 1; transform: none; pointer-events: auto; }
+#undoBtn:active { background: rgba(255,201,74,0.2); }
 #zoomBtn {
   position: absolute;
   right: calc(env(safe-area-inset-right, 0px) + 16px);
@@ -498,6 +481,7 @@ canvas#c {
   -webkit-tap-highlight-color: transparent;
 }
 #zoomBtn:active { background: rgba(255,255,255,0.15); }
+#zoomBtn.zoomed { border-color: rgba(76,190,138,0.6); }
 
 /* ---------- compact layout: short landscape (phones) ---------- */
 /* iPad-scale chrome (large stat pills, a 140px D-pad) eats most of a
@@ -518,32 +502,26 @@ canvas#c {
   #questBar .questTitle { font-size: 10.5px; }
   #questBar .questProgress { font-size: 9px; }
   #palette { padding: 3px 6px calc(env(safe-area-inset-bottom, 0px) + 3px); gap: 4px; }
-  .paletteItem { padding: 3px 7px; min-width: 46px; gap: 0; }
-  .paletteItem .ic { font-size: 17px; }
-  .paletteItem .nm { font-size: 8px; }
-  .paletteItem .cost { font-size: 7px; }
+  /* 指で押せる大きさ(高さ 44px 以上)。2026-11-11 */
+  .paletteItem { padding: 4px 8px; min-width: 56px; min-height: 46px; gap: 0; justify-content: center; }
+  .paletteItem .ic { font-size: 19px; }
+  .paletteItem .nm { font-size: 9.5px; }
+  .paletteItem .cost { font-size: 8.5px; }
   .paletteItem .kbd { display: none; }
-  #dpad {
-    left: calc(env(safe-area-inset-left, 0px) + 6px);
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 6px);
-    width: 90px; height: 90px;
-  }
-  .dbtn { width: 30px; height: 30px; font-size: 12px; border-radius: 7px; }
-  .dbtn.up { left: 30px; top: 0; }
-  .dbtn.down { left: 30px; top: 60px; }
-  .dbtn.left { left: 0; top: 30px; }
-  .dbtn.right { left: 60px; top: 30px; }
-  #placeBtn {
-    right: calc(env(safe-area-inset-right, 0px) + 6px);
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 6px);
-    width: 46px; height: 46px;
-    font-size: 17px;
+  /* 目標の発表の Moku は、背の低い画面では小さく(地図の高さが 200px ほどしかない) */
+  #questMoku { bottom: 4%; gap: 6px; }
+  .questMokuAvatar { width: 64px; height: 64px; }
+  .questMokuBubble { font-size: 12px; padding: 6px 12px; max-width: min(340px, 60vw); }
+  #undoBtn {
+    right: calc(env(safe-area-inset-right, 0px) + 8px);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+    min-width: 84px; height: 44px; font-size: 15px;
   }
   #zoomBtn {
     right: calc(env(safe-area-inset-right, 0px) + 6px);
     top: calc(env(safe-area-inset-top, 0px) + 6px);
-    width: 32px; height: 32px;
-    font-size: 13px;
+    width: 44px; height: 44px;
+    font-size: 17px;
   }
 }
 </style>
@@ -552,7 +530,7 @@ canvas#c {
 <div id="rotate-hint"><span>📱</span><p>MokuCity is played in landscape.<br>Please rotate your device.</p></div>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v2.5.1 · Updated Nov 11, 2026</div>
+<div id="buildInfo">v2.6.0 · Updated Nov 11, 2026</div>
 
 <section class="screen active" id="titleScreen">
   <img id="titleMascot" src="brand/mokumoku-hero.png" alt="Mokumoku">
@@ -573,7 +551,9 @@ canvas#c {
     School, Landmark, Restaurant, Moku Gift Shop, Highway, Station, Hotel,
     Airport — and eventually a couple of distant islands once the mainland
     fills up. Watch out for the occasional fire, flood, storm, or
-    earthquake, which can damage buildings and cost coins.
+    earthquake, which can damage buildings and cost coins.<br><br>
+    <b>Tap</b> a tile to build. <b>Drag</b> to look around, <b>pinch</b> to zoom,
+    and tap <b>↶ Undo</b> if you tap the wrong tile.
   </div>
   <div id="titleFooterTag">🦉 × 🍬 × ⚽ × 🏆 × 💬 × 🔮 MOKUMOKU SERIES</div>
 </section>
@@ -612,14 +592,8 @@ canvas#c {
       <img class="questMokuAvatar" src="brand/mokumoku-hero.png" alt="Moku">
     </div>
     <div id="touchControls">
-      <div id="dpad">
-        <button class="dbtn up" type="button" data-dir="up" aria-label="Move up">▲</button>
-        <button class="dbtn left" type="button" data-dir="left" aria-label="Move left">◀</button>
-        <button class="dbtn right" type="button" data-dir="right" aria-label="Move right">▶</button>
-        <button class="dbtn down" type="button" data-dir="down" aria-label="Move down">▼</button>
-      </div>
-      <button id="placeBtn" type="button" aria-label="Place or clear">✓</button>
-      <button id="zoomBtn" type="button" aria-label="Cycle zoom level">🔍</button>
+      <button id="undoBtn" type="button" aria-label="Undo the last build">↶ Undo</button>
+      <button id="zoomBtn" type="button" aria-label="Whole town or close up">🔍</button>
     </div>
   </div>
   <div id="palette"></div>
@@ -907,6 +881,7 @@ canvas#c {
     if (!d || !document.body.classList.contains('playing')) return;
     var msg = d.apply();
     if (!msg) return; // nothing left to damage — false alarm
+    clearUndo(); // 災害で街が変わったので、その前の Undo は使えない
     showToast(d.icon + ' ' + msg);
     var area = document.getElementById('canvasArea');
     area.classList.remove('shake'); void area.offsetWidth; area.classList.add('shake');
@@ -1202,7 +1177,7 @@ canvas#c {
       if (progress.level >= isl.unlockLevel && progress.seenIslands.indexOf(isl.name) === -1) {
         progress.seenIslands.push(isl.name);
         showToast('🏝️ ' + isl.name + ' is now open for development!');
-        resizeCanvas();
+        resizeCanvas(false);
       }
     });
   }
@@ -1225,7 +1200,11 @@ canvas#c {
     }
     // Only announce once even if several levels cleared in one tick (e.g.
     // loading a save that already qualifies for a few) — the freshest goal.
-    if (advanced) announceQuest(questForIndex(progress.questIndex));
+    if (advanced) {
+      // レベルが上がった置き方は戻せない(ごほうびだけ残って建物代も戻る、を防ぐ)
+      if (typeof clearUndo === 'function' && undoBtnEl) clearUndo();
+      announceQuest(questForIndex(progress.questIndex));
+    }
   }
 
   function natureMood() {
@@ -1399,18 +1378,16 @@ canvas#c {
   // tiny from the very start to make room for ocean nobody can reach yet.
   // As each island unlocks the frame widens to include it (see
   // checkIslandUnlocks() -> resizeCanvas()).
-  // Three manual zoom levels on top of the auto-fit framing: the default
-  // "Fit" crop is snug around the mainland/unlocked islands, which is
-  // exactly what clips a bit of the ocean checker/wave texture at the
-  // edges (cosmetic — the ocean itself is still there, just partly off
-  // the visible canvas). "Wide" pads the frame out, "World" always shows
-  // the full 18x18 including locked islands.
-  var ZOOM_MODES = [
-    { label: 'Fit', icon: '🔍' },
-    { label: 'Wide', icon: '🔎' },
-    { label: 'World', icon: '🌐' }
-  ];
-  var zoomModeIndex = 0;
+  // さわれる街(2026-11-11、v2.6.0): 以前は街全体を画面に収めて固定していたので、
+  // スマホの横持ちでは1マスが幅 38px・高さ 19px ほどになり、指(約44px)より
+  // 小さかった。今はカメラ(見ている中心 camGX/camGY と zoom)を持ち、
+  //  - 最初は1マスが指で押しやすい大きさ(COMFORT_TILE_PX)で街の真ん中を映す
+  //  - 1本指のドラッグで動かす・2本指のピンチ(PC はホイール)で拡大縮小
+  //  - 🔍 で「街全体」と「近く」を切りかえる
+  var COMFORT_TILE_PX = 76;   // 押しやすい1マスの幅(CSS px。高さはその半分)
+  var MAX_TILE_PX = 160;      // いちばん寄った時の1マスの幅
+  var fitZoom = 1;            // 開いている島までの街全体がちょうど入る zoom
+  var camGX = null, camGY = null; // 画面の真ん中に映すグリッド座標(小数)
   function visibleBounds() {
     var minX = MAINLAND_MIN, minY = MAINLAND_MIN;
     var maxX = MAINLAND_MIN + MAINLAND_SIZE, maxY = MAINLAND_MIN + MAINLAND_SIZE;
@@ -1419,17 +1396,39 @@ canvas#c {
       minX = Math.min(minX, isl.x0); minY = Math.min(minY, isl.y0);
       maxX = Math.max(maxX, isl.x0 + isl.w); maxY = Math.max(maxY, isl.y0 + isl.h);
     });
-    var mode = ZOOM_MODES[zoomModeIndex].label;
-    if (mode === 'World') return { minX: 0, minY: 0, maxX: GRID_W, maxY: GRID_H };
-    if (mode === 'Wide') {
-      return {
-        minX: Math.max(0, minX - 3), minY: Math.max(0, minY - 3),
-        maxX: Math.min(GRID_W, maxX + 3), maxY: Math.min(GRID_H, maxY + 3)
-      };
-    }
     return { minX: minX, minY: minY, maxX: maxX, maxY: maxY };
   }
-  function resizeCanvas() {
+  function canvasCssSize() {
+    return { w: canvas.width / DPR, h: canvas.height / DPR };
+  }
+  function minZoom() { return fitZoom * 0.85; }
+  function maxZoom() { return Math.max(fitZoom, MAX_TILE_PX / TILE_W); }
+  function comfortZoom() { return Math.min(maxZoom(), Math.max(fitZoom, COMFORT_TILE_PX / TILE_W)); }
+  function isZoomedIn() { return zoom > fitZoom * 1.05; }
+  // 見ている中心は、開いている土地の少し外まで(海の向こうに迷子にならない)。
+  function clampCamera() {
+    var b = visibleBounds();
+    camGX = Math.max(b.minX - 1, Math.min(b.maxX + 1, camGX));
+    camGY = Math.max(b.minY - 1, Math.min(b.maxY + 1, camGY));
+  }
+  function applyCamera() {
+    var c = canvasCssSize();
+    zoom = Math.max(minZoom(), Math.min(maxZoom(), zoom));
+    clampCamera();
+    ctx.setTransform(DPR * zoom, 0, 0, DPR * zoom, 0, 0);
+    originX = (c.w / zoom) / 2 - (camGX - camGY) * (TILE_W / 2);
+    originY = (c.h / zoom) / 2 - (camGX + camGY) * (TILE_H / 2);
+    var zb = document.getElementById('zoomBtn');
+    if (zb) zb.classList.toggle('zoomed', isZoomedIn());
+  }
+  function centerOnTown(close) {
+    var b = visibleBounds();
+    camGX = (b.minX + b.maxX) / 2;
+    camGY = (b.minY + b.maxY) / 2;
+    zoom = close ? comfortZoom() : fitZoom;
+  }
+  // refit = true の時は最初の見え方(近く・街の真ん中)に戻す。
+  function resizeCanvas(refit) {
     var area = document.getElementById('canvasArea');
     var w = area.clientWidth, h = area.clientHeight;
     canvas.width = w * DPR;
@@ -1438,18 +1437,39 @@ canvas#c {
     canvas.style.height = h + 'px';
     var bounds = visibleBounds();
     var boundsW = bounds.maxX - bounds.minX, boundsH = bounds.maxY - bounds.minY;
-    var gridPxW = boundsW * TILE_W, gridPxH = (boundsW + boundsH) * TILE_H / 2 + 100;
-    zoom = Math.min(2.2, Math.max(0.4, Math.min(w / gridPxW, h / gridPxH) * 0.94));
-    ctx.setTransform(DPR * zoom, 0, 0, DPR * zoom, 0, 0);
-    // Bias the vertical center toward the upper part of canvasArea (roughly
-    // 42% down) instead of dead-center — there's reliably more empty
-    // headroom above than clearance below before the palette bar. (Was
-    // 38% — tight enough at the wider Wide/World zoom levels to clip the
-    // very top tile while leaving visible slack at the bottom.)
-    var cxIdx = (bounds.minX + bounds.maxX) / 2, cyIdx = (bounds.minY + bounds.maxY) / 2;
-    originX = (w / zoom) / 2 - (cxIdx - cyIdx) * (TILE_W / 2);
-    originY = (h / zoom) * 0.42 - (cxIdx + cyIdx) * (TILE_H / 2);
+    // 等角の街の外形は幅 (W+H)·TILE_W/2、高さ (W+H)·TILE_H/2(+建物の分)
+    var gridPxW = (boundsW + boundsH) * TILE_W / 2, gridPxH = (boundsW + boundsH) * TILE_H / 2 + 30;
+    fitZoom = Math.min(2.2, Math.max(0.2, Math.min(w / gridPxW, h / gridPxH) * 0.94));
+    if (refit === true || camGX === null) centerOnTown(true);
+    applyCamera();
     draw();
+  }
+  // 画面のある点(CSS px)を動かさずに拡大縮小する(ピンチの真ん中・ホイールの位置)
+  function zoomAt(clientX, clientY, newZoom) {
+    var before = pointerToGridF(clientX, clientY);
+    zoom = newZoom;
+    applyCamera();
+    var after = pointerToGridF(clientX, clientY);
+    camGX += before.gx - after.gx;
+    camGY += before.gy - after.gy;
+    applyCamera();
+  }
+  // 指の下の地面がそのまま指についてくるように動かす
+  function panBy(x0, y0, x1, y1) {
+    var a = pointerToGridF(x0, y0), b2 = pointerToGridF(x1, y1);
+    camGX += a.gx - b2.gx;
+    camGY += a.gy - b2.gy;
+    applyCamera();
+  }
+  // キーボードのカーソルが画面の外に出たら、そこまでカメラを動かす
+  function ensureVisible(gx, gy) {
+    var c = canvasCssSize();
+    var p = gridToScreen(gx + 0.5, gy + 0.5);
+    var sx = p.x * zoom, sy = p.y * zoom, m = 40;
+    if (sx < m || sy < m || sx > c.w - m || sy > c.h - m) {
+      camGX = gx + 0.5; camGY = gy + 0.5;
+      applyCamera();
+    }
   }
 
   function gridToScreen(gx, gy) {
@@ -1463,6 +1483,13 @@ canvas#c {
     var gx = (dx / (TILE_W / 2) + dy / (TILE_H / 2)) / 2;
     var gy = (dy / (TILE_H / 2) - dx / (TILE_W / 2)) / 2;
     return { gx: Math.floor(gx), gy: Math.floor(gy) };
+  }
+  function screenToGridF(sx, sy) {
+    var dx = sx - originX, dy = sy - originY;
+    return {
+      gx: (dx / (TILE_W / 2) + dy / (TILE_H / 2)) / 2,
+      gy: (dy / (TILE_H / 2) - dx / (TILE_W / 2)) / 2
+    };
   }
 
   function diamondPathSized(cx, topY, w, h) {
@@ -1852,6 +1879,7 @@ canvas#c {
       ctx.lineWidth = 2;
       ctx.stroke();
     }
+    drawFloaters(performance.now());
     if (keyboardActive) {
       var kp = gridToScreen(keyCursor.gx, keyCursor.gy);
       diamondPath(kp.x, kp.y);
@@ -1872,6 +1900,7 @@ canvas#c {
     keyboardActive = true;
     keyCursor.gx = Math.max(0, Math.min(GRID_W - 1, keyCursor.gx + dgx));
     keyCursor.gy = Math.max(0, Math.min(GRID_H - 1, keyCursor.gy + dgy));
+    ensureVisible(keyCursor.gx, keyCursor.gy);
     draw();
   }
 
@@ -1882,6 +1911,88 @@ canvas#c {
     var sx = (clientX - rect.left) / zoom, sy = (clientY - rect.top) / zoom;
     return screenToGrid(sx, sy);
   }
+  function pointerToGridF(clientX, clientY) {
+    var rect = canvas.getBoundingClientRect();
+    return screenToGridF((clientX - rect.left) / zoom, (clientY - rect.top) / zoom);
+  }
+
+  // ---------- 置いた時の手ごたえと Undo(2026-11-11) ----------
+  // タップしただけで建つので、押しまちがいをすぐ戻せるように、最後の1回だけ
+  // 5秒間「↶ Undo」を出す。戻すのは街(grid・合体・フラグ)と払ったお金だけ。
+  // 上がったレベル・もらったごほうびはそのまま(同じお題で二度はもらえない)。
+  var floaters = [];
+  function addFloater(gx, gy, text, color) {
+    floaters.push({ gx: gx, gy: gy, text: text, color: color, t0: performance.now() });
+    requestDraw();
+  }
+  function drawFloaters(now) {
+    floaters = floaters.filter(function (f) { return now - f.t0 < 900; });
+    floaters.forEach(function (f) {
+      var t = (now - f.t0) / 900;
+      var p = gridToScreen(f.gx + 0.5, f.gy + 0.5);
+      // 置いたマスが一瞬光る
+      if (t < 0.5) {
+        diamondPath(gridToScreen(f.gx, f.gy).x, gridToScreen(f.gx, f.gy).y);
+        ctx.strokeStyle = 'rgba(255,233,160,' + (1 - t * 2) + ')';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+      ctx.save();
+      ctx.globalAlpha = 1 - t * t;
+      ctx.font = '800 15px -apple-system, "Segoe UI", Roboto, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'rgba(10,8,18,0.8)';
+      var y = p.y - 14 - t * 26;
+      ctx.strokeText(f.text, p.x, y);
+      ctx.fillStyle = f.color;
+      ctx.fillText(f.text, p.x, y);
+      ctx.restore();
+    });
+    if (floaters.length) requestDraw();
+  }
+  var drawQueued = false;
+  function requestDraw() {
+    if (drawQueued) return;
+    drawQueued = true;
+    requestAnimationFrame(function () { drawQueued = false; draw(); });
+  }
+
+  var undoSnap = null, undoTimer = null;
+  var undoBtnEl = document.getElementById('undoBtn');
+  function takeSnapshot(cost) {
+    return {
+      grid: progress.grid.slice(),
+      merges: JSON.parse(JSON.stringify(progress.merges)),
+      flags: JSON.parse(JSON.stringify(progress.flags)),
+      cost: cost
+    };
+  }
+  function offerUndo(snap) {
+    undoSnap = snap;
+    undoBtnEl.classList.add('show');
+    clearTimeout(undoTimer);
+    undoTimer = setTimeout(clearUndo, 5000);
+  }
+  function clearUndo() {
+    undoSnap = null;
+    clearTimeout(undoTimer);
+    undoBtnEl.classList.remove('show');
+  }
+  function doUndo() {
+    if (!undoSnap) return;
+    var snap = undoSnap;
+    clearUndo();
+    progress.grid = snap.grid;
+    progress.merges = snap.merges;
+    progress.flags = snap.flags;
+    progress.coins += snap.cost;
+    if (snap.cost) addFloater(snap.gx, snap.gy, '+' + snap.cost, '#FFC94A');
+    recompute();
+    saveProgress();
+    draw();
+  }
+  undoBtnEl.addEventListener('click', doUndo);
 
   function handlePlace(gx, gy) {
     if (gx < 0 || gy < 0 || gx >= GRID_W || gy >= GRID_H) return;
@@ -1897,7 +2008,11 @@ canvas#c {
     }
     if (selectedTool === 'bulldoze') {
       if (cur) {
+        var clearSnap = takeSnapshot(0);
+        clearSnap.gx = gx; clearSnap.gy = gy;
         clearCell(gx, gy);
+        addFloater(gx, gy, 'Cleared', '#EDEEF6');
+        offerUndo(clearSnap);
         recompute();
         saveProgress();
         draw();
@@ -1910,8 +2025,12 @@ canvas#c {
       showToast('Not enough coins');
       return;
     }
+    var snap = takeSnapshot(b.cost);
+    snap.gx = gx; snap.gy = gy;
     progress.coins -= b.cost;
     progress.grid[idx(gx, gy)] = selectedTool;
+    addFloater(gx, gy, '-' + b.cost, '#FFC94A');
+    offerUndo(snap);
     if (selectedTool === 'shop') progress.flags.shop = true;
     checkMerges();
     recompute();
@@ -1919,11 +2038,63 @@ canvas#c {
     draw();
   }
 
+  // ---------- タッチ・マウスの操作(2026-11-11) ----------
+  // 1本指(マウスの左ボタン): 動かさずに離したら、そのマスに建てる。
+  //   少しでも動かしたら(TAP_SLOP より遠く)街を動かす操作になり、建てない。
+  // 2本指: ピンチで拡大縮小+まん中の移動で街を動かす。2本指を使った操作は建てない。
+  // PC のホイール: カーソルの位置を中心に拡大縮小。
+  var TAP_SLOP = 10;
+  var activePointers = {};
+  var gesture = null;
+  function pointerCount() { return Object.keys(activePointers).length; }
+  function twoPointers() {
+    var ids = Object.keys(activePointers);
+    var a2 = activePointers[ids[0]], b3 = activePointers[ids[1]];
+    return {
+      mx: (a2.x + b3.x) / 2, my: (a2.y + b3.y) / 2,
+      dist: Math.max(1, Math.hypot(a2.x - b3.x, a2.y - b3.y))
+    };
+  }
   canvas.addEventListener('pointerdown', function (e) {
-    var g = pointerToGrid(e.clientX, e.clientY);
-    handlePlace(g.gx, g.gy);
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+    activePointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+    if (pointerCount() === 1) {
+      gesture = { x0: e.clientX, y0: e.clientY, moved: false, multi: false };
+      if (e.pointerType !== 'mouse') { hoverTile = null; }
+    } else if (gesture) {
+      gesture.multi = true;
+      var tp = twoPointers();
+      gesture.pinchDist = tp.dist; gesture.pinchX = tp.mx; gesture.pinchY = tp.my;
+    }
   });
   canvas.addEventListener('pointermove', function (e) {
+    var ap = activePointers[e.pointerId];
+    if (ap && gesture) {
+      var px = ap.x, py = ap.y;
+      ap.x = e.clientX; ap.y = e.clientY;
+      if (pointerCount() >= 2) {
+        var tp = twoPointers();
+        zoomAt(tp.mx, tp.my, zoom * tp.dist / gesture.pinchDist);
+        panBy(gesture.pinchX, gesture.pinchY, tp.mx, tp.my);
+        gesture.pinchDist = tp.dist; gesture.pinchX = tp.mx; gesture.pinchY = tp.my;
+        requestDraw();
+        return;
+      }
+      if (!gesture.moved && Math.hypot(e.clientX - gesture.x0, e.clientY - gesture.y0) > TAP_SLOP) {
+        gesture.moved = true;
+        canvas.classList.add('dragging');
+        // ゆれの分(TAP_SLOP)も取りこぼさずに動かす
+        px = gesture.x0; py = gesture.y0;
+      }
+      if (gesture.moved) {
+        panBy(px, py, e.clientX, e.clientY);
+        requestDraw();
+      }
+      return;
+    }
+    // ボタンを押していないマウス: 置ける場所を枠で見せる
+    if (e.pointerType !== 'mouse') return;
     keyboardActive = false;
     var g = pointerToGrid(e.clientX, e.clientY);
     if (g.gx < 0 || g.gy < 0 || g.gx >= GRID_W || g.gy >= GRID_H) {
@@ -1935,41 +2106,56 @@ canvas#c {
       draw();
     }
   });
-
-  window.addEventListener('resize', resizeCanvas);
-
-  // ---------- on-screen touch controls ----------
-  // Same targeting as the keyboard cursor, just reachable by thumb — this
-  // is what makes the game playable on an iPad with no keyboard attached.
-  Array.prototype.forEach.call(document.querySelectorAll('.dbtn'), function (btn) {
-    btn.addEventListener('pointerdown', function (e) {
-      e.preventDefault();
-      switch (btn.dataset.dir) {
-        case 'up': moveCursor(0, -1); break;
-        case 'down': moveCursor(0, 1); break;
-        case 'left': moveCursor(-1, 0); break;
-        case 'right': moveCursor(1, 0); break;
-      }
-    });
+  function endPointer(e) {
+    if (!activePointers[e.pointerId]) return;
+    delete activePointers[e.pointerId];
+    var left = pointerCount();
+    if (left === 1 && gesture) {
+      // 2本指のうち1本を離した: 残った指で続けて動かせるようにする
+      gesture.moved = true;
+      return;
+    }
+    if (left > 0) return;
+    var g0 = gesture;
+    gesture = null;
+    canvas.classList.remove('dragging');
+    if (e.type === 'pointerup' && g0 && !g0.moved && !g0.multi) {
+      keyboardActive = false;
+      var g = pointerToGrid(e.clientX, e.clientY);
+      handlePlace(g.gx, g.gy);
+    }
+  }
+  canvas.addEventListener('pointerup', endPointer);
+  canvas.addEventListener('pointercancel', endPointer);
+  canvas.addEventListener('pointerleave', function (e) {
+    if (e.pointerType === 'mouse' && hoverTile && !activePointers[e.pointerId]) { hoverTile = null; draw(); }
   });
-  document.getElementById('placeBtn').addEventListener('pointerdown', function (e) {
+  canvas.addEventListener('wheel', function (e) {
     e.preventDefault();
-    keyboardActive = true;
-    handlePlace(keyCursor.gx, keyCursor.gy);
-  });
-  document.getElementById('zoomBtn').addEventListener('pointerdown', function (e) {
-    e.preventDefault();
-    zoomModeIndex = (zoomModeIndex + 1) % ZOOM_MODES.length;
-    var mode = ZOOM_MODES[zoomModeIndex];
-    document.getElementById('zoomBtn').textContent = mode.icon;
-    showToast(mode.icon + ' ' + mode.label + ' view');
-    resizeCanvas();
+    zoomAt(e.clientX, e.clientY, zoom * Math.exp(-e.deltaY * 0.0015));
+    requestDraw();
+  }, { passive: false });
+
+  window.addEventListener('resize', function () { resizeCanvas(false); });
+
+  // 🔍: 街全体 ⇄ 近く(いま街全体なら、近くに寄る)
+  document.getElementById('zoomBtn').addEventListener('click', function () {
+    if (isZoomedIn()) {
+      centerOnTown(false);
+      showToast('🗺️ Whole town');
+    } else {
+      centerOnTown(true);
+      showToast('🔍 Close up — drag to look around');
+    }
+    applyCamera();
+    draw();
   });
 
   // ---------- game flow ----------
   function goTitle() {
     document.body.classList.remove('playing');
     cancelPendingDisaster();
+    clearUndo();
     showScreen('titleScreen');
     refreshTitleHighScore();
   }
@@ -1996,7 +2182,7 @@ canvas#c {
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     showScreen(null);
     recompute();
-    resizeCanvas();
+    resizeCanvas(true);
     ensureResidentCount();
     ensureCars();
     ensurePlanes();
