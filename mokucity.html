@@ -141,6 +141,8 @@ body.playing #title-frame { display: none; }
 }
 .menuItem.sel { color: var(--hi); text-shadow: 0 0 14px rgba(76,190,138,0.55); }
 .menuItem.sel::before { content: '▸ '; }
+/* Classic Mode へのリンク(v2.5.1 を mokucity-classic.html に保存。2026-11-11) */
+.menuItem.sub { font-size: 15px; color: rgba(108,196,161,0.55); }
 #titleFooterTag {
   margin-top: 16px; padding-top: 10px; width: min(300px, 90%);
   border-top: 1px solid rgba(255,255,255,0.12);
@@ -550,7 +552,7 @@ canvas#c {
 <div id="rotate-hint"><span>📱</span><p>MokuCity is played in landscape.<br>Please rotate your device.</p></div>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v2.5.0 · Updated Aug 15, 2026</div>
+<div id="buildInfo">v2.5.1 · Updated Nov 11, 2026</div>
 
 <section class="screen active" id="titleScreen">
   <img id="titleMascot" src="brand/mokumoku-hero.png" alt="Mokumoku">
@@ -560,6 +562,7 @@ canvas#c {
   <nav id="titleMenu">
     <div class="menuItem sel" data-action="continue" tabindex="0" role="button">Continue</div>
     <div class="menuItem" data-action="reset" tabindex="0" role="button">New City</div>
+    <div class="menuItem sub" data-action="classic" tabindex="0" role="button">🕰 Classic Mode</div>
   </nav>
   <div class="textLink" id="howToToggle" tabindex="0" role="button">❓ How to Play</div>
   <div id="howToPanel">
@@ -964,10 +967,34 @@ canvas#c {
   // pace as before, then eases off and approaches a ceiling comfortably
   // under the true maximum, so there's always a denser layout that gets
   // there — city growth plateauing into a steady state, not a wall.
+  // 2026-11-11 修正: 目標の人口は 240 前後で頭打ちになるため、以前は同じ
+  // 目標(240)の Harmony が無限に続き、240 人を超えた街は計算のたびに最大
+  // 50 レベルずつ上がっていた(Lv 1700 台・お金が数千万になった)。目標は
+  // 前のレベルより必ず大きい値だけを使い、240 に届いたら最後のレベル。
+  var HARMONY_TARGETS = (function () {
+    var list = [], prev = 50;
+    for (var step = 1; step < 200; step++) {
+      var t = 50 + Math.round(190 * (1 - Math.exp(-step / 7)));
+      if (t > prev) { list.push(t); prev = t; }
+      if (t >= 240) break;
+    }
+    return list;
+  })();
+  var FINAL_QUEST_INDEX = QUESTS.length + HARMONY_TARGETS.length;
+  var MAX_LEVEL = FINAL_QUEST_INDEX + 1;
+  var FINAL_QUEST = {
+    title: 'Perfect Harmony',
+    desc: 'You reached the top level! Keep your town green and happy.',
+    final: true,
+    check: function () { return false; },
+    progress: function (s) { return 'pop ' + s.population + ' · nature ' + s.nature + '%'; },
+    reward: 0
+  };
   function questForIndex(i) {
     if (i < QUESTS.length) return QUESTS[i];
+    if (i >= FINAL_QUEST_INDEX) return FINAL_QUEST;
     var step = i - QUESTS.length + 1;
-    var popTarget = 50 + Math.round(190 * (1 - Math.exp(-step / 7)));
+    var popTarget = HARMONY_TARGETS[step - 1];
     return {
       title: 'Harmony Lv ' + (i + 2),
       desc: 'Grow to ' + popTarget + ' population while keeping Nature at 50%+.',
@@ -1065,6 +1092,10 @@ canvas#c {
           if (!data.flags) data.flags = { shop: false };
           if (!Array.isArray(data.merges)) data.merges = [];
           if (typeof data.playMinutes !== 'number') data.playMinutes = 0;
+          // 無限レベルのバグ(2026-11-11 修正)で上がりすぎたレベルを最後のレベルに戻す。
+          // 街(grid)・お金はそのまま。
+          if (data.questIndex > FINAL_QUEST_INDEX) data.questIndex = FINAL_QUEST_INDEX;
+          if (data.level > MAX_LEVEL) data.level = MAX_LEVEL;
           if (!Array.isArray(data.seenIslands)) data.seenIslands = [];
           return data;
         }
@@ -1272,7 +1303,9 @@ canvas#c {
     hudMood.title = mood.label;
     document.getElementById('hud').classList.toggle('natureLow', stats.nature < NATURE_LOW);
     var q = questForIndex(progress.questIndex);
-    questTitleEl.textContent = 'Lv ' + (progress.level + 1) + ' · ' + q.title + ' — ' + q.desc;
+    questTitleEl.textContent = q.final
+      ? '🌳 ' + q.title + ' — ' + q.desc
+      : 'Lv ' + (progress.level + 1) + ' · ' + q.title + ' — ' + q.desc;
     questProgressEl.textContent = q.progress(stats, progress.flags);
     refreshPaletteLocks();
   }
@@ -1943,7 +1976,7 @@ canvas#c {
   function refreshTitleHighScore() {
     var el = document.getElementById('titleHighScore');
     if (highScore.population > 0) {
-      el.textContent = '🏆 Best: ' + highScore.population + ' pop · Lv ' + highScore.level;
+      el.textContent = '🏆 Best: ' + highScore.population + ' pop · Lv ' + Math.min(highScore.level, MAX_LEVEL); // バグで上がりすぎた古い記録も最後のレベルで見せる
       el.classList.add('show');
     } else {
       el.classList.remove('show');
@@ -1972,6 +2005,7 @@ canvas#c {
 
   function handleMenuAction(item) {
     var action = item.dataset.action;
+    if (action === 'classic') { location.href = 'mokucity-classic.html'; return; }
     if (action === 'reset') {
       if (confirm('Start a new city? This clears your current progress.')) {
         progress = defaultProgress();

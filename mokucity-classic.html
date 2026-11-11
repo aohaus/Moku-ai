@@ -1,0 +1,2141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script src="shared/moku-errors.js?v=20261108b"></script>
+<script src="shared/moku-gate.js?v=20261108b"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<!-- Classic Mode: 2026-11-11 時点の Moku City (v2.5.1。無限にレベルが上がるバグだけ直した版) を
+     凍結したコピー。ゲームの中身は変えない。セーブ (moku:mokucity:*) は新しい版と共有。 -->
+<title>MokuCity (Classic)</title>
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+body {
+  background:
+    radial-gradient(circle at 22% 16%, rgba(76,190,120,0.14), transparent 46%),
+    linear-gradient(165deg, #0A0B12 0%, #121320 55%, #0A0B12 100%);
+  color: #EDEEF6;
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  user-select: none;
+  touch-action: none;
+}
+:root { --hi: #4CBE8A; --lo: #1F5A42; }
+
+/* ---------- shared frame / hub link (Moku series design system) ---------- */
+#title-frame {
+  display: block;
+  position: fixed; inset: 14px;
+  border: 3px solid var(--hi);
+  border-radius: 10px;
+  pointer-events: none;
+  z-index: 35;
+}
+#title-frame::after {
+  content: '';
+  position: absolute; inset: 5px;
+  border: 1px solid var(--lo);
+  border-radius: 8px;
+}
+#hub-link {
+  display: block;
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 16px);
+  right: calc(env(safe-area-inset-right, 0px) + 16px);
+  z-index: 36;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--hi);
+  text-decoration: none;
+  animation: hubLinkPulse 2.2s ease-in-out infinite;
+}
+@keyframes hubLinkPulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+#buildInfo {
+  display: block;
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+  left: calc(env(safe-area-inset-left, 0px) + 18px);
+  z-index: 36;
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+  color: rgba(255,255,255,0.28);
+  pointer-events: none;
+}
+body.playing #hub-link,
+body.playing #buildInfo,
+body.playing #title-frame { display: none; }
+
+/* ---------- rotate-to-landscape gate ---------- */
+#rotate-hint {
+  display: none;
+  position: fixed; inset: 0; z-index: 999;
+  background: #0A0B12;
+  flex-direction: column; align-items: center; justify-content: center;
+  color: #EDEEF6; font-size: 15px; font-weight: 700; gap: 16px; text-align: center;
+  padding: 20px;
+}
+#rotate-hint span { font-size: 52px; display: inline-block; animation: rotateHintSpin 1.5s ease-in-out infinite alternate; }
+@keyframes rotateHintSpin { from { transform: rotate(-28deg); } to { transform: rotate(28deg); } }
+#rotate-hint p { color: rgba(237,238,246,0.6); font-size: 12.5px; font-weight: 600; max-width: 260px; line-height: 1.6; }
+@media (max-width: 1024px) and (orientation: portrait) {
+  #rotate-hint { display: flex; }
+  #title-frame, #hub-link, #buildInfo, #titleScreen, #wrapper { display: none !important; }
+}
+
+/* ---------- screens ---------- */
+.screen {
+  position: absolute; inset: 0;
+  z-index: 30;
+  display: none;
+  flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center;
+  gap: 10px;
+  padding: 22px 28px;
+  background: radial-gradient(circle at 50% 20%, rgba(76,190,138,0.08), transparent 55%), rgba(9,7,15,0.94);
+}
+.screen.active { display: flex; }
+
+#titleMascot {
+  width: clamp(84px, 15vw, 120px); height: clamp(84px, 15vw, 120px);
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center 30%;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.14), 0 12px 24px rgba(0,0,0,0.5), 0 0 26px rgba(76,190,138,0.35);
+  animation: mascotFloat 3.2s ease-in-out infinite;
+}
+@keyframes mascotFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+#titleLogo {
+  font-weight: 800; letter-spacing: 0.02em;
+  font-size: clamp(24px, 5vw, 36px);
+  line-height: 1.15;
+  text-shadow: 0 0 22px rgba(76,190,138,0.4);
+}
+#titleLogo span { color: var(--hi); }
+#titleSub {
+  font-size: clamp(12px, 1.7vw, 14.5px);
+  font-weight: 700; letter-spacing: 0.06em;
+  color: rgba(237,238,246,0.6);
+}
+#titleHighScore {
+  display: none;
+  margin-top: 8px;
+  font-size: 13px; font-weight: 800;
+  color: #FFC94A;
+  letter-spacing: 0.02em;
+}
+#titleHighScore.show { display: block; }
+#titleMenu { margin-top: 10px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.menuItem {
+  font-weight: 800; font-size: 19px;
+  padding: 8px 18px;
+  color: rgba(237,238,246,0.5);
+  cursor: pointer;
+}
+.menuItem.sel { color: var(--hi); text-shadow: 0 0 14px rgba(76,190,138,0.55); }
+.menuItem.sel::before { content: '▸ '; }
+/* Classic Mode (2026-11-11): この版をそのまま残したもの。リンクは控えめに */
+.menuItem.sub { font-size: 15px; color: rgba(108,196,161,0.55); }
+#classicBadge {
+  margin: 2px auto 4px; padding: 3px 12px; border-radius: 999px; width: max-content;
+  border: 1px solid rgba(108,196,161,0.45); background: rgba(76,190,138,0.12);
+  font-size: 11px; font-weight: 800; letter-spacing: 0.18em; color: #9FE0C4;
+}
+#titleFooterTag {
+  margin-top: 16px; padding-top: 10px; width: min(300px, 90%);
+  border-top: 1px solid rgba(255,255,255,0.12);
+  font-size: 9px; letter-spacing: 0.05em; color: rgba(237,238,246,0.4);
+}
+.textLink {
+  margin-top: 14px;
+  font-size: 11.5px; font-weight: 800; letter-spacing: 0.02em;
+  color: rgba(237,238,246,0.55);
+  cursor: pointer;
+}
+.textLink.active { color: var(--hi); }
+#howToPanel {
+  display: none;
+  margin-top: 8px;
+  width: min(360px, 90%);
+  font-size: 13.5px; line-height: 1.65;
+  color: rgba(237,238,246,0.65);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 12px 14px;
+  text-align: left;
+}
+#howToPanel.show { display: block; }
+#howToPanel em { color: var(--hi); font-style: normal; font-weight: 700; }
+
+/* ---------- game wrapper ---------- */
+#wrapper {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  display: none;
+  flex-direction: column;
+}
+body.playing #wrapper { display: flex; }
+
+#hud {
+  position: relative;
+  z-index: 15;
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 10px;
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) 14px 8px;
+}
+#dashboard {
+  display: flex; flex-wrap: wrap; justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: rgba(10,8,18,0.35);
+  border: 1px solid rgba(255,255,255,0.08);
+  max-width: 74%;
+}
+#hud .stat {
+  font-size: 22px; font-weight: 800;
+  color: #EDEEF6;
+  background: rgba(10,8,18,0.5);
+  padding: 6px 14px; border-radius: 999px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+#hud .stat.lvl { color: #FFC94A; background: rgba(255,201,74,0.12); }
+#hud .stat.coins { color: #FFC94A; }
+#hud .stat.pop { color: var(--hi); }
+#hud .stat.nature { color: #3FA34D; }
+#hud .stat.sat { color: #E98FC7; }
+#hud .stat.time { color: rgba(237,238,246,0.55); }
+#hud .stat.mood { font-size: 27px; padding: 6px 12px; transition: filter 0.3s; }
+#hud.natureLow .stat.nature { color: #FF6B4A; }
+#hud.natureLow .stat.mood { filter: drop-shadow(0 0 6px rgba(255,107,74,0.7)); }
+
+#questBar {
+  position: relative;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 14px 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(255,201,74,0.08);
+  border: 1px solid rgba(255,201,74,0.22);
+}
+#questBar .questIcon { font-size: 21px; flex: 0 0 auto; }
+#questBar .questText { min-width: 0; flex: 1 1 auto; }
+#questBar .questTitle {
+  font-size: 16px; font-weight: 800; color: #FFC94A;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#questBar .questProgress {
+  font-size: 13.5px; color: rgba(237,238,246,0.6);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#titleBtn {
+  appearance: none; border: none; cursor: pointer;
+  background: rgba(10,8,18,0.5);
+  color: #EDEEF6;
+  padding: 7px 14px; border-radius: 999px;
+  font-size: 17px; font-weight: 800;
+}
+#refreshBtn {
+  appearance: none; border: none; cursor: pointer;
+  background: rgba(10,8,18,0.5);
+  color: #EDEEF6;
+  width: 38px; height: 38px; border-radius: 50%;
+  font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+}
+#refreshBtn:active { transform: rotate(90deg); transition: transform 0.3s; }
+
+#canvasArea {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+canvas#c {
+  display: block;
+  width: 100%; height: 100%;
+}
+@keyframes disasterShake {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(3px); }
+  30%, 50%, 70% { transform: translateX(-5px); }
+  40%, 60% { transform: translateX(5px); }
+}
+#canvasArea.shake { animation: disasterShake 0.4s; }
+@media (prefers-reduced-motion: reduce) {
+  #canvasArea.shake { animation: none; }
+}
+
+#palette {
+  position: relative;
+  z-index: 15;
+  display: flex;
+  gap: 8px;
+  padding: 8px 10px calc(env(safe-area-inset-bottom, 0px) + 10px);
+  overflow-x: auto;
+  background: rgba(9,7,15,0.55);
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.paletteItem {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.03);
+  cursor: pointer;
+  min-width: 84px;
+}
+.paletteItem .kbd {
+  position: absolute; top: 4px; left: 6px;
+  font-size: 9.5px; font-weight: 800;
+  color: rgba(237,238,246,0.35);
+  font-variant-numeric: tabular-nums;
+}
+.paletteItem:focus-visible,
+.menuItem:focus-visible,
+.textLink:focus-visible,
+#titleBtn:focus-visible {
+  outline: 2px solid var(--hi);
+  outline-offset: 2px;
+}
+.paletteItem.sel { border-color: var(--hi); box-shadow: 0 0 0 1px var(--hi), 0 0 14px rgba(76,190,138,0.35); }
+.paletteItem .ic { font-size: 32px; line-height: 1; }
+.paletteItem .nm { font-size: 14px; font-weight: 800; letter-spacing: 0.02em; color: rgba(237,238,246,0.7); }
+.paletteItem .cost { font-size: 13px; font-weight: 700; color: #FFC94A; }
+.paletteItem.locked { opacity: 0.4; }
+.paletteItem.locked .cost { color: rgba(237,238,246,0.5); }
+
+#toast {
+  position: absolute;
+  top: 8px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  font-size: 14px; font-weight: 800;
+  color: #EDEEF6;
+  background: rgba(10,8,18,0.75);
+  padding: 7px 16px; border-radius: 999px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+#toast.show { opacity: 1; }
+
+/* ---------- disaster warning ---------- */
+/* Occupies the SAME notification slot as #questBar (breaking-news-over-
+   the-regular-update, not a separate floating pill) — JS hides #questBar
+   and shows this in its place while a disaster is pending, then swaps
+   back once it resolves. */
+#disasterWarning {
+  position: relative;
+  z-index: 15;
+  display: none;
+  align-items: center;
+  gap: 10px;
+  margin: 0 14px 8px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 16px; font-weight: 800;
+  color: #FF6B4A;
+  background: rgba(120,30,20,0.55);
+  border: 1px solid rgba(255,107,74,0.5);
+}
+#disasterWarning.show { display: flex; animation: disasterWarningPulse 0.9s ease-in-out infinite; }
+.dwLabel {
+  flex: 0 0 auto;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.06em;
+  background: #FF6B4A; color: #1a0a06;
+  padding: 3px 7px; border-radius: 5px;
+}
+#disasterWarningIcon { font-size: 18px; animation: disasterWarningBlink 0.6s steps(1) infinite; }
+#disasterWarningText { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@keyframes disasterWarningPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.75; } }
+@keyframes disasterWarningBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+@media (prefers-reduced-motion: reduce) {
+  #disasterWarning.show { animation: none; }
+  #disasterWarningIcon { animation: none; }
+}
+
+/* ---------- Moku quest announcer ---------- */
+/* Fires when a new goal begins: Moku pops up big, front-and-center, with a
+   speech-bubble summary, then drops back out after ~3s — a friendlier way
+   to introduce each level's goal than just having it silently appear in
+   the notification bar above (which stays as the persistent reference
+   throughout the level; this is only the entrance moment). */
+#questMoku {
+  position: absolute;
+  left: 50%; bottom: 8%;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, 36px) scale(0.72);
+}
+#questMoku::before {
+  content: '';
+  position: absolute;
+  inset: -30px -70px 20px;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(10,8,18,0.55), transparent 70%);
+}
+#questMoku.enter {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+  transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+}
+#questMoku.leave {
+  opacity: 0;
+  transform: translate(-50%, 26px) scale(0.85);
+  transition: transform 0.45s ease-in, opacity 0.4s ease-in;
+}
+.questMokuAvatar {
+  width: clamp(96px, 16vw, 168px);
+  height: clamp(96px, 16vw, 168px);
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center 30%;
+  box-shadow: 0 0 0 3px rgba(255,201,74,0.55), 0 16px 32px rgba(0,0,0,0.6), 0 0 40px rgba(255,201,74,0.3);
+}
+.questMokuBubble {
+  position: relative;
+  max-width: min(380px, 72vw);
+  background: rgba(10,8,18,0.94);
+  border: 1px solid rgba(255,201,74,0.5);
+  border-radius: 14px;
+  padding: 10px 16px;
+  font-size: clamp(13px, 1.6vw, 15px); font-weight: 700;
+  line-height: 1.45;
+  color: #EDEEF6;
+  text-align: center;
+}
+.questMokuBubble::after {
+  content: '';
+  position: absolute; left: 50%; bottom: -8px;
+  transform: translateX(-50%);
+  border-width: 8px 8px 0 8px;
+  border-style: solid;
+  border-color: rgba(10,8,18,0.94) transparent transparent transparent;
+}
+@media (prefers-reduced-motion: reduce) {
+  #questMoku, #questMoku.enter, #questMoku.leave { transition: none; }
+}
+
+/* ---------- on-screen touch controls (iPad / no-keyboard play) ---------- */
+/* Mirrors the keyboard cursor scheme (arrows + Enter) as thumb-reachable,
+   translucent buttons in the left/right landscape thumb zones. */
+#touchControls {
+  position: absolute; inset: 0;
+  z-index: 14;
+  pointer-events: none;
+}
+#dpad {
+  position: absolute;
+  left: calc(env(safe-area-inset-left, 0px) + 16px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+  width: 140px; height: 140px;
+}
+.dbtn {
+  position: absolute;
+  width: 46px; height: 46px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.07);
+  color: rgba(237,238,246,0.8);
+  font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.dbtn:active { background: rgba(255,255,255,0.2); }
+.dbtn.up { left: 47px; top: 0; }
+.dbtn.down { left: 47px; top: 94px; }
+.dbtn.left { left: 0; top: 47px; }
+.dbtn.right { left: 94px; top: 47px; }
+#placeBtn {
+  position: absolute;
+  right: calc(env(safe-area-inset-right, 0px) + 16px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  border: 1px solid rgba(76,190,138,0.45);
+  background: rgba(76,190,138,0.14);
+  color: #4CBE8A;
+  font-size: 26px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+#placeBtn:active { background: rgba(76,190,138,0.3); }
+#zoomBtn {
+  position: absolute;
+  right: calc(env(safe-area-inset-right, 0px) + 16px);
+  top: calc(env(safe-area-inset-top, 0px) + 16px);
+  width: 46px; height: 46px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.22);
+  background: rgba(10,8,18,0.55);
+  color: rgba(237,238,246,0.85);
+  font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+#zoomBtn:active { background: rgba(255,255,255,0.15); }
+
+/* ---------- compact layout: short landscape (phones) ---------- */
+/* iPad-scale chrome (large stat pills, a 140px D-pad) eats most of a
+   phone's ~380-430px landscape height before the grid gets any room at
+   all, and the touch controls — sized/positioned for a much taller
+   canvasArea — poke out above it into the quest bar. Everything here
+   only kicks in below iPad-mini-landscape height (768px), so tablets are
+   untouched. */
+@media (max-height: 520px) {
+  #hud { padding: calc(env(safe-area-inset-top, 0px) + 4px) 8px 4px; gap: 6px; }
+  #dashboard { gap: 4px; padding: 4px 6px; border-radius: 10px; max-width: 82%; }
+  #hud .stat { font-size: 12px; padding: 3px 7px; }
+  #hud .stat.mood { font-size: 15px; padding: 3px 6px; }
+  #titleBtn { font-size: 11.5px; padding: 4px 8px; }
+  #refreshBtn { width: 28px; height: 28px; font-size: 12px; }
+  #questBar { margin: 0 8px 4px; padding: 4px 8px; gap: 6px; }
+  #questBar .questIcon { font-size: 12px; }
+  #questBar .questTitle { font-size: 10.5px; }
+  #questBar .questProgress { font-size: 9px; }
+  #palette { padding: 3px 6px calc(env(safe-area-inset-bottom, 0px) + 3px); gap: 4px; }
+  .paletteItem { padding: 3px 7px; min-width: 46px; gap: 0; }
+  .paletteItem .ic { font-size: 17px; }
+  .paletteItem .nm { font-size: 8px; }
+  .paletteItem .cost { font-size: 7px; }
+  .paletteItem .kbd { display: none; }
+  #dpad {
+    left: calc(env(safe-area-inset-left, 0px) + 6px);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 6px);
+    width: 90px; height: 90px;
+  }
+  .dbtn { width: 30px; height: 30px; font-size: 12px; border-radius: 7px; }
+  .dbtn.up { left: 30px; top: 0; }
+  .dbtn.down { left: 30px; top: 60px; }
+  .dbtn.left { left: 0; top: 30px; }
+  .dbtn.right { left: 60px; top: 30px; }
+  #placeBtn {
+    right: calc(env(safe-area-inset-right, 0px) + 6px);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 6px);
+    width: 46px; height: 46px;
+    font-size: 17px;
+  }
+  #zoomBtn {
+    right: calc(env(safe-area-inset-right, 0px) + 6px);
+    top: calc(env(safe-area-inset-top, 0px) + 6px);
+    width: 32px; height: 32px;
+    font-size: 13px;
+  }
+}
+</style>
+</head>
+<body>
+<div id="rotate-hint"><span>📱</span><p>MokuCity is played in landscape.<br>Please rotate your device.</p></div>
+<div id="title-frame"></div>
+<a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
+<div id="buildInfo">v2.5.1 Classic · Updated Nov 11, 2026</div>
+
+<section class="screen active" id="titleScreen">
+  <img id="titleMascot" src="brand/mokumoku-hero.png" alt="Mokumoku">
+  <h1 id="titleLogo">MOKU<span>CITY</span></h1>
+  <div id="classicBadge">CLASSIC MODE</div>
+  <p id="titleSub">Grow the town, keep the forest — Moku lives here too</p>
+  <p id="titleHighScore"></p>
+  <nav id="titleMenu">
+    <div class="menuItem sel" data-action="continue" tabindex="0" role="button">Continue</div>
+    <div class="menuItem" data-action="reset" tabindex="0" role="button">New City</div>
+    <div class="menuItem sub" data-action="newver" tabindex="0" role="button">◀ New Version</div>
+  </nav>
+  <div class="textLink" id="howToToggle" tabindex="0" role="button">❓ How to Play</div>
+  <div id="howToPanel">
+    Moku doesn't just govern this town — Moku <em>lives</em> here. Each level
+    gives you one goal: build up the town, but keep enough forest and parks
+    standing to keep Nature healthy. Let Nature drop too far and both the
+    economy and Moku's mood suffer. Leveling up unlocks new buildings —
+    School, Landmark, Restaurant, Moku Gift Shop, Highway, Station, Hotel,
+    Airport — and eventually a couple of distant islands once the mainland
+    fills up. Watch out for the occasional fire, flood, storm, or
+    earthquake, which can damage buildings and cost coins.
+  </div>
+  <div id="titleFooterTag">🦉 × 🍬 × ⚽ × 🏆 × 💬 × 🔮 MOKUMOKU SERIES</div>
+</section>
+
+<div id="wrapper">
+  <div id="hud">
+    <button id="titleBtn" type="button">◀ Title</button>
+    <button id="refreshBtn" type="button" aria-label="Refresh to latest version" title="Refresh to latest version">🔄</button>
+    <div id="dashboard">
+      <div class="stat lvl">⭐ Lv <span id="hudLevel">1</span></div>
+      <div class="stat coins">💰 <span id="hudCoins">0</span></div>
+      <div class="stat pop">👤 <span id="hudPop">0</span></div>
+      <div class="stat nature">🌿 <span id="hudNature">0</span>%</div>
+      <div class="stat sat">😊 <span id="hudSat">0</span>%</div>
+      <div class="stat time">⏱ <span id="hudTime">0m</span></div>
+      <div class="stat mood" id="hudMood">😐</div>
+    </div>
+  </div>
+  <div id="questBar">
+    <div class="questIcon">🎯</div>
+    <div class="questText">
+      <div class="questTitle" id="questTitle"></div>
+      <div class="questProgress" id="questProgress"></div>
+    </div>
+  </div>
+  <div id="disasterWarning">
+    <span class="dwLabel">🚨 BREAKING</span>
+    <span id="disasterWarningIcon">⚠️</span>
+    <span id="disasterWarningText"></span>
+  </div>
+  <div id="canvasArea">
+    <canvas id="c"></canvas>
+    <div id="toast"></div>
+    <div id="questMoku">
+      <div class="questMokuBubble" id="questMokuBubble"></div>
+      <img class="questMokuAvatar" src="brand/mokumoku-hero.png" alt="Moku">
+    </div>
+    <div id="touchControls">
+      <div id="dpad">
+        <button class="dbtn up" type="button" data-dir="up" aria-label="Move up">▲</button>
+        <button class="dbtn left" type="button" data-dir="left" aria-label="Move left">◀</button>
+        <button class="dbtn right" type="button" data-dir="right" aria-label="Move right">▶</button>
+        <button class="dbtn down" type="button" data-dir="down" aria-label="Move down">▼</button>
+      </div>
+      <button id="placeBtn" type="button" aria-label="Place or clear">✓</button>
+      <button id="zoomBtn" type="button" aria-label="Cycle zoom level">🔍</button>
+    </div>
+  </div>
+  <div id="palette"></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var GAME_ID = 'mokucity';
+  var SAVE_KEY = 'moku:' + GAME_ID + ':progress';
+  // Kept under its own key, separate from the save — "New City" resets
+  // progress but a personal best set on a previous city shouldn't vanish
+  // with it, same as any arcade high score.
+  var HIGHSCORE_KEY = 'moku:' + GAME_ID + ':highscore';
+  function loadHighScore() {
+    try {
+      var raw = localStorage.getItem(HIGHSCORE_KEY);
+      if (raw) {
+        var data = JSON.parse(raw);
+        if (data && typeof data.population === 'number') return data;
+      }
+    } catch (e) {}
+    return { population: 0, level: 1 };
+  }
+  var highScore = loadHighScore();
+  function maybeUpdateHighScore(population, level) {
+    if (population <= highScore.population) return;
+    highScore = { population: population, level: level, updatedAt: new Date().toISOString() };
+    try { localStorage.setItem(HIGHSCORE_KEY, JSON.stringify(highScore)); } catch (e) {}
+  }
+
+  // ---------- grid config ----------
+  // The world is bigger than the buildable mainland — a ring of ocean
+  // surrounds a 10x10 mainland (kept at the original coordinates so old
+  // saves migrate in untouched), with two islands out in that ring that
+  // stay hidden (rendered/treated as plain water) until the town is high
+  // enough level to plausibly reach them. Solves the late-game "no more
+  // room" wall from growing the mainland alone.
+  var GRID_W = 18, GRID_H = 18;
+  var MAINLAND_MIN = 4, MAINLAND_SIZE = 10;
+  // Mainland occupies [MAINLAND_MIN, MAINLAND_MIN+MAINLAND_SIZE) = [4,14) in
+  // both axes, leaving a 4-tile-wide ocean margin on each side ([0,4) and
+  // [14,18)) — islands must fit entirely inside that margin. Sizing one
+  // even 1 tile bigger overlaps the mainland's own cells, which tileAt()
+  // would then mask as water while locked (and silently swallow whatever
+  // was actually built there — found by a migrated-save population
+  // mismatch: a house sitting in the 1-tile overlap vanished from the
+  // count until this was fixed).
+  var ISLANDS = [
+    { name: 'Sunrise Isle', x0: 0, y0: 0, w: 4, h: 4, unlockLevel: 10 },
+    { name: 'Harbor Isle', x0: 14, y0: 14, w: 4, h: 4, unlockLevel: 16 }
+  ];
+  function islandAt(gx, gy) {
+    for (var i = 0; i < ISLANDS.length; i++) {
+      var isl = ISLANDS[i];
+      if (gx >= isl.x0 && gx < isl.x0 + isl.w && gy >= isl.y0 && gy < isl.y0 + isl.h) return isl;
+    }
+    return null;
+  }
+  var TILE_W = 84, TILE_H = 42; // isometric (dimetric) diamond size
+
+  // ---------- building types ----------
+  var BUILDINGS = {
+    road:  { id: 'road',  name: 'Road',   icon: '🛣️', cost: 10,  color: '#5B5F73' },
+    // Land is a cheap flattened plot — clears forest into buildable ground
+    // without committing to anything yet, handy for staging a 2x2 merge.
+    land:  { id: 'land',  name: 'Land',   icon: '🟫', cost: 5,   color: '#8B7355' },
+    house: { id: 'house', name: 'House',  icon: '🏠', cost: 50,  color: '#4CBE8A', pop: 4 },
+    shop:  { id: 'shop',  name: 'Shop',   icon: '🏪', cost: 100, color: '#FFC94A', income: 4 },
+    park:  { id: 'park',  name: 'Park',   icon: '🌳', cost: 30,  color: '#3FA34D', sat: 6, nature: 1 },
+    // School and Landmark unlock as the town levels up — visible but locked
+    // in the palette until then, so growth keeps handing the player new toys.
+    school:     { id: 'school',     name: 'School',     icon: '🏫', cost: 150, color: '#5B8DEF', sat: 8,  unlockLevel: 3 },
+    landmark:   { id: 'landmark',   name: 'Landmark',   icon: '🏛️', cost: 250, color: '#C77DFF', sat: 12, income: 10, unlockLevel: 5 },
+    restaurant: { id: 'restaurant', name: 'Restaurant', icon: '🍽️', cost: 130, color: '#E8654A', sat: 5, income: 5, unlockLevel: 6 },
+    giftshop:   { id: 'giftshop',   name: 'Moku Gift Shop', icon: '🎁', cost: 160, color: '#E85C9E', sat: 4, income: 9, unlockLevel: 7 },
+    // Highway is Road's bigger sibling — same job (it's what cars drive on),
+    // just a later-game visual upgrade rather than a stat difference.
+    highway:    { id: 'highway',    name: 'Highway',    icon: '🛤️', cost: 60,  color: '#3B3F4E', unlockLevel: 8 },
+    station:    { id: 'station',    name: 'Station',     icon: '🚉', cost: 220, color: '#4A7FBF', sat: 10, income: 8, unlockLevel: 9 },
+    hotel:      { id: 'hotel',      name: 'Hotel',       icon: '🏨', cost: 300, color: '#C79A3D', sat: 10, income: 16, unlockLevel: 11 },
+    airport:    { id: 'airport',    name: 'Airport',     icon: '🛫', cost: 450, color: '#5A6B8C', sat: 6,  income: 22, unlockLevel: 13 },
+    bulldoze: { id: 'bulldoze', name: 'Clear', icon: '🗑️', cost: 0 },
+    // 'forest' is natural terrain, not a placeable palette tool — it seeds
+    // the map and is what Nature actually measures alongside parks.
+    forest: { id: 'forest', name: 'Forest', icon: '🌲', color: '#2E7D46', nature: 1 },
+    // 'water' is permanent ocean (or an island not yet unlocked, which
+    // tileAt() masks to this same value) — never buildable, purely scenery.
+    water: { id: 'water', name: 'Ocean', icon: '🌊', color: '#2F6FA8' },
+    // house2/park2/shop2 aren't placed directly — four of the same building
+    // in a 2x2 block auto-merge into these, a reward for planning a tidy
+    // layout rather than scattering buildings randomly. Values are PER CELL
+    // (each occupies all 4 grid cells of the block), tuned above 1/4 of
+    // four separate buildings so merging is a genuine upgrade, not just
+    // tidier.
+    house2: { id: 'house2', name: 'Apartment',     icon: '🏢', color: '#2E9E6B', pop: 5 },
+    // nature is per cell and higher than a lone Park's implicit 1 — four
+    // parks merged into one grove count for MORE than four scattered
+    // parks would, not just the same total.
+    park2:  { id: 'park2',  name: 'Grove',         icon: '🏞️', color: '#2C7A46', sat: 9, nature: 1.25 },
+    shop2:  { id: 'shop2',  name: 'Shopping Mall', icon: '🏬', color: '#E6A93A', income: 5.5 }
+  };
+  var PALETTE_ORDER = [
+    'road', 'land', 'house', 'shop', 'park',
+    'school', 'landmark', 'restaurant', 'giftshop', 'highway', 'station', 'hotel', 'airport',
+    'bulldoze'
+  ];
+  var ROAD_TYPES = { road: true, highway: true };
+  // A 2x2 merge represents real investment (four buildings' worth) and
+  // reads as a town landmark, not a random building — disasters skip them
+  // entirely rather than being able to erase one in a single hit.
+  var MERGED_TYPES = { house2: true, park2: true, shop2: true };
+  // One uniform extrusion height for every building, single-tile and
+  // merged alike — buildings used to each have their own height (up to
+  // 38 for Landmark) and merges scaled even taller, which read as
+  // inconsistent/too-tall pedestals next to a flat Park. Everything now
+  // sits at the same height Park always used; buildings differentiate by
+  // color, icon, and footprint instead.
+  var BUILDING_HEIGHT = 10;
+  var NATURE_LOW = 35, NATURE_HIGH = 65;
+
+  // ---------- natural disasters ----------
+  // Growth isn't just opposed by Nature dropping — the town itself is
+  // fragile. Each `apply` mutates the grid/coins directly and returns a
+  // toast message, or null if it found nothing to damage (e.g. fire with
+  // no buildings standing), so the caller can try another disaster instead
+  // of showing an empty event.
+  function collectDamageable() {
+    var list = [];
+    for (var gy = 0; gy < GRID_H; gy++) {
+      for (var gx = 0; gx < GRID_W; gx++) {
+        var t = tileAt(gx, gy);
+        if (t && t !== 'forest' && t !== 'water' && !ROAD_TYPES[t] && !MERGED_TYPES[t]) list.push({ gx: gx, gy: gy });
+      }
+    }
+    return list;
+  }
+  function shuffle(arr) {
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+    }
+    return arr;
+  }
+
+  // ---------- shape merges ----------
+  // Four of the same building sitting in a 2x2 square — or, for Park, also
+  // a straight run of 4 in a row/column — auto-upgrade into one bigger
+  // object. progress.merges tracks each block's anchor (top-left cell) and
+  // footprint (w,h) separately from the grid so rendering knows exactly
+  // which single cell draws the big sprite — deriving that purely from
+  // adjacent-cell checks breaks when two merged blocks sit next to each
+  // other (a shared corner/edge cell can look like a false anchor of its
+  // neighbor's block).
+  function tryMergeShape(gx, gy, w, h, baseType, mergedType) {
+    for (var dy = 0; dy < h; dy++) {
+      for (var dx = 0; dx < w; dx++) {
+        if (tileAt(gx + dx, gy + dy) !== baseType) return false;
+      }
+    }
+    for (var dy2 = 0; dy2 < h; dy2++) {
+      for (var dx2 = 0; dx2 < w; dx2++) {
+        progress.grid[idx(gx + dx2, gy + dy2)] = mergedType;
+      }
+    }
+    progress.merges.push({ type: mergedType, gx: gx, gy: gy, w: w, h: h });
+    return true;
+  }
+  function checkMerges() {
+    var didMerge = false;
+    for (var gy = 0; gy < GRID_H; gy++) {
+      for (var gx = 0; gx < GRID_W; gx++) {
+        if (tryMergeShape(gx, gy, 2, 2, 'house', 'house2')) { didMerge = true; continue; }
+        if (tryMergeShape(gx, gy, 2, 2, 'park', 'park2')) { didMerge = true; continue; }
+        if (tryMergeShape(gx, gy, 2, 2, 'shop', 'shop2')) { didMerge = true; continue; }
+        // Park groves also form as a straight run of 4 — a tree-lined row
+        // is as much a grove as a square cluster.
+        if (tryMergeShape(gx, gy, 4, 1, 'park', 'park2')) { didMerge = true; continue; }
+        if (tryMergeShape(gx, gy, 1, 4, 'park', 'park2')) didMerge = true;
+      }
+    }
+    if (didMerge) showToast('🏙️ Buildings merged into something bigger!');
+  }
+  function findMergeAnchor(gx, gy) {
+    for (var i = 0; i < progress.merges.length; i++) {
+      if (progress.merges[i].gx === gx && progress.merges[i].gy === gy) return progress.merges[i];
+    }
+    return null;
+  }
+  function findMergeContaining(gx, gy) {
+    for (var i = 0; i < progress.merges.length; i++) {
+      var m = progress.merges[i];
+      if (gx >= m.gx && gx < m.gx + m.w && gy >= m.gy && gy < m.gy + m.h) return i;
+    }
+    return -1;
+  }
+  // Clears a single grid cell, but breaks a whole merged block at once if
+  // the cell belongs to one — a disaster or bulldoze hitting any corner of
+  // an Apartment/Grove/Mall takes out the entire block, not a single stray
+  // cell.
+  function clearCell(gx, gy) {
+    var mi = findMergeContaining(gx, gy);
+    if (mi >= 0) {
+      var m = progress.merges[mi];
+      for (var dy = 0; dy < m.h; dy++) {
+        for (var dx = 0; dx < m.w; dx++) {
+          progress.grid[idx(m.gx + dx, m.gy + dy)] = null;
+        }
+      }
+      progress.merges.splice(mi, 1);
+    } else {
+      progress.grid[idx(gx, gy)] = null;
+    }
+  }
+  var DISASTERS = [
+    { icon: '🔥', warn: 'Smoke on the horizon — a fire is brewing!', apply: function () {
+      var targets = collectDamageable();
+      if (!targets.length) return null;
+      var t = targets[Math.floor(Math.random() * targets.length)];
+      clearCell(t.gx, t.gy);
+      var loss = Math.min(progress.coins, 20);
+      progress.coins -= loss;
+      return 'Fire destroyed a building! (-' + loss + '💰 in repairs)';
+    } },
+    { icon: '🌊', warn: 'Storm clouds gathering over the coast — flood risk rising!', apply: function () {
+      if (progress.coins <= 0) return null;
+      var loss = Math.min(progress.coins, Math.max(15, Math.round(progress.coins * 0.15)));
+      progress.coins -= loss;
+      return 'Flood swept through town — -' + loss + '💰 in damage';
+    } },
+    { icon: '🌪️', warn: 'Winds are picking up fast — a storm is closing in!', apply: function () {
+      var targets = shuffle(collectDamageable());
+      if (!targets.length) return null;
+      var n = Math.min(targets.length, 1 + Math.floor(Math.random() * 2));
+      for (var i = 0; i < n; i++) clearCell(targets[i].gx, targets[i].gy);
+      var loss = Math.min(progress.coins, n * 10);
+      progress.coins -= loss;
+      return 'A storm damaged ' + n + ' building' + (n > 1 ? 's' : '') + '! (-' + loss + '💰)';
+    } },
+    { icon: '🌍', warn: 'The ground is trembling — an earthquake may strike!', apply: function () {
+      var targets = shuffle(collectDamageable());
+      if (!targets.length) return null;
+      var n = Math.min(targets.length, 3);
+      for (var i = 0; i < n; i++) clearCell(targets[i].gx, targets[i].gy);
+      var loss = Math.min(progress.coins, 20 + n * 15);
+      progress.coins -= loss;
+      return 'Earthquake! ' + n + ' building' + (n > 1 ? 's' : '') + ' damaged — -' + loss + '💰 in repairs';
+    } }
+  ];
+
+  // Disasters telegraph before they land: a pulsing banner names the
+  // threat, then it resolves a few seconds later — enough warning to
+  // react (or just brace for it), unlike the old instant-hit version.
+  var pendingDisaster = null;
+  var disasterWarnTimer = null;
+  var disasterWarnEl = document.getElementById('disasterWarning');
+  var disasterWarnIconEl = document.getElementById('disasterWarningIcon');
+  var disasterWarnTextEl = document.getElementById('disasterWarningText');
+  var DISASTER_WARN_MS = 4500;
+  // The warning takes over the quest bar's own slot (breaking news
+  // interrupting the regular notification) rather than floating somewhere
+  // else on screen, and hands it back once resolved.
+  function showDisasterBanner(icon, text) {
+    document.getElementById('questBar').style.display = 'none';
+    disasterWarnIconEl.textContent = icon;
+    disasterWarnTextEl.textContent = text;
+    disasterWarnEl.classList.add('show');
+  }
+  function hideDisasterBanner() {
+    disasterWarnEl.classList.remove('show');
+    document.getElementById('questBar').style.display = '';
+  }
+  function scheduleDisasterWarning() {
+    if (pendingDisaster) return;
+    var d = DISASTERS[Math.floor(Math.random() * DISASTERS.length)];
+    pendingDisaster = d;
+    showDisasterBanner(d.icon, d.warn);
+    disasterWarnTimer = setTimeout(function () { resolvePendingDisaster(); }, DISASTER_WARN_MS);
+  }
+  function resolvePendingDisaster() {
+    var d = pendingDisaster;
+    pendingDisaster = null;
+    disasterWarnTimer = null;
+    hideDisasterBanner();
+    if (!d || !document.body.classList.contains('playing')) return;
+    var msg = d.apply();
+    if (!msg) return; // nothing left to damage — false alarm
+    showToast(d.icon + ' ' + msg);
+    var area = document.getElementById('canvasArea');
+    area.classList.remove('shake'); void area.offsetWidth; area.classList.add('shake');
+    recompute();
+    saveProgress();
+    draw();
+  }
+  function cancelPendingDisaster() {
+    if (disasterWarnTimer) { clearTimeout(disasterWarnTimer); disasterWarnTimer = null; }
+    pendingDisaster = null;
+    hideDisasterBanner();
+  }
+
+  // ---------- quests / levels ----------
+  // The quest text IS the tutorial: instead of a separate how-to-play
+  // wall of text, each level states one concrete goal, and the early ones
+  // walk the player through road -> house -> shop -> the nature tradeoff.
+  var QUESTS = [
+    { title: 'First Neighbor', desc: 'Build a house for Moku.',
+      check: function (s) { return s.population >= 4; },
+      progress: function (s) { return 'population ' + Math.min(s.population, 4) + '/4'; },
+      reward: 50 },
+    { title: 'Growing Together', desc: 'Grow to 3 houses, but plant a park too.',
+      check: function (s) { return s.population >= 12 && s.parks >= 1; },
+      progress: function (s) { return 'pop ' + Math.min(s.population, 12) + '/12 · parks ' + Math.min(s.parks, 1) + '/1'; },
+      reward: 80 },
+    { title: 'Open for Business', desc: 'Open a shop and save up 300 coins.',
+      check: function (s, f) { return f.shop && s.coins >= 300; },
+      progress: function (s, f) { return (f.shop ? 'shop ✓' : 'shop —') + ' · ' + Math.min(s.coins, 300) + '/300 coins'; },
+      reward: 100 },
+    { title: 'Class Is In Session', desc: 'Build a School to unlock the Landmark.',
+      check: function (s) { return s.schools >= 1; },
+      progress: function (s) { return 'school ' + (s.schools >= 1 ? '✓' : '—'); },
+      reward: 120 },
+    { title: 'Civic Pride', desc: 'Build a Landmark for the town.',
+      check: function (s) { return s.landmarks >= 1; },
+      progress: function (s) { return 'landmark ' + (s.landmarks >= 1 ? '✓' : '—'); },
+      reward: 180 },
+    { title: 'Balance Point', desc: "Reach 24 population without Nature falling below 40%.",
+      check: function (s) { return s.population >= 24 && s.nature >= 40; },
+      progress: function (s) { return 'pop ' + Math.min(s.population, 24) + '/24 · nature ' + s.nature + '% (need ≥40%)'; },
+      reward: 150 },
+    { title: 'Thriving Town', desc: 'Reach 36 population with 50%+ Nature and 60%+ satisfaction, together.',
+      check: function (s) { return s.population >= 36 && s.nature >= 50 && s.satisfaction >= 60; },
+      progress: function (s) { return 'pop ' + Math.min(s.population, 36) + '/36 · nature ' + s.nature + '% · sat ' + s.satisfaction + '%'; },
+      reward: 200 },
+    { title: "Moku's Promise", desc: 'Prove a town can grow without losing its forest — 50 population, 55%+ Nature.',
+      check: function (s) { return s.population >= 50 && s.nature >= 55; },
+      progress: function (s) { return 'pop ' + Math.min(s.population, 50) + '/50 · nature ' + s.nature + '% (need ≥55%)'; },
+      reward: 300 }
+  ];
+  // Beyond the handcrafted arc, levels keep coming — but a 10x10 grid with
+  // Nature held at 50%+ has a real ceiling (roughly 250 population at
+  // maximum plausible density: 50 non-nature cells, fully merged into
+  // Apartments at 5 pop/cell). A target that keeps climbing by a flat +15
+  // forever eventually asks for more land than exists — a real dead end,
+  // not just a hard one. The curve below climbs steeply at first, same
+  // pace as before, then eases off and approaches a ceiling comfortably
+  // under the true maximum, so there's always a denser layout that gets
+  // there — city growth plateauing into a steady state, not a wall.
+  // 2026-11-11 修正: 目標の人口は 240 前後で頭打ちになるため、以前は同じ
+  // 目標(240)の Harmony が無限に続き、240 人を超えた街は計算のたびに最大
+  // 50 レベルずつ上がっていた(Lv 1700 台・お金が数千万になった)。目標は
+  // 前のレベルより必ず大きい値だけを使い、240 に届いたら最後のレベル。
+  var HARMONY_TARGETS = (function () {
+    var list = [], prev = 50;
+    for (var step = 1; step < 200; step++) {
+      var t = 50 + Math.round(190 * (1 - Math.exp(-step / 7)));
+      if (t > prev) { list.push(t); prev = t; }
+      if (t >= 240) break;
+    }
+    return list;
+  })();
+  var FINAL_QUEST_INDEX = QUESTS.length + HARMONY_TARGETS.length;
+  var MAX_LEVEL = FINAL_QUEST_INDEX + 1;
+  var FINAL_QUEST = {
+    title: 'Perfect Harmony',
+    desc: 'You reached the top level! Keep your town green and happy.',
+    final: true,
+    check: function () { return false; },
+    progress: function (s) { return 'pop ' + s.population + ' · nature ' + s.nature + '%'; },
+    reward: 0
+  };
+  function questForIndex(i) {
+    if (i < QUESTS.length) return QUESTS[i];
+    if (i >= FINAL_QUEST_INDEX) return FINAL_QUEST;
+    var step = i - QUESTS.length + 1;
+    var popTarget = HARMONY_TARGETS[step - 1];
+    return {
+      title: 'Harmony Lv ' + (i + 2),
+      desc: 'Grow to ' + popTarget + ' population while keeping Nature at 50%+.',
+      check: function (s) { return s.population >= popTarget && s.nature >= 50; },
+      progress: function (s) { return 'pop ' + Math.min(s.population, popTarget) + '/' + popTarget + ' · nature ' + s.nature + '%'; },
+      reward: 150 + step * 50
+    };
+  }
+
+  // ---------- save data ----------
+  // The grid starts entirely 'water' — seeding a region has to explicitly
+  // set the non-forest cells to null (empty buildable ground), not just
+  // leave them alone, or they stay stuck as literal water: rendered blue
+  // and rejected by handlePlace(), scattered through what's supposed to be
+  // solid buildable land.
+  function seedIsland(grid, x0, y0, w, h) {
+    for (var gy = y0; gy < y0 + h; gy++) {
+      for (var gx = x0; gx < x0 + w; gx++) {
+        grid[gy * GRID_W + gx] = Math.random() < 0.45 ? 'forest' : null;
+      }
+    }
+  }
+  function defaultProgress() {
+    // Ocean everywhere by default; the mainland and each island are seeded
+    // wild (forest) within their own bounds — the town grows INTO the
+    // forest, not onto a blank lot, so every build choice is a choice to
+    // clear nature. Islands stay masked as water by tileAt() until unlocked
+    // regardless of what's actually seeded underneath.
+    var grid = new Array(GRID_W * GRID_H).fill('water');
+    seedIsland(grid, MAINLAND_MIN, MAINLAND_MIN, MAINLAND_SIZE, MAINLAND_SIZE);
+    ISLANDS.forEach(function (isl) { seedIsland(grid, isl.x0, isl.y0, isl.w, isl.h); });
+    return {
+      version: 4,
+      gameId: GAME_ID,
+      coins: 500,
+      grid: grid,
+      level: 1,
+      questIndex: 0,
+      flags: { shop: false },
+      merges: [],
+      playMinutes: 0,
+      seenIslands: [],
+      updatedAt: ''
+    };
+  }
+  // Saves from before the world grew to 18x18 (flat 10x10, no ocean ring)
+  // get their mainland re-centered into the new coordinate space rather
+  // than being discarded — merge anchors shift by the same offset so
+  // Apartments/Groves/Malls don't end up pointing at the wrong cells.
+  function migrateLegacyGrid(data) {
+    var OLD_SIZE = 10;
+    var grid = new Array(GRID_W * GRID_H).fill('water');
+    for (var oy = 0; oy < OLD_SIZE; oy++) {
+      for (var ox = 0; ox < OLD_SIZE; ox++) {
+        var v = data.grid[oy * OLD_SIZE + ox];
+        if (v) grid[(oy + MAINLAND_MIN) * GRID_W + (ox + MAINLAND_MIN)] = v;
+      }
+    }
+    ISLANDS.forEach(function (isl) { seedIsland(grid, isl.x0, isl.y0, isl.w, isl.h); });
+    data.grid = grid;
+    if (Array.isArray(data.merges)) {
+      data.merges.forEach(function (m) { m.gx += MAINLAND_MIN; m.gy += MAINLAND_MIN; });
+    }
+    return data;
+  }
+  // One-time self-heal for saves written while seedIsland() had the bug
+  // above: any cell that's actually inside the mainland or an island but
+  // still stored as literal 'water' (should be empty buildable ground)
+  // gets fixed in place. Runs on every load — cheap (~130 cells) and a
+  // no-op once a save is clean.
+  function repairStrandedWater(data) {
+    function fixRegion(x0, y0, w, h) {
+      for (var gy = y0; gy < y0 + h; gy++) {
+        for (var gx = x0; gx < x0 + w; gx++) {
+          var i = gy * GRID_W + gx;
+          if (data.grid[i] === 'water') data.grid[i] = null;
+        }
+      }
+    }
+    fixRegion(MAINLAND_MIN, MAINLAND_MIN, MAINLAND_SIZE, MAINLAND_SIZE);
+    ISLANDS.forEach(function (isl) { fixRegion(isl.x0, isl.y0, isl.w, isl.h); });
+  }
+  function loadProgress() {
+    try {
+      var raw = localStorage.getItem(SAVE_KEY);
+      if (raw) {
+        var data = JSON.parse(raw);
+        if (data && data.gameId === GAME_ID && Array.isArray(data.grid)) {
+          if (data.grid.length === 10 * 10) data = migrateLegacyGrid(data);
+          if (data.grid.length !== GRID_W * GRID_H) throw new Error('unrecognized grid size');
+          repairStrandedWater(data);
+          // Backfill for saves written before later versions added fields.
+          if (typeof data.level !== 'number') data.level = 1;
+          if (typeof data.questIndex !== 'number') data.questIndex = 0;
+          if (!data.flags) data.flags = { shop: false };
+          if (!Array.isArray(data.merges)) data.merges = [];
+          if (typeof data.playMinutes !== 'number') data.playMinutes = 0;
+          // 無限レベルのバグ(2026-11-11 修正)で上がりすぎたレベルを最後のレベルに戻す。
+          // 街(grid)・お金はそのまま。
+          if (data.questIndex > FINAL_QUEST_INDEX) data.questIndex = FINAL_QUEST_INDEX;
+          if (data.level > MAX_LEVEL) data.level = MAX_LEVEL;
+          if (!Array.isArray(data.seenIslands)) data.seenIslands = [];
+          return data;
+        }
+      }
+    } catch (e) {}
+    return defaultProgress();
+  }
+  var progress = loadProgress();
+  var saveTimer = null;
+  function saveProgress() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function () {
+      progress.updatedAt = new Date().toISOString();
+      try { localStorage.setItem(SAVE_KEY, JSON.stringify(progress)); } catch (e) {}
+    }, 300);
+  }
+
+  function idx(gx, gy) { return gy * GRID_W + gx; }
+  // A locked island reads as plain water everywhere in the game — this is
+  // the one place that masking happens, so every caller (recompute,
+  // rendering, disasters, residents, merges, handlePlace) automatically
+  // treats it as inaccessible without needing its own check.
+  function tileAt(gx, gy) {
+    if (gx < 0 || gy < 0 || gx >= GRID_W || gy >= GRID_H) return undefined;
+    var isl = islandAt(gx, gy);
+    if (isl && progress.level < isl.unlockLevel) return 'water';
+    return progress.grid[idx(gx, gy)];
+  }
+
+  // ---------- derived stats ----------
+  // Nature isn't cosmetic — it's the second win condition alongside the
+  // economy. Moku doesn't govern the city from above; Moku lives in it, so
+  // the HUD mood tracks how the forest/park balance is actually doing.
+  var stats = { coins: 0, population: 0, satisfaction: 0, nature: 100 };
+  // Nature is a fraction of BUILDABLE land (mainland + any unlocked
+  // islands), not the whole 18x18 world — the permanent ocean ring isn't
+  // land the player ever had a choice about, so it shouldn't dilute the
+  // percentage.
+  function buildableCellCount() {
+    var n = MAINLAND_SIZE * MAINLAND_SIZE;
+    ISLANDS.forEach(function (isl) { if (progress.level >= isl.unlockLevel) n += isl.w * isl.h; });
+    return n;
+  }
+  function recompute() {
+    var pop = 0, houses = 0, parks = 0, parks2 = 0, forestTiles = 0, natureTiles = 0,
+      schools = 0, landmarks = 0, restaurants = 0, giftshops = 0, stations = 0, hotels = 0, airports = 0;
+    for (var gy = 0; gy < GRID_H; gy++) {
+      for (var gx = 0; gx < GRID_W; gx++) {
+        var t = tileAt(gx, gy);
+        if (t === 'house') { pop += BUILDINGS.house.pop; houses++; }
+        if (t === 'house2') { pop += BUILDINGS.house2.pop; houses++; }
+        if (t === 'park') { parks++; natureTiles++; }
+        if (t === 'park2') { parks2++; natureTiles += BUILDINGS.park2.nature; }
+        if (t === 'forest') { forestTiles++; natureTiles++; }
+        if (t === 'school') schools++;
+        if (t === 'landmark') landmarks++;
+        if (t === 'restaurant') restaurants++;
+        if (t === 'giftshop') giftshops++;
+        if (t === 'station') stations++;
+        if (t === 'hotel') hotels++;
+        if (t === 'airport') airports++;
+      }
+    }
+    var nature = Math.round((natureTiles / buildableCellCount()) * 100);
+    // satisfaction: baseline 50%, +community coverage (parks/school/landmark/
+    // restaurant/gift shop/station/hotel/airport), -crowding without parks,
+    // and it suffers directly whenever nature has dropped into the red.
+    var sat = 50;
+    if (houses > 0) {
+      var communityBonus = parks * BUILDINGS.park.sat + parks2 * BUILDINGS.park2.sat +
+        schools * BUILDINGS.school.sat + landmarks * BUILDINGS.landmark.sat +
+        restaurants * BUILDINGS.restaurant.sat + giftshops * BUILDINGS.giftshop.sat +
+        stations * BUILDINGS.station.sat + hotels * BUILDINGS.hotel.sat + airports * BUILDINGS.airport.sat;
+      sat += Math.min(50, communityBonus);
+      sat -= Math.min(30, Math.max(0, houses - (parks + parks2) * 2) * 2);
+    }
+    if (nature < NATURE_LOW) sat -= (NATURE_LOW - nature);
+    else if (nature > NATURE_HIGH) sat += Math.min(10, (nature - NATURE_HIGH) / 2);
+    sat = Math.max(0, Math.min(100, Math.round(sat)));
+    maybeUpdateHighScore(pop, progress.level);
+    stats.population = pop;
+    stats.satisfaction = sat;
+    stats.nature = nature;
+    stats.forestTiles = forestTiles;
+    stats.parks = parks + parks2;
+    stats.schools = schools;
+    stats.landmarks = landmarks;
+    stats.restaurants = restaurants;
+    stats.giftshops = giftshops;
+    stats.stations = stations;
+    stats.hotels = hotels;
+    stats.airports = airports;
+    stats.coins = progress.coins;
+    checkQuestAdvance();
+    stats.coins = progress.coins; // a cleared quest may have paid out a reward
+    checkIslandUnlocks();
+    updateHud();
+  }
+
+  // Announces (once) whenever a new island crosses into reach, and refits
+  // the camera to include it.
+  function checkIslandUnlocks() {
+    ISLANDS.forEach(function (isl) {
+      if (progress.level >= isl.unlockLevel && progress.seenIslands.indexOf(isl.name) === -1) {
+        progress.seenIslands.push(isl.name);
+        showToast('🏝️ ' + isl.name + ' is now open for development!');
+        resizeCanvas();
+      }
+    });
+  }
+
+  // Advances through as many quests as are already satisfied in one go
+  // (e.g. loading a save that already qualifies), each paying its reward
+  // and handing the player the next goal.
+  function checkQuestAdvance() {
+    var guard = 0;
+    var advanced = false;
+    while (guard++ < 50) {
+      var q = questForIndex(progress.questIndex);
+      if (!q.check(stats, progress.flags)) break;
+      progress.coins += q.reward;
+      progress.level++;
+      progress.questIndex++;
+      showToast('🎉 Level Up! Lv ' + progress.level + ' — +' + q.reward + '💰');
+      stats.coins = progress.coins;
+      advanced = true;
+    }
+    // Only announce once even if several levels cleared in one tick (e.g.
+    // loading a save that already qualifies for a few) — the freshest goal.
+    if (advanced) announceQuest(questForIndex(progress.questIndex));
+  }
+
+  function natureMood() {
+    if (stats.nature < NATURE_LOW) return { face: '😢', label: 'Moku is worried' };
+    if (stats.nature > NATURE_HIGH) return { face: '😊', label: 'Moku is thriving' };
+    return { face: '😐', label: 'Moku is watching' };
+  }
+
+  function shopIncomeTick() {
+    var totalPop = stats.population;
+    var shopCount = 0, shop2Count = 0;
+    for (var gy = 0; gy < GRID_H; gy++) {
+      for (var gx = 0; gx < GRID_W; gx++) {
+        var t = tileAt(gx, gy);
+        if (t === 'shop') shopCount++;
+        if (t === 'shop2') shop2Count++;
+      }
+    }
+    var shopUnits = shopCount + shop2Count;
+    // Landmark/Station/Hotel/Airport/Gift Shop are flat passive income —
+    // tourism and civic draw rather than retail throughput — on top of
+    // whatever the shops themselves bring in.
+    var passiveCount = (stats.landmarks || 0) + (stats.stations || 0) + (stats.hotels || 0) +
+      (stats.airports || 0) + (stats.giftshops || 0);
+    if (shopUnits === 0 && passiveCount === 0) return;
+    var satMul = 0.6 + (stats.satisfaction / 100) * 0.8;
+    // A city that paved over its forest doesn't just make Moku sad — the
+    // economy itself suffers, so growth and nature can't be optimized
+    // independently of each other.
+    var natureMul = stats.nature < NATURE_LOW ? 0.5 : (stats.nature > NATURE_HIGH ? 1.2 : 1);
+    var avgBaseIncome = shopUnits > 0
+      ? (shopCount * BUILDINGS.shop.income + shop2Count * BUILDINGS.shop2.income) / shopUnits
+      : 0;
+    var perUnit = shopUnits > 0
+      ? Math.max(1, Math.round((avgBaseIncome + totalPop * 0.4) * satMul * natureMul / Math.max(1, shopUnits * 0.35)))
+      : 0;
+    var passiveIncome =
+      (stats.landmarks || 0) * BUILDINGS.landmark.income +
+      (stats.stations || 0) * BUILDINGS.station.income +
+      (stats.hotels || 0) * BUILDINGS.hotel.income +
+      (stats.airports || 0) * BUILDINGS.airport.income +
+      (stats.giftshops || 0) * BUILDINGS.giftshop.income;
+    var earned = perUnit * shopUnits + Math.round(passiveIncome * satMul);
+    progress.coins += earned;
+    if (earned > 0) showToast('+' + earned + ' 💰 from the local economy');
+    if (stats.nature < NATURE_LOW) showToast('🌲 Nature is low — Moku needs more green');
+    recompute();
+    saveProgress();
+  }
+
+  // ---------- HUD ----------
+  var hudCoins = document.getElementById('hudCoins');
+  var hudPop = document.getElementById('hudPop');
+  var hudSat = document.getElementById('hudSat');
+  var hudNature = document.getElementById('hudNature');
+  var hudMood = document.getElementById('hudMood');
+  var hudLevel = document.getElementById('hudLevel');
+  var hudTime = document.getElementById('hudTime');
+  var questTitleEl = document.getElementById('questTitle');
+  var questProgressEl = document.getElementById('questProgress');
+  function formatPlaytime(min) {
+    min = min || 0;
+    if (min < 60) return min + 'm';
+    return Math.floor(min / 60) + 'h ' + (min % 60) + 'm';
+  }
+  function updateHud() {
+    hudCoins.textContent = stats.coins;
+    hudPop.textContent = stats.population;
+    hudSat.textContent = stats.satisfaction;
+    hudNature.textContent = stats.nature;
+    hudLevel.textContent = progress.level;
+    hudTime.textContent = formatPlaytime(progress.playMinutes);
+    var mood = natureMood();
+    hudMood.textContent = mood.face;
+    hudMood.title = mood.label;
+    document.getElementById('hud').classList.toggle('natureLow', stats.nature < NATURE_LOW);
+    var q = questForIndex(progress.questIndex);
+    questTitleEl.textContent = q.final
+      ? '🌳 ' + q.title + ' — ' + q.desc
+      : 'Lv ' + (progress.level + 1) + ' · ' + q.title + ' — ' + q.desc;
+    questProgressEl.textContent = q.progress(stats, progress.flags);
+    refreshPaletteLocks();
+  }
+
+  function refreshPaletteLocks() {
+    PALETTE_ORDER.forEach(function (key) {
+      var b = BUILDINGS[key];
+      var el = paletteEls[key];
+      if (!el) return;
+      var locked = !!(b.unlockLevel && progress.level < b.unlockLevel);
+      el.classList.toggle('locked', locked);
+      var costEl = el.querySelector('.cost');
+      costEl.textContent = locked ? '🔒 Lv' + b.unlockLevel : (b.cost > 0 ? b.cost + '💰' : '');
+    });
+  }
+
+  // Moku walks in, shows the new goal in a speech bubble, walks back out —
+  // the quest bar above stays put as the persistent reference the whole
+  // level; this is just the "announcement" moment when a level begins.
+  var questMokuEl = document.getElementById('questMoku');
+  var questMokuBubbleEl = document.getElementById('questMokuBubble');
+  var questMokuTimer = null;
+  function announceQuest(q) {
+    if (!document.body.classList.contains('playing')) return;
+    questMokuBubbleEl.textContent = q.title + ' — ' + q.desc;
+    clearTimeout(questMokuTimer);
+    questMokuEl.classList.remove('enter', 'leave');
+    void questMokuEl.offsetWidth; // restart the transition if already mid-cycle
+    questMokuEl.classList.add('enter');
+    questMokuTimer = setTimeout(function () {
+      questMokuEl.classList.remove('enter');
+      questMokuEl.classList.add('leave');
+      questMokuTimer = setTimeout(function () { questMokuEl.classList.remove('leave'); }, 450);
+    }, 3000);
+  }
+
+  var toastEl = document.getElementById('toast');
+  var toastTimer = null;
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove('show'); }, 1400);
+  }
+
+  // ---------- palette ----------
+  var selectedTool = 'road';
+  var paletteEl = document.getElementById('palette');
+  var paletteEls = {};
+  function selectTool(key) {
+    var b = BUILDINGS[key];
+    if (b.unlockLevel && progress.level < b.unlockLevel) {
+      showToast('🔒 ' + b.name + ' unlocks at Lv ' + b.unlockLevel);
+      return;
+    }
+    selectedTool = key;
+    Array.prototype.forEach.call(paletteEl.children, function (c) { c.classList.remove('sel'); });
+    paletteEls[key].classList.add('sel');
+  }
+  PALETTE_ORDER.forEach(function (key, i) {
+    var b = BUILDINGS[key];
+    var el = document.createElement('div');
+    el.className = 'paletteItem' + (key === selectedTool ? ' sel' : '');
+    el.dataset.key = key;
+    el.tabIndex = 0;
+    el.setAttribute('role', 'button');
+    el.innerHTML = '<div class="ic">' + b.icon + '</div>' +
+      '<div class="nm">' + b.name + '</div>' +
+      '<div class="cost">' + (b.cost > 0 ? b.cost + '💰' : '') + '</div>' +
+      '<div class="kbd">' + (i + 1) + '</div>';
+    el.addEventListener('click', function () { selectTool(key); });
+    el.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault(); e.stopPropagation();
+        selectTool(key);
+      }
+    });
+    paletteEl.appendChild(el);
+    paletteEls[key] = el;
+  });
+
+  // ---------- canvas / isometric rendering ----------
+  var canvas = document.getElementById('c');
+  var ctx = canvas.getContext('2d');
+  var DPR = Math.min(window.devicePixelRatio || 1, 2);
+  var originX = 0, originY = 0;
+
+  var zoom = 1;
+  // The camera frames the mainland plus whatever islands are unlocked so
+  // far, not the whole 18x18 world — otherwise the mainland would render
+  // tiny from the very start to make room for ocean nobody can reach yet.
+  // As each island unlocks the frame widens to include it (see
+  // checkIslandUnlocks() -> resizeCanvas()).
+  // Three manual zoom levels on top of the auto-fit framing: the default
+  // "Fit" crop is snug around the mainland/unlocked islands, which is
+  // exactly what clips a bit of the ocean checker/wave texture at the
+  // edges (cosmetic — the ocean itself is still there, just partly off
+  // the visible canvas). "Wide" pads the frame out, "World" always shows
+  // the full 18x18 including locked islands.
+  var ZOOM_MODES = [
+    { label: 'Fit', icon: '🔍' },
+    { label: 'Wide', icon: '🔎' },
+    { label: 'World', icon: '🌐' }
+  ];
+  var zoomModeIndex = 0;
+  function visibleBounds() {
+    var minX = MAINLAND_MIN, minY = MAINLAND_MIN;
+    var maxX = MAINLAND_MIN + MAINLAND_SIZE, maxY = MAINLAND_MIN + MAINLAND_SIZE;
+    ISLANDS.forEach(function (isl) {
+      if (progress.level < isl.unlockLevel) return;
+      minX = Math.min(minX, isl.x0); minY = Math.min(minY, isl.y0);
+      maxX = Math.max(maxX, isl.x0 + isl.w); maxY = Math.max(maxY, isl.y0 + isl.h);
+    });
+    var mode = ZOOM_MODES[zoomModeIndex].label;
+    if (mode === 'World') return { minX: 0, minY: 0, maxX: GRID_W, maxY: GRID_H };
+    if (mode === 'Wide') {
+      return {
+        minX: Math.max(0, minX - 3), minY: Math.max(0, minY - 3),
+        maxX: Math.min(GRID_W, maxX + 3), maxY: Math.min(GRID_H, maxY + 3)
+      };
+    }
+    return { minX: minX, minY: minY, maxX: maxX, maxY: maxY };
+  }
+  function resizeCanvas() {
+    var area = document.getElementById('canvasArea');
+    var w = area.clientWidth, h = area.clientHeight;
+    canvas.width = w * DPR;
+    canvas.height = h * DPR;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    var bounds = visibleBounds();
+    var boundsW = bounds.maxX - bounds.minX, boundsH = bounds.maxY - bounds.minY;
+    var gridPxW = boundsW * TILE_W, gridPxH = (boundsW + boundsH) * TILE_H / 2 + 100;
+    zoom = Math.min(2.2, Math.max(0.4, Math.min(w / gridPxW, h / gridPxH) * 0.94));
+    ctx.setTransform(DPR * zoom, 0, 0, DPR * zoom, 0, 0);
+    // Bias the vertical center toward the upper part of canvasArea (roughly
+    // 42% down) instead of dead-center — there's reliably more empty
+    // headroom above than clearance below before the palette bar. (Was
+    // 38% — tight enough at the wider Wide/World zoom levels to clip the
+    // very top tile while leaving visible slack at the bottom.)
+    var cxIdx = (bounds.minX + bounds.maxX) / 2, cyIdx = (bounds.minY + bounds.maxY) / 2;
+    originX = (w / zoom) / 2 - (cxIdx - cyIdx) * (TILE_W / 2);
+    originY = (h / zoom) * 0.42 - (cxIdx + cyIdx) * (TILE_H / 2);
+    draw();
+  }
+
+  function gridToScreen(gx, gy) {
+    return {
+      x: originX + (gx - gy) * (TILE_W / 2),
+      y: originY + (gx + gy) * (TILE_H / 2)
+    };
+  }
+  function screenToGrid(sx, sy) {
+    var dx = sx - originX, dy = sy - originY;
+    var gx = (dx / (TILE_W / 2) + dy / (TILE_H / 2)) / 2;
+    var gy = (dy / (TILE_H / 2) - dx / (TILE_W / 2)) / 2;
+    return { gx: Math.floor(gx), gy: Math.floor(gy) };
+  }
+
+  function diamondPathSized(cx, topY, w, h) {
+    ctx.beginPath();
+    ctx.moveTo(cx, topY);
+    ctx.lineTo(cx + w / 2, topY + h / 2);
+    ctx.lineTo(cx, topY + h);
+    ctx.lineTo(cx - w / 2, topY + h / 2);
+    ctx.closePath();
+  }
+  function diamondPath(cx, topY) { diamondPathSized(cx, topY, TILE_W, TILE_H); }
+
+  function drawTileBase(gx, gy) {
+    var p = gridToScreen(gx, gy);
+    var checker = (gx + gy) % 2 === 0;
+    var isWater = tileAt(gx, gy) === 'water';
+    diamondPath(p.x, p.y);
+    if (isWater) {
+      // Bold, unambiguous ocean blue — the previous low-opacity tint read
+      // as "just a slightly different empty tile" rather than water.
+      ctx.fillStyle = checker ? '#1C5A94' : '#164B7C';
+    } else {
+      ctx.fillStyle = checker ? 'rgba(76,190,138,0.10)' : 'rgba(76,190,138,0.05)';
+    }
+    ctx.fill();
+    ctx.strokeStyle = isWater ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    if (isWater && (gx * 7 + gy * 13) % 5 === 0) {
+      ctx.font = '13px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.fillText('〰️', p.x, p.y + TILE_H * 0.62);
+    }
+  }
+
+  function drawBuilding(gx, gy, key) {
+    var b = BUILDINGS[key];
+    if (!b || !b.color) return;
+    var p = gridToScreen(gx, gy);
+    var cx = p.x, topY = p.y;
+    if (key === 'road' || key === 'land' || key === 'highway') {
+      diamondPath(cx, topY + TILE_H * 0.22);
+      ctx.fillStyle = b.color;
+      ctx.fill();
+      return;
+    }
+    var height = BUILDING_HEIGHT;
+    var baseY = topY + TILE_H * 0.72;
+    // simple extruded box: front-left, front-right, top diamond
+    ctx.fillStyle = shade(b.color, -30);
+    ctx.beginPath();
+    ctx.moveTo(cx - TILE_W * 0.28, baseY);
+    ctx.lineTo(cx, baseY + TILE_H * 0.28);
+    ctx.lineTo(cx, baseY + TILE_H * 0.28 - height);
+    ctx.lineTo(cx - TILE_W * 0.28, baseY - height);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = shade(b.color, -12);
+    ctx.beginPath();
+    ctx.moveTo(cx + TILE_W * 0.28, baseY);
+    ctx.lineTo(cx, baseY + TILE_H * 0.28);
+    ctx.lineTo(cx, baseY + TILE_H * 0.28 - height);
+    ctx.lineTo(cx + TILE_W * 0.28, baseY - height);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = b.color;
+    ctx.beginPath();
+    ctx.moveTo(cx, baseY - height - TILE_H * 0.28);
+    ctx.lineTo(cx + TILE_W * 0.28, baseY - height);
+    ctx.lineTo(cx, baseY - height + TILE_H * 0.28);
+    ctx.lineTo(cx - TILE_W * 0.28, baseY - height);
+    ctx.closePath();
+    ctx.fill();
+
+    var bigIcons = { landmark: 1, airport: 1, hotel: 1 };
+    var midIcons = { shop: 1, school: 1, station: 1 };
+    ctx.font = (bigIcons[key] ? 18 : midIcons[key] ? 16 : 13) + 'px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(b.icon, cx, baseY - height - TILE_H * 0.06);
+  }
+
+  // A merged 2x2 block (Apartment/Grove) draws once from its anchor cell,
+  // at double the footprint — same extrusion shape as drawBuilding, just
+  // scaled, since the anchor's own top vertex is exactly the combined
+  // diamond's top vertex (gridToScreen is a linear map).
+  function drawMergedBuilding(ax, ay, w, h, key) {
+    var b = BUILDINGS[key];
+    var top = gridToScreen(ax, ay);
+    // The true isometric footprint of a w x h block is a parallelogram —
+    // its two edges are the same (gx-gy, gx+gy) basis vectors gridToScreen
+    // uses everywhere else, just scaled by w and h independently. Treating
+    // it as a symmetric diamond (the previous approach) was only correct
+    // for square blocks; for anything like a 1x4 Grove it put the sprite
+    // in the wrong screen position entirely — reported as a grove floating
+    // over open water despite being built on solid mainland tiles.
+    var right = { x: top.x + w * TILE_W / 2, y: top.y + w * TILE_H / 2 };
+    var left = { x: top.x - h * TILE_W / 2, y: top.y + h * TILE_H / 2 };
+    var bottom = { x: right.x + (left.x - top.x), y: right.y + (left.y - top.y) };
+    // Same uniform height as every other building — a taller block would
+    // bury anything sitting behind it on the isometric grid, and the wider
+    // footprint alone already reads as "bigger". A touch of transparency
+    // on the walls (not the icon) keeps whatever's behind it visible too.
+    var height = BUILDING_HEIGHT;
+    ctx.save();
+    ctx.globalAlpha = 0.82;
+    ctx.fillStyle = shade(b.color, -30);
+    ctx.beginPath();
+    ctx.moveTo(left.x, left.y);
+    ctx.lineTo(bottom.x, bottom.y);
+    ctx.lineTo(bottom.x, bottom.y - height);
+    ctx.lineTo(left.x, left.y - height);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = shade(b.color, -12);
+    ctx.beginPath();
+    ctx.moveTo(right.x, right.y);
+    ctx.lineTo(bottom.x, bottom.y);
+    ctx.lineTo(bottom.x, bottom.y - height);
+    ctx.lineTo(right.x, right.y - height);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = b.color;
+    ctx.beginPath();
+    ctx.moveTo(top.x, top.y - height);
+    ctx.lineTo(right.x, right.y - height);
+    ctx.lineTo(bottom.x, bottom.y - height);
+    ctx.lineTo(left.x, left.y - height);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    // Icon anchored at the true center of the top face, with a soft dark
+    // backing disc so it reads clearly against any of the wall colors —
+    // the previous plain-text icon was hard to pick out at a glance.
+    var iconCx = (top.x + bottom.x) / 2, iconCy = (top.y + bottom.y) / 2 - height;
+    ctx.beginPath();
+    ctx.arc(iconCx, iconCy, 13, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(10,8,18,0.45)';
+    ctx.fill();
+    ctx.font = '20px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(b.icon, iconCx, iconCy + 1);
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  function shade(hex, amt) {
+    var c = hex.replace('#', '');
+    var num = parseInt(c, 16);
+    var r = Math.max(0, Math.min(255, (num >> 16) + amt));
+    var g = Math.max(0, Math.min(255, ((num >> 8) & 0xff) + amt));
+    var bl = Math.max(0, Math.min(255, (num & 0xff) + amt));
+    return 'rgb(' + r + ',' + g + ',' + bl + ')';
+  }
+
+  // ---------- residents ----------
+  // Purely decorative: a handful of little figures glide between built
+  // tiles so the town doesn't look static — Moku included, but mostly
+  // ordinary townsfolk. Kept deliberately cheap — capped headcount, one
+  // grid scan per tick, plain lerp'd positions, no physics.
+  var RESIDENT_CAP = 6;
+  var PERSON_ICONS = ['🚶', '🚶‍♀️', '🚶‍♂️', '🧍‍♀️', '🧍‍♂️'];
+  function pickResidentIcon(indexInFlock) {
+    // Guarantee Moku is always one of the wandering figures, not just an
+    // emoji swarm of owls — everyone else is a regular resident.
+    if (indexInFlock === 0) return '🦉';
+    return PERSON_ICONS[Math.floor(Math.random() * PERSON_ICONS.length)];
+  }
+  var residents = [];
+  function randomBuiltTile() {
+    var list = [];
+    for (var gy = 0; gy < GRID_H; gy++) {
+      for (var gx = 0; gx < GRID_W; gx++) {
+        var t = tileAt(gx, gy);
+        if (t && t !== 'forest' && t !== 'water') list.push({ gx: gx, gy: gy });
+      }
+    }
+    if (!list.length) return null;
+    return list[Math.floor(Math.random() * list.length)];
+  }
+  function pickNeighborTile(fromGx, fromGy) {
+    var candidates = [];
+    for (var dx = -1; dx <= 1; dx++) {
+      for (var dy = -1; dy <= 1; dy++) {
+        if (dx === 0 && dy === 0) continue;
+        var nx = fromGx + dx, ny = fromGy + dy;
+        if (nx < 0 || ny < 0 || nx >= GRID_W || ny >= GRID_H) continue;
+        if (tileAt(nx, ny) === 'water') continue; // don't wander out onto the ocean
+        candidates.push({ gx: nx, gy: ny });
+      }
+    }
+    if (!candidates.length) return { gx: fromGx, gy: fromGy };
+    return candidates[Math.floor(Math.random() * candidates.length)];
+  }
+  function ensureResidentCount() {
+    var houses = 0;
+    for (var gy = 0; gy < GRID_H; gy++) {
+      for (var gx = 0; gx < GRID_W; gx++) {
+        var t = tileAt(gx, gy);
+        if (t === 'house' || t === 'house2') houses++;
+      }
+    }
+    var target = houses > 0 ? Math.min(RESIDENT_CAP, houses) : 0;
+    while (residents.length > target) residents.pop();
+    while (residents.length < target) {
+      var spot = randomBuiltTile();
+      if (!spot) break;
+      residents.push({
+        fx: spot.gx, fy: spot.gy, tx: spot.gx, ty: spot.gy, t0: performance.now(), dur: 1,
+        icon: pickResidentIcon(residents.length)
+      });
+    }
+  }
+  function updateResidents(now) {
+    residents.forEach(function (r) {
+      if (now - r.t0 >= r.dur * 1000) {
+        r.fx = r.tx; r.fy = r.ty;
+        var next = pickNeighborTile(r.tx, r.ty);
+        r.tx = next.gx; r.ty = next.gy;
+        r.t0 = now;
+        r.dur = 1.4 + Math.random() * 1.4;
+      }
+    });
+  }
+  function drawResidents(now) {
+    ctx.font = '13px sans-serif';
+    ctx.textAlign = 'center';
+    residents.forEach(function (r) {
+      var t = Math.max(0, Math.min(1, (now - r.t0) / (r.dur * 1000)));
+      var gx = r.fx + (r.tx - r.fx) * t;
+      var gy = r.fy + (r.ty - r.fy) * t;
+      var p = gridToScreen(gx, gy);
+      ctx.fillText(r.icon, p.x, p.y + TILE_H * 0.6);
+    });
+  }
+
+  // ---------- vehicles ----------
+  // Same lerp-between-neighbor-tiles trick as residents, just constrained
+  // to road tiles (cars) or hovering near the airport (planes). Each one
+  // is either an eco variant (PHEV car / SAF plane) or conventional, with
+  // eco getting more common as Nature climbs — a small visual echo of the
+  // growth-vs-nature tension the rest of the game runs on, not a separate
+  // scoring mechanic.
+  var VEHICLE_CAP_CAR = 4, VEHICLE_CAP_PLANE = 2;
+  var cars = [], planes = [];
+  function ecoChance() { return Math.max(0.1, Math.min(0.9, stats.nature / 100)); }
+  function findTilesOfTypes(types) {
+    var list = [];
+    for (var gy = 0; gy < GRID_H; gy++) {
+      for (var gx = 0; gx < GRID_W; gx++) {
+        if (types[tileAt(gx, gy)]) list.push({ gx: gx, gy: gy });
+      }
+    }
+    return list;
+  }
+  function pickRoadNeighbor(fromGx, fromGy) {
+    var candidates = [];
+    for (var dx = -1; dx <= 1; dx++) {
+      for (var dy = -1; dy <= 1; dy++) {
+        if (dx === 0 && dy === 0) continue;
+        var nx = fromGx + dx, ny = fromGy + dy;
+        if (nx < 0 || ny < 0 || nx >= GRID_W || ny >= GRID_H) continue;
+        if (!ROAD_TYPES[tileAt(nx, ny)]) continue;
+        candidates.push({ gx: nx, gy: ny });
+      }
+    }
+    if (!candidates.length) return { gx: fromGx, gy: fromGy };
+    return candidates[Math.floor(Math.random() * candidates.length)];
+  }
+  function ensureCars() {
+    var roadTiles = findTilesOfTypes(ROAD_TYPES);
+    var target = roadTiles.length > 0 ? Math.min(VEHICLE_CAP_CAR, Math.ceil(roadTiles.length / 6)) : 0;
+    while (cars.length > target) cars.pop();
+    while (cars.length < target) {
+      var spot = roadTiles[Math.floor(Math.random() * roadTiles.length)];
+      cars.push({ fx: spot.gx, fy: spot.gy, tx: spot.gx, ty: spot.gy, t0: performance.now(), dur: 1, eco: Math.random() < ecoChance() });
+    }
+  }
+  function updateCars(now) {
+    cars.forEach(function (v) {
+      if (now - v.t0 >= v.dur * 1000) {
+        v.fx = v.tx; v.fy = v.ty;
+        var next = pickRoadNeighbor(v.tx, v.ty);
+        v.tx = next.gx; v.ty = next.gy;
+        v.t0 = now;
+        v.dur = 0.7 + Math.random() * 0.6;
+      }
+    });
+  }
+  function ensurePlanes() {
+    var airportTiles = findTilesOfTypes({ airport: true });
+    var target = airportTiles.length > 0 ? Math.min(VEHICLE_CAP_PLANE, airportTiles.length) : 0;
+    while (planes.length > target) planes.pop();
+    while (planes.length < target) {
+      var spot = airportTiles[Math.floor(Math.random() * airportTiles.length)];
+      planes.push({ fx: spot.gx, fy: spot.gy, tx: spot.gx, ty: spot.gy, t0: performance.now(), dur: 1, eco: Math.random() < ecoChance() });
+    }
+  }
+  function updatePlanes(now) {
+    planes.forEach(function (v) {
+      if (now - v.t0 >= v.dur * 1000) {
+        v.fx = v.tx; v.fy = v.ty;
+        var next = pickNeighborTile(v.tx, v.ty); // planes drift more freely than road-bound cars
+        v.tx = next.gx; v.ty = next.gy;
+        v.t0 = now;
+        v.dur = 1.2 + Math.random();
+      }
+    });
+  }
+  function drawVehicle(v, now, icon, ecoBadge) {
+    var t = Math.max(0, Math.min(1, (now - v.t0) / (v.dur * 1000)));
+    var gx = v.fx + (v.tx - v.fx) * t;
+    var gy = v.fy + (v.ty - v.fy) * t;
+    var p = gridToScreen(gx, gy);
+    ctx.font = '13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(icon, p.x, p.y + TILE_H * 0.6);
+    if (v.eco) {
+      ctx.font = '9px sans-serif';
+      ctx.fillText(ecoBadge, p.x + 9, p.y + TILE_H * 0.6 - 9);
+    }
+  }
+  function drawVehicles(now) {
+    cars.forEach(function (v) { drawVehicle(v, now, '🚗', '⚡'); });
+    planes.forEach(function (v) { drawVehicle(v, now, '✈️', '🌿'); });
+  }
+
+  function draw() {
+    var w = canvas.width / DPR, h = canvas.height / DPR;
+    // clearRect respects the current transform (scaled by DPR*zoom), so
+    // clearing a `w`x`h` rect only covers the full canvas when zoom is
+    // exactly 1 — with zoom < 1 a strip goes uncleared and accumulates
+    // brighter overdraw every time draw() re-runs (hover, keyboard cursor
+    // moves, etc). Clear in raw device-pixel space instead, unaffected by
+    // whatever transform happens to be active.
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+    // base tiles, back to front
+    for (var gy = 0; gy < GRID_H; gy++) {
+      for (var gx = 0; gx < GRID_W; gx++) drawTileBase(gx, gy);
+    }
+    // buildings, painter's algorithm (back-to-front by gx+gy)
+    var order = [];
+    for (var gy2 = 0; gy2 < GRID_H; gy2++) {
+      for (var gx2 = 0; gx2 < GRID_W; gx2++) order.push({ gx: gx2, gy: gy2 });
+    }
+    order.sort(function (a, b) { return (a.gx + a.gy) - (b.gx + b.gy); });
+    order.forEach(function (t) {
+      var key = tileAt(t.gx, t.gy);
+      if (!key || key === 'water') return; // open water/locked islands: base tile only
+      if (key === 'house2' || key === 'park2' || key === 'shop2') {
+        var anchor = findMergeAnchor(t.gx, t.gy);
+        if (anchor) drawMergedBuilding(t.gx, t.gy, anchor.w, anchor.h, key);
+        return;
+      }
+      drawBuilding(t.gx, t.gy, key);
+    });
+    // Hint that a locked island exists out there before it's reachable.
+    ctx.font = '13px sans-serif';
+    ctx.textAlign = 'center';
+    ISLANDS.forEach(function (isl) {
+      if (progress.level >= isl.unlockLevel) return;
+      var p = gridToScreen(isl.x0 + isl.w / 2, isl.y0 + isl.h / 2);
+      var label = '🔒 ' + isl.name + ' · Lv' + isl.unlockLevel;
+      var textW = ctx.measureText(label).width;
+      var ly = p.y + TILE_H * 0.3;
+      ctx.fillStyle = 'rgba(10,8,18,0.55)';
+      ctx.beginPath();
+      ctx.roundRect(p.x - textW / 2 - 8, ly - 13, textW + 16, 20, 10);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(237,238,246,0.75)';
+      ctx.fillText(label, p.x, ly);
+    });
+    drawResidents(performance.now());
+    drawVehicles(performance.now());
+    if (hoverTile) {
+      var p = gridToScreen(hoverTile.gx, hoverTile.gy);
+      diamondPath(p.x, p.y);
+      ctx.strokeStyle = '#4CBE8A';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    if (keyboardActive) {
+      var kp = gridToScreen(keyCursor.gx, keyCursor.gy);
+      diamondPath(kp.x, kp.y);
+      ctx.strokeStyle = '#FFC94A';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([5, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  var hoverTile = null;
+  // keyboard cursor: a second, independent way to target a tile so the
+  // whole game is playable without a pointer.
+  var keyCursor = { gx: Math.floor(GRID_W / 2), gy: Math.floor(GRID_H / 2) };
+  var keyboardActive = false;
+  function moveCursor(dgx, dgy) {
+    keyboardActive = true;
+    keyCursor.gx = Math.max(0, Math.min(GRID_W - 1, keyCursor.gx + dgx));
+    keyCursor.gy = Math.max(0, Math.min(GRID_H - 1, keyCursor.gy + dgy));
+    draw();
+  }
+
+  function pointerToGrid(clientX, clientY) {
+    var rect = canvas.getBoundingClientRect();
+    // canvas is drawn in logical units then scaled by `zoom` via ctx transform,
+    // so a CSS-pixel click position has to be un-scaled before hit-testing.
+    var sx = (clientX - rect.left) / zoom, sy = (clientY - rect.top) / zoom;
+    return screenToGrid(sx, sy);
+  }
+
+  function handlePlace(gx, gy) {
+    if (gx < 0 || gy < 0 || gx >= GRID_W || gy >= GRID_H) return;
+    var cur = tileAt(gx, gy);
+    if (cur === 'water') {
+      var isl = islandAt(gx, gy);
+      if (isl && progress.level < isl.unlockLevel) {
+        showToast('🔒 ' + isl.name + ' unlocks at Lv ' + isl.unlockLevel);
+      } else {
+        showToast('🌊 Nothing to build on open water');
+      }
+      return;
+    }
+    if (selectedTool === 'bulldoze') {
+      if (cur) {
+        clearCell(gx, gy);
+        recompute();
+        saveProgress();
+        draw();
+      }
+      return;
+    }
+    if (cur === selectedTool) return;
+    var b = BUILDINGS[selectedTool];
+    if (progress.coins < b.cost) {
+      showToast('Not enough coins');
+      return;
+    }
+    progress.coins -= b.cost;
+    progress.grid[idx(gx, gy)] = selectedTool;
+    if (selectedTool === 'shop') progress.flags.shop = true;
+    checkMerges();
+    recompute();
+    saveProgress();
+    draw();
+  }
+
+  canvas.addEventListener('pointerdown', function (e) {
+    var g = pointerToGrid(e.clientX, e.clientY);
+    handlePlace(g.gx, g.gy);
+  });
+  canvas.addEventListener('pointermove', function (e) {
+    keyboardActive = false;
+    var g = pointerToGrid(e.clientX, e.clientY);
+    if (g.gx < 0 || g.gy < 0 || g.gx >= GRID_W || g.gy >= GRID_H) {
+      if (hoverTile) { hoverTile = null; draw(); }
+      return;
+    }
+    if (!hoverTile || hoverTile.gx !== g.gx || hoverTile.gy !== g.gy) {
+      hoverTile = g;
+      draw();
+    }
+  });
+
+  window.addEventListener('resize', resizeCanvas);
+
+  // ---------- on-screen touch controls ----------
+  // Same targeting as the keyboard cursor, just reachable by thumb — this
+  // is what makes the game playable on an iPad with no keyboard attached.
+  Array.prototype.forEach.call(document.querySelectorAll('.dbtn'), function (btn) {
+    btn.addEventListener('pointerdown', function (e) {
+      e.preventDefault();
+      switch (btn.dataset.dir) {
+        case 'up': moveCursor(0, -1); break;
+        case 'down': moveCursor(0, 1); break;
+        case 'left': moveCursor(-1, 0); break;
+        case 'right': moveCursor(1, 0); break;
+      }
+    });
+  });
+  document.getElementById('placeBtn').addEventListener('pointerdown', function (e) {
+    e.preventDefault();
+    keyboardActive = true;
+    handlePlace(keyCursor.gx, keyCursor.gy);
+  });
+  document.getElementById('zoomBtn').addEventListener('pointerdown', function (e) {
+    e.preventDefault();
+    zoomModeIndex = (zoomModeIndex + 1) % ZOOM_MODES.length;
+    var mode = ZOOM_MODES[zoomModeIndex];
+    document.getElementById('zoomBtn').textContent = mode.icon;
+    showToast(mode.icon + ' ' + mode.label + ' view');
+    resizeCanvas();
+  });
+
+  // ---------- game flow ----------
+  function goTitle() {
+    document.body.classList.remove('playing');
+    cancelPendingDisaster();
+    showScreen('titleScreen');
+    refreshTitleHighScore();
+  }
+  function refreshTitleHighScore() {
+    var el = document.getElementById('titleHighScore');
+    if (highScore.population > 0) {
+      el.textContent = '🏆 Best: ' + highScore.population + ' pop · Lv ' + Math.min(highScore.level, MAX_LEVEL); // バグで上がりすぎた古い記録も最後のレベルで見せる
+      el.classList.add('show');
+    } else {
+      el.classList.remove('show');
+    }
+  }
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(function (s) { s.classList.remove('active'); });
+    if (id) document.getElementById(id).classList.add('active');
+  }
+  function startCity() {
+    document.body.classList.add('playing');
+    // A menu item clicked to get here keeps DOM focus, and its own
+    // keydown handler (Enter/Space -> re-trigger this menu action) would
+    // then intercept and stopPropagation() the player's very first
+    // in-game Enter/Space press before it ever reaches the gameplay
+    // keydown handler on window — silently eating a build/clear action.
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    showScreen(null);
+    recompute();
+    resizeCanvas();
+    ensureResidentCount();
+    ensureCars();
+    ensurePlanes();
+    announceQuest(questForIndex(progress.questIndex));
+  }
+
+  function handleMenuAction(item) {
+    var action = item.dataset.action;
+    if (action === 'newver') { location.href = 'mokucity.html'; return; }
+    if (action === 'reset') {
+      if (confirm('Start a new city? This clears your current progress.')) {
+        progress = defaultProgress();
+        saveProgress();
+      }
+    }
+    startCity();
+  }
+  var titleMenuEl = document.getElementById('titleMenu');
+  titleMenuEl.addEventListener('click', function (e) {
+    var item = e.target.closest('.menuItem');
+    if (!item) return;
+    handleMenuAction(item);
+  });
+  titleMenuEl.addEventListener('keydown', function (e) {
+    var item = e.target.closest('.menuItem');
+    if (!item || (e.key !== 'Enter' && e.key !== ' ')) return;
+    e.preventDefault(); e.stopPropagation();
+    handleMenuAction(item);
+  });
+  document.getElementById('titleBtn').addEventListener('click', goTitle);
+  // Progress lives in localStorage, independent of the page itself, so a
+  // reload can't lose it — this just re-fetches the file with a
+  // cache-busting query string, in case the browser (or GitHub Pages'
+  // caching) is still serving an older cached copy after an update ships.
+  document.getElementById('refreshBtn').addEventListener('click', function () {
+    window.location.href = window.location.pathname + '?t=' + Date.now();
+  });
+
+  function toggleHowTo() {
+    document.getElementById('howToPanel').classList.toggle('show');
+    document.getElementById('howToToggle').classList.toggle('active');
+  }
+  var howToToggleEl = document.getElementById('howToToggle');
+  howToToggleEl.addEventListener('click', toggleHowTo);
+  howToToggleEl.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault(); e.stopPropagation();
+    toggleHowTo();
+  });
+
+  // ---------- keyboard controls ----------
+  // Arrows/WASD move a keyboard cursor across the grid, 1-5 pick a
+  // palette tool, Enter/Space place/clear at the cursor, Esc returns to
+  // the title. On the title screen, Up/Down move the menu selection.
+  window.addEventListener('keydown', function (e) {
+    if (document.body.classList.contains('playing')) {
+      switch (e.key) {
+        case 'ArrowUp': case 'w': case 'W': moveCursor(0, -1); e.preventDefault(); return;
+        case 'ArrowDown': case 's': case 'S': moveCursor(0, 1); e.preventDefault(); return;
+        case 'ArrowLeft': case 'a': case 'A': moveCursor(-1, 0); e.preventDefault(); return;
+        case 'ArrowRight': case 'd': case 'D': moveCursor(1, 0); e.preventDefault(); return;
+        case 'Enter': case ' ':
+          keyboardActive = true;
+          handlePlace(keyCursor.gx, keyCursor.gy);
+          e.preventDefault();
+          return;
+        case 'Escape': goTitle(); return;
+        default:
+          var n = parseInt(e.key, 10);
+          if (n >= 1 && n <= PALETTE_ORDER.length) selectTool(PALETTE_ORDER[n - 1]);
+      }
+      return;
+    }
+    // title screen: skip when a focused element already handles its own key
+    var active = document.activeElement;
+    if (active && (active.classList.contains('menuItem') || active.id === 'howToToggle')) return;
+    var items = Array.prototype.slice.call(titleMenuEl.querySelectorAll('.menuItem'));
+    var curIdx = items.findIndex(function (it) { return it.classList.contains('sel'); });
+    if (curIdx < 0) curIdx = 0;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      var next = items[(curIdx + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length];
+      items.forEach(function (it) { it.classList.remove('sel'); });
+      next.classList.add('sel');
+      next.focus();
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleMenuAction(items[curIdx]);
+    }
+  });
+
+  var tickTimer = setInterval(function () {
+    if (document.body.classList.contains('playing')) shopIncomeTick();
+  }, 7000);
+
+  // Roughly a 30% chance every 20s once there's something to lose — keeps
+  // early play calm instead of punishing a first house immediately. Also
+  // held off entirely before Lv6: a disaster wiping out a beginner's tiny
+  // coin reserve is a run-ender, not a setback, with nothing built up yet
+  // to absorb it.
+  var DISASTER_MIN_LEVEL = 6;
+  var disasterTimer = setInterval(function () {
+    if (!document.body.classList.contains('playing')) return;
+    if (progress.level < DISASTER_MIN_LEVEL) return;
+    if (stats.population <= 0 && progress.coins <= 0) return;
+    if (Math.random() > 0.15) return; // halved from the original 0.3 — was firing too often
+    scheduleDisasterWarning();
+  }, 20000);
+
+  var residentTimer = setInterval(function () {
+    if (!document.body.classList.contains('playing')) return;
+    var now = performance.now();
+    ensureResidentCount();
+    updateResidents(now);
+    ensureCars();
+    updateCars(now);
+    ensurePlanes();
+    updatePlanes(now);
+    draw();
+  }, 150);
+
+  var playtimeTimer = setInterval(function () {
+    if (!document.body.classList.contains('playing')) return;
+    progress.playMinutes = (progress.playMinutes || 0) + 1;
+    updateHud();
+    saveProgress();
+  }, 60000);
+
+  recompute();
+  refreshTitleHighScore();
+})();
+</script>
+</body>
+</html>
