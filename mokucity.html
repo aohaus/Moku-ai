@@ -76,14 +76,14 @@ body.playing #title-frame { display: none; }
 #rotate-hint {
   display: none;
   position: fixed; inset: 0; z-index: 999;
-  background: #0A0B12;
+  background: linear-gradient(180deg, #9ED3E2 0%, #F6D9A8 60%, #E3955E 100%);
   flex-direction: column; align-items: center; justify-content: center;
-  color: #EDEEF6; font-size: 15px; font-weight: 700; gap: 16px; text-align: center;
+  color: #5B3A24; font-size: 15px; font-weight: 700; gap: 16px; text-align: center;
   padding: 20px;
 }
 #rotate-hint span { font-size: 52px; display: inline-block; animation: rotateHintSpin 1.5s ease-in-out infinite alternate; }
 @keyframes rotateHintSpin { from { transform: rotate(-28deg); } to { transform: rotate(28deg); } }
-#rotate-hint p { color: rgba(237,238,246,0.6); font-size: 12.5px; font-weight: 600; max-width: 260px; line-height: 1.6; }
+#rotate-hint p { color: rgba(91,58,36,0.75); font-size: 12.5px; font-weight: 600; max-width: 260px; line-height: 1.6; }
 @media (max-width: 1024px) and (orientation: portrait) {
   #rotate-hint { display: flex; }
   #title-frame, #hub-link, #buildInfo, #titleScreen, #wrapper { display: none !important; }
@@ -99,7 +99,10 @@ body.playing #title-frame { display: none; }
   text-align: center;
   gap: 10px;
   padding: 22px 28px;
-  background: radial-gradient(circle at 50% 20%, rgba(76,190,138,0.08), transparent 55%), rgba(9,7,15,0.94);
+  /* 2026-11-11 (v2.8.0): 暗い画面をやめて、夕方の空(絵本の世界観)。
+     下のほうは濃いめの夕焼けにして、左下の #buildInfo(白の薄い文字)も読めるようにする */
+  background: linear-gradient(180deg, #9ED3E2 0%, #CFE6D8 32%, #F6D9A8 62%, #E3955E 100%);
+  color: var(--ink, #5B3A24);
 }
 .screen.active { display: flex; }
 
@@ -108,7 +111,7 @@ body.playing #title-frame { display: none; }
   border-radius: 50%;
   object-fit: cover;
   object-position: center 30%;
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.14), 0 12px 24px rgba(0,0,0,0.5), 0 0 26px rgba(76,190,138,0.35);
+  box-shadow: 0 0 0 3px #5B3A24, 0 0 0 7px #FFF4DE, 0 10px 20px rgba(91,58,36,0.3);
   animation: mascotFloat 3.2s ease-in-out infinite;
 }
 @keyframes mascotFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
@@ -116,19 +119,20 @@ body.playing #title-frame { display: none; }
   font-weight: 800; letter-spacing: 0.02em;
   font-size: clamp(24px, 5vw, 36px);
   line-height: 1.15;
-  text-shadow: 0 0 22px rgba(76,190,138,0.4);
+  color: #5B3A24;
+  text-shadow: 0 2px 0 #FFF4DE;
 }
-#titleLogo span { color: var(--hi); }
+#titleLogo span { color: #2F7A45; }
 #titleSub {
   font-size: clamp(12px, 1.7vw, 14.5px);
   font-weight: 700; letter-spacing: 0.06em;
-  color: rgba(237,238,246,0.6);
+  color: rgba(91,58,36,0.75);
 }
 #titleHighScore {
   display: none;
   margin-top: 8px;
   font-size: 13px; font-weight: 800;
-  color: #FFC94A;
+  color: #A8551D;
   letter-spacing: 0.02em;
 }
 #titleHighScore.show { display: block; }
@@ -136,39 +140,39 @@ body.playing #title-frame { display: none; }
 .menuItem {
   font-weight: 800; font-size: 19px;
   padding: 8px 18px;
-  color: rgba(237,238,246,0.5);
+  color: rgba(91,58,36,0.5);
   cursor: pointer;
 }
-.menuItem.sel { color: var(--hi); text-shadow: 0 0 14px rgba(76,190,138,0.55); }
+.menuItem.sel { color: #2F7A45; text-shadow: 0 2px 0 #FFF4DE; }
 .menuItem.sel::before { content: '▸ '; }
 /* Classic Mode へのリンク(v2.5.1 を mokucity-classic.html に保存。2026-11-11) */
-.menuItem.sub { font-size: 15px; color: rgba(108,196,161,0.55); }
+.menuItem.sub { font-size: 15px; color: rgba(47,122,69,0.6); }
 #titleFooterTag {
   margin-top: 16px; padding-top: 10px; width: min(300px, 90%);
-  border-top: 1px solid rgba(255,255,255,0.12);
-  font-size: 9px; letter-spacing: 0.05em; color: rgba(237,238,246,0.4);
+  border-top: 1px solid rgba(91,58,36,0.2);
+  font-size: 9px; letter-spacing: 0.05em; color: rgba(91,58,36,0.55);
 }
 .textLink {
   margin-top: 14px;
   font-size: 11.5px; font-weight: 800; letter-spacing: 0.02em;
-  color: rgba(237,238,246,0.55);
+  color: rgba(91,58,36,0.65);
   cursor: pointer;
 }
-.textLink.active { color: var(--hi); }
+.textLink.active { color: #2F7A45; }
 #howToPanel {
   display: none;
   margin-top: 8px;
   width: min(360px, 90%);
   font-size: 13.5px; line-height: 1.65;
-  color: rgba(237,238,246,0.65);
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 10px;
+  color: #5B3A24;
+  background: #FFF4DE;
+  border: 2.5px solid #5B3A24;
+  border-radius: 14px;
   padding: 12px 14px;
   text-align: left;
 }
 #howToPanel.show { display: block; }
-#howToPanel em { color: var(--hi); font-style: normal; font-weight: 700; }
+#howToPanel em { color: #2F7A45; font-style: normal; font-weight: 700; }
 
 /* ---------- game wrapper ---------- */
 #wrapper {
@@ -585,6 +589,19 @@ canvas#c.dragging { cursor: grabbing; }
   #zoomBtn { right: calc(env(safe-area-inset-right, 0px) + 8px); top: 8px; width: 44px; height: 44px; }
   #zoomBtn img { width: 27px; height: 27px; }
 }
+/* 背の低い画面(スマホの横持ち)のタイトル: 全部が枠の中に入るように詰める */
+@media (max-height: 520px) {
+  .screen { gap: 3px; padding: 18px 28px; }
+  #titleMascot { width: 58px; height: 58px; }
+  #titleLogo { font-size: 26px; }
+  #titleSub { font-size: 11.5px; }
+  #titleHighScore { margin-top: 2px; font-size: 12px; }
+  #titleMenu { margin-top: 2px; gap: 0; }
+  .menuItem { padding: 4px 18px; }
+  .menuItem.sub { padding-top: 2px; }
+  .textLink { margin-top: 2px; }
+  #titleFooterTag { display: none; }
+}
 /* 幅の狭い画面(iPhone SE の横持ちなど)は目標の2行目を省く */
 @media (max-width: 700px) {
   /* 2行目は「何をするか」の代わりに進み具合(何をするかは押すと Moku が言う) */
@@ -598,7 +615,7 @@ canvas#c.dragging { cursor: grabbing; }
 <div id="rotate-hint"><span>📱</span><p>MokuCity is played in landscape.<br>Please rotate your device.</p></div>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v2.7.0 · Updated Nov 11, 2026</div>
+<div id="buildInfo">v2.8.0 · Updated Nov 12, 2026</div>
 
 <section class="screen active" id="titleScreen">
   <img id="titleMascot" src="brand/mokumoku-hero.png" alt="Mokumoku">
@@ -724,26 +741,28 @@ canvas#c.dragging { cursor: grabbing; }
   var TILE_W = 84, TILE_H = 42; // isometric (dimetric) diamond size
 
   // ---------- building types ----------
+  // 2026-11-11 (v2.8.0): 台の色は、こい原色(紫・ピンク・紺)をやめて、
+  // アイコンの絵が主役になるやさしい色にそろえた。
   var BUILDINGS = {
-    road:  { id: 'road',  name: 'Road',   icon: '🛣️', cost: 10,  color: '#5B5F73' },
+    road:  { id: 'road',  name: 'Road',   icon: '🛣️', cost: 10,  color: '#9AA0A8' },
     // Land is a cheap flattened plot — clears forest into buildable ground
     // without committing to anything yet, handy for staging a 2x2 merge.
-    land:  { id: 'land',  name: 'Land',   icon: '🟫', cost: 5,   color: '#8B7355' },
-    house: { id: 'house', name: 'House',  icon: '🏠', cost: 50,  color: '#4CBE8A', pop: 4 },
-    shop:  { id: 'shop',  name: 'Shop',   icon: '🏪', cost: 100, color: '#FFC94A', income: 4 },
-    park:  { id: 'park',  name: 'Park',   icon: '🌳', cost: 30,  color: '#3FA34D', sat: 6, nature: 1 },
+    land:  { id: 'land',  name: 'Land',   icon: '🟫', cost: 5,   color: '#D9A86E' },
+    house: { id: 'house', name: 'House',  icon: '🏠', cost: 50,  color: '#F2C98A', pop: 4 },
+    shop:  { id: 'shop',  name: 'Shop',   icon: '🏪', cost: 100, color: '#F6D77A', income: 4 },
+    park:  { id: 'park',  name: 'Park',   icon: '🌳', cost: 30,  color: '#8CCB6A', sat: 6, nature: 1 },
     // School and Landmark unlock as the town levels up — visible but locked
     // in the palette until then, so growth keeps handing the player new toys.
-    school:     { id: 'school',     name: 'School',     icon: '🏫', cost: 150, color: '#5B8DEF', sat: 8,  unlockLevel: 3 },
-    landmark:   { id: 'landmark',   name: 'Landmark',   icon: '🏛️', cost: 250, color: '#C77DFF', sat: 12, income: 10, unlockLevel: 5 },
-    restaurant: { id: 'restaurant', name: 'Restaurant', icon: '🍽️', cost: 130, color: '#E8654A', sat: 5, income: 5, unlockLevel: 6 },
-    giftshop:   { id: 'giftshop',   name: 'Moku Gift Shop', icon: '🎁', cost: 160, color: '#E85C9E', sat: 4, income: 9, unlockLevel: 7 },
+    school:     { id: 'school',     name: 'School',     icon: '🏫', cost: 150, color: '#9EC1F0', sat: 8,  unlockLevel: 3 },
+    landmark:   { id: 'landmark',   name: 'Landmark',   icon: '🏛️', cost: 250, color: '#C9B3E8', sat: 12, income: 10, unlockLevel: 5 },
+    restaurant: { id: 'restaurant', name: 'Restaurant', icon: '🍽️', cost: 130, color: '#F2A98A', sat: 5, income: 5, unlockLevel: 6 },
+    giftshop:   { id: 'giftshop',   name: 'Moku Gift Shop', icon: '🎁', cost: 160, color: '#F2B3CF', sat: 4, income: 9, unlockLevel: 7 },
     // Highway is Road's bigger sibling — same job (it's what cars drive on),
     // just a later-game visual upgrade rather than a stat difference.
-    highway:    { id: 'highway',    name: 'Highway',    icon: '🛤️', cost: 60,  color: '#3B3F4E', unlockLevel: 8 },
-    station:    { id: 'station',    name: 'Station',     icon: '🚉', cost: 220, color: '#4A7FBF', sat: 10, income: 8, unlockLevel: 9 },
-    hotel:      { id: 'hotel',      name: 'Hotel',       icon: '🏨', cost: 300, color: '#C79A3D', sat: 10, income: 16, unlockLevel: 11 },
-    airport:    { id: 'airport',    name: 'Airport',     icon: '🛫', cost: 450, color: '#5A6B8C', sat: 6,  income: 22, unlockLevel: 13 },
+    highway:    { id: 'highway',    name: 'Highway',    icon: '🛤️', cost: 60,  color: '#7A808A', unlockLevel: 8 },
+    station:    { id: 'station',    name: 'Station',     icon: '🚉', cost: 220, color: '#A8C8E6', sat: 10, income: 8, unlockLevel: 9 },
+    hotel:      { id: 'hotel',      name: 'Hotel',       icon: '🏨', cost: 300, color: '#EBC27A', sat: 10, income: 16, unlockLevel: 11 },
+    airport:    { id: 'airport',    name: 'Airport',     icon: '🛫', cost: 450, color: '#C3CEDB', sat: 6,  income: 22, unlockLevel: 13 },
     bulldoze: { id: 'bulldoze', name: 'Clear', icon: '🗑️', cost: 0 },
     // 'forest' is natural terrain, not a placeable palette tool — it seeds
     // the map and is what Nature actually measures alongside parks.
@@ -757,12 +776,12 @@ canvas#c.dragging { cursor: grabbing; }
     // (each occupies all 4 grid cells of the block), tuned above 1/4 of
     // four separate buildings so merging is a genuine upgrade, not just
     // tidier.
-    house2: { id: 'house2', name: 'Apartment',     icon: '🏢', color: '#2E9E6B', pop: 5 },
+    house2: { id: 'house2', name: 'Apartment',     icon: '🏢', color: '#A8D8C0', pop: 5 },
     // nature is per cell and higher than a lone Park's implicit 1 — four
     // parks merged into one grove count for MORE than four scattered
     // parks would, not just the same total.
-    park2:  { id: 'park2',  name: 'Grove',         icon: '🏞️', color: '#2C7A46', sat: 9, nature: 1.25 },
-    shop2:  { id: 'shop2',  name: 'Shopping Mall', icon: '🏬', color: '#E6A93A', income: 5.5 }
+    park2:  { id: 'park2',  name: 'Grove',         icon: '🏞️', color: '#7BBF5E', sat: 9, nature: 1.25 },
+    shop2:  { id: 'shop2',  name: 'Shopping Mall', icon: '🏬', color: '#F2CF7A', income: 5.5 }
   };
   var PALETTE_ORDER = [
     'road', 'land', 'house', 'shop', 'park',
@@ -1460,6 +1479,11 @@ canvas#c.dragging { cursor: grabbing; }
       '<path d="M22 28 V20 Q22 10 32 10 Q42 10 42 20 V28" fill="none"/>' +
       '<rect x="14" y="27" width="36" height="28" rx="6" fill="#E3C79E"/>' +
       '<circle cx="32" cy="39" r="3.5" fill="' + O + '" stroke="none"/><path d="M32 41 V47"/>',
+    car:
+      '<path d="M8 40 V32 Q8 28 12 28 L18 20 Q20 17 24 17 H40 Q44 17 46 20 L52 28 Q56 28 56 32 V40 Z" fill="#E8674A"/>' +
+      '<path d="M22 27 L25 21 H31 V27 Z M35 27 V21 H40 L44 27 Z" fill="#BFE6FA"/>' +
+      '<circle cx="20" cy="42" r="6" fill="#5B3A24"/><circle cx="44" cy="42" r="6" fill="#5B3A24"/>' +
+      '<circle cx="20" cy="42" r="2" fill="#C9CED4" stroke="none"/><circle cx="44" cy="42" r="2" fill="#C9CED4" stroke="none"/>',
     zoom:
       '<circle cx="27" cy="27" r="16" fill="#D8F0FA"/><path d="M39 39 L54 54" stroke-width="7"/>' +
       '<path d="M19 22 Q22 16 28 15" stroke="#FFFFFF" stroke-width="3"/>'
@@ -1964,12 +1988,41 @@ canvas#c.dragging { cursor: grabbing; }
   // ordinary townsfolk. Kept deliberately cheap — capped headcount, one
   // grid scan per tick, plain lerp'd positions, no physics.
   var RESIDENT_CAP = 6;
-  var PERSON_ICONS = ['🚶', '🚶‍♀️', '🚶‍♂️', '🧍‍♀️', '🧍‍♂️'];
+  // 2026-11-11 (v2.8.0): 絵文字の人(🚶)をやめて、アイコンと同じ描き方の
+  // 丸い住人を描く。服の色だけ変える。1人目はいつも Moku(小さいフクロウ)。
+  var PERSON_COLORS = ['#5B8DEF', '#E8674A', '#F2B84B', '#4CBE8A', '#E85C9E', '#9B6FD6'];
   function pickResidentIcon(indexInFlock) {
-    // Guarantee Moku is always one of the wandering figures, not just an
-    // emoji swarm of owls — everyone else is a regular resident.
-    if (indexInFlock === 0) return '🦉';
-    return PERSON_ICONS[Math.floor(Math.random() * PERSON_ICONS.length)];
+    if (indexInFlock === 0) return 'moku';
+    return PERSON_COLORS[Math.floor(Math.random() * PERSON_COLORS.length)];
+  }
+  function drawPerson(x, y, kind, bob) {
+    ctx.save();
+    ctx.translate(x, y - bob);
+    ctx.lineWidth = 1.3;
+    ctx.strokeStyle = '#5B3A24';
+    // 足もとの影
+    ctx.fillStyle = 'rgba(60,40,20,0.18)';
+    ctx.beginPath(); ctx.ellipse(0, bob + 1, 5, 2, 0, 0, Math.PI * 2); ctx.fill();
+    if (kind === 'moku') {
+      ctx.fillStyle = '#C98F5A';
+      ctx.beginPath(); ctx.ellipse(0, -7, 6.5, 7.5, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#FFF1D6';
+      ctx.beginPath(); ctx.ellipse(0, -4.5, 3.8, 4, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath(); ctx.arc(-2.4, -9.5, 2.2, 0, Math.PI * 2); ctx.arc(2.4, -9.5, 2.2, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#5B3A24';
+      ctx.beginPath(); ctx.arc(-2.2, -9.4, 1.1, 0, Math.PI * 2); ctx.arc(2.2, -9.4, 1.1, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#F2B84B';
+      ctx.beginPath(); ctx.moveTo(-1.2, -7.6); ctx.lineTo(1.2, -7.6); ctx.lineTo(0, -5.8); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#2EC4B6';
+      ctx.beginPath(); ctx.ellipse(0, -2.6, 2.6, 1.2, 0, 0, Math.PI * 2); ctx.fill();
+    } else {
+      ctx.fillStyle = kind;
+      ctx.beginPath(); ctx.ellipse(0, -4, 4, 5, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#FFD9B8';
+      ctx.beginPath(); ctx.arc(0, -11.5, 3.6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    }
+    ctx.restore();
   }
   var residents = [];
   function randomBuiltTile() {
@@ -2028,14 +2081,15 @@ canvas#c.dragging { cursor: grabbing; }
     });
   }
   function drawResidents(now) {
-    ctx.font = '13px sans-serif';
-    ctx.textAlign = 'center';
     residents.forEach(function (r) {
       var t = Math.max(0, Math.min(1, (now - r.t0) / (r.dur * 1000)));
       var gx = r.fx + (r.tx - r.fx) * t;
       var gy = r.fy + (r.ty - r.fy) * t;
       var p = gridToScreen(gx, gy);
-      ctx.fillText(r.icon, p.x, p.y + TILE_H * 0.6);
+      // 歩いている間だけ、ぴょこぴょこ跳ねる
+      var moving = r.fx !== r.tx || r.fy !== r.ty;
+      var bob = moving && t < 1 ? Math.abs(Math.sin(now / 130)) * 2 : 0;
+      drawPerson(p.x, p.y + TILE_H * 0.62, r.icon, bob);
     });
   }
 
@@ -2117,17 +2171,25 @@ canvas#c.dragging { cursor: grabbing; }
     var gx = v.fx + (v.tx - v.fx) * t;
     var gy = v.fy + (v.ty - v.fy) * t;
     var p = gridToScreen(gx, gy);
-    ctx.font = '13px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(icon, p.x, p.y + TILE_H * 0.6);
-    if (v.eco) {
-      ctx.font = '9px sans-serif';
-      ctx.fillText(ecoBadge, p.x + 9, p.y + TILE_H * 0.6 - 9);
+    var size = icon === 'airport' ? 26 : 20;
+    var y = p.y + TILE_H * 0.5 - (icon === 'airport' ? 14 : 4);
+    // 進む向きに合わせて左右を反転(右へ行く時はそのまま)
+    var goingLeft = (v.tx - v.ty) < (v.fx - v.fy);
+    ctx.save();
+    ctx.translate(p.x, y);
+    if (goingLeft) ctx.scale(-1, 1);
+    if (!drawIcon(icon, 0, 0, size)) {
+      ctx.font = '13px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(icon === 'airport' ? '✈️' : '🚗', 0, 4);
     }
+    ctx.restore();
+    // エコな車・飛行機には小さな葉っぱ
+    if (v.eco) drawIcon('leaf', p.x + size * 0.42, y - size * 0.38, 10);
   }
   function drawVehicles(now) {
-    cars.forEach(function (v) { drawVehicle(v, now, '🚗', '⚡'); });
-    planes.forEach(function (v) { drawVehicle(v, now, '✈️', '🌿'); });
+    cars.forEach(function (v) { drawVehicle(v, now, 'car'); });
+    planes.forEach(function (v) { drawVehicle(v, now, 'airport'); });
   }
 
   function draw() {
