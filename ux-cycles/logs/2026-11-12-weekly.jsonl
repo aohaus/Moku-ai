@@ -2,3 +2,4 @@
 {"at":"2026-11-12T10:48:26.829Z","cycle":"2026-11-12-weekly","commit":"22cf61a","branch":"ux/2026-11-12-weekly","type":"note","text":"scheduled run"}
 {"at":"2026-11-12T10:48:33.426Z","cycle":"2026-11-12-weekly","commit":"22cf61a","branch":"ux/2026-11-12-weekly","type":"agent_start","agent":"moku-detective","agentId":"a407a474d8c68b876","session":"17517551-cc45-558f-a6ad-bd2afc5d9814"}
 {"at":"2026-11-12T10:52:34.269Z","cycle":"2026-11-12-weekly","commit":"0657889","branch":"ux/2026-11-12-weekly","type":"agent_report","agent":"moku-detective","agentId":"a407a474d8c68b876","session":"17517551-cc45-558f-a6ad-bd2afc5d9814","files":[],"report":""}
+{"at":"2026-11-12T10:53:02.294Z","cycle":"2026-11-12-weekly","commit":"61887ad","branch":"ux/2026-11-12-weekly","type":"note","text":"issue: https://github.com/aohaus/Moku-ai/issues/130"}
