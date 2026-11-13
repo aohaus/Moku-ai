@@ -407,6 +407,7 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
       ]]
     ],
     pdOpen: ['🟢 Entries are open', '🟢 エントリー受付中'],
+    opensAt: ['This event opens at {t}. See you soon!', 'このイベントは {t} に始まります。お楽しみに!'],
     pdClosed: ['🔒 Entries are closed', '🔒 エントリーは締め切りました'],
     pdDone: ['🏁 Results are in!', '🏁 結果発表!'],
     pdWhenOpen: ['Entries close: {t} (3 hours before kick-off)', 'しめきり: {t}(キックオフの3時間前)'],
@@ -578,6 +579,7 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
      once ACTUAL_XI below is filled in with the real starting line-ups (English names as in SQUADS). */
   var KICKOFF = Date.UTC(2026, 10, 14, 10, 15);          // Nov 14, 2026 18:15 SGT
   var ENTRY_CLOSE = KICKOFF - 3 * 60 * 60 * 1000;        // Nov 14, 2026 15:15 SGT
+  var OPENS_AT = Date.parse('2026-11-13T15:30:00+08:00'); // the page goes public (same as hub.html EVENTS opensAt)
   var SETTLE_AT = KICKOFF + 3 * 60 * 60 * 1000;          // about 2 hours of match + 1 hour
   var PRIZE = { hit: 100, nine: 300, all: 1000 };        // per correct player / 9-10 in a team / all 11 in a team
   var ACTUAL_XI = { jp: [], br: [] };                    // ← fill in after the match (11 names each)
@@ -1829,6 +1831,21 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
   }
 
   applyLang();
+  // Before it goes public, show only a small "opens at" note (the hub card is hidden until then too).
+  if (nowMs() < OPENS_AT) {
+    var wait = el('div', 'overlay', '<div class="box"><h2>⭐ Coming soon</h2><p>' +
+      esc(t('opensAt', { t: fmtTime(OPENS_AT) })) + '</p><div class="row"><a class="btn-main" href="hub.html" style="text-decoration:none">◀ Hub</a></div></div>');
+    wait.id = 'opensWait';
+    wait.style.cssText = 'position:fixed;z-index:100';
+    document.body.appendChild(wait);
+    setTimeout(function () { location.reload(); }, Math.min(OPENS_AT - nowMs() + 1000, 2147483000));
+  } else {
+    // Opening the page counts as "seen" for Sir CEO Moku's peek on the hub.
+    try {
+      var seenEv = JSON.parse(localStorage.getItem('moku:hub:events-seen') || '{}') || {};
+      if (!seenEv['event-japan-brazil']) { seenEv['event-japan-brazil'] = new Date().toISOString(); localStorage.setItem('moku:hub:events-seen', JSON.stringify(seenEv)); }
+    } catch (e) { /* private mode */ }
+  }
   if (/[?&]tab=game/.test(location.search)) showTab('game');
   if (/[?&]tab=predict/.test(location.search)) showTab('predict');
   window.addEventListener('load', function () { settle(); renderPredict(); });

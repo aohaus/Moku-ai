@@ -1837,6 +1837,8 @@ html.me-open #ceoPeek { display: none; }
   content: ''; position: absolute; left: 22px; bottom: -9px;
   border-width: 10px 8px 0 8px; border-style: solid; border-color: #FFF8EC transparent transparent transparent;
 }
+#ceoPeek.event .peek-bubble { border-color: #E8A33A; box-shadow: 0 6px 18px rgba(0,0,0,0.35), 0 0 0 3px rgba(255,211,90,0.55); }
+#ceoPeek.event .peek-bubble::before { content: '⭐ SPECIAL EVENT'; display: block; font-size: 10px; font-weight: 800; letter-spacing: .1em; color: #B5652F; margin-bottom: 3px; }
 #ceoPeek .peek-bubble small { display: block; margin-top: 3px; font-size: 11.5px; font-weight: 800; color: #B5652F; letter-spacing: .02em; }
 #ceoPeek.on .peek-bubble { opacity: 1; transform: none; }
 #ceoPeek.bye .peek-bubble, #ceoPeek.go .peek-bubble { opacity: 0; transition-delay: 0s; }
@@ -3287,7 +3289,7 @@ html.me-open #ceoPeek { display: none; }
   // this hub lists, so it can say which ones the last update didn't know about.
   window.MOKU_GAME_PAGES = function () {
     return Object.keys(CATALOG).map(function (k) { return { page: CATALOG[k].gameId + '.html', name: CATALOG[k].name }; })
-      .concat(EVENTS.map(function (ev) { return { page: ev.gameId + '.html', name: ev.name }; }));
+      .concat(liveEvents().map(function (ev) { return { page: ev.gameId + '.html', name: ev.name }; }));
   };
   var SHELVES = [
     { title: 'Action & Sports', sub: 'Fling, kick, fight, race', cards: ['mdp', 'mfg', 'mfr', 'mkt', 'br', 'mk', 'am'] },
@@ -3419,26 +3421,65 @@ html.me-open #ceoPeek { display: none; }
   // Special Events (SPEC.md §15): apps for family events. They are not Moku
   // games, so they stay out of CATALOG / GAMES (no XP, records or Moints).
   // To add one: make <gameId>.html and add an entry here (keep `name` then
-  // `gameId` in this order: the updater and ux-smoke find pages by that). The card shows from
+  // `gameId` in this order: the updater and ux-smoke find pages by that).
+  // `opensAt` (optional, an exact time with its zone) keeps the card hidden until then, so a
+  // finished event can be merged early and still go public at a set time. When it opens,
+  // Sir CEO Moku's peek (bottom of this file) tells the player about it until they open it. The card shows from
   // `from` to `until` (local dates, YYYY-MM-DD); `date` is the day of the event.
   var EVENTS = [
     { name: 'Japan vs Brazil', gameId: 'event-japan-brazil', flags: '🇯🇵 🇧🇷',
       tag: 'Predict the starting XI and win Moints! Squad guide & mini soccer game',
-      date: '2026-11-14', from: '2026-11-01', until: '2026-12-31', hi: '#2F5BD8', lo: '#0E8A45' }
+      date: '2026-11-14', from: '2026-11-01', until: '2026-12-31', opensAt: '2026-11-13T15:30:00+08:00',
+      hi: '#2F5BD8', lo: '#0E8A45',
+      peek: 'Japan vs Brazil is open! Guess the starting XI and win Moints, moku!' }
   ];
+  function eventDay(s) { var p = s.split('-'); return new Date(+p[0], p[1] - 1, +p[2]).getTime(); }
+  // Events whose card is showing now (inside from…until, and past opensAt).
+  function liveEvents() {
+    var now = new Date(), today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    return EVENTS.filter(function (ev) {
+      if (today < eventDay(ev.from) || today > eventDay(ev.until)) return false;
+      return !ev.opensAt || Date.now() >= Date.parse(ev.opensAt);
+    });
+  }
+  // For Sir CEO Moku's peek: live events this player has not opened yet (moku:hub:events-seen).
+  window.MOKU_NEW_EVENTS = function () {
+    var seen = {};
+    try { seen = JSON.parse(localStorage.getItem('moku:hub:events-seen') || '{}') || {}; } catch (e) { seen = {}; }
+    return liveEvents().filter(function (ev) { return !seen[ev.gameId]; })
+      .map(function (ev) { return { gameId: ev.gameId, name: ev.name, peek: ev.peek || ('Special Event: ' + ev.name + '! Take a look, moku!') }; });
+  };
+  // A card that opens while the hub is open shows up right away, and the CEO comes to tell.
+  (function () {
+    var soonest = Infinity;
+    EVENTS.forEach(function (ev) {
+      var t = ev.opensAt ? Date.parse(ev.opensAt) - Date.now() : -1;
+      if (t > 0 && t < soonest) soonest = t;
+    });
+    if (soonest < 24 * 3600 * 1000) setTimeout(function () {
+      buildEvents();
+      try { window.dispatchEvent(new Event('moku:events')); } catch (e) { /* old browsers */ }
+    }, soonest + 500);
+  })();
   function buildEvents() {
     var host = document.getElementById('eventsList'), section = document.getElementById('eventsSection');
     if (!host || !section) return;
-    function day(s) { var p = s.split('-'); return new Date(+p[0], p[1] - 1, +p[2]).getTime(); }
+    var day = eventDay;
     var now = new Date(), today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
     var shown = 0;
     host.textContent = '';
-    EVENTS.forEach(function (ev) {
-      if (today < day(ev.from) || today > day(ev.until)) return;
+    liveEvents().forEach(function (ev) {
       var left = Math.round((day(ev.date) - today) / 86400000);
       var when = left > 1 ? 'In ' + left + ' days' : left === 1 ? 'Tomorrow!' : left === 0 ? 'Today!' : '';
       var a = el('a', 'event-card');
       a.href = ev.gameId + '.html';
+      a.addEventListener('click', function () {
+        try {
+          var seen = JSON.parse(localStorage.getItem('moku:hub:events-seen') || '{}') || {};
+          seen[ev.gameId] = new Date().toISOString();
+          localStorage.setItem('moku:hub:events-seen', JSON.stringify(seen));
+        } catch (e) { /* private mode */ }
+      });
       a.style.setProperty('--hi', ev.hi);
       a.style.setProperty('--lo', ev.lo);
       a.appendChild(el('span', 'event-flags', ev.flags));
@@ -4889,6 +4930,13 @@ html.me-open #ceoPeek { display: none; }
     'I might have a pop quiz for you…',
     'Is it snack time yet, moku?'
   ];
+  var HOME_HREF = el.getAttribute('href'), HOME_TIP = 'Tap me ›', eventNow = null;
+  // A Special Event the player hasn't opened yet comes first (hub's EVENTS, opensAt).
+  // Tapping then goes to the event, not the office. It keeps coming until they open it.
+  function pickEvent() {
+    var list = window.MOKU_NEW_EVENTS ? window.MOKU_NEW_EVENTS() : [];
+    return list[0] || null;
+  }
   function line() {
     var m = readJSON('moku:ceo-moku:memory');
     if (!m || !m.visits) return 'Psst! I am Sir CEO Moku. Come visit my office, moku!';
@@ -4921,7 +4969,12 @@ html.me-open #ceoPeek { display: none; }
     if (shown) return;
     if (blocked()) { clearTimeout(waitTimer); waitTimer = setTimeout(show, 2000); return; }   // ポップアップなどが閉じるまで待つ
     shown = true;
-    document.getElementById('ceoPeekText').textContent = line();
+    eventNow = pickEvent();
+    document.getElementById('ceoPeekText').textContent = eventNow ? eventNow.peek : line();
+    el.querySelector('.peek-bubble small').textContent = eventNow ? 'Tap to see it ›' : HOME_TIP;
+    el.setAttribute('href', eventNow ? eventNow.gameId + '.html' : HOME_HREF);
+    el.setAttribute('aria-label', eventNow ? 'Special Event: ' + eventNow.name : 'Visit Sir CEO Moku');
+    el.classList.toggle('event', !!eventNow);
     var M = window.MokuMoint;
     if (M && M.outfitSVG) document.getElementById('ceoPeekOutfit').innerHTML = M.outfitSVG({ head: 'top-hat', face: 'monocle', neck: 'moint-medallion', mood: 'mood-wink' });
     el.hidden = false;
@@ -4939,7 +4992,18 @@ html.me-open #ceoPeek { display: none; }
     e.preventDefault();
     clearTimeout(hideTimer);
     el.classList.remove('on'); el.classList.add('go');
+    if (eventNow) {
+      try {
+        var seen = JSON.parse(localStorage.getItem('moku:hub:events-seen') || '{}') || {};
+        seen[eventNow.gameId] = new Date().toISOString();
+        localStorage.setItem('moku:hub:events-seen', JSON.stringify(seen));
+      } catch (err) { /* private mode */ }
+    }
     goTimer = setTimeout(function () { location.href = el.getAttribute('href'); }, 320);
+  });
+  // An event opened while the hub is open: come out again to tell about it.
+  window.addEventListener('moku:events', function () {
+    if (pickEvent() && !el.classList.contains('go')) { reset(); schedule(800); }
   });
   // 戻るボタン・スワイプでハブに戻った時(ページが復元された時)
   window.addEventListener('pageshow', function (e) {
