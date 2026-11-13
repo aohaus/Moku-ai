@@ -215,7 +215,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
 - **ログアウト**: クラウドへ保存してから、その端末のMoku進捗を消す(兄弟で1台のiPadを共有する想定)。オフラインで保存できない時は「進捗を端末に残したままログアウト」を選べる。
 - **My Moku 画面**(2026-10-25〜。旧「プロフィール」モーダルとハブ上部のカード類を1つにまとめた、プレイヤー自身のページ):
   - **開き方**: `hub.html#me`。ハブ上部の帯(着せ替えた Moku・「My Moku ›」ボタン)/下部ナビの My Moku タブ / `index.html` のアカウントチップ(`hub.html#me` へ移動)。古いリンク `hub.html#profile` も開く。下部メニューの 🏠 Home(またはブラウザの戻る・Esc)でハブに戻る。ゲスト(ゲートのない開発環境など)でも開ける。
-  - **ハブ上部の帯**(`.me-strip`): 着せ替えた Moku+「Hello, <名前>!」+Lv/XP+Completed+Moint 残高・Daily・Closet+My Moku ボタン。旧プロフィールカードと「My Moints」カードを1枚にした。
+  - **ハブ上部の帯**(`.me-strip`): 着せ替えた Moku+「Hello, <名前>!」+Lv/XP+Completed+Moint 残高・Daily。旧プロフィールカードと「My Moints」カードを1枚にした。2026-11-13 に「My Moku ›」ボタンと Closet ボタンをなくした(My Moku へは Moku をタップ か 下部メニューの My Moku、Closet は My Moku の Moku の「Dress up」から)。Moku が左、右に挨拶と Moint 行を縦に並べ、Lv/XP の行は下。Lv/XP/Completed の行は狭い画面で帯からはみ出さないよう、バーが縮む(`.me-strip #xpBar` の `min-width: 56px`)。Closet の隠し方は CSS(`.me-strip .me-strip-moints [data-moku-closet]`。Moint の帯は `shared/moku-moint.js` が My Moku 画面と共通で描く)。
   - **レイアウト**: 幅 820px 以上(横向き iPad・PC)は2列(左 330px 固定・スクロールしても残る/右は記録)。それ未満は1列。最大幅 1000px。
     - 左: 着せ替えた Moku(押すと Moku Closet)・表示名+`#u` タグ・Lv/XP/Completed・Moint 残高と Daily。その下にクラウド保存の状態+Save now / Change PIN / Log Out(/ 🛠 Admin)+Player ID(ゲストは ☁️ Log In)。
     - Player ID の下に目立たない文字リンク「↻ Get the latest games & updates」(2026-10-31〜): 新しいゲームが一覧に出ない・ゲームを開いても前のバージョンのまま、という時用(ブラウザが HTML をしばらくキャッシュするため)。`hub.html` をキャッシュを通さず取り直し(`fetch(..., { cache: 'reload' })`)、その中の `CATALOG` の `gameId` から全ゲームのページ+`index.html` / `hollow.html` も同じように取り直す(ブラウザのキャッシュも新しくなるので、次にふつうに開いた時に最新版になる。ボタンに「Updating… n / 全部」)。そのあと `?fresh=<時刻>` を付けてハブを開き直す。開いたあと `moku-account.js` がアドレスから `fresh` を消す。15秒たったら途中でも開き直す。進捗は localStorage にあるので消えない。

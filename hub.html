@@ -1093,15 +1093,15 @@ footer {
 .nav-item[disabled] { cursor: not-allowed; opacity: 0.55; }
 .nav-item:not([disabled]):not(.active):hover, .nav-item:not([disabled]):not(.active):focus-visible { color: rgba(237,238,246,0.65); }
 
-/* ---------- who's playing: top strip (opens My Moku) ---------- */
+/* ---------- who's playing: top strip (tap Moku to open My Moku) ---------- */
 .profile-card.me-strip {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   grid-template-areas:
-    "avatar info open"
-    "avatar moints moints"
-    "xp xp xp"
-    "sky sky sky";
+    "avatar info"
+    "avatar moints"
+    "xp xp"
+    "sky sky";
   align-items: center;
   column-gap: 14px;
   row-gap: 10px;
@@ -1109,17 +1109,22 @@ footer {
 }
 .me-strip .me-avatar { grid-area: avatar; }
 .me-strip .profile-info { grid-area: info; min-width: 0; }
-.me-strip .me-open { grid-area: open; }
 .me-strip .me-strip-moints { grid-area: moints; }
+/* Closet lives in My Moku (tap Moku, or the My Moku tab); not on Home */
+.me-strip .me-strip-moints [data-moku-closet] { display: none; }
 .me-strip .profile-xp { grid-area: xp; min-width: 0; }
+/* On narrow phones the Lv / XP bar / Completed row was wider than the card, so
+   let the bar shrink instead of pushing "Completed" out past the card edge. */
+.me-strip .profile-xp { gap: 8px; }
+.me-strip #xpBar { min-width: 56px; }
 .me-strip #skyMeta { grid-area: sky; }
 @media (min-width: 760px) {
   .profile-card.me-strip {
-    grid-template-columns: auto minmax(0, 1fr) minmax(240px, 1.1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr) minmax(240px, 1.1fr);
     grid-template-areas:
-      "avatar info xp open"
-      "avatar moints moints moints"
-      "sky sky sky sky";
+      "avatar info xp"
+      "avatar moints moints"
+      "sky sky sky";
   }
 }
 .me-avatar {
@@ -1719,14 +1724,13 @@ html.me-open #ceoPeek { display: none; }
     </div>
   </div>
 
-  <!-- Who's playing: tap Moku or "My Moku" for the player's own page (#me) -->
+  <!-- Who's playing: tap Moku (or the My Moku tab below) for the player's own page (#me) -->
   <div class="profile-card me-strip">
     <button class="me-avatar" type="button" data-open-me aria-label="Open My Moku"><span data-moku-doll></span></button>
     <div class="profile-info">
       <div id="greeting" data-moku-greeting>Hello, Moku!</div>
       <div class="sub">What will you play today?</div>
     </div>
-    <button class="me-open" type="button" data-open-me>My Moku <span aria-hidden="true">›</span></button>
     <div class="me-strip-moints" data-moku-moint-bar></div>
     <div class="profile-xp">
       <div id="xpLevelPill" data-xp-level>Lv.1</div>
