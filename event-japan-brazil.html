@@ -1,0 +1,1857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script src="shared/moku-errors.js?v=20261108b"></script>
+<script src="shared/moku-gate.js?v=20261108b"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Japan vs Brazil · Match Guide</title>
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<!--
+  Special Event #1: Japan vs Brazil(2026-11-14、National Stadium, Singapore)
+  ハブの「Special Events」から開く、家族のイベント用の特別アプリ(Moku のゲームではない。SPEC.md §15)。
+  - Squad Guide: 両チームの選手データ(保護者が用意した表をそのまま入れた。SQUADS)。英語 / 日本語を切り替え。
+  - Mini Game: 横持ちの 6 対 6 のミニサッカー(2頭身の選手。日本を操作して CPU のブラジルと対戦)。
+  - ハブの CATALOG / GAMES / Achievements / Moint には入れない(XP や記録に数えない)。
+  - 特別イベントのアプリは、この1ページだけ日英の切り替えと、スタジアムの夜の暗い配色を使う(保護者の指定)。
+  セーブ: moku:event-japan-brazil:progress(ことば・難しさ・試合の記録)
+-->
+<style>
+:root {
+  --bg: #0B1220; --panel: #131C30; --panel2: #1A2540; --line: rgba(255,255,255,0.10);
+  --text: #EDEEF6; --dim: rgba(237,238,246,0.62);
+  --jp: #2F5BD8; --jp2: #16307E; --br: #F5C518; --br2: #0E8A45;
+  --gold: #FFD35A; --pitch: #2E8B4A;
+  --team: var(--jp); --team2: var(--jp2);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  background: radial-gradient(120% 80% at 50% 0%, #1B2A4E 0%, #0F1830 45%, var(--bg) 100%) fixed;
+  color: var(--text);
+  font-family: -apple-system, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+}
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+[hidden] { display: none !important; }
+
+/* ---------- top bar ---------- */
+#topbar {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; gap: 10px;
+  padding: calc(8px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 8px calc(12px + env(safe-area-inset-left));
+  background: rgba(11,18,32,0.88); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+#hub-link { color: var(--gold); text-decoration: none; font-weight: 800; font-size: 14px; white-space: nowrap; padding: 6px 4px; }
+#tabs { display: flex; gap: 4px; margin: 0 auto; min-width: 0; background: rgba(255,255,255,0.06); border-radius: 999px; padding: 4px; }
+.tab { padding: 7px 14px; border-radius: 999px; font-weight: 800; font-size: 14px; color: var(--dim); white-space: nowrap; }
+.tab.on { background: linear-gradient(135deg, #3E6BE8, #1F3FA8); color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.35); }
+#langBtn { padding: 7px 12px; border-radius: 999px; font-weight: 800; font-size: 13px; border: 1px solid var(--line); background: rgba(255,255,255,0.06); white-space: nowrap; }
+
+/* ---------- guide ---------- */
+#guide, #predict { max-width: 1040px; margin: 0 auto; padding: 14px calc(14px + env(safe-area-inset-right)) calc(40px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left)); }
+#hero {
+  position: relative; overflow: hidden; border-radius: 20px; border: 1px solid var(--line);
+  padding: clamp(16px, 3vw, 26px);
+  background:
+    radial-gradient(60% 90% at 0% 0%, rgba(47,91,216,0.55), transparent 70%),
+    radial-gradient(60% 90% at 100% 0%, rgba(14,138,69,0.55), transparent 70%),
+    linear-gradient(180deg, #16203A, #101829);
+  box-shadow: 0 18px 40px rgba(0,0,0,0.4);
+}
+#hero::after { /* pitch stripes along the bottom */
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 34%;
+  background: repeating-linear-gradient(90deg, rgba(46,139,74,0.30) 0 48px, rgba(46,139,74,0.18) 48px 96px);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000); mask-image: linear-gradient(180deg, transparent, #000);
+  pointer-events: none;
+}
+.hero-eyebrow { font-size: 12px; font-weight: 800; letter-spacing: 0.12em; color: var(--gold); }
+.hero-vs { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: clamp(10px, 4vw, 34px); margin: 10px 0 8px; }
+.hero-team { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+.hero-flag { font-size: clamp(44px, 10vw, 76px); line-height: 1.1; filter: drop-shadow(0 6px 10px rgba(0,0,0,0.5)); }
+.hero-name { font-size: clamp(17px, 4vw, 28px); font-weight: 800; letter-spacing: 0.02em; }
+.hero-mid { font-size: clamp(18px, 4vw, 30px); font-weight: 800; color: var(--gold); }
+.hero-meta { position: relative; z-index: 1; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: rgba(0,0,0,0.35); border: 1px solid var(--line); font-size: 13px; font-weight: 700; }
+.chip.gold { background: linear-gradient(135deg, #FFD35A, #F0A020); color: #3A2500; border-color: transparent; }
+.hero-cta { position: relative; z-index: 1; display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.btn-main.gold { background: linear-gradient(135deg, #FFD35A, #E89A12); color: #3A2500; }
+.btn-main { padding: 12px 24px; border-radius: 999px; font-weight: 800; font-size: 16px; color: #fff; background: linear-gradient(135deg, #37B36A, #17803F); box-shadow: 0 8px 20px rgba(0,0,0,0.4), inset 0 2px 0 rgba(255,255,255,0.25); }
+.btn-main:active { transform: translateY(2px); }
+
+#teamSwitch { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0 10px; }
+.team-btn { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 12px; border-radius: 14px; border: 2px solid var(--line); background: var(--panel); font-weight: 800; font-size: 16px; color: var(--dim); }
+.team-btn span.f { font-size: 26px; }
+.team-btn.on[data-pteam="jp"], .team-btn.on[data-team="jp"] { border-color: var(--jp); background: linear-gradient(135deg, rgba(47,91,216,0.45), rgba(22,48,126,0.45)); color: #fff; }
+.team-btn.on[data-pteam="br"], .team-btn.on[data-team="br"] { border-color: var(--br); background: linear-gradient(135deg, rgba(245,197,24,0.30), rgba(14,138,69,0.45)); color: #fff; }
+
+#teamStats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 8px; text-align: center; }
+.stat b { display: block; font-size: 22px; font-weight: 800; color: var(--gold); }
+.stat span { font-size: 11.5px; color: var(--dim); font-weight: 700; }
+
+#filters { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 10px; scrollbar-width: none; }
+#filters::-webkit-scrollbar { display: none; }
+.filter { flex: none; padding: 7px 14px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); font-weight: 800; font-size: 13px; color: var(--dim); }
+.filter.on { background: #fff; color: #10182B; }
+
+#legend { font-size: 12px; color: var(--dim); margin-bottom: 12px; line-height: 1.7; }
+#legend b { color: var(--text); font-weight: 700; }
+
+#cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 10px; }
+.pcard {
+  display: grid; grid-template-columns: 52px 1fr; gap: 4px 12px; align-items: center; text-align: left;
+  background: linear-gradient(180deg, var(--panel2), var(--panel)); border: 1px solid var(--line); border-radius: 16px; padding: 12px;
+  box-shadow: 0 8px 18px rgba(0,0,0,0.25); width: 100%;
+}
+.pcard:active { transform: scale(0.99); }
+.pnum { grid-row: span 2; width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800; color: #fff;
+  background: linear-gradient(150deg, var(--team), var(--team2)); box-shadow: inset 0 2px 0 rgba(255,255,255,0.25); }
+body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
+.pname { font-size: 16px; font-weight: 800; line-height: 1.25; }
+.pname small { display: block; font-size: 12.5px; font-weight: 600; color: var(--dim); }
+.pmeta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12.5px; color: var(--dim); font-weight: 600; }
+.pos { padding: 2px 8px; border-radius: 6px; font-weight: 800; font-size: 11px; color: #fff; background: #47577A; }
+.pos.GK { background: #B86A1E; } .pos.DF { background: #2B6CB0; } .pos.MF, .pos.MFFW { background: #2F855A; } .pos.FW { background: #C0392B; }
+.prow { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 12px; color: var(--dim); font-weight: 700; }
+.form { display: inline-flex; gap: 3px; }
+.fm { width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: #fff; }
+.fm.P { background: #1F9D55; } .fm.S { background: #C98A12; } .fm.N { background: #3A455C; color: rgba(255,255,255,0.7); }
+.form-wrap { display: inline-flex; align-items: center; gap: 4px; }
+.form-wrap i { font-style: normal; font-size: 9.5px; font-weight: 800; color: var(--gold); letter-spacing: 0.02em; }
+.st { font-weight: 800; font-size: 15px; }
+.st.up { color: #4ADE80; } .st.flat { color: #CBD5E0; } .st.down { color: #FC8181; }
+.badges { display: inline-flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; }
+.bdg { padding: 2px 7px; border-radius: 6px; font-size: 10.5px; font-weight: 800; border: 1px solid var(--line); color: var(--dim); white-space: nowrap; }
+.bdg.yes { color: #10182B; background: var(--gold); border-color: transparent; }
+.bdg.game { color: #fff; background: #17803F; border-color: transparent; }
+#dataNote { margin-top: 18px; font-size: 12px; color: var(--dim); line-height: 1.7; }
+#buildInfo { margin-top: 10px; font-size: 10.5px; color: rgba(255,255,255,0.28); }
+
+/* ---------- starting XI prediction ---------- */
+.pd-panel { border-radius: 18px; border: 1px solid var(--line); padding: 16px; background: linear-gradient(180deg, #1C2848, #121A2E); box-shadow: 0 14px 30px rgba(0,0,0,0.35); }
+.pd-panel h2 { font-size: clamp(20px, 4.6vw, 28px); font-weight: 800; }
+.pd-panel p { color: var(--dim); font-weight: 600; font-size: 14px; line-height: 1.7; margin-top: 6px; }
+.pd-panel p b { color: var(--text); }
+.pd-howto { margin-top: 12px; display: grid; gap: 10px; }
+.pd-lang { border-radius: 14px; padding: 12px 14px; background: rgba(0,0,0,0.28); border: 1px solid var(--line); }
+.pd-lang h4 { font-size: 11px; font-weight: 800; letter-spacing: 0.1em; color: var(--gold); margin-bottom: 6px; }
+.pd-lang ol { margin: 0; padding-left: 20px; color: var(--dim); font-weight: 600; font-size: 13.5px; line-height: 1.7; }
+.pd-lang ol b { color: var(--text); }
+.pd-lang.sub { opacity: 0.85; }
+.pd-lang.sub ol { font-size: 12.5px; }
+@media (min-width: 760px) { .pd-howto { grid-template-columns: 1fr 1fr; } .pd-lang.sub { opacity: 1; } .pd-lang.sub ol { font-size: 13.5px; } }
+.pd-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.pd-prizes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+.pd-prizes .stat b { font-size: 19px; }
+#pdResult { margin-top: 12px; border-radius: 18px; padding: 16px; text-align: center; background: linear-gradient(135deg, #FFD35A, #F0A020); color: #3A2500; font-weight: 800; }
+#pdResult .big { font-size: clamp(30px, 8vw, 44px); line-height: 1.2; }
+#pdResult small { display: block; font-size: 13px; font-weight: 700; margin-top: 4px; }
+#pdCount { margin: 10px 0 4px; font-size: 14px; font-weight: 800; color: var(--gold); }
+.pd-group { margin-top: 12px; }
+.pd-group h3 { font-size: 12px; font-weight: 800; letter-spacing: 0.08em; color: var(--dim); margin-bottom: 6px; }
+.pd-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(158px, 1fr)); gap: 8px; }
+.pick { position: relative; display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-radius: 12px; border: 2px solid var(--line); background: var(--panel); text-align: left; font-weight: 700; font-size: 13.5px; line-height: 1.25; min-height: 48px; padding-right: 24px; }
+.pick .n { flex: none; width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: #fff; background: linear-gradient(150deg, var(--team), var(--team2)); }
+.pick.on { border-color: var(--gold); background: rgba(255,211,90,0.16); }
+.pick.on::after { content: '✓'; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: var(--gold); font-weight: 800; }
+.pick.hit { border-color: #4ADE80; background: rgba(74,222,128,0.18); }
+.pick.hit::after { content: '◎'; color: #4ADE80; }
+.pick.miss { border-color: #FC8181; opacity: 0.8; }
+.pick.miss::after { content: '✕'; color: #FC8181; }
+.pick.real { border-style: dashed; border-color: #4ADE80; }
+.pick[disabled] { cursor: default; }
+#pdBar { position: sticky; bottom: 0; z-index: 5; margin-top: 14px; padding: 10px 0 calc(10px + env(safe-area-inset-bottom)); display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; background: linear-gradient(180deg, transparent, var(--bg) 35%); }
+#pdBar .btn-main[disabled] { filter: grayscale(1); opacity: 0.5; }
+#pdMsg { font-size: 13px; font-weight: 800; color: var(--gold); width: 100%; text-align: center; min-height: 18px; }
+
+/* ---------- player sheet ---------- */
+#sheetBack { position: fixed; inset: 0; z-index: 60; background: rgba(4,8,16,0.72); display: flex; align-items: flex-end; justify-content: center; padding: 0; }
+#sheet { width: min(560px, 100%); max-height: 92vh; overflow-y: auto; background: linear-gradient(180deg, #1C2848, #121A2E); border: 1px solid var(--line); border-radius: 22px 22px 0 0;
+  padding: 18px 18px calc(22px + env(safe-area-inset-bottom)); box-shadow: 0 -20px 50px rgba(0,0,0,0.5); animation: sheetUp .22s ease-out; }
+@media (min-width: 640px) { #sheetBack { align-items: center; } #sheet { border-radius: 22px; } }
+@keyframes sheetUp { from { transform: translateY(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+.sh-top { display: flex; gap: 14px; align-items: center; }
+#sheetAvatar { width: 96px; height: 110px; flex: none; border-radius: 16px; background: repeating-linear-gradient(90deg, #2E8B4A 0 16px, #2A8245 16px 32px); }
+.sh-name { font-size: 22px; font-weight: 800; line-height: 1.2; }
+.sh-name small { display: block; font-size: 15px; color: var(--dim); font-weight: 700; margin-top: 2px; }
+.sh-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+.sh-cell { background: rgba(0,0,0,0.28); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.sh-cell.wide { grid-column: 1 / -1; }
+.sh-cell h4 { font-size: 11px; font-weight: 800; letter-spacing: 0.06em; color: var(--dim); margin-bottom: 4px; text-transform: uppercase; }
+.sh-cell p { font-size: 15px; font-weight: 700; line-height: 1.45; }
+.sh-cell p small { font-weight: 600; color: var(--dim); font-size: 13px; }
+.sh-form { display: flex; gap: 6px; margin-bottom: 6px; }
+.sh-form .fm { width: 30px; height: 30px; font-size: 15px; }
+.sh-form .form-wrap { gap: 6px; } .sh-form .form-wrap i { font-size: 11px; }
+#sheetClose { display: block; width: 100%; margin-top: 14px; padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.10); font-weight: 800; }
+
+/* ---------- mini game ---------- */
+#game { position: relative; }
+#gameIntro { max-width: 760px; margin: 0 auto; padding: 16px calc(14px + env(safe-area-inset-right)) calc(30px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left)); text-align: center; }
+#gameIntro h2 { font-size: clamp(22px, 5vw, 32px); font-weight: 800; }
+#gameIntro .sub { color: var(--dim); font-weight: 600; margin-top: 4px; font-size: 14px; }
+#lineup { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; text-align: left; }
+.lu { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; }
+.lu h3 { font-size: 14px; font-weight: 800; margin-bottom: 6px; }
+.lu li { list-style: none; font-size: 13px; font-weight: 600; color: var(--dim); line-height: 1.7; }
+.lu li b { color: var(--text); display: inline-block; min-width: 26px; }
+#levels { display: flex; justify-content: center; gap: 8px; margin: 10px 0 14px; }
+.lv { padding: 9px 18px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); font-weight: 800; color: var(--dim); }
+.lv.on { background: var(--gold); color: #3A2500; border-color: transparent; }
+#howto { margin: 14px auto 0; max-width: 560px; text-align: left; font-size: 13px; color: var(--dim); line-height: 1.8; background: rgba(0,0,0,0.25); border: 1px solid var(--line); border-radius: 14px; padding: 10px 14px; }
+#howto b { color: var(--text); }
+#record { margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--dim); }
+
+#stage { position: fixed; inset: 0; z-index: 40; background: #07101C; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+#stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#hud { position: absolute; top: calc(6px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; pointer-events: none; width: min(92vw, 560px); }
+#score { display: flex; align-items: center; gap: 10px; padding: 5px 14px; border-radius: 12px; background: rgba(8,14,28,0.86); border: 1px solid rgba(255,255,255,0.16); font-weight: 800; font-size: 17px; box-shadow: 0 6px 16px rgba(0,0,0,0.4); }
+#score .n { font-size: 22px; min-width: 20px; text-align: center; color: #fff; }
+#score .t { font-size: 13px; color: var(--gold); padding: 2px 8px; border-radius: 6px; background: rgba(255,255,255,0.08); min-width: 44px; text-align: center; }
+#talk { max-width: 100%; padding: 4px 12px; border-radius: 999px; background: rgba(8,14,28,0.78); font-size: 13px; font-weight: 700; color: #fff; opacity: 0; transition: opacity .25s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#talk.on { opacity: 1; }
+#pauseBtn { position: absolute; top: calc(8px + env(safe-area-inset-top)); right: calc(10px + env(safe-area-inset-right)); width: 42px; height: 42px; border-radius: 50%; background: rgba(8,14,28,0.7); border: 1px solid rgba(255,255,255,0.2); font-size: 16px; font-weight: 800; }
+#stick { position: absolute; left: 0; top: 0; bottom: 0; width: 50%; }
+#stickBase { position: absolute; width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%; background: rgba(255,255,255,0.10); border: 2px solid rgba(255,255,255,0.28); left: calc(86px + env(safe-area-inset-left)); top: calc(100% - 96px - env(safe-area-inset-bottom)); pointer-events: none; }
+#stickKnob { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; background: rgba(255,255,255,0.55); box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
+.act { position: absolute; border-radius: 50%; font-weight: 800; color: #fff; border: 2px solid rgba(255,255,255,0.4); box-shadow: 0 6px 14px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.1; }
+.act.down { transform: scale(0.92); filter: brightness(1.25); }
+#btnA { width: 88px; height: 88px; font-size: 14px; right: calc(18px + env(safe-area-inset-right)); bottom: calc(26px + env(safe-area-inset-bottom)); background: rgba(214,69,65,0.72); }
+#btnB { width: 72px; height: 72px; font-size: 13px; right: calc(116px + env(safe-area-inset-right)); bottom: calc(14px + env(safe-area-inset-bottom)); background: rgba(47,111,216,0.72); }
+@media (hover: hover) and (pointer: fine) { #stickBase { opacity: 0.35; } }
+
+.overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(4,8,16,0.72); z-index: 5; padding: 16px; }
+.box { width: min(420px, 100%); background: linear-gradient(180deg, #1C2848, #121A2E); border: 1px solid rgba(255,255,255,0.16); border-radius: 20px; padding: 20px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+.box h2 { font-size: 26px; font-weight: 800; }
+.box .big { font-size: 40px; font-weight: 800; margin: 8px 0; letter-spacing: 0.04em; }
+.box p { color: var(--dim); font-weight: 600; font-size: 14px; line-height: 1.6; }
+.box .row { display: flex; gap: 8px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+.btn-sub { padding: 12px 20px; border-radius: 999px; font-weight: 800; background: rgba(255,255,255,0.12); }
+
+#rotate-hint { display: none; position: absolute; inset: 0; z-index: 9; background: #0B1220; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; padding: 20px; font-weight: 800; }
+#rotate-hint span { font-size: 56px; animation: rot 1.5s ease-in-out infinite alternate; }
+@keyframes rot { from { transform: rotate(0); } to { transform: rotate(90deg); } }
+@media (max-width: 900px) and (orientation: portrait) { #rotate-hint { display: flex; } }
+@media (max-width: 520px) {
+  #teamStats { grid-template-columns: repeat(2, 1fr); }
+  #lineup { grid-template-columns: 1fr; }
+  .tab { padding: 7px 9px; font-size: 12px; }
+  #topbar { gap: 6px; padding-left: calc(8px + env(safe-area-inset-left)); padding-right: calc(8px + env(safe-area-inset-right)); }
+  #hub-link { font-size: 13px; }
+  #langBtn { padding: 7px 8px; font-size: 12px; }
+}
+</style>
+</head>
+<body data-team="jp">
+
+<header id="topbar">
+  <a id="hub-link" href="hub.html">◀ Hub</a>
+  <nav id="tabs">
+    <button class="tab on" data-tab="guide" type="button"></button>
+    <button class="tab" data-tab="predict" type="button"></button>
+    <button class="tab" data-tab="game" type="button"></button>
+  </nav>
+  <button id="langBtn" type="button"></button>
+</header>
+
+<main id="guide">
+  <section id="hero">
+    <div class="hero-eyebrow" data-t="eyebrow"></div>
+    <div class="hero-vs">
+      <div class="hero-team"><div class="hero-flag">🇯🇵</div><div class="hero-name" data-t="japan"></div></div>
+      <div class="hero-mid">VS</div>
+      <div class="hero-team"><div class="hero-flag">🇧🇷</div><div class="hero-name" data-t="brazil"></div></div>
+    </div>
+    <div class="hero-meta">
+      <span class="chip">📅 <span data-t="date"></span></span>
+      <span class="chip">🏟 <span data-t="venue"></span></span>
+      <span class="chip gold" id="countdown"></span>
+    </div>
+    <div class="hero-cta"><button class="btn-main gold" id="heroPredict" type="button"></button><button class="btn-main" id="heroPlay" type="button"></button></div>
+  </section>
+
+  <div id="teamSwitch">
+    <button class="team-btn on" data-team="jp" type="button"><span class="f">🇯🇵</span><span data-t="japan"></span></button>
+    <button class="team-btn" data-team="br" type="button"><span class="f">🇧🇷</span><span data-t="brazil"></span></button>
+  </div>
+  <div id="teamStats"></div>
+  <div id="filters"></div>
+  <div id="legend"></div>
+  <div id="cards"></div>
+  <p id="dataNote" data-t="dataNote"></p>
+  <div id="buildInfo">v1.2.0 · Updated Nov 13, 2026</div>
+</main>
+
+<main id="predict" hidden>
+  <section class="pd-panel">
+    <div class="hero-eyebrow" data-t="pdEyebrow"></div>
+    <h2 data-t="pdTitle"></h2>
+    <div class="pd-howto" id="pdRules"></div>
+    <div class="pd-chips"><span class="chip gold" id="pdState"></span><span class="chip" id="pdWhen"></span></div>
+    <div class="pd-prizes" id="pdPrizes"></div>
+  </section>
+  <div id="pdResult" hidden></div>
+  <div id="teamSwitch2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0 4px">
+    <button class="team-btn on" data-pteam="jp" type="button"><span class="f">🇯🇵</span><span id="pdTabJ"></span></button>
+    <button class="team-btn" data-pteam="br" type="button"><span class="f">🇧🇷</span><span id="pdTabB"></span></button>
+  </div>
+  <div id="pdCount"></div>
+  <div id="pdLists"></div>
+  <div id="pdBar"><div id="pdMsg"></div><button class="btn-main gold" id="pdSave" type="button"></button></div>
+</main>
+
+<main id="game" hidden>
+  <div id="gameIntro">
+    <h2 data-t="gameTitle"></h2>
+    <p class="sub" data-t="gameSub"></p>
+    <div id="lineup"></div>
+    <div id="levels"></div>
+    <button class="btn-main" id="kickoffBtn" type="button"></button>
+    <div id="record"></div>
+    <div id="howto"></div>
+  </div>
+
+  <div id="stage" hidden>
+    <canvas id="cv"></canvas>
+    <div id="stick"><div id="stickBase"><div id="stickKnob"></div></div></div>
+    <div id="hud">
+      <div id="score"><span>🇯🇵</span><span class="n" id="sJ">0</span><span class="t" id="clock">0'</span><span class="n" id="sB">0</span><span>🇧🇷</span></div>
+      <div id="talk"></div>
+    </div>
+    <button id="pauseBtn" type="button" aria-label="Pause">II</button>
+    <button class="act" id="btnB" type="button"></button>
+    <button class="act" id="btnA" type="button"></button>
+
+    <div class="overlay" id="pauseBox" hidden>
+      <div class="box">
+        <h2 data-t="paused"></h2>
+        <div class="row">
+          <button class="btn-main" id="resumeBtn" type="button"></button>
+          <button class="btn-sub" id="quitBtn" type="button"></button>
+        </div>
+      </div>
+    </div>
+    <div class="overlay" id="endBox" hidden>
+      <div class="box">
+        <h2 id="endTitle"></h2>
+        <div class="big" id="endScore"></div>
+        <p id="endText"></p>
+        <div class="row">
+          <button class="btn-main" id="againBtn" type="button"></button>
+          <button class="btn-sub" id="endQuitBtn" type="button"></button>
+        </div>
+      </div>
+    </div>
+    <div id="rotate-hint"><span>📱</span><p data-t="rotate"></p><button class="btn-sub" id="rotateQuit" type="button"></button></div>
+  </div>
+</main>
+
+<div id="sheetBack" hidden>
+  <div id="sheet" role="dialog" aria-modal="true">
+    <div class="sh-top">
+      <canvas id="sheetAvatar" width="192" height="220"></canvas>
+      <div>
+        <div class="pmeta" id="shMeta"></div>
+        <div class="sh-name" id="shName"></div>
+      </div>
+    </div>
+    <div class="sh-grid" id="shGrid"></div>
+    <button id="sheetClose" type="button"></button>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================= save ================= */
+  var SAVE_KEY = 'moku:event-japan-brazil:progress';
+  var save = { version: 1, gameId: 'event-japan-brazil', lang: 'en', level: 0, played: 0, wins: 0, draws: 0, losses: 0, goals: 0, entry: null, claimed: null, updatedAt: '' };
+  try {
+    var raw = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
+    if (raw && typeof raw === 'object') for (var k in save) if (raw[k] !== undefined && (typeof raw[k] === typeof save[k] || k === 'entry' || k === 'claimed')) save[k] = raw[k];
+  } catch (e) {}
+  if (save.lang !== 'ja') save.lang = 'en';
+  if (!(save.level >= 0 && save.level <= 2)) save.level = 0;
+  function persist() {
+    save.updatedAt = new Date().toISOString();
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {}
+  }
+
+  /* ================= text (English / 日本語) ================= */
+  var T = {
+    tabGuide: ['📋 Guide', '📋 ガイド'],
+    tabPredict: ['🔮 Predict', '🔮 予想'],
+    tabGame: ['⚽ Game', '⚽ ゲーム'],
+    heroPredict: ['🔮 Predict the Starting XI', '🔮 スタメンを予想する'],
+    pdEyebrow: ['MOINT EVENT', 'MOINT イベント'],
+    pdTitle: ['🔮 Starting XI Prediction', '🔮 スタメン予想'],
+    pdRules: [
+      ['HOW IT WORKS · ENGLISH', [
+        'Pick the players you think will <b>start the match</b>: <b>11 for Japan</b> and <b>11 for Brazil</b> (1 goalkeeper each).',
+        'Tap <b>“Enter my prediction”</b>. You can change your picks as many times as you like until <b>3 hours before kick-off</b> ({close}).',
+        'The results come <b>1 hour after the match</b> ({results}). Open this page again to see them.',
+        'You win <b>+{hit} Moints</b> for each correct player. Get 9 or 10 right in one team for <b>+{nine}</b> more, or all 11 for <b>+{all}</b> more! (Up to {max} Moints.)',
+        'Your XI also plays in the <b>Mini Game</b>.'
+      ]],
+      ['あそびかた · 日本語', [
+        '試合に<b>スタメン(先発)</b>で出ると思う選手を、<b>日本11人</b>・<b>ブラジル11人</b>(GK は1人ずつ)えらびます。',
+        '<b>「この予想でエントリー」</b>をおします。<b>キックオフの3時間前</b>({close})までは、何回でも選び直せます。',
+        '結果は<b>試合が終わった1時間後</b>({results})に出ます。このページをもう一度ひらいてね。',
+        '当たった選手1人につき <b>+{hit} Moint</b>。1チームで9〜10人当たると <b>+{nine}</b>、11人全員なら <b>+{all}</b>!(最大 {max} Moint)',
+        'えらんだ11人は<b>ミニゲーム</b>にも出てきます。'
+      ]]
+    ],
+    pdOpen: ['🟢 Entries are open', '🟢 エントリー受付中'],
+    opensAt: ['This event opens at {t}. See you soon!', 'このイベントは {t} に始まります。お楽しみに!'],
+    pdClosed: ['🔒 Entries are closed', '🔒 エントリーは締め切りました'],
+    pdDone: ['🏁 Results are in!', '🏁 結果発表!'],
+    pdWhenOpen: ['Entries close: {t} (3 hours before kick-off)', 'しめきり: {t}(キックオフの3時間前)'],
+    pdWhenWait: ['Results: {t} (1 hour after the match)', '結果発表: {t}(試合終了の1時間後)'],
+    pdWhenLate: ['Waiting for the official line-ups…', '公式のスタメンを入力中です…'],
+    pdWhenDone: ['Thanks for playing!', '参加ありがとう!'],
+    pzHit: ['for each correct player', '1人当たるごとに'],
+    pzNine: ['bonus: 9 or 10 right in a team', 'ボーナス: 1チームで9〜10人'],
+    pzAll: ['bonus: all 11 right in a team', 'ボーナス: 1チームで11人全員'],
+    pdCount: ['{team}: {n} / 11 picked · goalkeeper {g} / 1', '{team}: {n} / 11人 · GK {g} / 1人'],
+    pdSave: ['✅ Enter my prediction', '✅ この予想でエントリー'],
+    pdUpdate: ['✅ Update my entry', '✅ エントリーを更新'],
+    pdNeed: ['Pick 11 players (1 goalkeeper) for both teams.', '両チームとも11人(GK 1人)を選んでね。'],
+    pdSaved: ['Entered! Good luck! 🍀', 'エントリーしました!当たりますように 🍀'],
+    pdEntered: ['You are entered. You can still change your picks.', 'エントリー済み。まだ選び直せます。'],
+    pdNoEntry: ['You did not enter this time.', '今回はエントリーしていません。'],
+    pdYour: ['Your entry is locked in. Good luck!', 'あなたの予想は確定しました。当たりますように!'],
+    pdFull: ['You already have 11. Tap a player to take him out first.', 'もう11人えらんでいます。先にだれかを外してね。'],
+    pdGot: ['+{m} Moints!', '+{m} Moint ゲット!'],
+    pdHits: ['Japan {j} / 11 · Brazil {b} / 11 correct', '日本 {j} / 11 · ブラジル {b} / 11 人が当たり'],
+    pdReal: ['Dashed green = started, but you did not pick him.', '緑の点線 = スタメンだったけど選ばなかった選手。'],
+    xiMine: ['⭐ Your predicted XI', '⭐ あなたの予想スタメン'],
+    xiDefault: ['Default XI (predict the starting XI to use your own!)', 'おまかせスタメン(予想すると自分の11人で遊べる!)'],
+    lang: ['🌐 日本語', '🌐 English'],
+    eyebrow: ['SPECIAL EVENT · INTERNATIONAL FRIENDLY', 'スペシャルイベント · 国際親善試合'],
+    japan: ['Japan', '日本'],
+    brazil: ['Brazil', 'ブラジル'],
+    date: ['Sat, Nov 14, 2026', '2026年11月14日(土)'],
+    venue: ['National Stadium, Singapore', 'シンガポール ナショナルスタジアム'],
+    heroPlay: ['⚽ Play the Mini Game', '⚽ ミニゲームであそぶ'],
+    cdToday: ['🔥 Match day is TODAY!', '🔥 今日が試合の日!'],
+    cdTomorrow: ['⏰ Tomorrow!', '⏰ いよいよ明日!'],
+    cdDays: ['⏰ {n} days to go', '⏰ あと{n}日'],
+    cdDone: ['✅ Match finished', '✅ 試合は終わりました'],
+    all: ['All', 'すべて'],
+    stPlayers: ['Players', '選手'],
+    stAbroad: ['Play abroad', '海外でプレー'],
+    stWC: ['2026 World Cup', '2026年W杯メンバー'],
+    stUp: ['On the rise ↑', '上り調子 ↑'],
+    legend: [
+      '<b>Last 5 matches (did he play?)</b>: <span class="fm P">○</span> played · <span class="fm S">△</span> played part of the match · <span class="fm N">ー</span> did not play. The <b>right end is the latest match</b>.　<b>Status</b>: <span class="st up">↑</span> rising · <span class="st flat">→</span> steady · <span class="st down">↓</span> dropping<br>Tap a player to see more.',
+      '<b>直近5試合の出場</b>: <span class="fm P">○</span> 出場 · <span class="fm S">△</span> 一部だけ出場 · <span class="fm N">ー</span> 出場なし。<b>右はしが、いちばん最近の試合</b>です。　<b>ステータス</b>: <span class="st up">↑</span> 上り調子 · <span class="st flat">→</span> 安定 · <span class="st down">↓</span> 下り調子<br>選手をタップすると、くわしく見られます。'
+    ],
+    wc: ['WC 2026', 'W杯2026'],
+    wcVs: ['WC Japan match', 'W杯 日本戦'],
+    inGame: ['🎮 In the game', '🎮 ゲームに登場'],
+    hClub: ['Club', '所属クラブ'],
+    hLeague: ['League', 'リーグ'],
+    hStatus: ['Status', 'ステータス'],
+    hForm: ['Last 5 matches · did he play?', '直近5試合の出場'],
+    latest: ['latest', '最新'],
+    older: ['← older', '← 前'],
+    hWC: ['2026 World Cup squad', '2026年W杯 出場'],
+    hWCvs: ['Played in the World Cup Japan match', 'W杯の日本戦に出場'],
+    yes: ['⭕️ Yes', '⭕️ あり'],
+    no: ['❌ No', '❌ なし'],
+    stUpL: ['↑ On the rise', '↑ 上り調子'],
+    stFlatL: ['→ Steady', '→ 安定'],
+    stDownL: ['↓ Dropping', '↓ 下り調子'],
+    close: ['Close', 'とじる'],
+    dataNote: [
+      'Player data was put together by our family before the match (Nov 2026). The real squad, shirt numbers and clubs may be different on match day. “–” means the shirt number is not known yet.',
+      '選手データは、試合の前(2026年11月)に家族でまとめたものです。当日のメンバー・背番号・所属クラブは変わることがあります。「–」は背番号がまだ分からない選手です。'
+    ],
+    gameTitle: ['⚽ Japan vs Brazil Mini Match', '⚽ 日本 vs ブラジル ミニマッチ'],
+    gameSub: ['You are Japan! 11 against 11. Beat Brazil in a 3-minute match.', 'きみは日本代表!11人対11人。3分間の試合でブラジルに勝とう。'],
+    kickoff: ['▶ Kick Off!', '▶ キックオフ!'],
+    lv: [['Easy', 'かんたん'], ['Normal', 'ふつう'], ['Hard', 'むずかしい']],
+    howto: [
+      '<b>How to play</b> (hold your device sideways)<br>🕹 <b>Left side</b>: move　🔵 <b>PASS</b>: pass to a teammate　🔴 <b>SHOOT</b>: shoot at the goal<br>Without the ball: 🔵 <b>SWITCH</b> player　🔴 <b>TACKLE</b> to win the ball<br>Keyboard: arrows / WASD to move, <b>X</b> pass, <b>Z</b> or <b>Space</b> shoot.',
+      '<b>あそびかた</b>(よこ向きに持ってね)<br>🕹 <b>画面の左</b>: うごく　🔵 <b>パス</b>: みかたにパス　🔴 <b>シュート</b>: ゴールへシュート<br>ボールがない時: 🔵 <b>チェンジ</b>(選手を切りかえ)　🔴 <b>タックル</b>(ボールをうばう)<br>キーボード: 矢印 / WASD でうごく、<b>X</b> パス、<b>Z</b> か <b>スペース</b> でシュート。'
+    ],
+    record: ['Your record: {w} wins · {d} draws · {l} losses · {g} goals', 'これまでの記録: {w}勝 · {d}分 · {l}敗 · {g}ゴール'],
+    paused: ['Paused', 'ポーズ中'],
+    resume: ['▶ Resume', '▶ つづける'],
+    quit: ['Quit', 'やめる'],
+    again: ['▶ Play Again', '▶ もう1回'],
+    back: ['Back', 'もどる'],
+    rotate: ['Turn your device sideways to play!', 'よこ向きにしてあそんでね!'],
+    bPass: ['PASS', 'パス'], bShoot: ['SHOOT', 'シュート'], bSwitch: ['SWITCH', 'チェンジ'], bTackle: ['TACKLE', 'タックル'],
+    win: ['🎉 Japan wins!', '🎉 日本の勝ち!'],
+    draw: ['🤝 Draw!', '🤝 引き分け!'],
+    lose: ['Brazil wins…', 'ブラジルの勝ち…'],
+    winT: ['What a match! The Samurai Blue did it!', 'すばらしい試合!サムライブルーがやりました!'],
+    drawT: ['So close! One more match?', 'おしい!もう1試合どう?'],
+    loseT: ['Brazil is strong. Try again — you can do it!', 'ブラジルは強い。でも次はきっと勝てる!'],
+    full: ['Full time', '試合終了']
+  };
+  function L(pair) { return pair[save.lang === 'ja' ? 1 : 0]; }
+  function t(key, vars) {
+    var s = L(T[key]);
+    if (vars) for (var v in vars) s = s.replace('{' + v + '}', vars[v]);
+    return s;
+  }
+
+  /* ================= squad data =================
+     [number, English name, 日本語名, position, flag, club, league (EN), リーグ (JA), status, form, WC 2026, WC Japan match]
+     form: 直近5試合に出場したか(チームの勝ち負けではない)。右はしが、いちばん最近の試合。
+           W = ⭕️ → ○ 出場 / D = 🔺 → △ 一部だけ出場 / L = ❌ と N = ➖ → ー 出場なし。status: u = ↑ / f = → / d = ↓。
+     保護者が用意した表のまま(伊東純也の漢字だけ直した)。 */
+  var EN = ['🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'England', 'イングランド'], DE = ['🇩🇪', 'Germany', 'ドイツ'], FR = ['🇫🇷', 'France', 'フランス'],
+      IT = ['🇮🇹', 'Italy', 'イタリア'], ES = ['🇪🇸', 'Spain', 'スペイン'], JP = ['🇯🇵', 'Japan', '日本'], BR = ['🇧🇷', 'Brazil', 'ブラジル'],
+      BE = ['🇧🇪', 'Belgium', 'ベルギー'], NL = ['🇳🇱', 'Netherlands', 'オランダ'], DK = ['🇩🇰', 'Denmark', 'デンマーク'],
+      SA = ['🇸🇦', 'Saudi Arabia', 'サウジアラビア'], RU = ['🇷🇺', 'Russia', 'ロシア'], UA = ['🇺🇦', 'Ukraine', 'ウクライナ'];
+  var SQUADS = {
+    jp: [
+      [1, 'Zion Suzuki', '鈴木 彩艶', 'GK', EN, 'Aston Villa', 'u', 'WWWWW', 1, 1],
+      [12, 'Leo Kokubo', '小久保 玲央ブライアン', 'GK', BE, 'Sint-Truiden', 'f', 'WWWWW', 0, 0],
+      [23, 'Tomoki Hayakawa', '早川 友基', 'GK', JP, 'Kashima Antlers', 'f', 'DDNNN', 1, 0],
+      [2, 'Yukinari Sugawara', '菅原 由勢', 'DF', IT, 'Cagliari', 'u', 'WWLWW', 1, 1],
+      [3, 'Ayumu Seko', '瀬古 歩夢', 'DF', FR, 'Le Havre', 'f', 'WWWWW', 1, 1],
+      [4, 'Ko Itakura', '板倉 滉', 'DF', DE, 'Borussia Mönchengladbach', 'u', 'WWWWW', 1, 1],
+      [5, 'Tsuyoshi Watanabe', '渡辺 剛', 'DF', NL, 'Feyenoord', 'u', 'WWWWW', 1, 1],
+      [6, 'Shuto Nakano', '中野 就斗', 'DF', JP, 'Sanfrecce Hiroshima', 'f', 'WWWLW', 0, 0],
+      [16, 'Koki Machida', '町田 浩樹', 'DF', DE, 'TSG Hoffenheim', 'u', 'WWWWW', 1, 0],
+      [21, 'Hiroki Ito', '伊藤 洋輝', 'DF', DE, 'Bayern Munich', 'u', 'DWWLL', 1, 1],
+      [25, 'Junnosuke Suzuki', '鈴木 淳之介', 'DF', DK, 'FC Copenhagen', 'f', 'WDWDW', 1, 1],
+      [7, 'Yuki Soma', '相馬 勇紀', 'MF/FW', JP, 'FC Machida Zelvia', 'f', 'WWWLW', 0, 0],
+      [8, 'Takumi Minamino', '南野 拓実', 'MF/FW', FR, 'AS Monaco', 'u', 'WWWWW', 1, 1],
+      [10, 'Ritsu Doan', '堂安 律', 'MF/FW', DE, 'Eintracht Frankfurt', 'u', 'WWWWW', 1, 1],
+      [11, 'Daizen Maeda', '前田 大然', 'MF/FW', EN, 'Ipswich Town', 'u', 'WWWWW', 1, 1],
+      [13, 'Keito Nakamura', '中村 敬斗', 'MF/FW', FR, 'Olympique Lyonnais', 'u', 'WWWWW', 1, 1],
+      [14, 'Junya Ito', '伊東 純也', 'MF/FW', BE, 'KRC Genk', 'f', 'WWWWW', 1, 1],
+      [15, 'Daichi Kamada', '鎌田 大地', 'MF/FW', EN, 'Crystal Palace', 'f', 'WWWWW', 1, 1],
+      [17, 'Ao Tanaka', '田中 碧', 'MF/FW', EN, 'Leeds United', 'u', 'WWWWW', 1, 1],
+      [18, 'Yuito Suzuki', '鈴木 唯人', 'MF/FW', DE, 'SC Freiburg', 'u', 'WWDWW', 1, 0],
+      [19, 'Koki Ogawa', '小川 航基', 'MF/FW', JP, 'FC Machida Zelvia', 'u', 'WWWWW', 1, 0],
+      [20, 'Takefusa Kubo', '久保 建英', 'MF/FW', ES, 'Real Sociedad', 'u', 'WWWWW', 1, 1],
+      [22, 'Kodai Sano', '佐野 航大', 'MF/FW', NL, 'PSV Eindhoven', 'f', 'WDWWD', 0, 0],
+      [24, 'Kaishu Sano', '佐野 海舟', 'MF/FW', DE, '1. FSV Mainz 05', 'u', 'WWWWW', 1, 1],
+      [26, 'Tatsuhiro Sakamoto', '坂元 達裕', 'MF/FW', EN, 'Coventry City', 'f', 'WDWWL', 0, 0],
+      [27, 'Kuryu Matsuki', '松木 玖生', 'MF/FW', EN, 'Southampton', 'f', 'DWDWD', 0, 0],
+      [28, 'Shio Fukuda', '福田 師王', 'MF/FW', DE, 'Karlsruher SC', 'u', 'WWDWW', 1, 0],
+      [0, 'Keisuke Goto', '後藤 啓介', 'MF/FW', DE, 'SC Freiburg', 'f', 'DDWWD', 1, 1]
+    ],
+    br: [
+      [0, 'Bento', 'ベント', 'GK', SA, 'Al-Nassr', 'f', 'WWWWW', 1, 1],
+      [0, 'Lucas Perri', 'ルーカス・ペリ', 'GK', IT, 'Torino', 'f', 'WWWWW', 0, 0],
+      [0, 'Pedro Morisco', 'ペドロ・モリスコ', 'GK', BR, 'Coritiba', 'f', 'WWDWW', 0, 0],
+      [4, 'Jair Cunha', 'ジャイール・クーニャ', 'DF', EN, 'Nottingham Forest', 'u', 'WWWWW', 0, 0],
+      [6, 'Douglas Santos', 'ドウグラス・サントス', 'DF', RU, 'Zenit Saint Petersburg', 'f', 'WWWWW', 1, 1],
+      [13, 'Vanderson', 'ヴァンデルソン', 'DF', FR, 'AS Monaco', 'u', 'WWWWW', 1, 0],
+      [14, 'Vitor Reis', 'ヴィトール・レイス', 'DF', EN, 'Manchester City', 'u', 'DWDWW', 0, 0],
+      [15, 'Arthur Dias', 'アルトュール・ディアス', 'DF', BR, 'Athletico Paranaense', 'f', 'WWWLW', 0, 0],
+      [24, 'Jonathan Jesus', 'ジョナタン・ジェズス', 'DF', BR, 'Cruzeiro', 'u', 'WWWWW', 0, 0],
+      [0, 'Carlos Augusto', 'カルロス・アウグスト', 'DF', IT, 'Inter Milan', 'f', 'WWDWW', 1, 0],
+      [0, 'Gabriel Magalhães', 'ガブリエウ・マガリャンイス', 'DF', EN, 'Arsenal', 'u', 'WWWWW', 1, 1],
+      [0, 'Wesley Franca', 'ウェズレイ・フランカ', 'DF', IT, 'AS Roma', 'f', 'WWWWW', 0, 0],
+      [8, 'Bruno Guimarães', 'ブルーノ・ギマランイス', 'MF', EN, 'Arsenal', 'f', 'WWWWW', 1, 1],
+      [18, 'João Gomes', 'ジョアン・ゴメス', 'MF', EN, 'Aston Villa', 'f', 'WWWWW', 1, 0],
+      [20, 'Marlon Gomes', 'マルロン・ゴメス', 'MF', UA, 'Shakhtar Donetsk', 'f', 'WWDWW', 0, 0],
+      [25, 'Gabriel Bontempo', 'ガブリエル・ボンテンポ', 'MF', BR, 'Santos', 'u', 'WWWWW', 0, 0],
+      [0, 'André Luiz', 'アンドレ・ルイス', 'MF', BR, 'Corinthians', 'f', 'WWWWL', 0, 0],
+      [0, 'Andrey Santos', 'アンドレイ・サントス', 'MF', EN, 'Manchester United', 'u', 'WWWWW', 0, 0],
+      [0, 'Danilo', 'ダニーロ', 'MF', BR, 'Botafogo', 'f', 'WWWWW', 1, 1],
+      [7, 'Vinicius Junior', 'ヴィニシウス・ジュニオール', 'FW', ES, 'Real Madrid', 'u', 'WWWWW', 1, 1],
+      [10, 'Raphinha', 'ハフィーニャ', 'FW', ES, 'Barcelona', 'u', 'WWWWW', 1, 0],
+      [9, 'Endrick', 'エンドリッキ', 'FW', ES, 'Real Madrid', 'f', 'DWDWD', 1, 1],
+      [0, 'Alisson Santana', 'アリソン・サンタナ', 'FW', UA, 'Shakhtar Donetsk', 'f', 'WDWWD', 0, 0],
+      [0, 'Allan', 'アラン', 'FW', EN, 'Manchester City', 'f', 'DDWDW', 0, 0],
+      [0, 'Estêvão', 'エステヴァン', 'FW', EN, 'Chelsea', 'u', 'WWWWW', 0, 0],
+      [0, 'Rayan', 'ハイアン', 'FW', EN, 'AFC Bournemouth', 'f', 'DWDWD', 1, 1]
+    ]
+  };
+  var HOME = { jp: 'Japan', br: 'Brazil' };
+
+  /* ----- starting XI prediction (Moint event) -----
+     Entries close 3 hours before kick-off (15:15 Singapore time). Results: one hour after full time,
+     once ACTUAL_XI below is filled in with the real starting line-ups (English names as in SQUADS). */
+  var KICKOFF = Date.UTC(2026, 10, 14, 10, 15);          // Nov 14, 2026 18:15 SGT
+  var ENTRY_CLOSE = KICKOFF - 3 * 60 * 60 * 1000;        // Nov 14, 2026 15:15 SGT
+  var OPENS_AT = Date.parse('2026-11-13T15:30:00+08:00'); // the page goes public (same as hub.html EVENTS opensAt)
+  var SETTLE_AT = KICKOFF + 3 * 60 * 60 * 1000;          // about 2 hours of match + 1 hour
+  var PRIZE = { hit: 100, nine: 300, all: 1000 };        // per correct player / 9-10 in a team / all 11 in a team
+  var ACTUAL_XI = { jp: [], br: [] };                    // ← fill in after the match (11 names each)
+
+  // Opened straight from disk (development): ?now=2026-11-14T22:00:00+08:00 and ?actual=demo try the later screens.
+  var DEV = location.protocol === 'file:';
+  function nowMs() {
+    var m = DEV && /[?&]now=([^&]+)/.exec(location.search);
+    return m ? new Date(decodeURIComponent(m[1])).getTime() : Date.now();
+  }
+
+  // Mini game: 11 a side. Your predicted XI if you entered, otherwise this one.
+  var DEFAULT_XI = {
+    jp: ['Zion Suzuki', 'Yukinari Sugawara', 'Ko Itakura', 'Tsuyoshi Watanabe', 'Hiroki Ito', 'Ao Tanaka', 'Daichi Kamada', 'Takumi Minamino', 'Ritsu Doan', 'Koki Ogawa', 'Takefusa Kubo'],
+    br: ['Bento', 'Vanderson', 'Gabriel Magalhães', 'Carlos Augusto', 'Douglas Santos', 'Bruno Guimarães', 'João Gomes', 'Danilo', 'Raphinha', 'Endrick', 'Vinicius Junior']
+  };
+  if (DEV && /[?&]actual=demo/.test(location.search)) ACTUAL_XI = { jp: DEFAULT_XI.jp.slice(), br: DEFAULT_XI.br.slice() };
+  // Japan's list says "MF/FW": these ones play up front in the mini game.
+  var JP_FW = ['Koki Ogawa', 'Daizen Maeda', 'Shio Fukuda', 'Keisuke Goto', 'Takefusa Kubo', 'Ritsu Doan', 'Junya Ito', 'Keito Nakamura', 'Yuki Soma', 'Tatsuhiro Sakamoto'];
+  var SHORT = { 'Vinicius Junior': ['Vini Jr.', 'ヴィニシウス'], 'Bruno Guimarães': ['Bruno G.', 'ブルーノ'], 'Gabriel Magalhães': ['Gabriel M.', 'ガブリエウ'], 'Gabriel Bontempo': ['Bontempo', 'ボンテンポ'] };
+
+  function validXI(team, list) {
+    if (!(list instanceof Array) || list.length !== 11) return false;
+    var seen = {}, gk = 0;
+    for (var i = 0; i < 11; i++) {
+      var row = squadRow(team, list[i]);
+      if (!row || seen[list[i]]) return false;
+      seen[list[i]] = 1;
+      if (row[3] === 'GK') gk++;
+    }
+    return gk === 1;
+  }
+  function hasEntry() { return !!(save.entry && validXI('jp', save.entry.jp) && validXI('br', save.entry.br)); }
+  function xiNames(team) { return hasEntry() ? save.entry[team] : DEFAULT_XI[team]; }
+  // Names short enough for the commentary and the label over a player's head.
+  function shortNames(team, row) {
+    if (SHORT[row[1]]) return SHORT[row[1]];
+    if (team === 'br') return [row[1], row[2].split('・')[0]];
+    var en = row[1].split(' '), ja = row[2].split(' '), sur = en[en.length - 1], twin = false;
+    SQUADS.jp.forEach(function (o) { var e = o[1].split(' '); if (o !== row && e[e.length - 1] === sur) twin = true; });
+    return twin ? [en[0].charAt(0) + '. ' + sur, ja[0] + (ja[1] || '').charAt(0)] : [sur, ja[0]];
+  }
+  // The XI in squad order with a role for the pitch: one GK, then DF / MF / FW lines.
+  function lineupOf(team) {
+    var list = SQUADS[team].filter(function (r) { return xiNames(team).indexOf(r[1]) >= 0; }).map(function (row) {
+      var role = row[3] === 'MF/FW' ? (JP_FW.indexOf(row[1]) >= 0 ? 'FW' : 'MF') : row[3];
+      var sn = shortNames(team, row);
+      return { row: row, role: role, en: sn[0], ja: sn[1] };
+    });
+    var fws = list.filter(function (q) { return q.role === 'FW'; }), mfs = list.filter(function (q) { return q.role === 'MF'; });
+    while (fws.length > 3) { fws.pop().role = 'MF'; }
+    if (!fws.length && mfs.length) mfs[mfs.length - 1].role = 'FW';
+    var order = { GK: 0, DF: 1, MF: 2, FW: 3 };
+    return list.sort(function (a, b) { return order[a.role] - order[b.role]; });
+  }
+  function squadRow(team, name) {
+    var list = SQUADS[team];
+    for (var i = 0; i < list.length; i++) if (list[i][1] === name) return list[i];
+    return null;
+  }
+  function inLineup(team, name) { return xiNames(team).indexOf(name) >= 0; }
+
+  /* ================= small helpers ================= */
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, html) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (html !== undefined) n.innerHTML = html;
+    return n;
+  }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  // Last five matches: did he play? The right end is the latest match.
+  var FORM_MARK = { W: ['P', '○'], D: ['S', '△'], L: ['N', 'ー'], N: ['N', 'ー'] };
+  function formHTML(form, labels) {
+    var dots = form.split('').map(function (c) { return '<span class="fm ' + FORM_MARK[c][0] + '">' + FORM_MARK[c][1] + '</span>'; }).join('');
+    return '<span class="form-wrap">' + (labels ? '<i style="color:var(--dim)">' + t('older') + '</i>' : '') + dots + '<i>◀ ' + t('latest') + '</i></span>';
+  }
+  function statusHTML(s) {
+    return s === 'u' ? '<span class="st up">↑</span>' : s === 'd' ? '<span class="st down">↓</span>' : '<span class="st flat">→</span>';
+  }
+  // A one-line comment made from the last five matches.
+  function formComment(form) {
+    var o = (form.match(/W/g) || []).length, d = (form.match(/D/g) || []).length, n = 5 - o - d;
+    var line = save.lang === 'ja'
+      ? '○ 出場 ' + o + ' · △ 一部 ' + d + ' · ー なし ' + n
+      : '○ played ' + o + ' · △ part ' + d + ' · ー none ' + n;
+    var c;
+    if (o === 5) c = ['Played in all five. A regular in the team!', '5試合すべてに出場。チームの中心です!'];
+    else if (o + d >= 4) c = ['Plays in almost every match.', 'ほぼ毎試合に出場しています。'];
+    else if (o + d >= 2) c = ['In and out of the team lately.', '出たり出なかったりの5試合です。'];
+    else c = ['Has not played much lately.', '最近は出場が少なめです。'];
+    var last = form.charAt(4);
+    var l2 = last === 'W' ? ['Played in the latest match.', 'いちばん最近の試合にも出場。']
+      : last === 'D' ? ['Played part of the latest match.', 'いちばん最近の試合は一部だけ出場。']
+      : ['Did not play in the latest match.', 'いちばん最近の試合は出場なし。'];
+    return '<small>' + line + '</small><br>' + L(c) + ' ' + L(l2);
+  }
+
+  /* ================= guide ================= */
+  var team = 'jp', filter = 'ALL';
+  function countdownText() {
+    var now = new Date();
+    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    var days = Math.round((new Date(2026, 10, 14).getTime() - today) / 86400000);
+    if (days > 1) return t('cdDays', { n: days });
+    if (days === 1) return t('cdTomorrow');
+    if (days === 0) return t('cdToday');
+    return t('cdDone');
+  }
+  function renderStats() {
+    var list = SQUADS[team], host = $('teamStats');
+    var abroad = list.filter(function (p) { return p[4][1] !== HOME[team]; }).length;
+    var wc = list.filter(function (p) { return p[8]; }).length;
+    var up = list.filter(function (p) { return p[6] === 'u'; }).length;
+    host.innerHTML = '';
+    [[list.length, 'stPlayers'], [abroad, 'stAbroad'], [wc, 'stWC'], [up, 'stUp']].forEach(function (s) {
+      host.appendChild(el('div', 'stat', '<b>' + s[0] + '</b><span>' + t(s[1]) + '</span>'));
+    });
+  }
+  function renderFilters() {
+    var host = $('filters');
+    host.innerHTML = '';
+    ['ALL', 'GK', 'DF', 'MF', 'FW'].forEach(function (f) {
+      var b = el('button', 'filter' + (filter === f ? ' on' : ''), f === 'ALL' ? t('all') : f);
+      b.type = 'button';
+      b.addEventListener('click', function () { filter = f; renderFilters(); renderCards(); });
+      host.appendChild(b);
+    });
+  }
+  function renderCards() {
+    var host = $('cards');
+    host.innerHTML = '';
+    SQUADS[team].forEach(function (p) {
+      if (filter !== 'ALL' && p[3].split('/').indexOf(filter) < 0) return;
+      var ja = save.lang === 'ja';
+      var card = el('button', 'pcard');
+      card.type = 'button';
+      card.innerHTML =
+        '<div class="pnum">' + (p[0] || '–') + '</div>' +
+        '<div class="pname">' + esc(ja ? p[2] : p[1]) + '<small>' + esc(ja ? p[1] : p[2]) + '</small></div>' +
+        '<div class="pmeta"><span class="pos ' + p[3].replace('/', '') + '">' + p[3] + '</span><span>' + p[4][0] + ' ' + esc(p[5]) + '</span></div>' +
+        '<div class="prow"><span>' + statusHTML(p[6]) + '&nbsp; <span class="form">' + formHTML(p[7]) + '</span></span>' +
+        '<span class="badges">' + (inLineup(team, p[1]) ? '<span class="bdg game">' + t('inGame') + '</span>' : '') +
+        '<span class="bdg' + (p[8] ? ' yes' : '') + '">' + t('wc') + (p[8] ? ' ⭕️' : ' ❌') + '</span>' +
+        '<span class="bdg' + (p[9] ? ' yes' : '') + '">' + t('wcVs') + (p[9] ? ' ⭕️' : ' ❌') + '</span></span></div>';
+      card.addEventListener('click', function () { openSheet(p); });
+      host.appendChild(card);
+    });
+  }
+  var sheetPlayer = null;
+  function openSheet(p) {
+    sheetPlayer = p;
+    var ja = save.lang === 'ja';
+    $('shMeta').innerHTML = '<span class="pos ' + p[3].replace('/', '') + '">' + p[3] + '</span><span>' + (team === 'jp' ? '🇯🇵 ' : '🇧🇷 ') + t(team === 'jp' ? 'japan' : 'brazil') + ' · #' + (p[0] || '–') + '</span>';
+    $('shName').innerHTML = esc(ja ? p[2] : p[1]) + '<small>' + esc(ja ? p[1] : p[2]) + '</small>';
+    var grid = $('shGrid');
+    grid.innerHTML =
+      '<div class="sh-cell"><h4>' + t('hClub') + '</h4><p>' + esc(p[5]) + '</p></div>' +
+      '<div class="sh-cell"><h4>' + t('hLeague') + '</h4><p>' + p[4][0] + ' ' + (ja ? p[4][2] : p[4][1]) + '</p></div>' +
+      '<div class="sh-cell wide"><h4>' + t('hForm') + '</h4><div class="sh-form">' + formHTML(p[7], true) + '</div><p>' + formComment(p[7]) + '</p></div>' +
+      '<div class="sh-cell wide"><h4>' + t('hStatus') + '</h4><p>' + t(p[6] === 'u' ? 'stUpL' : p[6] === 'd' ? 'stDownL' : 'stFlatL') + '</p></div>' +
+      '<div class="sh-cell"><h4>' + t('hWC') + '</h4><p>' + t(p[8] ? 'yes' : 'no') + '</p></div>' +
+      '<div class="sh-cell"><h4>' + t('hWCvs') + '</h4><p>' + t(p[9] ? 'yes' : 'no') + '</p></div>';
+    $('sheetClose').textContent = t('close');
+    // The same 2-heads-tall player as the mini game.
+    var cv = $('sheetAvatar'), c = cv.getContext('2d');
+    c.clearRect(0, 0, cv.width, cv.height);
+    c.save();
+    c.translate(96, 204);
+    c.scale(4.9, 4.9);
+    drawChibi(c, { team: team === 'jp' ? 0 : 1, gk: p[3] === 'GK', num: p[0], look: lookOf(p[1]), dir: 1, run: 0, moving: false });
+    c.restore();
+    $('sheetBack').hidden = false;
+  }
+  function closeSheet() { $('sheetBack').hidden = true; sheetPlayer = null; }
+  $('sheetClose').addEventListener('click', closeSheet);
+  $('sheetBack').addEventListener('click', function (e) { if (e.target === this) closeSheet(); });
+
+  Array.prototype.forEach.call(document.querySelectorAll('.team-btn[data-team]'), function (b) {
+    b.addEventListener('click', function () {
+      team = b.getAttribute('data-team');
+      document.body.setAttribute('data-team', team);
+      Array.prototype.forEach.call(document.querySelectorAll('.team-btn[data-team]'), function (x) { x.classList.toggle('on', x === b); });
+      renderStats(); renderCards();
+    });
+  });
+
+  /* ================= starting XI prediction ================= */
+  var pteam = 'jp', draft = { jp: [], br: [] }, pdMsgT = 0;
+  if (hasEntry()) draft = { jp: save.entry.jp.slice(), br: save.entry.br.slice() };
+  function phase() {
+    var n = nowMs();
+    // Once the real line-ups are in the page, picks are locked even if the device clock is set back.
+    if (validXI('jp', ACTUAL_XI.jp) && validXI('br', ACTUAL_XI.br)) return 'done';
+    if (n < ENTRY_CLOSE) return 'open';
+    if (n < SETTLE_AT) return 'wait';
+    return validXI('jp', ACTUAL_XI.jp) && validXI('br', ACTUAL_XI.br) ? 'done' : 'late';
+  }
+  function fmtTime(ms, lang) {
+    try { return new Date(ms).toLocaleString((lang || save.lang) === 'ja' ? 'ja-JP' : 'en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); }
+    catch (e) { return new Date(ms).toString(); }
+  }
+  function scoreEntry() {
+    var out = { jp: 0, br: 0, moints: 0 };
+    ['jp', 'br'].forEach(function (tm) {
+      var hits = save.entry[tm].filter(function (n) { return ACTUAL_XI[tm].indexOf(n) >= 0; }).length;
+      out[tm] = hits;
+      out.moints += hits * PRIZE.hit + (hits === 11 ? PRIZE.all : hits >= 9 ? PRIZE.nine : 0);
+    });
+    return out;
+  }
+  // Pay once, when the results are in. The claim is kept in this page's save.
+  function settle() {
+    if (phase() !== 'done' || !hasEntry() || save.claimed) return;
+    var r = scoreEntry(), M = window.MokuMoint;
+    if (!M || !M.earn) return;
+    if (r.moints > 0) M.earn('event-japan-brazil', r.moints, { capped: false });
+    save.claimed = { moints: r.moints, jp: r.jp, br: r.br, at: new Date().toISOString() };
+    persist();
+    if (r.moints > 0) sfx.goal();
+  }
+  function renderPredict() {
+    var ph = phase(), entered = hasEntry(), ja = save.lang === 'ja';
+    var max = (11 * PRIZE.hit + PRIZE.all) * 2;
+    var order = save.lang === 'ja' ? [1, 0] : [0, 1];
+    $('pdRules').innerHTML = order.map(function (i, k) {
+      var block = T.pdRules[i], lg = i ? 'ja' : 'en';
+      var vars = { close: fmtTime(ENTRY_CLOSE, lg), results: fmtTime(SETTLE_AT, lg), hit: PRIZE.hit, nine: PRIZE.nine, all: PRIZE.all, max: max.toLocaleString('en-US') };
+      return '<div class="pd-lang' + (k ? ' sub' : '') + '"' + (i ? ' lang="ja"' : ' lang="en"') + '><h4>' + block[0] + '</h4><ol>' +
+        block[1].map(function (line) { return '<li>' + line.replace(/\{(\w+)\}/g, function (m, v) { return vars[v] !== undefined ? vars[v] : m; }) + '</li>'; }).join('') +
+        '</ol></div>';
+    }).join('');
+    $('pdState').textContent = t(ph === 'open' ? 'pdOpen' : ph === 'done' ? 'pdDone' : 'pdClosed');
+    $('pdWhen').textContent = ph === 'open' ? t('pdWhenOpen', { t: fmtTime(ENTRY_CLOSE) }) : ph === 'wait' ? t('pdWhenWait', { t: fmtTime(SETTLE_AT) }) : ph === 'late' ? t('pdWhenLate') : t('pdWhenDone');
+    $('pdPrizes').innerHTML = [[PRIZE.hit, 'pzHit'], [PRIZE.nine, 'pzNine'], [PRIZE.all, 'pzAll']].map(function (z) {
+      return '<div class="stat"><b>+' + z[0] + '</b><span>' + t(z[1]) + '</span></div>';
+    }).join('');
+    $('pdTabJ').textContent = t('japan'); $('pdTabB').textContent = t('brazil');
+    Array.prototype.forEach.call(document.querySelectorAll('[data-pteam]'), function (x) { x.classList.toggle('on', x.getAttribute('data-pteam') === pteam); });
+    document.body.setAttribute('data-team', $('predict').hidden ? team : pteam);
+
+    var res = $('pdResult');
+    res.hidden = true;
+    if (ph === 'done' && entered) {
+      var r = save.claimed || scoreEntry();
+      res.hidden = false;
+      res.innerHTML = '<div class="big">' + t('pdGot', { m: r.moints }) + '</div>' + t('pdHits', { j: r.jp, b: r.br }) + '<small>' + t('pdReal') + '</small>';
+    }
+
+    var picks = ph === 'open' ? draft[pteam] : (entered ? save.entry[pteam] : []);
+    var gk = picks.filter(function (n) { return squadRow(pteam, n)[3] === 'GK'; }).length;
+    $('pdCount').textContent = ph === 'open' ? t('pdCount', { team: t(pteam === 'jp' ? 'japan' : 'brazil'), n: picks.length, g: gk })
+      : entered ? (ph === 'done' ? '' : t('pdYour')) : t('pdNoEntry');
+    var host = $('pdLists');
+    host.innerHTML = '';
+    ['GK', 'DF', 'MF', 'FW'].forEach(function (pos) {
+      var rows = SQUADS[pteam].filter(function (r) { return r[3] === pos || (pos === 'MF' && r[3] === 'MF/FW'); });
+      if (!rows.length) return;
+      var grp = el('div', 'pd-group', '<h3>' + (pos === 'MF' && pteam === 'jp' ? 'MF / FW' : pos) + '</h3>'), list = el('div', 'pd-list');
+      rows.forEach(function (r) {
+        var on = picks.indexOf(r[1]) >= 0, real = ph === 'done' && ACTUAL_XI[pteam].indexOf(r[1]) >= 0;
+        var b = el('button', 'pick' + (ph === 'done' ? (on ? (real ? ' hit' : ' miss') : (real ? ' real' : '')) : (on ? ' on' : '')),
+          '<span class="n">' + (r[0] || '–') + '</span><span>' + esc(ja ? r[2] : r[1]) + '</span>');
+        b.type = 'button';
+        if (ph !== 'open') b.disabled = true;
+        else b.addEventListener('click', function () { togglePick(r); });
+        list.appendChild(b);
+      });
+      grp.appendChild(list); host.appendChild(grp);
+    });
+    var ready = validXI('jp', draft.jp) && validXI('br', draft.br);
+    var same = entered && ['jp', 'br'].every(function (tm) { return draft[tm].slice().sort().join('|') === save.entry[tm].slice().sort().join('|'); });
+    $('pdBar').hidden = ph !== 'open';
+    $('pdSave').textContent = t(entered ? 'pdUpdate' : 'pdSave');
+    $('pdSave').disabled = !ready || same;
+    if (Date.now() > pdMsgT) $('pdMsg').textContent = ph !== 'open' ? '' : !ready ? t('pdNeed') : same ? t('pdEntered') : '';
+  }
+  function pdSay(key) { $('pdMsg').textContent = t(key); pdMsgT = Date.now() + 2500; }
+  function togglePick(r) {
+    if (phase() !== 'open') return renderPredict();
+    var list = draft[pteam], i = list.indexOf(r[1]);
+    pdMsgT = 0;
+    if (i >= 0) list.splice(i, 1);
+    else {
+      if (r[3] === 'GK') draft[pteam] = list = list.filter(function (n) { return squadRow(pteam, n)[3] !== 'GK'; });   // one goalkeeper: swap
+      if (list.length >= 11) pdSay('pdFull');
+      else { list.push(r[1]); tone(660, 0.05, 'triangle', 0.06); }
+    }
+    renderPredict();
+  }
+  $('pdSave').addEventListener('click', function () {
+    if (phase() !== 'open' || !validXI('jp', draft.jp) || !validXI('br', draft.br)) return renderPredict();
+    save.entry = { jp: draft.jp.slice(), br: draft.br.slice(), at: new Date().toISOString() };
+    persist();
+    pdSay('pdSaved'); sfx.whistle();
+    renderPredict(); renderIntro(); renderCards();
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-pteam]'), function (b) {
+    b.addEventListener('click', function () { pteam = b.getAttribute('data-pteam'); pdMsgT = 0; renderPredict(); });
+  });
+  setInterval(function () { if (!$('predict').hidden) { settle(); renderPredict(); } }, 30000);
+
+  /* ================= language / tabs ================= */
+  function applyLang() {
+    document.documentElement.lang = save.lang;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-t]'), function (n) { n.textContent = t(n.getAttribute('data-t')); });
+    document.querySelector('[data-tab="guide"]').textContent = t('tabGuide');
+    document.querySelector('[data-tab="game"]').textContent = t('tabGame');
+    document.querySelector('[data-tab="predict"]').textContent = t('tabPredict');
+    $('heroPredict').textContent = t('heroPredict');
+    $('langBtn').textContent = t('lang');
+    $('heroPlay').textContent = t('heroPlay');
+    $('countdown').textContent = countdownText();
+    $('legend').innerHTML = t('legend');
+    $('kickoffBtn').textContent = t('kickoff');
+    $('howto').innerHTML = t('howto');
+    $('resumeBtn').textContent = t('resume');
+    $('quitBtn').textContent = t('quit');
+    $('againBtn').textContent = t('again');
+    $('endQuitBtn').textContent = t('back');
+    $('rotateQuit').textContent = t('back');
+    renderStats(); renderFilters(); renderCards(); renderIntro(); renderPredict();
+    if (sheetPlayer) openSheet(sheetPlayer);
+    updateButtons(true);
+  }
+  $('langBtn').addEventListener('click', function () {
+    save.lang = save.lang === 'ja' ? 'en' : 'ja';
+    persist(); applyLang();
+  });
+  function showTab(name) {
+    $('guide').hidden = name !== 'guide';
+    $('game').hidden = name !== 'game';
+    $('predict').hidden = name !== 'predict';
+    if (name === 'predict') settle();
+    renderPredict();
+    Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (b) { b.classList.toggle('on', b.getAttribute('data-tab') === name); });
+    window.scrollTo(0, 0);
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (b) {
+    b.addEventListener('click', function () { showTab(b.getAttribute('data-tab')); });
+  });
+  $('heroPlay').addEventListener('click', function () { showTab('game'); });
+  $('heroPredict').addEventListener('click', function () { showTab('predict'); });
+
+  function renderIntro() {
+    var host = $('lineup');
+    host.innerHTML = '';
+    ['jp', 'br'].forEach(function (tm) {
+      var box = el('div', 'lu', '<h3>' + (tm === 'jp' ? '🇯🇵 ' : '🇧🇷 ') + t(tm === 'jp' ? 'japan' : 'brazil') + '</h3>');
+      var ul = el('ul');
+      lineupOf(tm).forEach(function (q) {
+        ul.appendChild(el('li', null, '<b>' + (q.row[0] || '–') + '</b> ' + q.role + ' · ' + esc(save.lang === 'ja' ? q.row[2] : q.row[1])));
+      });
+      box.appendChild(ul);
+      host.appendChild(box);
+    });
+    host.appendChild(el('div', 'sub', t(hasEntry() ? 'xiMine' : 'xiDefault'))).style.cssText = 'grid-column:1/-1;text-align:center;color:var(--gold);font-weight:800;font-size:13px';
+    var lv = $('levels');
+    lv.innerHTML = '';
+    T.lv.forEach(function (pair, i) {
+      var b = el('button', 'lv' + (save.level === i ? ' on' : ''), L(pair));
+      b.type = 'button';
+      b.addEventListener('click', function () { save.level = i; persist(); renderIntro(); });
+      lv.appendChild(b);
+    });
+    $('record').textContent = save.played ? t('record', { w: save.wins, d: save.draws, l: save.losses, g: save.goals }) : '';
+  }
+
+  /* ================= sound (Web Audio, no files) ================= */
+  var actx = null;
+  function audio() {
+    if (!actx) {
+      try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { actx = null; }
+    }
+    if (actx && actx.state === 'suspended') actx.resume();
+    return actx;
+  }
+  function tone(freq, dur, type, vol, slide) {
+    var a = audio(); if (!a) return;
+    try {
+      var o = a.createOscillator(), g = a.createGain();
+      o.type = type || 'sine';
+      o.frequency.setValueAtTime(freq, a.currentTime);
+      if (slide) o.frequency.exponentialRampToValueAtTime(slide, a.currentTime + dur);
+      g.gain.setValueAtTime(vol || 0.12, a.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + dur);
+      o.connect(g); g.connect(a.destination);
+      o.start(); o.stop(a.currentTime + dur);
+    } catch (e) {}
+  }
+  function noise(dur, vol, freq) {
+    var a = audio(); if (!a) return;
+    try {
+      var len = Math.floor(a.sampleRate * dur), buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
+      for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.sin(Math.PI * i / len);
+      var s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+      s.buffer = buf; f.type = 'bandpass'; f.frequency.value = freq || 900; f.Q.value = 0.6; g.gain.value = vol || 0.2;
+      s.connect(f); f.connect(g); g.connect(a.destination); s.start();
+    } catch (e) {}
+  }
+  var sfx = {
+    kick: function () { tone(170, 0.09, 'triangle', 0.22, 70); },
+    pass: function () { tone(240, 0.06, 'triangle', 0.14, 120); },
+    whistle: function () { tone(2100, 0.28, 'square', 0.05); setTimeout(function () { tone(2100, 0.45, 'square', 0.05); }, 320); },
+    goal: function () { noise(2.2, 0.32, 1100); [523, 659, 784, 1047].forEach(function (f, i) { setTimeout(function () { tone(f, 0.22, 'triangle', 0.12); }, i * 110); }); },
+    sad: function () { noise(1.2, 0.12, 500); tone(300, 0.5, 'sine', 0.08, 180); },
+    save: function () { noise(0.5, 0.16, 1400); },
+    steal: function () { tone(420, 0.07, 'square', 0.06, 260); }
+  };
+
+  /* ================= mini game ================= */
+  var FW = 1500, FH = 900;                       // logical size (11 a side needs a big pitch)
+  var PX0 = 70, PX1 = 1430, PY0 = 80, PY1 = 840; // pitch
+  var GY = (PY0 + PY1) / 2, GH = 84;             // goal centre / half height
+  var MATCH = 180;                               // seconds
+  var LEVELS = [
+    { spd: 0.74, steal: 0.9, save: 0.56, aim: 70, think: 0.60, press: 1, jsave: 0.90, jsteal: 1.8 },
+    { spd: 0.88, steal: 1.5, save: 0.68, aim: 34, think: 0.40, press: 1, jsave: 0.80, jsteal: 1.2 },
+    { spd: 1.00, steal: 2.3, save: 0.78, aim: 18, think: 0.28, press: 2, jsave: 0.72, jsteal: 0.9 }
+  ];
+  // Home spots for the side attacking to the right (mirrored for Brazil).
+  var LINE_X = { GK: PX0 + 24, DF: 330, MF: 610, FW: 880 };   // each line spreads evenly from top to bottom
+  // How each player looks (v1.1.0: retro big-head style with a thick outline).
+  // skin / hair colour, hair style, beard (0 none, 1 stubble, 2 full), brow (thickness).
+  // The twelve players in the mini game are drawn by hand; everyone else gets a look from their name.
+  var SKIN = { fair: '#F7D2AE', tan: '#E9B98A', brown: '#C68A5A', dark: '#8A5A3C', deep: '#6B4430' };
+  var LOOKS = {
+    'Zion Suzuki':       { skin: SKIN.brown, hair: '#1A1512', style: 'curly', beard: 0, brow: 1.5 },
+    'Ko Itakura':        { skin: SKIN.fair,  hair: '#1C1814', style: 'short', beard: 0, brow: 1.7 },
+    'Ao Tanaka':         { skin: SKIN.fair,  hair: '#201A16', style: 'part',  beard: 0, brow: 1.4 },
+    'Takumi Minamino':   { skin: SKIN.fair,  hair: '#181412', style: 'part',  beard: 0, brow: 1.8 },
+    'Ritsu Doan':        { skin: SKIN.tan,   hair: '#D9B45A', style: 'spiky', beard: 0, brow: 1.8, browCol: '#3A2A1A' },
+    'Takefusa Kubo':     { skin: SKIN.fair,  hair: '#15120F', style: 'fringe', beard: 0, brow: 1.5 },
+    'Bento':             { skin: SKIN.brown, hair: '#17130F', style: 'fade',  beard: 2, brow: 1.6 },
+    'Gabriel Magalhães': { skin: SKIN.dark,  hair: '#120E0C', style: 'fade',  beard: 2, brow: 1.8 },
+    'Bruno Guimarães':   { skin: SKIN.tan,   hair: '#2A1C12', style: 'short', beard: 2, brow: 1.7 },
+    'João Gomes':        { skin: SKIN.brown, hair: '#15110E', style: 'buzz',  beard: 1, brow: 1.5 },
+    'Raphinha':          { skin: SKIN.tan,   hair: '#1E1610', style: 'fringe', beard: 1, brow: 1.6 },
+    'Vinicius Junior':   { skin: SKIN.deep,  hair: '#0F0C0A', style: 'curly', beard: 0, brow: 1.6 }
+  };
+  function lookOf(name) {
+    if (LOOKS[name]) return LOOKS[name];
+    var h = 0;
+    for (var i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+    var skins = [SKIN.fair, SKIN.tan, SKIN.brown, SKIN.dark], hairs = ['#1E1A17', '#2B1D12', '#151515'];
+    var styles = ['short', 'part', 'fringe', 'fade', 'buzz'];
+    LOOKS[name] = { skin: skins[h % skins.length], hair: hairs[(h >> 3) % hairs.length], style: styles[(h >> 5) % styles.length], beard: (h >> 9) % 4 === 0 ? 1 : 0, brow: 1.5 };
+    return LOOKS[name];
+  }
+
+  var cv = $('cv'), ctx = cv.getContext('2d');
+  // The camera follows the ball. On a phone the pitch is shown a little larger
+  // than the screen (so the players are easy to see) and scrolls with the play.
+  var WX0 = -150, WX1 = FW + 150, WY0 = -60, WY1 = FH + 60;   // the drawn world (pitch + stands)
+  var view = { s: 1, cx: FW / 2, cy: FH / 2, w: 0, h: 0, dpr: 1 };
+  var players = [], ball, G = null, pitchCache = null;
+  var input = { x: 0, y: 0, pass: false, shoot: false, keys: {}, touchId: null, sx: 0, sy: 0 };
+  var running = false, paused = false, last = 0, raf = 0;
+
+  function resize() {
+    var r = $('stage').getBoundingClientRect();
+    view.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    view.w = r.width; view.h = r.height;
+    cv.width = Math.round(r.width * view.dpr); cv.height = Math.round(r.height * view.dpr);
+    var fit = Math.min(r.width / FW, r.height / FH);
+    view.s = Math.max(fit, Math.min(r.height / 430, r.width / 800));
+    pitchCache = null;
+  }
+
+  function makeTeams() {
+    players = [];
+    ['jp', 'br'].forEach(function (tm, ti) {
+      var xi = lineupOf(tm), count = {}, seen = {};
+      xi.forEach(function (q) { count[q.role] = (count[q.role] || 0) + 1; });
+      xi.forEach(function (q) {
+        var i = seen[q.role] = (seen[q.role] || 0) + 1, n = count[q.role];
+        var sx = LINE_X[q.role], sy = q.role === 'GK' ? GY : PY0 + (PY1 - PY0) * (i - 0.5) / n;
+        // the middle of a line of three or more sits a little deeper (a gentle arc)
+        if (q.role !== 'GK' && n >= 3) sx -= (1 - Math.abs((i - 0.5) / n - 0.5) * 2) * 40;
+        var hx = ti === 0 ? sx : FW - sx;
+        players.push({ team: ti, gk: q.role === 'GK', role: q.role, num: q.row[0], en: q.en, ja: q.ja, look: lookOf(q.row[1]),
+          hx: hx, hy: sy, x: hx, y: sy, dir: ti === 0 ? 1 : -1, fx: ti === 0 ? 1 : -1, fy: 0,
+          run: 0, moving: false, stun: 0, safe: 0, cd: 0, dash: 0, dx: 0, dy: 0, think: 0, hold: 0 });
+      });
+    });
+  }
+  function nameOf(p) { return save.lang === 'ja' ? p.ja : p.en; }
+
+  function newMatch() {
+    makeTeams();
+    ball = { x: FW / 2, y: GY, vx: 0, vy: 0, owner: null, last: null, ignore: null, ignoreT: 0, shot: -1, saveTried: [false, false], spin: 0 };
+    G = { state: 'ready', t: 0, time: 0, score: [0, 0], ctrl: null, target: null, lv: LEVELS[save.level], confetti: [], flash: 0, talkT: 0, lastTalk: 0, goalTeam: 0, wait: 0 };
+    kickoff(0);
+    $('sJ').textContent = '0'; $('sB').textContent = '0'; $('clock').textContent = "0'";
+    say(['Kick-off at the National Stadium! Japan vs Brazil!', 'ナショナルスタジアムでキックオフ!日本 対 ブラジル!']);
+    sfx.whistle();
+  }
+  // Put everyone back; `tm` kicks off.
+  function kickoff(tm) {
+    players.forEach(function (p) {
+      p.x = p.hx; p.y = p.hy; p.stun = 0; p.dash = 0; p.cd = 0; p.safe = 0; p.hold = 0;
+      // Keep both sides in their own half.
+      if (!p.gk) p.x = p.team === 0 ? Math.min(p.x, FW / 2 - 60) : Math.max(p.x, FW / 2 + 60);
+      p.dir = p.team === 0 ? 1 : -1; p.fx = p.dir; p.fy = 0;
+    });
+    var ups = players.filter(function (p) { return p.team === tm && p.role === 'FW'; });
+    if (!ups.length) ups = players.filter(function (p) { return p.team === tm && !p.gk; });
+    var taker = ups[Math.floor(ups.length / 2)];
+    taker.x = FW / 2 - (tm === 0 ? 14 : -14); taker.y = GY;
+    ball.vx = ball.vy = 0; ball.owner = taker; ball.last = taker; ball.shot = -1; ball.ignore = null;
+    taker.safe = 1.2;
+    G.ctrl = tm === 0 ? taker : nearestTo(0, ball.x, ball.y, true);
+    G.target = null;
+    G.state = 'ready'; G.wait = 1.1;
+  }
+
+  function dist(ax, ay, bx, by) { return Math.hypot(ax - bx, ay - by); }
+  function nearestTo(tm, x, y, noGK, skip) {
+    var best = null, bd = 1e9;
+    players.forEach(function (p) {
+      if (p.team !== tm || (noGK && p.gk) || p === skip) return;
+      var d = dist(p.x, p.y, x, y);
+      if (d < bd) { bd = d; best = p; }
+    });
+    return best;
+  }
+  function say(pair, force) {
+    if (!G) return;
+    if (!force && G.time - G.lastTalk < 1.6 && G.talkT > 0) return;
+    var n = $('talk');
+    n.textContent = L(pair);
+    n.classList.add('on');
+    G.talkT = 3.2; G.lastTalk = G.time;
+  }
+
+  /* ----- actions ----- */
+  function kickBall(p, tx, ty, speed, isShot) {
+    var dx = tx - p.x, dy = ty - p.y, d = Math.hypot(dx, dy) || 1;
+    ball.owner = null;
+    ball.x = p.x + dx / d * 14; ball.y = p.y + dy / d * 14;
+    ball.vx = dx / d * speed; ball.vy = dy / d * speed;
+    ball.last = p; ball.ignore = p; ball.ignoreT = 0.28;
+    ball.shot = isShot ? p.team : -1; ball.saveTried = [false, false];
+    ball.shotD = dist(p.x, p.y, tx, ty);   // long shots are easier to save
+    p.fx = dx / d; p.fy = dy / d; if (Math.abs(dx) > 4) p.dir = dx > 0 ? 1 : -1;
+    p.cd = 0.3;
+  }
+  function doPass(p, sx, sy) {
+    var best = null, bs = -1e9, stick = Math.hypot(sx, sy) > 0.3, fwd = p.team === 0 ? 1 : -1;
+    players.forEach(function (q) {
+      if (q.team !== p.team || q === p || (q.gk && !p.gk && stick === false)) return;
+      var dx = q.x - p.x, dy = q.y - p.y, d = Math.hypot(dx, dy) || 1, s;
+      if (stick) s = (dx / d * sx + dy / d * sy) / Math.hypot(sx, sy) * 300 - d * 0.25;
+      else s = dx * fwd * 0.5 - Math.abs(d - 230) * 0.6;
+      // A marked teammate is a worse choice.
+      var m = nearestTo(1 - p.team, q.x, q.y, true);
+      if (m && dist(m.x, m.y, q.x, q.y) < 40) s -= 70;
+      if (q.gk) s -= 120;
+      if (s > bs) { bs = s; best = q; }
+    });
+    if (!best) return;
+    var d = dist(p.x, p.y, best.x, best.y);
+    kickBall(p, best.x + (best.moving ? best.fx * 22 : 0), best.y + (best.moving ? best.fy * 22 : 0), Math.min(640, 330 + d * 0.95), false);
+    if (p.team === 0) { G.ctrl = best; G.target = best; }
+    else G.brTarget = best;
+    sfx.pass();
+  }
+  function doShoot(p, sy, err) {
+    var gx = p.team === 0 ? PX1 + 12 : PX0 - 12;
+    var ty = GY + (Math.abs(sy) > 0.3 ? sy * (GH - 12) : (Math.random() < 0.5 ? -1 : 1) * (GH - 22) * (0.5 + Math.random() * 0.5));
+    ty += (Math.random() * 2 - 1) * err * (0.6 + dist(p.x, p.y, gx, GY) / 500);
+    kickBall(p, gx, ty, 800, true);
+    sfx.kick();
+    say(p.team === 0 ? [p.en + ' shoots!', p.ja + '、シュート!'] : [p.en + ' shoots for Brazil!', p.ja + 'のシュート!'], true);
+  }
+  function tackle(p) {
+    if (p.cd > 0 || p.stun > 0) return;
+    var o = ball.owner, dx = p.fx, dy = p.fy;
+    if (o && o.team !== p.team) { dx = o.x - p.x; dy = o.y - p.y; }
+    else if (!o) { dx = ball.x - p.x; dy = ball.y - p.y; }
+    var d = Math.hypot(dx, dy) || 1;
+    p.dash = 0.24; p.dx = dx / d; p.dy = dy / d; p.cd = 0.75;
+    sfx.steal();
+  }
+  function steal(p, from) {
+    ball.owner = p; ball.last = p; ball.shot = -1;
+    from.stun = 0.55; p.safe = 0.7; p.cd = 0.2;
+    if (p.team === 0) { G.ctrl = p; G.target = null; say([p.en + ' wins the ball!', p.ja + 'がボールをうばった!']); }
+    else say([p.en + ' takes it for Brazil.', p.ja + 'にうばわれた!']);
+    sfx.steal();
+  }
+
+  /* ----- movement ----- */
+  function moveTo(p, tx, ty, speed, dt) {
+    var dx = tx - p.x, dy = ty - p.y, d = Math.hypot(dx, dy);
+    if (d < 3) { p.moving = false; return; }
+    var step = Math.min(d, speed * dt);
+    p.x += dx / d * step; p.y += dy / d * step;
+    p.fx = dx / d; p.fy = dy / d; p.moving = true;
+    if (Math.abs(dx) > 2) p.dir = dx > 0 ? 1 : -1;
+  }
+  function homeSpot(p, attacking) {
+    var fwd = p.team === 0 ? 1 : -1;
+    var x = p.hx + (ball.x - FW / 2) * (p.role === 'DF' ? 0.42 : 0.55) + (attacking ? 70 : -40) * fwd * (p.role === 'DF' ? 0.5 : 1);
+    var y = p.hy + (ball.y - GY) * 0.28;
+    if (p.role === 'DF') x = p.team === 0 ? Math.min(x, FW / 2 + 40) : Math.max(x, FW / 2 - 40);
+    return [Math.max(PX0 + 50, Math.min(PX1 - 50, x)), Math.max(PY0 + 30, Math.min(PY1 - 30, y))];
+  }
+  function updateGK(p, dt, lv) {
+    var gx = p.team === 0 ? PX0 + 24 : PX1 - 24, sp = 190 * (p.team === 1 ? lv.spd : 0.92);
+    if (ball.owner === p) {
+      p.hold -= dt; p.moving = false;
+      if (p.hold <= 0) {
+        var mates = players.filter(function (q) { return q.team === p.team && !q.gk; });
+        mates.sort(function (a, b) {
+          var ma = nearestTo(1 - p.team, a.x, a.y, true), mb = nearestTo(1 - p.team, b.x, b.y, true);
+          return dist(mb.x, mb.y, b.x, b.y) - dist(ma.x, ma.y, a.x, a.y);
+        });
+        var q = mates[0];
+        kickBall(p, q.x, q.y, Math.min(640, 340 + dist(p.x, p.y, q.x, q.y) * 0.9), false);
+        if (p.team === 0) { G.ctrl = q; G.target = q; } else G.brTarget = q;
+        sfx.pass();
+      }
+      return;
+    }
+    var looseNear = !ball.owner && dist(ball.x, ball.y, gx, GY) < 120 && Math.hypot(ball.vx, ball.vy) < 150;
+    if (looseNear) moveTo(p, ball.x, ball.y, sp, dt);
+    else moveTo(p, gx, Math.max(GY - GH + 10, Math.min(GY + GH - 10, GY + (ball.y - GY) * 0.75)), sp, dt);
+    if (!looseNear) p.dir = p.team === 0 ? 1 : -1;
+  }
+
+  function updateBrazil(p, dt, lv, chasers) {
+    var sp = 168 * lv.spd, o = ball.owner;
+    if (o === p) {
+      p.think -= dt;
+      var gx = PX0, dGoal = dist(p.x, p.y, gx, GY);
+      var def = nearestTo(0, p.x, p.y, true), dd = def ? dist(def.x, def.y, p.x, p.y) : 999;
+      if (p.think <= 0) {
+        p.think = lv.think;
+        if (dGoal < 240 && Math.abs(p.y - GY) < 190) { doShoot(p, 0, lv.aim); return; }
+        if (dd < 52 && Math.random() < 0.6) { doPass(p, 0, 0); say([p.en + ' passes.', p.ja + 'がパス。']); return; }
+        if (p.role === 'DF' && Math.random() < 0.5) { doPass(p, 0, 0); return; }
+      }
+      var ty = GY + (p.y - GY) * 0.55, tx = gx + 120;
+      if (def && dd < 80 && def.x < p.x) ty += (p.y >= def.y ? 1 : -1) * 70;
+      moveTo(p, tx, Math.max(PY0 + 20, Math.min(PY1 - 20, ty)), sp * 0.93, dt);
+      return;
+    }
+    if (G.brTarget === p && !o) { moveTo(p, ball.x, ball.y, sp, dt); return; }
+    if (chasers.indexOf(p) >= 0) {
+      var tx2 = ball.x, ty2 = ball.y;
+      if (o && o.team === 0) { tx2 = o.x + o.fx * 10; ty2 = o.y + o.fy * 10; }
+      moveTo(p, tx2, ty2, sp, dt);
+      if (o && o.team === 0 && !o.gk && o.safe <= 0 && dist(p.x, p.y, o.x, o.y) < 19 && Math.random() < lv.steal * dt) steal(p, o);
+      return;
+    }
+    var h = homeSpot(p, o && o.team === 1);
+    moveTo(p, h[0], h[1], sp * 0.85, dt);
+  }
+
+  function updateMate(p, dt, chaser) {
+    var sp = 160, o = ball.owner;
+    if (G.target === p && !o) { moveTo(p, ball.x, ball.y, 175, dt); return; }
+    if (p === chaser) {
+      var tx = ball.x, ty = ball.y;
+      if (o && o.team === 1) { tx = o.x + o.fx * 10; ty = o.y + o.fy * 10; }
+      moveTo(p, tx, ty, sp, dt);
+      if (o && o.team === 1 && !o.gk && o.safe <= 0 && dist(p.x, p.y, o.x, o.y) < 19 && Math.random() < G.lv.jsteal * dt) steal(p, o);
+      return;
+    }
+    var h = homeSpot(p, o && o.team === 0);
+    moveTo(p, h[0], h[1], sp * 0.85, dt);
+  }
+
+  function updateCtrl(p, dt) {
+    var mag = Math.hypot(input.x, input.y), o = ball.owner;
+    if (p.dash > 0) {
+      p.dash -= dt;
+      p.x += p.dx * 340 * dt; p.y += p.dy * 340 * dt; p.moving = true;
+      if (o && o.team === 1 && !o.gk && o.safe <= 0 && dist(p.x, p.y, o.x, o.y) < 24) { p.dash = 0; steal(p, o); }
+      return;
+    }
+    if (mag > 0.18) {
+      var m = Math.min(1, mag), sp = (o === p ? 170 : 182) * m;
+      p.x += input.x / mag * sp * dt; p.y += input.y / mag * sp * dt;
+      p.fx = input.x / mag; p.fy = input.y / mag; p.moving = true;
+      if (Math.abs(input.x) > 0.15) p.dir = input.x > 0 ? 1 : -1;
+      if (G.target === p) G.target = null;
+    } else if (G.target === p && !o) {
+      moveTo(p, ball.x, ball.y, 175, dt);
+    } else p.moving = false;
+
+    if (input.pass) {
+      input.pass = false;
+      if (o === p) { doPass(p, input.x, input.y); }
+      else {
+        var n = nearestTo(0, ball.x, ball.y, true, p);
+        if (n) { G.ctrl = n; G.target = null; }
+      }
+    }
+    if (input.shoot) {
+      input.shoot = false;
+      if (o === p) doShoot(p, input.y, 16);
+      else tackle(p);
+    }
+  }
+
+  /* ----- one step ----- */
+  function step(dt) {
+    var lv = G.lv;
+    G.t += dt;
+    if (G.talkT > 0) { G.talkT -= dt; if (G.talkT <= 0) $('talk').classList.remove('on'); }
+    if (G.flash > 0) G.flash -= dt;
+    G.confetti.forEach(function (c) { c.x += c.vx * dt; c.y += c.vy * dt; c.vy += 260 * dt; c.r += c.vr * dt; c.life -= dt; });
+    G.confetti = G.confetti.filter(function (c) { return c.life > 0; });
+
+    if (G.state === 'ready') {
+      G.wait -= dt;
+      if (G.wait <= 0) G.state = 'play';
+      input.pass = input.shoot = false;
+      return;
+    }
+    if (G.state === 'goal') {
+      G.wait -= dt;
+      ball.x += ball.vx * dt; ball.y += ball.vy * dt; ball.vx *= 0.9; ball.vy *= 0.9;
+      players.forEach(function (p) { p.run += dt * 10; p.moving = p.team === G.goalTeam; });
+      if (G.wait <= 0) {
+        if (G.time >= MATCH) return finish();
+        kickoff(1 - G.goalTeam);
+      }
+      return;
+    }
+    if (G.state !== 'play') return;
+
+    G.time += dt;
+    var minute = Math.min(90, Math.floor(G.time / MATCH * 90));
+    $('clock').textContent = minute + "'";
+    if (G.time >= MATCH) return finish();
+
+    var o = ball.owner;
+    // Brazil: the closest one (two on Hard) goes for the ball.
+    var brField = players.filter(function (p) { return p.team === 1 && !p.gk && p !== o && p.stun <= 0; });
+    brField.sort(function (a, b) { return dist(a.x, a.y, ball.x, ball.y) - dist(b.x, b.y, ball.x, ball.y); });
+    var chasers = (!o || o.team === 0) ? brField.slice(0, lv.press) : [];
+    // Japan: one teammate (not the one you control) helps when Brazil has the ball.
+    var jpField = players.filter(function (p) { return p.team === 0 && !p.gk && p !== G.ctrl && p.stun <= 0; });
+    jpField.sort(function (a, b) { return dist(a.x, a.y, ball.x, ball.y) - dist(b.x, b.y, ball.x, ball.y); });
+    var helper = (o && o.team === 1) ? jpField[0] : null;
+
+    players.forEach(function (p) {
+      if (p.cd > 0) p.cd -= dt;
+      if (p.safe > 0) p.safe -= dt;
+      if (p.stun > 0) { p.stun -= dt; p.moving = false; return; }
+      if (p.gk) updateGK(p, dt, lv);
+      else if (p === G.ctrl) updateCtrl(p, dt);
+      else if (p.team === 1) updateBrazil(p, dt, lv, chasers);
+      else updateMate(p, dt, helper);
+      p.x = Math.max(PX0 + 6, Math.min(PX1 - 6, p.x));
+      p.y = Math.max(PY0 + 6, Math.min(PY1 - 6, p.y));
+      if (p.moving) p.run += dt * 13;
+    });
+    // Players do not stand on top of each other.
+    for (var i = 0; i < players.length; i++) for (var j = i + 1; j < players.length; j++) {
+      var a = players[i], b = players[j], dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy);
+      if (d > 0 && d < 17) { var push = (17 - d) / 2; a.x -= dx / d * push; a.y -= dy / d * push; b.x += dx / d * push; b.y += dy / d * push; }
+    }
+
+    // Ball
+    o = ball.owner;
+    if (o) {
+      ball.x = o.x + o.fx * 12; ball.y = o.y + o.fy * 12 + 3; ball.vx = ball.vy = 0;
+    } else {
+      if (ball.ignoreT > 0) { ball.ignoreT -= dt; if (ball.ignoreT <= 0) ball.ignore = null; }
+      ball.x += ball.vx * dt; ball.y += ball.vy * dt;
+      var f = Math.exp(-0.95 * dt); ball.vx *= f; ball.vy *= f;
+      ball.spin += Math.hypot(ball.vx, ball.vy) * dt * 0.05;
+      var inMouth = Math.abs(ball.y - GY) < GH;
+      if (ball.x > PX1 + 6 && inMouth) return goal(0);
+      if (ball.x < PX0 - 6 && inMouth) return goal(1);
+      if (ball.x < PX0 + 5 && !inMouth) { ball.x = PX0 + 5; ball.vx = Math.abs(ball.vx) * 0.6; }
+      if (ball.x > PX1 - 5 && !inMouth) { ball.x = PX1 - 5; ball.vx = -Math.abs(ball.vx) * 0.6; }
+      if (ball.y < PY0 + 5) { ball.y = PY0 + 5; ball.vy = Math.abs(ball.vy) * 0.6; }
+      if (ball.y > PY1 - 5) { ball.y = PY1 - 5; ball.vy = -Math.abs(ball.vy) * 0.6; }
+
+      var speed = Math.hypot(ball.vx, ball.vy);
+      for (var k = 0; k < players.length; k++) {
+        var p = players[k];
+        if (p === ball.ignore || p.stun > 0) continue;
+        var dd = dist(p.x, p.y, ball.x, ball.y);
+        if (p.gk) {
+          if (dd < 26) {
+            if (ball.shot === 1 - p.team) {
+              if (ball.saveTried[p.team]) continue;
+              ball.saveTried[p.team] = true;
+              var chance = (p.team === 1 ? lv.save : lv.jsave) + Math.max(0, Math.min(0.3, (ball.shotD - 240) / 600));
+              if (Math.random() > chance) continue;      // beaten!
+              say(p.team === 1 ? ['Great save by ' + p.en + '!', p.ja + 'のナイスセーブ!'] : [p.en + ' saves it! Well done!', p.ja + 'が止めた!ナイスセーブ!'], true);
+              sfx.save();
+            }
+            take(p); p.hold = 0.8;
+            break;
+          }
+        } else if (dd < 15 && (speed < 560 || ball.shot < 0 || ball.shot !== p.team)) {
+          if (ball.shot >= 0 && ball.shot !== p.team && speed > 420 && Math.random() < 0.5) {   // blocked shot bounces away
+            ball.vx *= -0.45; ball.vy = (Math.random() - 0.5) * 300; ball.shot = -1; ball.ignore = p; ball.ignoreT = 0.25;
+            say(p.team === 0 ? ['Blocked by ' + p.en + '!', p.ja + 'がブロック!'] : ['Blocked!', 'ブロックされた!']);
+            break;
+          }
+          take(p);
+          break;
+        }
+      }
+    }
+    updateButtons(false);
+  }
+  function take(p) {
+    var before = ball.last;
+    ball.owner = p; ball.last = p; ball.shot = -1; ball.vx = ball.vy = 0; p.safe = Math.max(p.safe, 0.35);
+    if (p.team === 0) {
+      if (!p.gk) { G.ctrl = p; }
+      G.target = null;
+      if (before && before.team === 1 && !p.gk) say([p.en + ' cuts it out!', p.ja + 'がカット!']);
+    } else {
+      G.brTarget = null;
+      // You get the defender closest to the ball.
+      if (before && before.team === 0) { var n = nearestTo(0, p.x, p.y, true); if (n) G.ctrl = n; G.target = null; }
+      if (!p.gk && p.role === 'FW' && G.time - G.lastTalk > 2.5) say([p.en + ' is on the attack!', p.ja + 'が攻めてくる!']);
+    }
+  }
+  function goal(tm) {
+    G.score[tm]++;
+    G.state = 'goal'; G.wait = 2.6; G.goalTeam = tm; G.flash = 0.5;
+    $('sJ').textContent = G.score[0]; $('sB').textContent = G.score[1];
+    var who = ball.last, own = who && who.team !== tm;
+    if (tm === 0) {
+      say(own ? ['GOAL for Japan! An own goal!', 'ゴール!オウンゴールで日本に1点!'] : ['GOOOAL! ' + who.en + ' scores for Japan!', 'ゴーーール!' + who.ja + 'が決めた!'], true);
+      sfx.goal();
+      for (var i = 0; i < 90; i++) G.confetti.push({ x: view.cx + (Math.random() - 0.5) * 700, y: view.cy - 260 - Math.random() * 120, vx: (Math.random() - 0.5) * 120, vy: 60 + Math.random() * 160, r: Math.random() * 6, vr: (Math.random() - 0.5) * 10, life: 2.6, c: ['#FFFFFF', '#2F5BD8', '#E53E3E', '#FFD35A'][i % 4] });
+    } else {
+      say(own ? ['Oh no, an own goal…', 'ああっ、オウンゴール…'] : ['Goal for Brazil. ' + who.en + ' scores.', 'ブラジルのゴール。' + who.ja + 'に決められた。'], true);
+      sfx.sad();
+    }
+  }
+  function finish() {
+    G.state = 'end';
+    sfx.whistle();
+    var j = G.score[0], b = G.score[1];
+    save.played++; save.goals += j;
+    if (j > b) save.wins++; else if (j === b) save.draws++; else save.losses++;
+    persist();
+    $('endTitle').textContent = t(j > b ? 'win' : j === b ? 'draw' : 'lose');
+    $('endScore').textContent = '🇯🇵 ' + j + ' – ' + b + ' 🇧🇷';
+    $('endText').textContent = t('full') + ' · ' + t(j > b ? 'winT' : j === b ? 'drawT' : 'loseT');
+    $('endBox').hidden = false;
+    if (j > b) sfx.goal();
+    renderIntro();
+  }
+
+  /* ----- drawing ----- */
+  // A big-head player in a retro arcade style, drawn around (0, 0) = feet, facing right
+  // (mirrored when running left). About 37 units tall; the head is more than half of it.
+  var INK = '#2A1A12';
+  function drawChibi(c, p) {
+    var kit = p.team === 0
+      ? (p.gk ? ['#F08A24', '#B85C0C', '#22262E'] : ['#2F5BD8', '#16307E', '#FFFFFF'])
+      : (p.gk ? ['#3BB273', '#1E7A4A', '#22262E'] : ['#F5C518', '#0E8A45', '#2456C8']);
+    var k = p.look, sw = p.moving ? Math.sin(p.run) * 2.6 : 0, bob = p.moving ? Math.abs(Math.sin(p.run)) * 0.8 : 0;
+    c.save();
+    c.scale(p.dir < 0 ? -1 : 1, 1);
+    c.lineJoin = 'round'; c.lineCap = 'round';
+    c.strokeStyle = INK; c.lineWidth = 1.3;
+    // boots
+    c.fillStyle = '#1B1B1F';
+    c.beginPath(); c.ellipse(-3 + sw, -1.2, 3.3, 2, 0, 0, 6.3); c.fill();
+    c.beginPath(); c.ellipse(3.4 - sw, -1.2, 3.3, 2, 0, 0, 6.3); c.fill();
+    // socks / legs
+    c.fillStyle = k.skin;
+    c.fillRect(-4.6 + sw * 0.6, -5, 3, 3.4); c.fillRect(2 - sw * 0.6, -5, 3, 3.4);
+    // shorts
+    c.fillStyle = kit[2];
+    c.beginPath(); c.roundRect(-6, -9.5, 12, 5.5, 2); c.fill(); c.stroke();
+    // back arm
+    c.fillStyle = kit[0];
+    c.beginPath(); c.ellipse(-7.6, -12 - sw * 0.5, 2.3, 3.4, 0.35, 0, 6.3); c.fill(); c.stroke();
+    // shirt
+    c.beginPath(); c.roundRect(-7, -17, 14, 9, 3); c.fill(); c.stroke();
+    c.fillStyle = kit[1]; c.fillRect(-6.2, -16.4, 12.4, 1.8);
+    // front arm and fist
+    c.fillStyle = kit[0];
+    c.beginPath(); c.ellipse(7.4, -12 + sw * 0.5, 2.3, 3.4, -0.35, 0, 6.3); c.fill(); c.stroke();
+    c.fillStyle = k.skin;
+    c.beginPath(); c.arc(8.2, -8.8 + sw * 0.5, 1.7, 0, 6.3); c.fill(); c.stroke();
+
+    // ---- head ----
+    c.translate(0, -bob);
+    var hx = -10, hy = -37, hw = 21.5, hh = 21;        // head box
+    // ear (behind)
+    c.fillStyle = k.skin;
+    c.beginPath(); c.ellipse(hx + 1.2, hy + 12.5, 2.2, 2.8, 0, 0, 6.3); c.fill(); c.stroke();
+    // face
+    c.beginPath(); c.roundRect(hx, hy, hw, hh, [9, 9, 8, 7]); c.fill();
+    // beard (under the outline)
+    if (k.beard) {
+      c.save();
+      c.beginPath(); c.roundRect(hx, hy, hw, hh, [9, 9, 8, 7]); c.clip();
+      c.fillStyle = k.hair; c.globalAlpha = k.beard === 2 ? 0.85 : 0.28;
+      c.beginPath(); c.moveTo(hx, hy + 12.5); c.quadraticCurveTo(hx + 4, hy + 16, hx + 9, hy + 15.6);
+      c.lineTo(hx + 14, hy + 14.6); c.quadraticCurveTo(hx + 19, hy + 15.2, hx + hw, hy + 12.5);
+      c.lineTo(hx + hw, hy + hh); c.lineTo(hx, hy + hh); c.closePath(); c.fill();
+      c.restore();
+    }
+    c.beginPath(); c.roundRect(hx, hy, hw, hh, [9, 9, 8, 7]); c.stroke();
+    // hair
+    c.fillStyle = k.hair;
+    c.beginPath();
+    var top = hy - 1.4, L0 = hx - 0.9, R0 = hx + hw + 0.6;
+    if (k.style === 'buzz' || k.style === 'fade') {
+      c.moveTo(L0 + 1, hy + 7.2); c.quadraticCurveTo(L0 + 1, top + 0.6, hx + 9, top + 0.4);
+      c.quadraticCurveTo(R0 - 1, top + 0.6, R0 - 1, hy + 6.4);
+      c.quadraticCurveTo(hx + 12, hy + (k.style === 'fade' ? 2.6 : 3.6), L0 + 1, hy + 7.2);
+    } else if (k.style === 'curly') {
+      c.moveTo(L0, hy + 8.5);
+      c.quadraticCurveTo(L0 - 1.6, hy + 4, L0 + 2.2, hy + 1.6); c.quadraticCurveTo(L0 + 3, top - 2.2, hx + 7, top - 0.8);
+      c.quadraticCurveTo(hx + 10.5, top - 3, hx + 14, top - 0.8); c.quadraticCurveTo(hx + 18.5, top - 2, R0 - 1.6, hy + 2);
+      c.quadraticCurveTo(R0 + 1.2, hy + 4.2, R0 - 0.4, hy + 7.2);
+      c.quadraticCurveTo(hx + 17, hy + 4.6, hx + 12.5, hy + 5.6); c.quadraticCurveTo(hx + 8, hy + 4.4, hx + 4.4, hy + 6.4);
+      c.quadraticCurveTo(L0 + 1.6, hy + 6.6, L0, hy + 8.5);
+    } else if (k.style === 'spiky') {
+      c.moveTo(L0, hy + 9); c.lineTo(L0 + 0.4, hy + 2.5); c.lineTo(hx + 2.5, top - 2.6); c.lineTo(hx + 5.6, top + 0.6);
+      c.lineTo(hx + 8.4, top - 3.6); c.lineTo(hx + 11.4, top + 0.4); c.lineTo(hx + 15, top - 3.2); c.lineTo(hx + 17.4, top + 1);
+      c.lineTo(R0 + 0.6, top - 0.6); c.lineTo(R0 - 0.2, hy + 7);
+      c.lineTo(hx + 17.6, hy + 4.4); c.lineTo(hx + 14.6, hy + 6.6); c.lineTo(hx + 11, hy + 4.2); c.lineTo(hx + 7.4, hy + 6.6); c.lineTo(hx + 4.2, hy + 5); c.closePath();
+    } else if (k.style === 'fringe') {
+      c.moveTo(L0, hy + 11); c.quadraticCurveTo(L0 - 1, top - 0.4, hx + 9, top - 1);
+      c.quadraticCurveTo(R0 + 1.2, top - 0.2, R0, hy + 9.2);
+      c.lineTo(hx + 19.4, hy + 6.6); c.lineTo(hx + 17, hy + 9); c.lineTo(hx + 14.2, hy + 6.8); c.lineTo(hx + 11.4, hy + 9); c.lineTo(hx + 8.4, hy + 6.8); c.lineTo(hx + 5.6, hy + 8.6);
+      c.lineTo(hx + 4, hy + 6); c.closePath();
+    } else if (k.style === 'part') {
+      c.moveTo(L0, hy + 10.4); c.quadraticCurveTo(L0 - 1, top - 0.6, hx + 9, top - 1.2);
+      c.quadraticCurveTo(R0 + 1.6, top - 0.6, R0 + 0.2, hy + 8.6);
+      c.quadraticCurveTo(hx + 19, hy + 3.4, hx + 13, hy + 4); c.quadraticCurveTo(hx + 7, hy + 4.6, hx + 4.6, hy + 8.4);
+      c.lineTo(hx + 3.8, hy + 5.6); c.closePath();
+    } else {   // short
+      c.moveTo(L0, hy + 9.4); c.quadraticCurveTo(L0 - 0.6, top, hx + 9, top - 0.6);
+      c.quadraticCurveTo(R0 + 1, top, R0, hy + 7.4);
+      c.lineTo(hx + 18.6, hy + 5); c.lineTo(hx + 15.4, hy + 6); c.lineTo(hx + 11.6, hy + 4.8); c.lineTo(hx + 7.6, hy + 6); c.lineTo(hx + 4.4, hy + 5.2); c.closePath();
+    }
+    if (k.style === 'buzz') { c.globalAlpha = 0.72; c.fill(); c.globalAlpha = 1; }
+    else { c.fill(); c.lineWidth = 1.1; c.stroke(); c.lineWidth = 1.3; }
+    // eyes: white with a big dark pupil looking forward
+    var ey = hy + 11.6;
+    c.fillStyle = '#FFFFFF';
+    c.beginPath(); c.ellipse(hx + 10.6, ey, 2.5, 2.9, 0, 0, 6.3); c.fill(); c.lineWidth = 0.8; c.stroke();
+    c.beginPath(); c.ellipse(hx + 17.2, ey, 2.2, 2.9, 0, 0, 6.3); c.fill(); c.stroke();
+    c.fillStyle = '#17110D';
+    c.beginPath(); c.ellipse(hx + 11.4, ey + 0.3, 1.35, 1.9, 0, 0, 6.3); c.fill();
+    c.beginPath(); c.ellipse(hx + 17.8, ey + 0.3, 1.25, 1.9, 0, 0, 6.3); c.fill();
+    c.fillStyle = '#FFFFFF';
+    c.beginPath(); c.arc(hx + 11.9, ey - 0.6, 0.5, 0, 6.3); c.fill();
+    c.beginPath(); c.arc(hx + 18.2, ey - 0.6, 0.45, 0, 6.3); c.fill();
+    // strong eyebrows
+    c.strokeStyle = k.browCol || k.hair; c.lineWidth = k.brow || 1.5;
+    c.beginPath(); c.moveTo(hx + 7.6, ey - 5); c.lineTo(hx + 13.2, ey - 3.9); c.stroke();
+    c.beginPath(); c.moveTo(hx + 15.4, ey - 3.9); c.lineTo(hx + 20, ey - 5); c.stroke();
+    // nose and mouth
+    c.strokeStyle = INK; c.lineWidth = 0.9;
+    c.beginPath(); c.moveTo(hx + 14.6, ey + 2.6); c.lineTo(hx + 15.8, ey + 3.4); c.stroke();
+    c.lineWidth = 1.1;
+    c.beginPath(); c.moveTo(hx + 12, ey + 6); c.quadraticCurveTo(hx + 14.6, ey + 7.2, hx + 17.4, ey + 5.6); c.stroke();
+    c.restore();
+    // number (never mirrored)
+    if (p.num) {
+      c.fillStyle = p.team === 0 || p.gk ? '#FFFFFF' : '#0B5A2C';
+      c.font = '800 6.4px -apple-system, "Segoe UI", sans-serif';
+      c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText(p.num, 0, -11.4);
+    }
+  }
+
+  function buildPitch() {
+    var c = document.createElement('canvas');
+    var k = view.s * view.dpr;
+    c.width = Math.ceil((WX1 - WX0) * k); c.height = Math.ceil((WY1 - WY0) * k);
+    var g = c.getContext('2d');
+    g.fillStyle = '#07101C'; g.fillRect(0, 0, c.width, c.height);
+    g.setTransform(k, 0, 0, k, -WX0 * k, -WY0 * k);
+    // stands and crowd
+    var grad = g.createLinearGradient(0, 0, 0, PY0);
+    grad.addColorStop(0, '#0C1730'); grad.addColorStop(1, '#1B2B52');
+    g.fillStyle = grad; g.fillRect(WX0, WY0, WX1 - WX0, PY0 - WY0 - 6);
+    g.fillStyle = '#0E1A33'; g.fillRect(WX0, PY1 + 6, WX1 - WX0, WY1 - PY1);
+    var cols = ['#2F5BD8', '#FFFFFF', '#F5C518', '#0E8A45', '#E53E3E', '#9FB3D9'];
+    for (var i = 0; i < 1500; i++) {
+      var x = WX0 + (i * 37.7) % (WX1 - WX0), y = WY0 + 6 + ((i * 53.3) % (PY0 - WY0 - 26));
+      g.fillStyle = cols[(i * 7) % cols.length]; g.globalAlpha = 0.55;
+      g.beginPath(); g.arc(x, y, 3.2, 0, 6.3); g.fill();
+    }
+    g.globalAlpha = 1;
+    // advert boards
+    g.fillStyle = '#10182B'; g.fillRect(PX0 - 30, PY0 - 14, PX1 - PX0 + 60, 9);
+    g.font = '800 7px -apple-system, "Segoe UI", sans-serif'; g.textBaseline = 'middle'; g.textAlign = 'center';
+    var ads = ['JAPAN vs BRAZIL', 'SINGAPORE 2026', 'NATIONAL STADIUM', 'NOV 14'];
+    for (var ai = 0; PX0 + 75 + ai * 150 < PX1; ai++) { g.fillStyle = ai % 2 ? '#FFD35A' : '#9FB3D9'; g.fillText(ads[ai % 4], PX0 + 75 + ai * 150, PY0 - 9.5); }
+    // grass
+    g.fillStyle = '#23703B'; g.fillRect(PX0 - 30, PY0 - 5, PX1 - PX0 + 60, PY1 - PY0 + 10);
+    var n = 18, sw = (PX1 - PX0) / n;
+    for (i = 0; i < n; i++) { g.fillStyle = i % 2 ? '#2E8B4A' : '#2A8245'; g.fillRect(PX0 + i * sw, PY0, sw + 0.5, PY1 - PY0); }
+    // lines
+    g.strokeStyle = 'rgba(255,255,255,0.85)'; g.lineWidth = 2.5;
+    g.strokeRect(PX0, PY0, PX1 - PX0, PY1 - PY0);
+    g.beginPath(); g.moveTo(FW / 2, PY0); g.lineTo(FW / 2, PY1); g.stroke();
+    g.beginPath(); g.arc(FW / 2, GY, 80, 0, 6.3); g.stroke();
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(FW / 2, GY, 3.5, 0, 6.3); g.fill();
+    g.strokeRect(PX0, GY - 210, 190, 420); g.strokeRect(PX1 - 190, GY - 210, 190, 420);
+    g.strokeRect(PX0, GY - GH - 30, 70, GH * 2 + 60); g.strokeRect(PX1 - 70, GY - GH - 30, 70, GH * 2 + 60);
+    // goals
+    [[PX0, -1], [PX1, 1]].forEach(function (s) {
+      var x = s[0], d = s[1];
+      g.fillStyle = 'rgba(255,255,255,0.14)'; g.fillRect(d < 0 ? x - 24 : x, GY - GH, 24, GH * 2);
+      g.strokeStyle = 'rgba(255,255,255,0.35)'; g.lineWidth = 0.8;
+      for (var yy = GY - GH; yy <= GY + GH; yy += 9) { g.beginPath(); g.moveTo(x, yy); g.lineTo(x + d * 24, yy); g.stroke(); }
+      for (var xx = 0; xx <= 24; xx += 8) { g.beginPath(); g.moveTo(x + d * xx, GY - GH); g.lineTo(x + d * xx, GY + GH); g.stroke(); }
+      g.strokeStyle = '#fff'; g.lineWidth = 4;
+      g.beginPath(); g.moveTo(x, GY - GH); g.lineTo(x + d * 24, GY - GH); g.lineTo(x + d * 24, GY + GH); g.lineTo(x, GY + GH); g.stroke();
+    });
+    pitchCache = c;
+  }
+
+  function draw() {
+    if (!pitchCache) buildPitch();
+    // camera: keep the ball in view, never show past the edge of the pitch
+    var hw = view.w / view.s / 2, hh = view.h / view.s / 2;
+    var tx = hw * 2 >= FW ? FW / 2 : Math.max(hw, Math.min(FW - hw, ball.x));
+    var ty = hh * 2 >= FH ? FH / 2 : Math.max(hh, Math.min(FH - hh, ball.y));
+    view.cx += (tx - view.cx) * 0.12; view.cy += (ty - view.cy) * 0.12;
+    var k = view.s * view.dpr;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = '#07101C'; ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.setTransform(k, 0, 0, k, cv.width / 2 - view.cx * k, cv.height / 2 - view.cy * k);
+    ctx.drawImage(pitchCache, WX0, WY0, WX1 - WX0, WY1 - WY0);
+
+    var list = players.slice().sort(function (a, b) { return a.y - b.y; });
+    // shadows
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    list.forEach(function (p) { ctx.beginPath(); ctx.ellipse(p.x, p.y + 1, 10.5, 4.4, 0, 0, 6.3); ctx.fill(); });
+    ctx.beginPath(); ctx.ellipse(ball.x, ball.y + 3, 5.5, 2.6, 0, 0, 6.3); ctx.fill();
+    // ring under the player you control
+    var c = G.ctrl;
+    if (c && G.state !== 'end') {
+      ctx.strokeStyle = '#FFD35A'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.ellipse(c.x, c.y + 1, 13 + Math.sin(G.t * 6) * 1.2, 6.5, 0, 0, 6.3); ctx.stroke();
+    }
+    var ballDrawn = false;
+    function drawBall() {
+      ctx.save(); ctx.translate(ball.x, ball.y - 3);
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, 5.2, 0, 6.3); ctx.fill();
+      ctx.strokeStyle = '#1B1B1F'; ctx.lineWidth = 0.9; ctx.stroke();
+      ctx.rotate(ball.spin); ctx.fillStyle = '#1B1B1F';
+      ctx.beginPath(); ctx.arc(0, 0, 1.7, 0, 6.3); ctx.fill();
+      for (var i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(Math.cos(i * 2.1) * 3.8, Math.sin(i * 2.1) * 3.8, 1, 0, 6.3); ctx.fill(); }
+      ctx.restore();
+    }
+    list.forEach(function (p) {
+      if (!ballDrawn && ball.y < p.y) { drawBall(); ballDrawn = true; }
+      ctx.save(); ctx.translate(p.x, p.y);
+      if (p.stun > 0) ctx.rotate(Math.sin(G.t * 30) * 0.12);
+      if (p.dash > 0) ctx.rotate(p.dx * 0.35);
+      if (G.state === 'goal' && p.team === G.goalTeam) ctx.translate(0, -Math.abs(Math.sin(p.run)) * 6);
+      drawChibi(ctx, p);
+      ctx.restore();
+    });
+    if (!ballDrawn) drawBall();
+    // names: your player and whoever has the ball
+    ctx.font = '800 10px -apple-system, "Segoe UI", "Hiragino Sans", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    [c, ball.owner].forEach(function (p, i) {
+      if (!p || (i === 1 && p === c)) return;
+      var s = nameOf(p), w = ctx.measureText(s).width + 10;
+      ctx.fillStyle = p.team === 0 ? 'rgba(22,48,126,0.9)' : 'rgba(14,110,56,0.9)';
+      ctx.beginPath(); ctx.roundRect(p.x - w / 2, p.y - 58, w, 13, 6); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.fillText(s, p.x, p.y - 51.2);
+      if (p === c) { ctx.fillStyle = '#FFD35A'; ctx.beginPath(); ctx.moveTo(p.x - 4, p.y - 44); ctx.lineTo(p.x + 4, p.y - 44); ctx.lineTo(p.x, p.y - 40); ctx.fill(); }
+    });
+    // confetti
+    G.confetti.forEach(function (k) {
+      ctx.save(); ctx.translate(k.x, k.y); ctx.rotate(k.r); ctx.fillStyle = k.c; ctx.globalAlpha = Math.min(1, k.life);
+      ctx.fillRect(-4, -2, 8, 4); ctx.restore();
+    });
+    if (G.state === 'goal') {
+      var pop = Math.min(1, (2.6 - G.wait) * 4);
+      ctx.save(); ctx.translate(view.cx, view.cy - 20); ctx.scale(pop, pop);
+      ctx.font = '800 86px -apple-system, "Segoe UI", sans-serif'; ctx.lineWidth = 10; ctx.strokeStyle = 'rgba(8,14,28,0.85)';
+      ctx.strokeText('GOAL!', 0, 0);
+      ctx.fillStyle = G.goalTeam === 0 ? '#FFD35A' : '#F5F5F5'; ctx.fillText('GOAL!', 0, 0);
+      ctx.restore();
+    }
+    if (G.state === 'ready') {
+      ctx.font = '800 30px -apple-system, "Segoe UI", sans-serif'; ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(8,14,28,0.8)';
+      ctx.strokeText('READY…', view.cx, view.cy - 80); ctx.fillStyle = '#fff'; ctx.fillText('READY…', view.cx, view.cy - 80);
+    }
+    // radar: the whole pitch, top left (teammates off the screen are easy to find)
+    ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
+    var rw = Math.min(150, view.w * 0.2), rh = rw * (PY1 - PY0) / (PX1 - PX0), rx = 12, ry = 10;
+    function rX(x) { return rx + (x - PX0) / (PX1 - PX0) * rw; }
+    function rY(y) { return ry + (y - PY0) / (PY1 - PY0) * rh; }
+    ctx.fillStyle = 'rgba(8,14,28,0.62)'; ctx.beginPath(); ctx.roundRect(rx - 4, ry - 4, rw + 8, rh + 8, 6); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1;
+    ctx.strokeRect(rx, ry, rw, rh);
+    ctx.beginPath(); ctx.moveTo(rx + rw / 2, ry); ctx.lineTo(rx + rw / 2, ry + rh); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+    ctx.strokeRect(Math.max(rx, rX(view.cx - hw)), Math.max(ry, rY(view.cy - hh)), Math.min(rw, hw * 2 / (PX1 - PX0) * rw), Math.min(rh, hh * 2 / (PY1 - PY0) * rh));
+    players.forEach(function (p) {
+      ctx.fillStyle = p.team === 0 ? '#5B8CFF' : '#F5C518';
+      ctx.beginPath(); ctx.arc(rX(p.x), rY(p.y), p === c ? 3.4 : 2.3, 0, 6.3); ctx.fill();
+      if (p === c) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.2; ctx.stroke(); }
+    });
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(rX(ball.x), rY(ball.y), 2, 0, 6.3); ctx.fill();
+    if (G.flash > 0) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = 'rgba(255,255,255,' + (G.flash * 0.7) + ')'; ctx.fillRect(0, 0, cv.width, cv.height); }
+  }
+
+  var btnMode = '';
+  function updateButtons(force) {
+    var mode = (G && ball && ball.owner && ball.owner === G.ctrl) ? 'ball' : 'noball';
+    if (!force && mode === btnMode) return;
+    btnMode = mode;
+    $('btnB').textContent = t(mode === 'ball' ? 'bPass' : 'bSwitch');
+    $('btnA').textContent = t(mode === 'ball' ? 'bShoot' : 'bTackle');
+  }
+
+  function frame(now) {
+    if (!running) return;
+    raf = requestAnimationFrame(frame);
+    var dt = Math.min(0.05, (now - last) / 1000 || 0);
+    last = now;
+    readKeys();
+    var portrait = window.innerWidth <= 900 && window.innerHeight > window.innerWidth;
+    if (!paused && !portrait && G.state !== 'end') step(dt);
+    draw();
+  }
+
+  /* ----- start / stop ----- */
+  function startGame() {
+    audio();
+    $('stage').hidden = false;
+    $('endBox').hidden = true; $('pauseBox').hidden = true;
+    document.body.style.overflow = 'hidden';
+    resize();
+    newMatch();
+    view.cx = FW / 2; view.cy = FH / 2;
+    paused = false; running = true; last = performance.now();
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(frame);
+    updateButtons(true);
+  }
+  function stopGame() {
+    running = false; cancelAnimationFrame(raf);
+    $('stage').hidden = true;
+    document.body.style.overflow = '';
+    $('talk').classList.remove('on');
+  }
+  function setPause(on) {
+    if (!running || G.state === 'end') return;
+    paused = on; $('pauseBox').hidden = !on;
+    if (!on) last = performance.now();
+  }
+  $('kickoffBtn').addEventListener('click', startGame);
+  $('againBtn').addEventListener('click', startGame);
+  $('pauseBtn').addEventListener('click', function () { setPause(true); });
+  $('resumeBtn').addEventListener('click', function () { setPause(false); });
+  $('quitBtn').addEventListener('click', stopGame);
+  $('endQuitBtn').addEventListener('click', stopGame);
+  $('rotateQuit').addEventListener('click', stopGame);
+  document.addEventListener('visibilitychange', function () { if (document.hidden) setPause(true); });
+  window.addEventListener('resize', function () { if (running) resize(); });
+  window.addEventListener('orientationchange', function () { setTimeout(function () { if (running) resize(); }, 250); });
+
+  /* ----- input ----- */
+  var stickEl = $('stick'), baseEl = $('stickBase'), knobEl = $('stickKnob');
+  function stickMove(t0) {
+    var dx = t0.clientX - input.sx, dy = t0.clientY - input.sy, d = Math.hypot(dx, dy), max = 48;
+    if (d > max) { dx = dx / d * max; dy = dy / d * max; }
+    input.x = dx / max; input.y = dy / max;
+    knobEl.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+  }
+  stickEl.addEventListener('touchstart', function (e) {
+    e.preventDefault(); audio();
+    if (input.touchId !== null) return;
+    var t0 = e.changedTouches[0], r = stickEl.getBoundingClientRect();
+    input.touchId = t0.identifier; input.sx = t0.clientX; input.sy = t0.clientY;
+    baseEl.style.left = (t0.clientX - r.left) + 'px'; baseEl.style.top = (t0.clientY - r.top) + 'px';
+  }, { passive: false });
+  stickEl.addEventListener('touchmove', function (e) {
+    e.preventDefault();
+    for (var i = 0; i < e.changedTouches.length; i++) if (e.changedTouches[i].identifier === input.touchId) stickMove(e.changedTouches[i]);
+  }, { passive: false });
+  function stickEnd(e) {
+    for (var i = 0; i < e.changedTouches.length; i++) if (e.changedTouches[i].identifier === input.touchId) {
+      input.touchId = null; input.x = input.y = 0;
+      knobEl.style.transform = ''; baseEl.style.left = ''; baseEl.style.top = '';
+    }
+  }
+  stickEl.addEventListener('touchend', stickEnd);
+  stickEl.addEventListener('touchcancel', stickEnd);
+  // Mouse: drag on the left half works like the stick.
+  var mouseDown = false;
+  stickEl.addEventListener('mousedown', function (e) { mouseDown = true; input.sx = e.clientX; input.sy = e.clientY; audio(); });
+  window.addEventListener('mousemove', function (e) { if (mouseDown) stickMove(e); });
+  window.addEventListener('mouseup', function () { if (mouseDown) { mouseDown = false; input.x = input.y = 0; knobEl.style.transform = ''; } });
+
+  function bindBtn(id, flag) {
+    var b = $(id);
+    function down(e) { e.preventDefault(); audio(); input[flag] = true; b.classList.add('down'); }
+    function up() { b.classList.remove('down'); }
+    b.addEventListener('touchstart', down, { passive: false });
+    b.addEventListener('touchend', up); b.addEventListener('touchcancel', up);
+    b.addEventListener('mousedown', down); b.addEventListener('mouseup', up); b.addEventListener('mouseleave', up);
+  }
+  bindBtn('btnB', 'pass'); bindBtn('btnA', 'shoot');
+  $('stage').addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+  window.addEventListener('keydown', function (e) {
+    if (!running) { if (e.key === 'Escape' && !$('sheetBack').hidden) closeSheet(); return; }
+    var k = e.key.toLowerCase();
+    if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].indexOf(k) >= 0) e.preventDefault();
+    if (e.repeat) return;
+    input.keys[k] = true;
+    if (k === 'x' || k === 'j') input.pass = true;
+    if (k === 'z' || k === ' ' || k === 'k') input.shoot = true;
+    if (k === 'escape' || k === 'p') setPause(!paused);
+  });
+  window.addEventListener('keyup', function (e) { input.keys[e.key.toLowerCase()] = false; });
+  window.addEventListener('blur', function () { input.keys = {}; });
+  var keyStick = false;
+  function readKeys() {
+    var k = input.keys;
+    var x = (k.arrowright || k.d ? 1 : 0) - (k.arrowleft || k.a ? 1 : 0);
+    var y = (k.arrowdown || k.s ? 1 : 0) - (k.arrowup || k.w ? 1 : 0);
+    if (x || y) { var m = Math.hypot(x, y); input.x = x / m; input.y = y / m; keyStick = true; }
+    else if (keyStick) { input.x = input.y = 0; keyStick = false; }
+  }
+
+  // roundRect is missing on older Safari (iPhone 7).
+  if (!CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+      if (r instanceof Array) r = r[0];
+      r = Math.min(r, w / 2, h / 2);
+      this.moveTo(x + r, y); this.arcTo(x + w, y, x + w, y + h, r); this.arcTo(x + w, y + h, x, y + h, r);
+      this.arcTo(x, y + h, x, y, r); this.arcTo(x, y, x + w, y, r); this.closePath();
+    };
+  }
+
+  applyLang();
+  // Before it goes public, show only a small "opens at" note (the hub card is hidden until then too).
+  if (nowMs() < OPENS_AT) {
+    var wait = el('div', 'overlay', '<div class="box"><h2>⭐ Coming soon</h2><p>' +
+      esc(t('opensAt', { t: fmtTime(OPENS_AT) })) + '</p><div class="row"><a class="btn-main" href="hub.html" style="text-decoration:none">◀ Hub</a></div></div>');
+    wait.id = 'opensWait';
+    wait.style.cssText = 'position:fixed;z-index:100';
+    document.body.appendChild(wait);
+    setTimeout(function () { location.reload(); }, Math.min(OPENS_AT - nowMs() + 1000, 2147483000));
+  } else {
+    // Opening the page counts as "seen" for Sir CEO Moku's peek on the hub.
+    try {
+      var seenEv = JSON.parse(localStorage.getItem('moku:hub:events-seen') || '{}') || {};
+      if (!seenEv['event-japan-brazil']) { seenEv['event-japan-brazil'] = new Date().toISOString(); localStorage.setItem('moku:hub:events-seen', JSON.stringify(seenEv)); }
+    } catch (e) { /* private mode */ }
+  }
+  if (/[?&]tab=game/.test(location.search)) showTab('game');
+  if (/[?&]tab=predict/.test(location.search)) showTab('predict');
+  window.addEventListener('load', function () { settle(); renderPredict(); });
+})();
+</script>
+<script src="shared/moku-account.js?v=20261108b" data-mode="background"></script>
+<script src="shared/moku-moint.js?v=20261108b" data-mode="none"></script>
+</body>
+</html>
