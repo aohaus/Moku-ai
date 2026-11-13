@@ -291,7 +291,7 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
   <div id="legend"></div>
   <div id="cards"></div>
   <p id="dataNote" data-t="dataNote"></p>
-  <div id="buildInfo">v1.4.3 · Updated Nov 13, 2026</div>
+  <div id="buildInfo">v1.5.0 · Updated Nov 13, 2026</div>
 </main>
 
 <main id="predict" hidden>
@@ -656,6 +656,13 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
     var n = name.toLowerCase();
     try { n = n.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); } catch (e) { /* old browsers */ }
     return n.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  }
+  var FACE_IMGS = {};
+  function faceImg(name) {
+    var src = faceSrc(name);
+    if (!src) return null;
+    if (!FACE_IMGS[src]) { FACE_IMGS[src] = new Image(); FACE_IMGS[src].src = src; }
+    return FACE_IMGS[src];
   }
   function faceSrc(name) {
     var slug = faceSlug(name);
@@ -1093,7 +1100,7 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
         // the middle of a line of three or more sits a little deeper (a gentle arc)
         if (q.role !== 'GK' && n >= 3) sx -= (1 - Math.abs((i - 0.5) / n - 0.5) * 2) * 40;
         var hx = ti === 0 ? sx : FW - sx;
-        players.push({ team: ti, gk: q.role === 'GK', role: q.role, num: q.row[0], en: q.en, ja: q.ja, look: lookOf(q.row[1]),
+        players.push({ team: ti, gk: q.role === 'GK', role: q.role, num: q.row[0], en: q.en, ja: q.ja, look: lookOf(q.row[1]), face: faceImg(q.row[1]),
           hx: hx, hy: sy, x: hx, y: sy, dir: ti === 0 ? 1 : -1, fx: ti === 0 ? 1 : -1, fy: 0,
           run: 0, moving: false, stun: 0, safe: 0, cd: 0, dash: 0, dx: 0, dy: 0, think: 0, hold: 0 });
       });
@@ -1509,6 +1516,20 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
     // ---- head ----
     c.translate(0, -bob);
     var hx = -10, hy = -37, hw = 21.5, hh = 21;        // head box
+    // v1.5.0: players with a face illustration get it as their head (a round badge with an outline).
+    var face = p.face && p.face.complete && p.face.naturalWidth ? p.face : null;
+    if (face) {
+      var fx = hx + hw / 2 + 0.6, fy = hy + hh / 2 - 0.5, fr = 13;
+      c.save();
+      c.beginPath(); c.arc(fx, fy, fr, 0, 6.3); c.closePath();
+      c.fillStyle = '#FBF6EE'; c.fill();
+      c.clip();
+      // the head sits in the top part of the 160px picture
+      c.drawImage(face, 12, 0, 136, 136, fx - fr - 1, fy - fr - 0.5, fr * 2 + 2, fr * 2 + 2);
+      c.restore();
+      c.strokeStyle = INK; c.lineWidth = 1.4;
+      c.beginPath(); c.arc(fx, fy, fr, 0, 6.3); c.stroke();
+    } else {
     // ear (behind)
     c.fillStyle = k.skin;
     c.beginPath(); c.ellipse(hx + 1.2, hy + 12.5, 2.2, 2.8, 0, 0, 6.3); c.fill(); c.stroke();
@@ -1582,6 +1603,7 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
     c.beginPath(); c.moveTo(hx + 14.6, ey + 2.6); c.lineTo(hx + 15.8, ey + 3.4); c.stroke();
     c.lineWidth = 1.1;
     c.beginPath(); c.moveTo(hx + 12, ey + 6); c.quadraticCurveTo(hx + 14.6, ey + 7.2, hx + 17.4, ey + 5.6); c.stroke();
+    }
     c.restore();
     // number (never mirrored)
     if (p.num) {
