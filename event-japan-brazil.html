@@ -291,7 +291,7 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
   <div id="legend"></div>
   <div id="cards"></div>
   <p id="dataNote" data-t="dataNote"></p>
-  <div id="buildInfo">v1.4.1 · Updated Nov 13, 2026</div>
+  <div id="buildInfo">v1.4.2 · Updated Nov 13, 2026</div>
 </main>
 
 <main id="predict" hidden>
@@ -651,7 +651,7 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
   }
   // Face illustrations from the call-up sheets (events/japan-brazil/faces/<slug>.jpg).
   // Players without one keep the number box (and the drawn player in the detail sheet).
-  var FACES = 'alisson-santana allan andre-luiz andrey-santos ao-tanaka arthur-dias ayumu-seko bento bruno-guimaraes carlos-augusto daichi-kamada daizen-maeda douglas-santos endrick estevao gabriel-bontempo gabriel-magalhaes hiroki-ito jair-cunha joao-gomes jonathan-jesus junnosuke-suzuki junya-ito kaishu-sano keisuke-goto keito-nakamura ko-itakura kodai-sano koki-machida koki-ogawa kuryu-matsuki leo-kokubo lucas-perri marlon-gomes pedro-morisco raphinha rayan ritsu-doan shio-fukuda shuto-nakano takefusa-kubo takumi-minamino tatsuhiro-sakamoto tomoki-hayakawa tsuyoshi-watanabe vanderson vinicius-junior vitor-reis wesley-franca yuito-suzuki yuki-soma yukinari-sugawara zion-suzuki'.split(' ');
+  var FACES = 'alisson-santana allan andre-luiz andrey-santos ao-tanaka arthur-dias ayumu-seko bento bruno-guimaraes carlos-augusto daichi-kamada daizen-maeda danilo douglas-santos endrick estevao gabriel-bontempo gabriel-magalhaes hiroki-ito jair-cunha joao-gomes jonathan-jesus junnosuke-suzuki junya-ito kaishu-sano keisuke-goto keito-nakamura ko-itakura kodai-sano koki-machida koki-ogawa kuryu-matsuki leo-kokubo lucas-perri marlon-gomes pedro-morisco raphinha rayan ritsu-doan shio-fukuda shuto-nakano takefusa-kubo takumi-minamino tatsuhiro-sakamoto tomoki-hayakawa tsuyoshi-watanabe vanderson vinicius-junior vitor-reis wesley-franca yuito-suzuki yuki-soma yukinari-sugawara zion-suzuki'.split(' ');
   function faceSlug(name) {
     var n = name.toLowerCase();
     try { n = n.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); } catch (e) { /* old browsers */ }
