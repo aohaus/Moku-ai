@@ -53,31 +53,32 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
 
 /* ---------- guide ---------- */
 #guide, #predict { max-width: 1040px; margin: 0 auto; padding: 14px calc(14px + env(safe-area-inset-right)) calc(40px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left)); }
+/* Match info (not tappable) and the two links below it are kept apart (v1.3.0). */
 #hero {
-  position: relative; overflow: hidden; border-radius: 20px; border: 1px solid var(--line);
-  padding: clamp(16px, 3vw, 26px);
+  position: relative; overflow: hidden; border-radius: 16px; border: 1px solid var(--line);
+  padding: 12px 14px;
   background:
-    radial-gradient(60% 90% at 0% 0%, rgba(47,91,216,0.55), transparent 70%),
-    radial-gradient(60% 90% at 100% 0%, rgba(14,138,69,0.55), transparent 70%),
+    radial-gradient(55% 120% at 0% 50%, rgba(47,91,216,0.45), transparent 70%),
+    radial-gradient(55% 120% at 100% 50%, rgba(14,138,69,0.45), transparent 70%),
     linear-gradient(180deg, #16203A, #101829);
-  box-shadow: 0 18px 40px rgba(0,0,0,0.4);
 }
-#hero::after { /* pitch stripes along the bottom */
-  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 34%;
-  background: repeating-linear-gradient(90deg, rgba(46,139,74,0.30) 0 48px, rgba(46,139,74,0.18) 48px 96px);
-  -webkit-mask-image: linear-gradient(180deg, transparent, #000); mask-image: linear-gradient(180deg, transparent, #000);
-  pointer-events: none;
-}
+.hero-vs { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; }
+.hero-team { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: clamp(17px, 4.4vw, 24px); font-weight: 800; }
+.hero-team.home { justify-content: flex-end; }
+.hero-flag { font-size: clamp(26px, 6.5vw, 36px); line-height: 1; }
+.hero-mid { font-size: 13px; font-weight: 800; color: var(--dim); letter-spacing: 0.08em; }
+.hero-meta { margin-top: 8px; text-align: center; font-size: 12.5px; font-weight: 600; color: var(--dim); line-height: 1.5; }
+.hero-meta b { color: var(--gold); font-weight: 800; }
 .hero-eyebrow { font-size: 12px; font-weight: 800; letter-spacing: 0.12em; color: var(--gold); }
-.hero-vs { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: clamp(10px, 4vw, 34px); margin: 10px 0 8px; }
-.hero-team { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
-.hero-flag { font-size: clamp(44px, 10vw, 76px); line-height: 1.1; filter: drop-shadow(0 6px 10px rgba(0,0,0,0.5)); }
-.hero-name { font-size: clamp(17px, 4vw, 28px); font-weight: 800; letter-spacing: 0.02em; }
-.hero-mid { font-size: clamp(18px, 4vw, 30px); font-weight: 800; color: var(--gold); }
-.hero-meta { position: relative; z-index: 1; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 6px; }
+#heroLinks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.hero-link { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 46px; padding: 8px 12px; border-radius: 12px;
+  font-weight: 800; font-size: 14px; line-height: 1.2; text-align: left; color: #fff;
+  background: linear-gradient(135deg, #37B36A, #17803F); box-shadow: 0 6px 14px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.25); }
+.hero-link.gold { background: linear-gradient(135deg, #FFD35A, #E89A12); color: #3A2500; }
+.hero-link::after { content: '›'; font-size: 22px; line-height: 1; opacity: 0.8; }
+.hero-link:active { transform: translateY(1px); }
 .chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: rgba(0,0,0,0.35); border: 1px solid var(--line); font-size: 13px; font-weight: 700; }
 .chip.gold { background: linear-gradient(135deg, #FFD35A, #F0A020); color: #3A2500; border-color: transparent; }
-.hero-cta { position: relative; z-index: 1; display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
 .btn-main.gold { background: linear-gradient(135deg, #FFD35A, #E89A12); color: #3A2500; }
 .btn-main { padding: 12px 24px; border-radius: 999px; font-weight: 800; font-size: 16px; color: #fff; background: linear-gradient(135deg, #37B36A, #17803F); box-shadow: 0 8px 20px rgba(0,0,0,0.4), inset 0 2px 0 rgba(255,255,255,0.25); }
 .btn-main:active { transform: translateY(2px); }
@@ -259,20 +260,18 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
 </header>
 
 <main id="guide">
-  <section id="hero">
-    <div class="hero-eyebrow" data-t="eyebrow"></div>
+  <section id="hero" aria-label="Match">
     <div class="hero-vs">
-      <div class="hero-team"><div class="hero-flag">🇯🇵</div><div class="hero-name" data-t="japan"></div></div>
+      <div class="hero-team home"><span data-t="japan"></span><span class="hero-flag">🇯🇵</span></div>
       <div class="hero-mid">VS</div>
-      <div class="hero-team"><div class="hero-flag">🇧🇷</div><div class="hero-name" data-t="brazil"></div></div>
+      <div class="hero-team"><span class="hero-flag">🇧🇷</span><span data-t="brazil"></span></div>
     </div>
-    <div class="hero-meta">
-      <span class="chip">📅 <span data-t="date"></span></span>
-      <span class="chip">🏟 <span data-t="venue"></span></span>
-      <span class="chip gold" id="countdown"></span>
-    </div>
-    <div class="hero-cta"><button class="btn-main gold" id="heroPredict" type="button"></button><button class="btn-main" id="heroPlay" type="button"></button></div>
+    <div class="hero-meta"><span data-t="date"></span> · <span data-t="venue"></span> · <b id="countdown"></b></div>
   </section>
+  <nav id="heroLinks">
+    <button class="hero-link gold" id="heroPredict" type="button"></button>
+    <button class="hero-link" id="heroPlay" type="button"></button>
+  </nav>
 
   <div id="teamSwitch">
     <button class="team-btn on" data-team="jp" type="button"><span class="f">🇯🇵</span><span data-t="japan"></span></button>
@@ -283,7 +282,7 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
   <div id="legend"></div>
   <div id="cards"></div>
   <p id="dataNote" data-t="dataNote"></p>
-  <div id="buildInfo">v1.2.0 · Updated Nov 13, 2026</div>
+  <div id="buildInfo">v1.3.0 · Updated Nov 13, 2026</div>
 </main>
 
 <main id="predict" hidden>
@@ -387,7 +386,7 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
     tabGuide: ['📋 Guide', '📋 ガイド'],
     tabPredict: ['🔮 Predict', '🔮 予想'],
     tabGame: ['⚽ Game', '⚽ ゲーム'],
-    heroPredict: ['🔮 Predict the Starting XI', '🔮 スタメンを予想する'],
+    heroPredict: ['🔮 Predict the XI', '🔮 スタメン予想'],
     pdEyebrow: ['MOINT EVENT', 'MOINT イベント'],
     pdTitle: ['🔮 Starting XI Prediction', '🔮 スタメン予想'],
     pdRules: [
@@ -435,13 +434,13 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
     eyebrow: ['SPECIAL EVENT · INTERNATIONAL FRIENDLY', 'スペシャルイベント · 国際親善試合'],
     japan: ['Japan', '日本'],
     brazil: ['Brazil', 'ブラジル'],
-    date: ['Sat, Nov 14, 2026', '2026年11月14日(土)'],
+    date: ['Sat, Nov 14 · 6:15 PM', '11月14日(土) 18:15'],
     venue: ['National Stadium, Singapore', 'シンガポール ナショナルスタジアム'],
-    heroPlay: ['⚽ Play the Mini Game', '⚽ ミニゲームであそぶ'],
-    cdToday: ['🔥 Match day is TODAY!', '🔥 今日が試合の日!'],
-    cdTomorrow: ['⏰ Tomorrow!', '⏰ いよいよ明日!'],
-    cdDays: ['⏰ {n} days to go', '⏰ あと{n}日'],
-    cdDone: ['✅ Match finished', '✅ 試合は終わりました'],
+    heroPlay: ['⚽ Mini Game', '⚽ ミニゲーム'],
+    cdToday: ['Today!', '今日!'],
+    cdTomorrow: ['Tomorrow!', '明日!'],
+    cdDays: ['in {n} days', 'あと{n}日'],
+    cdDone: ['Finished', '試合終了'],
     all: ['All', 'すべて'],
     stPlayers: ['Players', '選手'],
     stAbroad: ['Play abroad', '海外でプレー'],
@@ -883,14 +882,20 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
   setInterval(function () { if (!$('predict').hidden) { settle(); renderPredict(); } }, 30000);
 
   /* ================= language / tabs ================= */
+  // Tabs and the language button. Narrow phones (iPhone SE, 320px) drop the emoji so nothing overlaps.
+  function topLabels() {
+    var narrow = window.innerWidth <= 360;
+    function lab(key) { var v = t(key); return narrow ? v.replace(/^\S+\s/, '') : v; }
+    document.querySelector('[data-tab="guide"]').textContent = lab('tabGuide');
+    document.querySelector('[data-tab="predict"]').textContent = lab('tabPredict');
+    document.querySelector('[data-tab="game"]').textContent = lab('tabGame');
+    $('langBtn').textContent = narrow ? (save.lang === 'ja' ? 'EN' : '日本語') : t('lang');
+  }
   function applyLang() {
     document.documentElement.lang = save.lang;
     Array.prototype.forEach.call(document.querySelectorAll('[data-t]'), function (n) { n.textContent = t(n.getAttribute('data-t')); });
-    document.querySelector('[data-tab="guide"]').textContent = t('tabGuide');
-    document.querySelector('[data-tab="game"]').textContent = t('tabGame');
-    document.querySelector('[data-tab="predict"]').textContent = t('tabPredict');
     $('heroPredict').textContent = t('heroPredict');
-    $('langBtn').textContent = t('lang');
+    topLabels();
     $('heroPlay').textContent = t('heroPlay');
     $('countdown').textContent = countdownText();
     $('legend').innerHTML = t('legend');
@@ -1752,7 +1757,7 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
   $('endQuitBtn').addEventListener('click', stopGame);
   $('rotateQuit').addEventListener('click', stopGame);
   document.addEventListener('visibilitychange', function () { if (document.hidden) setPause(true); });
-  window.addEventListener('resize', function () { if (running) resize(); });
+  window.addEventListener('resize', function () { if (running) resize(); topLabels(); });
   window.addEventListener('orientationchange', function () { setTimeout(function () { if (running) resize(); }, 250); });
 
   /* ----- input ----- */
