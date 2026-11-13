@@ -651,7 +651,7 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
   }
   // Face illustrations from the call-up sheets (events/japan-brazil/faces/<slug>.jpg).
   // Players without one keep the number box (and the drawn player in the detail sheet).
-  var FACES = 'alisson-santana allan andre-luiz andrey-santos ao-tanaka arthur-dias ayase-ueda ayumu-seko bento bruno-guimaraes carlos-augusto daichi-kamada daizen-maeda douglas-santos endrick estevao gabriel-bontempo gabriel-magalhaes henry-heroki-mochizuki jair-cunha joao-gomes joel-chima-fujita jonathan-jesus junya-ito kaishu-sano kaoru-mitoma keisuke-osako keito-nakamura ko-itakura koki-ogawa lucas-perri marlon-gomes pedro-morisco raphinha rayan reo-hatate ritsu-doan shogo-taniguchi shuto-machino takefusa-kubo takuma-asano takumi-minamino tomoki-hayakawa vanderson vinicius-junior vitor-reis wataru-endo wesley-franca yukinari-sugawara yuto-nagatomo zion-suzuki'.split(' ');
+  var FACES = 'alisson-santana allan andre-luiz andrey-santos ao-tanaka arthur-dias ayumu-seko bento bruno-guimaraes carlos-augusto daichi-kamada daizen-maeda douglas-santos endrick estevao gabriel-bontempo gabriel-magalhaes jair-cunha joao-gomes jonathan-jesus junya-ito kaishu-sano keito-nakamura ko-itakura koki-ogawa lucas-perri marlon-gomes pedro-morisco raphinha rayan ritsu-doan takefusa-kubo takumi-minamino tomoki-hayakawa vanderson vinicius-junior vitor-reis wesley-franca yukinari-sugawara zion-suzuki'.split(' ');
   function faceSlug(name) {
     var n = name.toLowerCase();
     try { n = n.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); } catch (e) { /* old browsers */ }
