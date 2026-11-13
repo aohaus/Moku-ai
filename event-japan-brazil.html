@@ -52,7 +52,7 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
 #langBtn { padding: 7px 12px; border-radius: 999px; font-weight: 800; font-size: 13px; border: 1px solid var(--line); background: rgba(255,255,255,0.06); white-space: nowrap; }
 
 /* ---------- guide ---------- */
-#guide { max-width: 1040px; margin: 0 auto; padding: 14px calc(14px + env(safe-area-inset-right)) calc(40px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left)); }
+#guide, #predict { max-width: 1040px; margin: 0 auto; padding: 14px calc(14px + env(safe-area-inset-right)) calc(40px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left)); }
 #hero {
   position: relative; overflow: hidden; border-radius: 20px; border: 1px solid var(--line);
   padding: clamp(16px, 3vw, 26px);
@@ -77,15 +77,16 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
 .hero-meta { position: relative; z-index: 1; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 6px; }
 .chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: rgba(0,0,0,0.35); border: 1px solid var(--line); font-size: 13px; font-weight: 700; }
 .chip.gold { background: linear-gradient(135deg, #FFD35A, #F0A020); color: #3A2500; border-color: transparent; }
-.hero-cta { position: relative; z-index: 1; display: flex; justify-content: center; margin-top: 14px; }
+.hero-cta { position: relative; z-index: 1; display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.btn-main.gold { background: linear-gradient(135deg, #FFD35A, #E89A12); color: #3A2500; }
 .btn-main { padding: 12px 24px; border-radius: 999px; font-weight: 800; font-size: 16px; color: #fff; background: linear-gradient(135deg, #37B36A, #17803F); box-shadow: 0 8px 20px rgba(0,0,0,0.4), inset 0 2px 0 rgba(255,255,255,0.25); }
 .btn-main:active { transform: translateY(2px); }
 
 #teamSwitch { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0 10px; }
 .team-btn { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 12px; border-radius: 14px; border: 2px solid var(--line); background: var(--panel); font-weight: 800; font-size: 16px; color: var(--dim); }
 .team-btn span.f { font-size: 26px; }
-.team-btn.on[data-team="jp"] { border-color: var(--jp); background: linear-gradient(135deg, rgba(47,91,216,0.45), rgba(22,48,126,0.45)); color: #fff; }
-.team-btn.on[data-team="br"] { border-color: var(--br); background: linear-gradient(135deg, rgba(245,197,24,0.30), rgba(14,138,69,0.45)); color: #fff; }
+.team-btn.on[data-pteam="jp"], .team-btn.on[data-team="jp"] { border-color: var(--jp); background: linear-gradient(135deg, rgba(47,91,216,0.45), rgba(22,48,126,0.45)); color: #fff; }
+.team-btn.on[data-pteam="br"], .team-btn.on[data-team="br"] { border-color: var(--br); background: linear-gradient(135deg, rgba(245,197,24,0.30), rgba(14,138,69,0.45)); color: #fff; }
 
 #teamStats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
 .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 8px; text-align: center; }
@@ -129,6 +130,35 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
 .bdg.game { color: #fff; background: #17803F; border-color: transparent; }
 #dataNote { margin-top: 18px; font-size: 12px; color: var(--dim); line-height: 1.7; }
 #buildInfo { margin-top: 10px; font-size: 10.5px; color: rgba(255,255,255,0.28); }
+
+/* ---------- starting XI prediction ---------- */
+.pd-panel { border-radius: 18px; border: 1px solid var(--line); padding: 16px; background: linear-gradient(180deg, #1C2848, #121A2E); box-shadow: 0 14px 30px rgba(0,0,0,0.35); }
+.pd-panel h2 { font-size: clamp(20px, 4.6vw, 28px); font-weight: 800; }
+.pd-panel p { color: var(--dim); font-weight: 600; font-size: 14px; line-height: 1.7; margin-top: 6px; }
+.pd-panel p b { color: var(--text); }
+.pd-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.pd-prizes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+.pd-prizes .stat b { font-size: 19px; }
+#pdResult { margin-top: 12px; border-radius: 18px; padding: 16px; text-align: center; background: linear-gradient(135deg, #FFD35A, #F0A020); color: #3A2500; font-weight: 800; }
+#pdResult .big { font-size: clamp(30px, 8vw, 44px); line-height: 1.2; }
+#pdResult small { display: block; font-size: 13px; font-weight: 700; margin-top: 4px; }
+#pdCount { margin: 10px 0 4px; font-size: 14px; font-weight: 800; color: var(--gold); }
+.pd-group { margin-top: 12px; }
+.pd-group h3 { font-size: 12px; font-weight: 800; letter-spacing: 0.08em; color: var(--dim); margin-bottom: 6px; }
+.pd-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(158px, 1fr)); gap: 8px; }
+.pick { position: relative; display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-radius: 12px; border: 2px solid var(--line); background: var(--panel); text-align: left; font-weight: 700; font-size: 13.5px; line-height: 1.25; min-height: 48px; padding-right: 24px; }
+.pick .n { flex: none; width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: #fff; background: linear-gradient(150deg, var(--team), var(--team2)); }
+.pick.on { border-color: var(--gold); background: rgba(255,211,90,0.16); }
+.pick.on::after { content: '✓'; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: var(--gold); font-weight: 800; }
+.pick.hit { border-color: #4ADE80; background: rgba(74,222,128,0.18); }
+.pick.hit::after { content: '◎'; color: #4ADE80; }
+.pick.miss { border-color: #FC8181; opacity: 0.8; }
+.pick.miss::after { content: '✕'; color: #FC8181; }
+.pick.real { border-style: dashed; border-color: #4ADE80; }
+.pick[disabled] { cursor: default; }
+#pdBar { position: sticky; bottom: 0; z-index: 5; margin-top: 14px; padding: 10px 0 calc(10px + env(safe-area-inset-bottom)); display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; background: linear-gradient(180deg, transparent, var(--bg) 35%); }
+#pdBar .btn-main[disabled] { filter: grayscale(1); opacity: 0.5; }
+#pdMsg { font-size: 13px; font-weight: 800; color: var(--gold); width: 100%; text-align: center; min-height: 18px; }
 
 /* ---------- player sheet ---------- */
 #sheetBack { position: fixed; inset: 0; z-index: 60; background: rgba(4,8,16,0.72); display: flex; align-items: flex-end; justify-content: center; padding: 0; }
@@ -214,6 +244,7 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
   <a id="hub-link" href="hub.html">◀ Hub</a>
   <nav id="tabs">
     <button class="tab on" data-tab="guide" type="button"></button>
+    <button class="tab" data-tab="predict" type="button"></button>
     <button class="tab" data-tab="game" type="button"></button>
   </nav>
   <button id="langBtn" type="button"></button>
@@ -232,7 +263,7 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
       <span class="chip">🏟 <span data-t="venue"></span></span>
       <span class="chip gold" id="countdown"></span>
     </div>
-    <div class="hero-cta"><button class="btn-main" id="heroPlay" type="button"></button></div>
+    <div class="hero-cta"><button class="btn-main gold" id="heroPredict" type="button"></button><button class="btn-main" id="heroPlay" type="button"></button></div>
   </section>
 
   <div id="teamSwitch">
@@ -244,7 +275,25 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
   <div id="legend"></div>
   <div id="cards"></div>
   <p id="dataNote" data-t="dataNote"></p>
-  <div id="buildInfo">v1.1.0 · Updated Nov 13, 2026</div>
+  <div id="buildInfo">v1.2.0 · Updated Nov 13, 2026</div>
+</main>
+
+<main id="predict" hidden>
+  <section class="pd-panel">
+    <div class="hero-eyebrow" data-t="pdEyebrow"></div>
+    <h2 data-t="pdTitle"></h2>
+    <p id="pdRules"></p>
+    <div class="pd-chips"><span class="chip gold" id="pdState"></span><span class="chip" id="pdWhen"></span></div>
+    <div class="pd-prizes" id="pdPrizes"></div>
+  </section>
+  <div id="pdResult" hidden></div>
+  <div id="teamSwitch2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0 4px">
+    <button class="team-btn on" data-pteam="jp" type="button"><span class="f">🇯🇵</span><span id="pdTabJ"></span></button>
+    <button class="team-btn" data-pteam="br" type="button"><span class="f">🇧🇷</span><span id="pdTabB"></span></button>
+  </div>
+  <div id="pdCount"></div>
+  <div id="pdLists"></div>
+  <div id="pdBar"><div id="pdMsg"></div><button class="btn-main gold" id="pdSave" type="button"></button></div>
 </main>
 
 <main id="game" hidden>
@@ -313,10 +362,10 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
 
   /* ================= save ================= */
   var SAVE_KEY = 'moku:event-japan-brazil:progress';
-  var save = { version: 1, gameId: 'event-japan-brazil', lang: 'en', level: 0, played: 0, wins: 0, draws: 0, losses: 0, goals: 0, updatedAt: '' };
+  var save = { version: 1, gameId: 'event-japan-brazil', lang: 'en', level: 0, played: 0, wins: 0, draws: 0, losses: 0, goals: 0, entry: null, claimed: null, updatedAt: '' };
   try {
     var raw = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
-    if (raw && typeof raw === 'object') for (var k in save) if (raw[k] !== undefined && typeof raw[k] === typeof save[k]) save[k] = raw[k];
+    if (raw && typeof raw === 'object') for (var k in save) if (raw[k] !== undefined && (typeof raw[k] === typeof save[k] || k === 'entry' || k === 'claimed')) save[k] = raw[k];
   } catch (e) {}
   if (save.lang !== 'ja') save.lang = 'en';
   if (!(save.level >= 0 && save.level <= 2)) save.level = 0;
@@ -327,8 +376,40 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
 
   /* ================= text (English / 日本語) ================= */
   var T = {
-    tabGuide: ['📋 Squad Guide', '📋 選手ガイド'],
-    tabGame: ['⚽ Mini Game', '⚽ ミニゲーム'],
+    tabGuide: ['📋 Guide', '📋 ガイド'],
+    tabPredict: ['🔮 Predict', '🔮 予想'],
+    tabGame: ['⚽ Game', '⚽ ゲーム'],
+    heroPredict: ['🔮 Predict the Starting XI', '🔮 スタメンを予想する'],
+    pdEyebrow: ['MOINT EVENT', 'MOINT イベント'],
+    pdTitle: ['🔮 Starting XI Prediction', '🔮 スタメン予想'],
+    pdRules: [
+      'Who will start the match? Pick <b>11 players for Japan</b> and <b>11 for Brazil</b> (1 goalkeeper each). The more you get right, the more <b>Moints</b> you win! You can change your picks until kick-off. Your XI also plays in the Mini Game.',
+      '試合のスタメンはだれ?<b>日本の11人</b>と<b>ブラジルの11人</b>(GK は1人ずつ)を選ぼう。当たった数だけ <b>Moint</b> がもらえる!キックオフまで何回でも選び直せます。選んだ11人はミニゲームにも出てきます。'
+    ],
+    pdOpen: ['🟢 Entries are open', '🟢 エントリー受付中'],
+    pdClosed: ['🔒 Entries are closed', '🔒 エントリーは締め切りました'],
+    pdDone: ['🏁 Results are in!', '🏁 結果発表!'],
+    pdWhenOpen: ['Closes at kick-off: {t}', 'しめきり(キックオフ): {t}'],
+    pdWhenWait: ['Results: {t} (1 hour after the match)', '結果発表: {t}(試合終了の1時間後)'],
+    pdWhenLate: ['Waiting for the official line-ups…', '公式のスタメンを入力中です…'],
+    pdWhenDone: ['Thanks for playing!', '参加ありがとう!'],
+    pzHit: ['for each correct player', '1人当たるごとに'],
+    pzNine: ['bonus: 9 or 10 right in a team', 'ボーナス: 1チームで9〜10人'],
+    pzAll: ['bonus: all 11 right in a team', 'ボーナス: 1チームで11人全員'],
+    pdCount: ['{team}: {n} / 11 picked · goalkeeper {g} / 1', '{team}: {n} / 11人 · GK {g} / 1人'],
+    pdSave: ['✅ Enter my prediction', '✅ この予想でエントリー'],
+    pdUpdate: ['✅ Update my entry', '✅ エントリーを更新'],
+    pdNeed: ['Pick 11 players (1 goalkeeper) for both teams.', '両チームとも11人(GK 1人)を選んでね。'],
+    pdSaved: ['Entered! Good luck! 🍀', 'エントリーしました!当たりますように 🍀'],
+    pdEntered: ['You are entered. You can still change your picks.', 'エントリー済み。まだ選び直せます。'],
+    pdNoEntry: ['You did not enter this time.', '今回はエントリーしていません。'],
+    pdYour: ['Your entry is locked in. Good luck!', 'あなたの予想は確定しました。当たりますように!'],
+    pdFull: ['You already have 11. Tap a player to take him out first.', 'もう11人えらんでいます。先にだれかを外してね。'],
+    pdGot: ['+{m} Moints!', '+{m} Moint ゲット!'],
+    pdHits: ['Japan {j} / 11 · Brazil {b} / 11 correct', '日本 {j} / 11 · ブラジル {b} / 11 人が当たり'],
+    pdReal: ['Dashed green = started, but you did not pick him.', '緑の点線 = スタメンだったけど選ばなかった選手。'],
+    xiMine: ['⭐ Your predicted XI', '⭐ あなたの予想スタメン'],
+    xiDefault: ['Default XI (predict the starting XI to use your own!)', 'おまかせスタメン(予想すると自分の11人で遊べる!)'],
     lang: ['🌐 日本語', '🌐 English'],
     eyebrow: ['SPECIAL EVENT · INTERNATIONAL FRIENDLY', 'スペシャルイベント · 国際親善試合'],
     japan: ['Japan', '日本'],
@@ -371,7 +452,7 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
       '選手データは、試合の前(2026年11月)に家族でまとめたものです。当日のメンバー・背番号・所属クラブは変わることがあります。「–」は背番号がまだ分からない選手です。'
     ],
     gameTitle: ['⚽ Japan vs Brazil Mini Match', '⚽ 日本 vs ブラジル ミニマッチ'],
-    gameSub: ['You are Japan! Beat Brazil in a 2-minute match.', 'きみは日本代表!2分間の試合でブラジルに勝とう。'],
+    gameSub: ['You are Japan! 11 against 11. Beat Brazil in a 3-minute match.', 'きみは日本代表!11人対11人。3分間の試合でブラジルに勝とう。'],
     kickoff: ['▶ Kick Off!', '▶ キックオフ!'],
     lv: [['Easy', 'かんたん'], ['Normal', 'ふつう'], ['Hard', 'むずかしい']],
     howto: [
@@ -472,21 +553,72 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
   };
   var HOME = { jp: 'Japan', br: 'Brazil' };
 
-  // The six players per side in the mini game: [English name in SQUADS, short EN, short JA, role].
-  var LINEUP = {
-    jp: [['Zion Suzuki', 'Z. Suzuki', '鈴木彩', 'GK'], ['Ko Itakura', 'Itakura', '板倉', 'DF'], ['Ao Tanaka', 'Tanaka', '田中', 'MF'],
-         ['Takumi Minamino', 'Minamino', '南野', 'MF'], ['Ritsu Doan', 'Doan', '堂安', 'FW'], ['Takefusa Kubo', 'Kubo', '久保', 'FW']],
-    br: [['Bento', 'Bento', 'ベント', 'GK'], ['Gabriel Magalhães', 'Gabriel', 'ガブリエウ', 'DF'], ['Bruno Guimarães', 'Bruno G.', 'ブルーノ', 'MF'],
-         ['João Gomes', 'J. Gomes', 'J・ゴメス', 'MF'], ['Raphinha', 'Raphinha', 'ハフィーニャ', 'FW'], ['Vinicius Junior', 'Vini Jr.', 'ヴィニシウス', 'FW']]
+  /* ----- starting XI prediction (Moint event) -----
+     Entries close at kick-off (18:15 Singapore time). Results: one hour after full time,
+     once ACTUAL_XI below is filled in with the real starting line-ups (English names as in SQUADS). */
+  var KICKOFF = Date.UTC(2026, 10, 14, 10, 15);          // Nov 14, 2026 18:15 SGT
+  var ENTRY_CLOSE = KICKOFF;
+  var SETTLE_AT = KICKOFF + 3 * 60 * 60 * 1000;          // about 2 hours of match + 1 hour
+  var PRIZE = { hit: 100, nine: 300, all: 1000 };        // per correct player / 9-10 in a team / all 11 in a team
+  var ACTUAL_XI = { jp: [], br: [] };                    // ← fill in after the match (11 names each)
+
+  // Opened straight from disk (development): ?now=2026-11-14T22:00:00+08:00 and ?actual=demo try the later screens.
+  var DEV = location.protocol === 'file:';
+  function nowMs() {
+    var m = DEV && /[?&]now=([^&]+)/.exec(location.search);
+    return m ? new Date(decodeURIComponent(m[1])).getTime() : Date.now();
+  }
+
+  // Mini game: 11 a side. Your predicted XI if you entered, otherwise this one.
+  var DEFAULT_XI = {
+    jp: ['Zion Suzuki', 'Yukinari Sugawara', 'Ko Itakura', 'Tsuyoshi Watanabe', 'Hiroki Ito', 'Ao Tanaka', 'Daichi Kamada', 'Takumi Minamino', 'Ritsu Doan', 'Koki Ogawa', 'Takefusa Kubo'],
+    br: ['Bento', 'Vanderson', 'Gabriel Magalhães', 'Carlos Augusto', 'Douglas Santos', 'Bruno Guimarães', 'João Gomes', 'Danilo', 'Raphinha', 'Endrick', 'Vinicius Junior']
   };
+  if (DEV && /[?&]actual=demo/.test(location.search)) ACTUAL_XI = { jp: DEFAULT_XI.jp.slice(), br: DEFAULT_XI.br.slice() };
+  // Japan's list says "MF/FW": these ones play up front in the mini game.
+  var JP_FW = ['Koki Ogawa', 'Daizen Maeda', 'Shio Fukuda', 'Keisuke Goto', 'Takefusa Kubo', 'Ritsu Doan', 'Junya Ito', 'Keito Nakamura', 'Yuki Soma', 'Tatsuhiro Sakamoto'];
+  var SHORT = { 'Vinicius Junior': ['Vini Jr.', 'ヴィニシウス'], 'Bruno Guimarães': ['Bruno G.', 'ブルーノ'], 'Gabriel Magalhães': ['Gabriel M.', 'ガブリエウ'], 'Gabriel Bontempo': ['Bontempo', 'ボンテンポ'] };
+
+  function validXI(team, list) {
+    if (!(list instanceof Array) || list.length !== 11) return false;
+    var seen = {}, gk = 0;
+    for (var i = 0; i < 11; i++) {
+      var row = squadRow(team, list[i]);
+      if (!row || seen[list[i]]) return false;
+      seen[list[i]] = 1;
+      if (row[3] === 'GK') gk++;
+    }
+    return gk === 1;
+  }
+  function hasEntry() { return !!(save.entry && validXI('jp', save.entry.jp) && validXI('br', save.entry.br)); }
+  function xiNames(team) { return hasEntry() ? save.entry[team] : DEFAULT_XI[team]; }
+  // Names short enough for the commentary and the label over a player's head.
+  function shortNames(team, row) {
+    if (SHORT[row[1]]) return SHORT[row[1]];
+    if (team === 'br') return [row[1], row[2].split('・')[0]];
+    var en = row[1].split(' '), ja = row[2].split(' '), sur = en[en.length - 1], twin = false;
+    SQUADS.jp.forEach(function (o) { var e = o[1].split(' '); if (o !== row && e[e.length - 1] === sur) twin = true; });
+    return twin ? [en[0].charAt(0) + '. ' + sur, ja[0] + (ja[1] || '').charAt(0)] : [sur, ja[0]];
+  }
+  // The XI in squad order with a role for the pitch: one GK, then DF / MF / FW lines.
+  function lineupOf(team) {
+    var list = SQUADS[team].filter(function (r) { return xiNames(team).indexOf(r[1]) >= 0; }).map(function (row) {
+      var role = row[3] === 'MF/FW' ? (JP_FW.indexOf(row[1]) >= 0 ? 'FW' : 'MF') : row[3];
+      var sn = shortNames(team, row);
+      return { row: row, role: role, en: sn[0], ja: sn[1] };
+    });
+    var fws = list.filter(function (q) { return q.role === 'FW'; }), mfs = list.filter(function (q) { return q.role === 'MF'; });
+    while (fws.length > 3) { fws.pop().role = 'MF'; }
+    if (!fws.length && mfs.length) mfs[mfs.length - 1].role = 'FW';
+    var order = { GK: 0, DF: 1, MF: 2, FW: 3 };
+    return list.sort(function (a, b) { return order[a.role] - order[b.role]; });
+  }
   function squadRow(team, name) {
     var list = SQUADS[team];
     for (var i = 0; i < list.length; i++) if (list[i][1] === name) return list[i];
     return null;
   }
-  function inLineup(team, name) {
-    return LINEUP[team].some(function (p) { return p[0] === name; });
-  }
+  function inLineup(team, name) { return xiNames(team).indexOf(name) >= 0; }
 
   /* ================= small helpers ================= */
   function $(id) { return document.getElementById(id); }
@@ -604,14 +736,121 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
   $('sheetClose').addEventListener('click', closeSheet);
   $('sheetBack').addEventListener('click', function (e) { if (e.target === this) closeSheet(); });
 
-  Array.prototype.forEach.call(document.querySelectorAll('.team-btn'), function (b) {
+  Array.prototype.forEach.call(document.querySelectorAll('.team-btn[data-team]'), function (b) {
     b.addEventListener('click', function () {
       team = b.getAttribute('data-team');
       document.body.setAttribute('data-team', team);
-      Array.prototype.forEach.call(document.querySelectorAll('.team-btn'), function (x) { x.classList.toggle('on', x === b); });
+      Array.prototype.forEach.call(document.querySelectorAll('.team-btn[data-team]'), function (x) { x.classList.toggle('on', x === b); });
       renderStats(); renderCards();
     });
   });
+
+  /* ================= starting XI prediction ================= */
+  var pteam = 'jp', draft = { jp: [], br: [] }, pdMsgT = 0;
+  if (hasEntry()) draft = { jp: save.entry.jp.slice(), br: save.entry.br.slice() };
+  function phase() {
+    var n = nowMs();
+    // Once the real line-ups are in the page, picks are locked even if the device clock is set back.
+    if (validXI('jp', ACTUAL_XI.jp) && validXI('br', ACTUAL_XI.br)) return 'done';
+    if (n < ENTRY_CLOSE) return 'open';
+    if (n < SETTLE_AT) return 'wait';
+    return validXI('jp', ACTUAL_XI.jp) && validXI('br', ACTUAL_XI.br) ? 'done' : 'late';
+  }
+  function fmtTime(ms) {
+    try { return new Date(ms).toLocaleString(save.lang === 'ja' ? 'ja-JP' : 'en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); }
+    catch (e) { return new Date(ms).toString(); }
+  }
+  function scoreEntry() {
+    var out = { jp: 0, br: 0, moints: 0 };
+    ['jp', 'br'].forEach(function (tm) {
+      var hits = save.entry[tm].filter(function (n) { return ACTUAL_XI[tm].indexOf(n) >= 0; }).length;
+      out[tm] = hits;
+      out.moints += hits * PRIZE.hit + (hits === 11 ? PRIZE.all : hits >= 9 ? PRIZE.nine : 0);
+    });
+    return out;
+  }
+  // Pay once, when the results are in. The claim is kept in this page's save.
+  function settle() {
+    if (phase() !== 'done' || !hasEntry() || save.claimed) return;
+    var r = scoreEntry(), M = window.MokuMoint;
+    if (!M || !M.earn) return;
+    if (r.moints > 0) M.earn('event-japan-brazil', r.moints, { capped: false });
+    save.claimed = { moints: r.moints, jp: r.jp, br: r.br, at: new Date().toISOString() };
+    persist();
+    if (r.moints > 0) sfx.goal();
+  }
+  function renderPredict() {
+    var ph = phase(), entered = hasEntry(), ja = save.lang === 'ja';
+    $('pdRules').innerHTML = t('pdRules');
+    $('pdState').textContent = t(ph === 'open' ? 'pdOpen' : ph === 'done' ? 'pdDone' : 'pdClosed');
+    $('pdWhen').textContent = ph === 'open' ? t('pdWhenOpen', { t: fmtTime(ENTRY_CLOSE) }) : ph === 'wait' ? t('pdWhenWait', { t: fmtTime(SETTLE_AT) }) : ph === 'late' ? t('pdWhenLate') : t('pdWhenDone');
+    $('pdPrizes').innerHTML = [[PRIZE.hit, 'pzHit'], [PRIZE.nine, 'pzNine'], [PRIZE.all, 'pzAll']].map(function (z) {
+      return '<div class="stat"><b>+' + z[0] + '</b><span>' + t(z[1]) + '</span></div>';
+    }).join('');
+    $('pdTabJ').textContent = t('japan'); $('pdTabB').textContent = t('brazil');
+    Array.prototype.forEach.call(document.querySelectorAll('[data-pteam]'), function (x) { x.classList.toggle('on', x.getAttribute('data-pteam') === pteam); });
+    document.body.setAttribute('data-team', $('predict').hidden ? team : pteam);
+
+    var res = $('pdResult');
+    res.hidden = true;
+    if (ph === 'done' && entered) {
+      var r = save.claimed || scoreEntry();
+      res.hidden = false;
+      res.innerHTML = '<div class="big">' + t('pdGot', { m: r.moints }) + '</div>' + t('pdHits', { j: r.jp, b: r.br }) + '<small>' + t('pdReal') + '</small>';
+    }
+
+    var picks = ph === 'open' ? draft[pteam] : (entered ? save.entry[pteam] : []);
+    var gk = picks.filter(function (n) { return squadRow(pteam, n)[3] === 'GK'; }).length;
+    $('pdCount').textContent = ph === 'open' ? t('pdCount', { team: t(pteam === 'jp' ? 'japan' : 'brazil'), n: picks.length, g: gk })
+      : entered ? (ph === 'done' ? '' : t('pdYour')) : t('pdNoEntry');
+    var host = $('pdLists');
+    host.innerHTML = '';
+    ['GK', 'DF', 'MF', 'FW'].forEach(function (pos) {
+      var rows = SQUADS[pteam].filter(function (r) { return r[3] === pos || (pos === 'MF' && r[3] === 'MF/FW'); });
+      if (!rows.length) return;
+      var grp = el('div', 'pd-group', '<h3>' + (pos === 'MF' && pteam === 'jp' ? 'MF / FW' : pos) + '</h3>'), list = el('div', 'pd-list');
+      rows.forEach(function (r) {
+        var on = picks.indexOf(r[1]) >= 0, real = ph === 'done' && ACTUAL_XI[pteam].indexOf(r[1]) >= 0;
+        var b = el('button', 'pick' + (ph === 'done' ? (on ? (real ? ' hit' : ' miss') : (real ? ' real' : '')) : (on ? ' on' : '')),
+          '<span class="n">' + (r[0] || '–') + '</span><span>' + esc(ja ? r[2] : r[1]) + '</span>');
+        b.type = 'button';
+        if (ph !== 'open') b.disabled = true;
+        else b.addEventListener('click', function () { togglePick(r); });
+        list.appendChild(b);
+      });
+      grp.appendChild(list); host.appendChild(grp);
+    });
+    var ready = validXI('jp', draft.jp) && validXI('br', draft.br);
+    var same = entered && ['jp', 'br'].every(function (tm) { return draft[tm].slice().sort().join('|') === save.entry[tm].slice().sort().join('|'); });
+    $('pdBar').hidden = ph !== 'open';
+    $('pdSave').textContent = t(entered ? 'pdUpdate' : 'pdSave');
+    $('pdSave').disabled = !ready || same;
+    if (Date.now() > pdMsgT) $('pdMsg').textContent = ph !== 'open' ? '' : !ready ? t('pdNeed') : same ? t('pdEntered') : '';
+  }
+  function pdSay(key) { $('pdMsg').textContent = t(key); pdMsgT = Date.now() + 2500; }
+  function togglePick(r) {
+    if (phase() !== 'open') return renderPredict();
+    var list = draft[pteam], i = list.indexOf(r[1]);
+    pdMsgT = 0;
+    if (i >= 0) list.splice(i, 1);
+    else {
+      if (r[3] === 'GK') draft[pteam] = list = list.filter(function (n) { return squadRow(pteam, n)[3] !== 'GK'; });   // one goalkeeper: swap
+      if (list.length >= 11) pdSay('pdFull');
+      else { list.push(r[1]); tone(660, 0.05, 'triangle', 0.06); }
+    }
+    renderPredict();
+  }
+  $('pdSave').addEventListener('click', function () {
+    if (phase() !== 'open' || !validXI('jp', draft.jp) || !validXI('br', draft.br)) return renderPredict();
+    save.entry = { jp: draft.jp.slice(), br: draft.br.slice(), at: new Date().toISOString() };
+    persist();
+    pdSay('pdSaved'); sfx.whistle();
+    renderPredict(); renderIntro(); renderCards();
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-pteam]'), function (b) {
+    b.addEventListener('click', function () { pteam = b.getAttribute('data-pteam'); pdMsgT = 0; renderPredict(); });
+  });
+  setInterval(function () { if (!$('predict').hidden) { settle(); renderPredict(); } }, 30000);
 
   /* ================= language / tabs ================= */
   function applyLang() {
@@ -619,6 +858,8 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
     Array.prototype.forEach.call(document.querySelectorAll('[data-t]'), function (n) { n.textContent = t(n.getAttribute('data-t')); });
     document.querySelector('[data-tab="guide"]').textContent = t('tabGuide');
     document.querySelector('[data-tab="game"]').textContent = t('tabGame');
+    document.querySelector('[data-tab="predict"]').textContent = t('tabPredict');
+    $('heroPredict').textContent = t('heroPredict');
     $('langBtn').textContent = t('lang');
     $('heroPlay').textContent = t('heroPlay');
     $('countdown').textContent = countdownText();
@@ -630,7 +871,7 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
     $('againBtn').textContent = t('again');
     $('endQuitBtn').textContent = t('back');
     $('rotateQuit').textContent = t('back');
-    renderStats(); renderFilters(); renderCards(); renderIntro();
+    renderStats(); renderFilters(); renderCards(); renderIntro(); renderPredict();
     if (sheetPlayer) openSheet(sheetPlayer);
     updateButtons(true);
   }
@@ -641,6 +882,9 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
   function showTab(name) {
     $('guide').hidden = name !== 'guide';
     $('game').hidden = name !== 'game';
+    $('predict').hidden = name !== 'predict';
+    if (name === 'predict') settle();
+    renderPredict();
     Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (b) { b.classList.toggle('on', b.getAttribute('data-tab') === name); });
     window.scrollTo(0, 0);
   }
@@ -648,6 +892,7 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
     b.addEventListener('click', function () { showTab(b.getAttribute('data-tab')); });
   });
   $('heroPlay').addEventListener('click', function () { showTab('game'); });
+  $('heroPredict').addEventListener('click', function () { showTab('predict'); });
 
   function renderIntro() {
     var host = $('lineup');
@@ -655,13 +900,13 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
     ['jp', 'br'].forEach(function (tm) {
       var box = el('div', 'lu', '<h3>' + (tm === 'jp' ? '🇯🇵 ' : '🇧🇷 ') + t(tm === 'jp' ? 'japan' : 'brazil') + '</h3>');
       var ul = el('ul');
-      LINEUP[tm].forEach(function (p) {
-        var row = squadRow(tm, p[0]);
-        ul.appendChild(el('li', null, '<b>' + (row[0] || '–') + '</b> ' + p[3] + ' · ' + esc(save.lang === 'ja' ? row[2] : row[1])));
+      lineupOf(tm).forEach(function (q) {
+        ul.appendChild(el('li', null, '<b>' + (q.row[0] || '–') + '</b> ' + q.role + ' · ' + esc(save.lang === 'ja' ? q.row[2] : q.row[1])));
       });
       box.appendChild(ul);
       host.appendChild(box);
     });
+    host.appendChild(el('div', 'sub', t(hasEntry() ? 'xiMine' : 'xiDefault'))).style.cssText = 'grid-column:1/-1;text-align:center;color:var(--gold);font-weight:800;font-size:13px';
     var lv = $('levels');
     lv.innerHTML = '';
     T.lv.forEach(function (pair, i) {
@@ -716,17 +961,17 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
   };
 
   /* ================= mini game ================= */
-  var FW = 1000, FH = 600;                       // logical size
-  var PX0 = 50, PX1 = 950, PY0 = 60, PY1 = 560;  // pitch
-  var GY = (PY0 + PY1) / 2, GH = 72;             // goal centre / half height
-  var MATCH = 120;                               // seconds
+  var FW = 1500, FH = 900;                       // logical size (11 a side needs a big pitch)
+  var PX0 = 70, PX1 = 1430, PY0 = 80, PY1 = 840; // pitch
+  var GY = (PY0 + PY1) / 2, GH = 84;             // goal centre / half height
+  var MATCH = 180;                               // seconds
   var LEVELS = [
     { spd: 0.74, steal: 0.9, save: 0.56, aim: 70, think: 0.60, press: 1, jsave: 0.90, jsteal: 1.8 },
     { spd: 0.88, steal: 1.5, save: 0.68, aim: 34, think: 0.40, press: 1, jsave: 0.80, jsteal: 1.2 },
     { spd: 1.00, steal: 2.3, save: 0.78, aim: 18, think: 0.28, press: 2, jsave: 0.72, jsteal: 0.9 }
   ];
   // Home spots for the side attacking to the right (mirrored for Brazil).
-  var SPOTS = { GK: [PX0 + 24, GY], DF: [250, GY], MF: [[420, 190], [420, 430]], FW: [[610, 230], [610, 390]] };
+  var LINE_X = { GK: PX0 + 24, DF: 330, MF: 610, FW: 880 };   // each line spreads evenly from top to bottom
   // How each player looks (v1.1.0: retro big-head style with a thick outline).
   // skin / hair colour, hair style, beard (0 none, 1 stubble, 2 full), brow (thickness).
   // The twelve players in the mini game are drawn by hand; everyone else gets a look from their name.
@@ -777,14 +1022,16 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
   function makeTeams() {
     players = [];
     ['jp', 'br'].forEach(function (tm, ti) {
-      var mf = 0, fw = 0;
-      LINEUP[tm].forEach(function (p) {
-        var row = squadRow(tm, p[0]), spot;
-        if (p[3] === 'GK') spot = SPOTS.GK; else if (p[3] === 'DF') spot = SPOTS.DF;
-        else if (p[3] === 'MF') spot = SPOTS.MF[mf++]; else spot = SPOTS.FW[fw++];
-        var hx = ti === 0 ? spot[0] : FW - spot[0];
-        players.push({ team: ti, gk: p[3] === 'GK', role: p[3], num: row[0], en: p[1], ja: p[2], look: lookOf(p[0]),
-          hx: hx, hy: spot[1], x: hx, y: spot[1], dir: ti === 0 ? 1 : -1, fx: ti === 0 ? 1 : -1, fy: 0,
+      var xi = lineupOf(tm), count = {}, seen = {};
+      xi.forEach(function (q) { count[q.role] = (count[q.role] || 0) + 1; });
+      xi.forEach(function (q) {
+        var i = seen[q.role] = (seen[q.role] || 0) + 1, n = count[q.role];
+        var sx = LINE_X[q.role], sy = q.role === 'GK' ? GY : PY0 + (PY1 - PY0) * (i - 0.5) / n;
+        // the middle of a line of three or more sits a little deeper (a gentle arc)
+        if (q.role !== 'GK' && n >= 3) sx -= (1 - Math.abs((i - 0.5) / n - 0.5) * 2) * 40;
+        var hx = ti === 0 ? sx : FW - sx;
+        players.push({ team: ti, gk: q.role === 'GK', role: q.role, num: q.row[0], en: q.en, ja: q.ja, look: lookOf(q.row[1]),
+          hx: hx, hy: sy, x: hx, y: sy, dir: ti === 0 ? 1 : -1, fx: ti === 0 ? 1 : -1, fy: 0,
           run: 0, moving: false, stun: 0, safe: 0, cd: 0, dash: 0, dx: 0, dy: 0, think: 0, hold: 0 });
       });
     });
@@ -808,7 +1055,9 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
       if (!p.gk) p.x = p.team === 0 ? Math.min(p.x, FW / 2 - 60) : Math.max(p.x, FW / 2 + 60);
       p.dir = p.team === 0 ? 1 : -1; p.fx = p.dir; p.fy = 0;
     });
-    var taker = players.filter(function (p) { return p.team === tm && p.role === 'FW'; })[1];
+    var ups = players.filter(function (p) { return p.team === tm && p.role === 'FW'; });
+    if (!ups.length) ups = players.filter(function (p) { return p.team === tm && !p.gk; });
+    var taker = ups[Math.floor(ups.length / 2)];
     taker.x = FW / 2 - (tm === 0 ? 14 : -14); taker.y = GY;
     ball.vx = ball.vy = 0; ball.owner = taker; ball.last = taker; ball.shot = -1; ball.ignore = null;
     taker.safe = 1.2;
@@ -940,7 +1189,7 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
       var def = nearestTo(0, p.x, p.y, true), dd = def ? dist(def.x, def.y, p.x, p.y) : 999;
       if (p.think <= 0) {
         p.think = lv.think;
-        if (dGoal < 215 && Math.abs(p.y - GY) < 170) { doShoot(p, 0, lv.aim); return; }
+        if (dGoal < 240 && Math.abs(p.y - GY) < 190) { doShoot(p, 0, lv.aim); return; }
         if (dd < 52 && Math.random() < 0.6) { doPass(p, 0, 0); say([p.en + ' passes.', p.ja + 'がパス。']); return; }
         if (p.role === 'DF' && Math.random() < 0.5) { doPass(p, 0, 0); return; }
       }
@@ -1293,7 +1542,7 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
     g.fillStyle = grad; g.fillRect(WX0, WY0, WX1 - WX0, PY0 - WY0 - 6);
     g.fillStyle = '#0E1A33'; g.fillRect(WX0, PY1 + 6, WX1 - WX0, WY1 - PY1);
     var cols = ['#2F5BD8', '#FFFFFF', '#F5C518', '#0E8A45', '#E53E3E', '#9FB3D9'];
-    for (var i = 0; i < 900; i++) {
+    for (var i = 0; i < 1500; i++) {
       var x = WX0 + (i * 37.7) % (WX1 - WX0), y = WY0 + 6 + ((i * 53.3) % (PY0 - WY0 - 26));
       g.fillStyle = cols[(i * 7) % cols.length]; g.globalAlpha = 0.55;
       g.beginPath(); g.arc(x, y, 3.2, 0, 6.3); g.fill();
@@ -1302,21 +1551,20 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
     // advert boards
     g.fillStyle = '#10182B'; g.fillRect(PX0 - 30, PY0 - 14, PX1 - PX0 + 60, 9);
     g.font = '800 7px -apple-system, "Segoe UI", sans-serif'; g.textBaseline = 'middle'; g.textAlign = 'center';
-    ['JAPAN vs BRAZIL', 'SINGAPORE 2026', 'NATIONAL STADIUM', 'NOV 14', 'JAPAN vs BRAZIL', 'SINGAPORE 2026'].forEach(function (s, i) {
-      g.fillStyle = i % 2 ? '#FFD35A' : '#9FB3D9'; g.fillText(s, PX0 + 75 + i * 150, PY0 - 9.5);
-    });
+    var ads = ['JAPAN vs BRAZIL', 'SINGAPORE 2026', 'NATIONAL STADIUM', 'NOV 14'];
+    for (var ai = 0; PX0 + 75 + ai * 150 < PX1; ai++) { g.fillStyle = ai % 2 ? '#FFD35A' : '#9FB3D9'; g.fillText(ads[ai % 4], PX0 + 75 + ai * 150, PY0 - 9.5); }
     // grass
     g.fillStyle = '#23703B'; g.fillRect(PX0 - 30, PY0 - 5, PX1 - PX0 + 60, PY1 - PY0 + 10);
-    var n = 12, sw = (PX1 - PX0) / n;
+    var n = 18, sw = (PX1 - PX0) / n;
     for (i = 0; i < n; i++) { g.fillStyle = i % 2 ? '#2E8B4A' : '#2A8245'; g.fillRect(PX0 + i * sw, PY0, sw + 0.5, PY1 - PY0); }
     // lines
     g.strokeStyle = 'rgba(255,255,255,0.85)'; g.lineWidth = 2.5;
     g.strokeRect(PX0, PY0, PX1 - PX0, PY1 - PY0);
     g.beginPath(); g.moveTo(FW / 2, PY0); g.lineTo(FW / 2, PY1); g.stroke();
-    g.beginPath(); g.arc(FW / 2, GY, 62, 0, 6.3); g.stroke();
+    g.beginPath(); g.arc(FW / 2, GY, 80, 0, 6.3); g.stroke();
     g.fillStyle = '#fff'; g.beginPath(); g.arc(FW / 2, GY, 3.5, 0, 6.3); g.fill();
-    g.strokeRect(PX0, GY - 150, 130, 300); g.strokeRect(PX1 - 130, GY - 150, 130, 300);
-    g.strokeRect(PX0, GY - GH - 16, 46, GH * 2 + 32); g.strokeRect(PX1 - 46, GY - GH - 16, 46, GH * 2 + 32);
+    g.strokeRect(PX0, GY - 210, 190, 420); g.strokeRect(PX1 - 190, GY - 210, 190, 420);
+    g.strokeRect(PX0, GY - GH - 30, 70, GH * 2 + 60); g.strokeRect(PX1 - 70, GY - GH - 30, 70, GH * 2 + 60);
     // goals
     [[PX0, -1], [PX1, 1]].forEach(function (s) {
       var x = s[0], d = s[1];
@@ -1401,6 +1649,23 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
       ctx.font = '800 30px -apple-system, "Segoe UI", sans-serif'; ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(8,14,28,0.8)';
       ctx.strokeText('READY…', view.cx, view.cy - 80); ctx.fillStyle = '#fff'; ctx.fillText('READY…', view.cx, view.cy - 80);
     }
+    // radar: the whole pitch, top left (teammates off the screen are easy to find)
+    ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
+    var rw = Math.min(150, view.w * 0.2), rh = rw * (PY1 - PY0) / (PX1 - PX0), rx = 12, ry = 10;
+    function rX(x) { return rx + (x - PX0) / (PX1 - PX0) * rw; }
+    function rY(y) { return ry + (y - PY0) / (PY1 - PY0) * rh; }
+    ctx.fillStyle = 'rgba(8,14,28,0.62)'; ctx.beginPath(); ctx.roundRect(rx - 4, ry - 4, rw + 8, rh + 8, 6); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1;
+    ctx.strokeRect(rx, ry, rw, rh);
+    ctx.beginPath(); ctx.moveTo(rx + rw / 2, ry); ctx.lineTo(rx + rw / 2, ry + rh); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+    ctx.strokeRect(Math.max(rx, rX(view.cx - hw)), Math.max(ry, rY(view.cy - hh)), Math.min(rw, hw * 2 / (PX1 - PX0) * rw), Math.min(rh, hh * 2 / (PY1 - PY0) * rh));
+    players.forEach(function (p) {
+      ctx.fillStyle = p.team === 0 ? '#5B8CFF' : '#F5C518';
+      ctx.beginPath(); ctx.arc(rX(p.x), rY(p.y), p === c ? 3.4 : 2.3, 0, 6.3); ctx.fill();
+      if (p === c) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.2; ctx.stroke(); }
+    });
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(rX(ball.x), rY(ball.y), 2, 0, 6.3); ctx.fill();
     if (G.flash > 0) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = 'rgba(255,255,255,' + (G.flash * 0.7) + ')'; ctx.fillRect(0, 0, cv.width, cv.height); }
   }
 
@@ -1537,8 +1802,11 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
 
   applyLang();
   if (/[?&]tab=game/.test(location.search)) showTab('game');
+  if (/[?&]tab=predict/.test(location.search)) showTab('predict');
+  window.addEventListener('load', function () { settle(); renderPredict(); });
 })();
 </script>
 <script src="shared/moku-account.js?v=20261108b" data-mode="background"></script>
+<script src="shared/moku-moint.js?v=20261108b" data-mode="none"></script>
 </body>
 </html>
