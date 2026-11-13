@@ -296,162 +296,6 @@ body[data-band="morning"] #starsLayer { --star-opacity: 0.15; }
 }
 #placeLabel { color: var(--place-accent); transition: color 1.4s ease; }
 
-/* ---------- badge showcase (achievements) ---------- */
-.badge-showcase {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px 20px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.045);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-.badge-showcase-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.badge-showcase-title-wrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.badge-showcase-title {
-  font-size: 12.5px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(237, 238, 246, 0.8);
-}
-.badge-showcase-stats {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 11.5px;
-  font-weight: 700;
-  color: rgba(237, 238, 246, 0.6);
-  flex-wrap: wrap;
-}
-.badge-stat-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 9px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  font-variant-numeric: tabular-nums;
-}
-.badge-stat-pill.streak-pill {
-  color: #FFC94A;
-  border-color: rgba(255, 201, 74, 0.3);
-  background: rgba(255, 201, 74, 0.08);
-}
-.badge-showcase-counter {
-  font-size: 11.5px;
-  font-weight: 800;
-  color: #FFC94A;
-  font-variant-numeric: tabular-nums;
-  background: rgba(255, 201, 74, 0.14);
-  border: 1px solid rgba(255, 201, 74, 0.35);
-  padding: 3px 10px;
-  border-radius: 999px;
-}
-.badge-showcase-list {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.hub-achievement-badge {
-  position: relative;
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.035);
-  border: 1.5px solid rgba(255, 255, 255, 0.12);
-  cursor: pointer;
-  padding: 0;
-  font-size: 22px;
-  line-height: 1;
-  color: inherit;
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease, filter 0.2s ease, opacity 0.2s ease;
-  outline: none;
-}
-.hub-achievement-badge.is-locked {
-  opacity: 0.32;
-  filter: grayscale(1);
-  border-style: dashed;
-  background: rgba(0, 0, 0, 0.25);
-}
-.hub-achievement-badge.is-locked:hover,
-.hub-achievement-badge.is-locked:focus-visible {
-  opacity: 0.72;
-  transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.35);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-.hub-achievement-badge.is-unlocked {
-  opacity: 1;
-  filter: none;
-  background: linear-gradient(135deg, rgba(255, 201, 74, 0.2), rgba(124, 58, 237, 0.2));
-  border: 1.5px solid #FFC94A;
-  box-shadow: 0 0 16px rgba(255, 201, 74, 0.35);
-}
-.hub-achievement-badge.is-unlocked:hover,
-.hub-achievement-badge.is-unlocked:focus-visible {
-  transform: translateY(-3px) scale(1.08);
-  box-shadow: 0 0 24px rgba(255, 201, 74, 0.55);
-}
-.hub-achievement-badge:focus-visible {
-  outline: 2px solid #FFFFFF;
-  outline-offset: 2px;
-}
-.hub-achievement-status {
-  position: absolute;
-  bottom: -3px;
-  right: -3px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  font-size: 9px;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-  pointer-events: none;
-}
-.hub-achievement-badge.is-locked .hub-achievement-status {
-  background: rgba(15, 10, 25, 0.85);
-  color: rgba(237, 238, 246, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-.hub-achievement-badge.is-unlocked .hub-achievement-status {
-  background: #22C55E;
-  color: #0F172A;
-  border: 1px solid #86EFAC;
-  box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
-}
-.hub-achievement-hint {
-  font-size: 12px;
-  color: rgba(237, 238, 246, 0.6);
-  min-height: 18px;
-  line-height: 1.4;
-  transition: color 0.2s ease;
-}
-.hub-achievement-hint.hint-active {
-  color: #FFE699;
-}
-
 /* ---------- section label ---------- */
 .section-label {
   display: flex;
@@ -1383,6 +1227,12 @@ html.me-open, html.me-open body { overflow: hidden; }
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
+/* portrait phones / iPad: Moku and the background card fill the card (about 90% of a phone's width) */
+@media (max-width: 819px) and (orientation: portrait) {
+  .me-hero { padding-left: 10px; padding-right: 10px; }
+  .me-stage { width: min(100%, 460px); }
+  .me-stage-tip { font-size: 14px; padding: 7px 13px; }
+}
 .me-stage .mm-doll { width: 100%; animation: bob 3.2s ease-in-out infinite; filter: drop-shadow(0 8px 12px rgba(0,0,0,0.35)); }
 /* with a background card (Moku Closet → Backgrounds), Moku stands inside it */
 .me-stage .mm-scene { box-shadow: 0 10px 24px rgba(0,0,0,0.35); }
@@ -1983,42 +1833,6 @@ html.me-open #ceoPeek { display: none; }
       <section class="me-section" id="meBests" hidden>
         <h3 class="me-h">My Bests</h3>
         <div class="me-list" id="meBestsList"></div>
-      </section>
-
-      <section class="badge-showcase me-section" id="badgeShowcase" aria-label="Badge Showcase">
-        <div class="badge-showcase-header">
-          <div class="badge-showcase-title-wrap">
-            <span class="badge-showcase-title">🏆 Badge Showcase</span>
-            <span class="badge-showcase-counter" id="hubAchievementsCounter">0 / 5</span>
-          </div>
-          <div class="badge-showcase-stats">
-            <span class="badge-stat-pill" id="hubStatTotalPlayed">🎮 0 Played</span>
-            <span class="badge-stat-pill streak-pill" id="hubStatStreak">🔥 1 Day Streak</span>
-          </div>
-        </div>
-        <div class="badge-showcase-list" role="list" id="hubAchievementsList">
-          <button class="hub-achievement-badge is-locked" type="button" data-id="first_flight" aria-label="First Flight: Play your first game (Locked)">
-            <span>🦉</span>
-            <span class="hub-achievement-status" aria-hidden="true">🔒</span>
-          </button>
-          <button class="hub-achievement-badge is-locked" type="button" data-id="high_five" aria-label="High Five: Play 5 games (Locked)">
-            <span>🖐️</span>
-            <span class="hub-achievement-status" aria-hidden="true">🔒</span>
-          </button>
-          <button class="hub-achievement-badge is-locked" type="button" data-id="on_fire" aria-label="On Fire: 3-day streak (Locked)">
-            <span>🔥</span>
-            <span class="hub-achievement-status" aria-hidden="true">🔒</span>
-          </button>
-          <button class="hub-achievement-badge is-locked" type="button" data-id="globe_trotter" aria-label="Globe Trotter: Play 3 distinct games (Locked)">
-            <span>🗺️</span>
-            <span class="hub-achievement-status" aria-hidden="true">🔒</span>
-          </button>
-          <button class="hub-achievement-badge is-locked" type="button" data-id="champion" aria-label="Series Champion: Complete any game (Locked)">
-            <span>🏆</span>
-            <span class="hub-achievement-status" aria-hidden="true">🔒</span>
-          </button>
-        </div>
-        <div class="hub-achievement-hint" id="hubAchievementHint" aria-live="polite">Hover or tap a badge to view unlock requirements</div>
       </section>
 
       <section class="me-section">
@@ -3127,66 +2941,6 @@ html.me-open #ceoPeek { display: none; }
   var XP_PER_GAME = 400;
   var XP_PER_LEVEL = 200;
 
-  var ACHIEVEMENTS = [
-    {
-      id: 'first_flight',
-      name: 'First Flight',
-      icon: '🦉',
-      description: 'Play your first game in Moku Series',
-      check: function (stats) { return stats.totalPlayed >= 1; },
-      progress: function (stats) { return Math.min(stats.totalPlayed, 1) + ' / 1 Game'; }
-    },
-    {
-      id: 'high_five',
-      name: 'High Five',
-      icon: '🖐️',
-      description: 'Play 5 total games across the series',
-      check: function (stats) { return stats.totalPlayed >= 5; },
-      progress: function (stats) { return Math.min(stats.totalPlayed, 5) + ' / 5 Games'; }
-    },
-    {
-      id: 'on_fire',
-      name: 'On Fire',
-      icon: '🔥',
-      description: 'Maintain a 3-day daily streak',
-      check: function (stats) { return stats.streak >= 3 || stats.bestStreak >= 3; },
-      progress: function (stats) { return Math.min(Math.max(stats.streak, stats.bestStreak), 3) + ' / 3 Days'; }
-    },
-    {
-      id: 'globe_trotter',
-      name: 'Globe Trotter',
-      icon: '🗺️',
-      description: 'Play at least 3 distinct game titles',
-      check: function (stats) { return stats.distinctGames >= 3; },
-      progress: function (stats) { return Math.min(stats.distinctGames, 3) + ' / 3 Titles'; }
-    },
-    {
-      id: 'champion',
-      name: 'Series Champion',
-      icon: '🏆',
-      description: 'Complete all stages or master any game',
-      check: function (stats) { return stats.completedGames >= 1; },
-      progress: function (stats) { return Math.min(stats.completedGames, 1) + ' / 1 Complete'; }
-    }
-  ];
-
-  var hubHintElem = document.getElementById('hubAchievementHint');
-  var hubHintTimeout = null;
-
-  function showHubHint(text, isActive) {
-    if (!hubHintElem) return;
-    if (hubHintTimeout) clearTimeout(hubHintTimeout);
-    hubHintElem.textContent = text;
-    hubHintElem.classList.toggle('hint-active', Boolean(isActive));
-  }
-
-  function resetHubHintDefault() {
-    if (hubHintTimeout) clearTimeout(hubHintTimeout);
-    hubHintTimeout = setTimeout(function () {
-      showHubHint('Hover or tap a badge to view unlock requirements', false);
-    }, 1800);
-  }
-
   // ---------- Game catalog UI ----------
   // Display data for the hub's game list (Today's Pick, Continue, genre
   // shelves, detail sheet). Save/progress logic stays in GAMES above, keyed
@@ -3750,72 +3504,6 @@ html.me-open #ceoPeek { display: none; }
     eachEl('[data-xp-fill]', function (n) { n.style.width = Math.round((xpIntoLevel / XP_PER_LEVEL) * 100) + '%'; });
     eachEl('[data-xp-completed]', function (n) { n.textContent = completedCount + ' / ' + playableCount + ' Completed'; });
 
-    // Update Badge Showcase & Statistics on Hub
-    var rawTotal = parseInt(localStorage.getItem('moku:stats:total_games_played'), 10);
-    var totalGamesPlayed = (!isNaN(rawTotal) && rawTotal > playedDistinctCount) ? rawTotal : playedDistinctCount;
-
-    var rawStreak = localStorage.getItem('moku:stats:streak');
-    var streakData = rawStreak ? JSON.parse(rawStreak) : null;
-    var currentStreak = (streakData && typeof streakData.count === 'number') ? streakData.count : 1;
-    var bestStreak = (streakData && typeof streakData.bestStreak === 'number') ? streakData.bestStreak : currentStreak;
-
-    var hubTotalPlayedElem = document.getElementById('hubStatTotalPlayed');
-    var hubStreakElem = document.getElementById('hubStatStreak');
-
-    if (hubTotalPlayedElem) {
-      hubTotalPlayedElem.textContent = '🎮 ' + totalGamesPlayed + ' Played';
-    }
-    if (hubStreakElem) {
-      hubStreakElem.textContent = '🔥 ' + currentStreak + ' Day' + (currentStreak === 1 ? '' : 's') + ' Streak';
-    }
-
-    var stats = {
-      totalPlayed: totalGamesPlayed,
-      streak: currentStreak,
-      bestStreak: bestStreak,
-      distinctGames: playedDistinctCount,
-      completedGames: completedCount
-    };
-
-    var unlockedAchievements = 0;
-    ACHIEVEMENTS.forEach(function (ach) {
-      var isUnlocked = ach.check(stats);
-      if (isUnlocked) unlockedAchievements++;
-
-      var btn = document.querySelector('.hub-achievement-badge[data-id="' + ach.id + '"]');
-      if (!btn) return;
-
-      btn.classList.toggle('is-unlocked', isUnlocked);
-      btn.classList.toggle('is-locked', !isUnlocked);
-
-      var indicator = btn.querySelector('.hub-achievement-status');
-      if (indicator) {
-        indicator.textContent = isUnlocked ? '✓' : '🔒';
-      }
-
-      var statusText = isUnlocked ? 'Unlocked ✓' : 'Locked 🔒 (' + ach.progress(stats) + ')';
-      btn.setAttribute('aria-label', ach.name + ': ' + ach.description + ' (' + statusText + ')');
-      btn.setAttribute('title', ach.name + ' — ' + statusText);
-
-      btn.onmouseenter = function () {
-        showHubHint(ach.icon + ' ' + ach.name + ': ' + ach.description + ' — ' + statusText, true);
-      };
-      btn.onmouseleave = resetHubHintDefault;
-      btn.onfocus = function () {
-        showHubHint(ach.icon + ' ' + ach.name + ': ' + ach.description + ' — ' + statusText, true);
-      };
-      btn.onblur = resetHubHintDefault;
-      btn.onclick = function (e) {
-        e.preventDefault();
-        showHubHint(ach.icon + ' ' + ach.name + ': ' + ach.description + ' — ' + statusText, true);
-      };
-    });
-
-    var hubCounterElem = document.getElementById('hubAchievementsCounter');
-    if (hubCounterElem) {
-      hubCounterElem.textContent = unlockedAchievements + ' / ' + ACHIEVEMENTS.length;
-    }
-    hubBadges = unlockedAchievements;
     if (meIsOpen()) renderMePage();
     if (hollowIsOpen()) renderHollow();
   }
@@ -4002,7 +3690,7 @@ html.me-open #ceoPeek { display: none; }
   var hollowPicker = document.getElementById('hollowPicker');
   var hollowShown = [];
   var hollowPopFor = null;
-  var hubLevel = 1, hubBadges = 0;
+  var hubLevel = 1;
 
   function gameIdOf(iconPath) {
     var m = /icons\/games\/([a-z0-9-]+)\.svg/.exec(iconPath || '');
@@ -4012,13 +3700,12 @@ html.me-open #ceoPeek { display: none; }
     for (var k in CATALOG) if (CATALOG[k].gameId === gameId) return CATALOG[k];
     return null;
   }
-  // Up to 4 highlights: records to show off, badges, then the latest games.
+  // Up to 4 highlights: records to show off, then the latest games.
   function publicHighlights() {
     var out = [];
     try {
       profileBests().forEach(function (b) { out.push({ title: b.title, value: b.value, game: gameIdOf(b.icon) }); });
     } catch (e) {}
-    if (hubBadges > 0) out.push({ icon: '🏆', title: 'Badges', value: hubBadges + ' / ' + ACHIEVEMENTS.length });
     var savedAt = {};
     try { savedAt = (window.MokuAccount && window.MokuAccount.getSavedAt()) || {}; } catch (e) {}
     try {
