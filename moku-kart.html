@@ -339,6 +339,18 @@ body {
   scrollbar-color: rgba(255, 201, 74, 0.4) rgba(0, 0, 0, 0.2);
 }
 
+/* Phones: two-row top bar (Hub / Home / sound on top, the badges centered below) */
+@media (max-width: 540px) {
+  .game-header { flex-wrap: wrap; row-gap: 5px; }
+  .header-badges {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  #headerKartName { display: none; }
+}
+
 @media (max-width: 540px) {
   .level-grid-container {
     grid-template-columns: repeat(2, 1fr);
@@ -1543,7 +1555,7 @@ body {
 
 .home-menu-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   width: 100%;
   max-width: 480px;
@@ -1554,6 +1566,7 @@ body {
   background: rgba(255, 255, 255, 0.07);
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 14px;
+  min-width: 0;
   padding: 12px 8px;
   color: #FFF;
   cursor: pointer;
