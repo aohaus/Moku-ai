@@ -84,92 +84,119 @@ body {
   z-index: 10;
 }
 
-.hub-link {
+.header-nav {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* Round icon buttons: ◀ Hub / 🏠 Home / 🔊 Sound */
+.icon-btn {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   color: var(--text-main);
-  padding: 7px 12px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
+  border-radius: 50%;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
   text-decoration: none;
+  cursor: pointer;
   backdrop-filter: blur(8px);
+  transition: transform 0.1s ease, background 0.15s ease;
 }
-.hub-link:active { transform: scale(0.96); }
+.icon-btn:active { transform: scale(0.92); background: rgba(255, 255, 255, 0.16); }
 
-.header-badges {
+/* One compact pill: COURSE · LAP · TIME (only during a race) */
+.race-info-pill {
   display: flex;
   align-items: center;
-  gap: 6px;
-}
-
-.level-badge {
-  background: linear-gradient(135deg, #FF6B97, #C084FC);
-  color: #FFF;
-  font-family: 'Fredoka', sans-serif;
-  font-weight: 700;
-  font-size: 11px;
-  padding: 4px 9px;
+  gap: 0;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 999px;
-  box-shadow: 0 2px 8px rgba(255, 107, 151, 0.4);
-  cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
-  user-select: none;
-  white-space: nowrap;
-}
-.level-badge:active {
-  transform: scale(0.93);
-}
-
-.racer-btn, .garage-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  color: #FFF;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-family: 'Fredoka', sans-serif;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
+  padding: 0 4px;
+  height: 30px;
   backdrop-filter: blur(8px);
-  transition: transform 0.1s ease, background 0.15s ease, border-color 0.15s ease;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+body.kart-in-race .race-info-pill {
+  visibility: visible;
+  opacity: 1;
+}
+.race-info-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 0 10px;
   white-space: nowrap;
-  user-select: none;
 }
-.racer-btn:active, .garage-btn:active {
-  transform: scale(0.93);
+.race-info-item + .race-info-item {
+  border-left: 1px solid rgba(255, 255, 255, 0.14);
 }
-.racer-btn {
-  border-color: rgba(56, 189, 248, 0.5);
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(14, 165, 233, 0.35));
+.race-info-course {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #FF9BBE;
 }
-.garage-btn {
-  border-color: rgba(245, 158, 11, 0.5);
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.35));
+.race-info-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
 }
-.garage-coin-pill {
-  background: #F59E0B;
-  color: #111827;
-  padding: 1px 6px;
-  border-radius: 999px;
+.race-info-value {
   font-family: 'Press Start 2P', monospace;
-  font-size: 8px;
-  font-weight: 900;
-  margin-left: 2px;
+  font-size: 10px;
+  color: var(--accent-gold);
+}
+.race-info-time {
+  display: inline-block;
+  min-width: 7.2em; /* digits change width: keep the pill steady */
+  text-align: left;
 }
 
-/* In-race locked header buttons */
-.racer-btn.disabled-in-race, .garage-btn.disabled-in-race, .level-badge.disabled-in-race {
-  opacity: 0.65;
-  cursor: default !important;
-  pointer-events: none;
+/* Landscape only: rotate hint for upright devices */
+#rotate-hint {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  text-align: center;
+  background: radial-gradient(circle at 50% 30%, #2A1E3A 0%, #140F22 70%);
+  color: #FFF;
+  font-family: 'Fredoka', sans-serif;
+}
+.rotate-phone {
+  font-size: 56px;
+  animation: rotateHintTurn 2.4s ease-in-out infinite;
+}
+@keyframes rotateHintTurn {
+  0%, 20% { transform: rotate(0deg); }
+  50%, 80% { transform: rotate(-90deg); }
+  100% { transform: rotate(0deg); }
+}
+.rotate-title { font-size: 20px; font-weight: 700; color: var(--accent-gold); }
+.rotate-sub { font-size: 14px; color: rgba(255, 255, 255, 0.7); }
+@media (orientation: portrait) and (max-width: 1100px) {
+  #rotate-hint { display: flex; }
+  #game-wrapper { display: none !important; }
 }
 
 /* Modal Selector Grids */
@@ -451,14 +478,6 @@ body {
   max-width: 100%;
 }
 
-.stats-pill {
-  background: rgba(0, 0, 0, 0.45);
-  border: 1px solid rgba(255, 201, 74, 0.4);
-  border-radius: 12px;
-  padding: 3px 10px;
-  text-align: center;
-  backdrop-filter: blur(8px);
-}
 .stats-label {
   font-size: 8px;
   color: rgba(255, 255, 255, 0.6);
@@ -471,19 +490,6 @@ body {
   font-size: 11px;
   font-weight: 800;
   color: var(--accent-gold);
-}
-
-.sound-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #FFF;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
 }
 
 /* 3D Race Screen Container */
@@ -2098,59 +2104,57 @@ body {
   transform: scale(0.95);
 }
 
-/* Tablet & iPad Pro / Landscape mode */
-@media (min-width: 768px), (orientation: landscape) and (min-width: 560px) {
-  #game-wrapper {
-    max-width: 1360px;
-    width: 98%;
-    height: 100vh;
-    height: 100dvh;
-    padding: 10px 20px;
-  }
-  .screen-container {
-    margin: 6px 0 0;
-    border-radius: 24px;
-  }
-  .minimap-container {
-    width: 120px;
-    height: 120px;
-    border-radius: 20px;
-  }
-  .controls-panel {
-    bottom: 16px;
-    left: 20px;
-    right: 20px;
-  }
-  .steer-group {
-    max-width: 220px;
-    gap: 12px;
-  }
-  .action-group {
-    gap: 12px;
-  }
-  .steer-btn {
-    height: 76px;
-  }
-  .steer-btn svg {
-    width: 38px;
-    height: 38px;
-  }
-  .drift-btn, .item-btn {
-    width: 74px;
-    height: 76px;
-    font-size: 11px;
-  }
-  .accel-btn {
-    width: 92px;
-    height: 76px;
-    font-size: 13px;
-  }
+/* Landscape layout (the game is landscape-only; the old portrait-first layout was removed) */
+#game-wrapper {
+  max-width: 1360px;
+  width: 98%;
+  height: 100vh;
+  height: 100dvh;
+  padding: 10px max(20px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+}
+.screen-container {
+  margin: 6px 0 0;
+  border-radius: 24px;
+}
+.minimap-container {
+  width: 120px;
+  height: 120px;
+  border-radius: 20px;
+}
+.controls-panel {
+  bottom: 16px;
+  left: 20px;
+  right: 20px;
+}
+.steer-group {
+  max-width: 220px;
+  gap: 12px;
+}
+.action-group {
+  gap: 12px;
+}
+.steer-btn {
+  height: 76px;
+}
+.steer-btn svg {
+  width: 38px;
+  height: 38px;
+}
+.drift-btn, .item-btn {
+  width: 74px;
+  height: 76px;
+  font-size: 11px;
+}
+.accel-btn {
+  width: 92px;
+  height: 76px;
+  font-size: 13px;
 }
 
 /* Compact landscape on iPhones */
 @media (max-height: 500px) and (orientation: landscape) {
   #game-wrapper {
-    padding: 4px 10px 6px;
+    padding: 4px max(10px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
   }
   .game-header {
     gap: 4px;
@@ -2204,48 +2208,47 @@ body {
     height: 68px;
   }
 }
+/* Short landscape screens (iPhone sideways): fit the whole home screen without clipping */
+@media (max-height: 500px) {
+  .home-modal-overlay { padding: 6px 12px; }
+  .home-title-logo { font-size: 20px; margin-bottom: 0; }
+  .home-subtitle { font-size: 10px; margin-bottom: 4px; }
+  .home-trophies-rack { padding: 3px 10px; margin-bottom: 4px; gap: 4px; }
+  .home-trophy-icon { font-size: 15px; }
+  .home-mode-select-row { margin: 2px 0 6px; }
+  .mode-toggle-btn { padding: 6px 14px; }
+  .home-menu-grid { gap: 8px; margin-bottom: 8px; }
+  .home-card-btn { padding: 6px 6px; gap: 2px; }
+  .home-card-icon { font-size: 20px; }
+  .home-start-btn { padding: 10px 18px; font-size: 15px; }
+}
 </style>
 </head>
 <body>
 
+<!-- Landscape only: ask to rotate when held upright -->
+<div id="rotate-hint" role="alert">
+  <div class="rotate-phone" aria-hidden="true">📱</div>
+  <div class="rotate-title">Please turn your device sideways</div>
+  <div class="rotate-sub">Moku Kart Dash is played in landscape.</div>
+</div>
+
 <div id="game-wrapper">
-  <!-- Header Bar -->
+  <!-- Header Bar (landscape-only, minimal: ◀ Hub / 🏠 Home · race info · sound) -->
   <div class="game-header">
-    <div style="display: flex; gap: 6px; align-items: center;">
-      <a href="hub.html" class="hub-link" id="backToHubBtn" aria-label="Return to Moku Series Hub">
-        <span>◀ Hub</span>
-      </a>
-      <button class="hub-link" id="homeScreenBtn" style="cursor: pointer; font-size: 13px;" aria-label="Open Home Screen">
-        <span>🏠 Home</span>
-      </button>
+    <div class="header-nav">
+      <a href="hub.html" class="icon-btn" id="backToHubBtn" aria-label="Return to Moku Series Hub" title="Moku Series Hub">◀</a>
+      <button class="icon-btn" id="homeScreenBtn" aria-label="Open Home Screen" title="Home">🏠</button>
     </div>
 
-    <div class="header-badges">
-      <button class="racer-btn" id="racerSelectBtn" aria-label="Select Character">
-        <span id="headerRacerIcon">🦉</span>
-        <span id="headerRacerName">Mokumoku</span>
-      </button>
-
-      <button class="garage-btn" id="garageBtn" aria-label="Kart Garage & Unlocks">
-        <span id="headerKartIcon">🏎️</span>
-        <span id="headerKartName">Pipe Frame</span>
-        <span class="garage-coin-pill" id="headerCoinPill"><svg class="inline-coin-svg" viewBox="0 0 24 24" width="13" height="13" style="margin-right:2px;"><circle cx="12" cy="12" r="10" fill="#F59E0B" stroke="#FEF08A" stroke-width="2"/><circle cx="12" cy="12" r="7" fill="#D97706"/><path d="M12 6.5L13.3 9.8L16.8 10.1L14.2 12.4L15 15.8L12 14L9 15.8L9.8 12.4L7.2 10.1L10.7 9.8L12 6.5Z" fill="#FFFBEB"/></svg><span id="headerBankCoinNum">0</span></span>
-      </button>
-
-      <div class="level-badge" id="levelBadgeDisplay">LEVEL 1</div>
-
-      <div class="stats-pill">
-        <div class="stats-label">Lap</div>
-        <div class="stats-value" id="lapDisplay">1/2</div>
-      </div>
-
-      <div class="stats-pill">
-        <div class="stats-label">Time</div>
-        <div class="stats-value" id="timeDisplay">00:00</div>
-      </div>
+    <!-- Race info: shown only while a race is on screen (body.kart-in-race) -->
+    <div class="race-info-pill" aria-live="off">
+      <span class="race-info-item race-info-course" id="levelBadgeDisplay">LEVEL 1</span>
+      <span class="race-info-item"><span class="race-info-label">Lap</span><span class="race-info-value" id="lapDisplay">1/2</span></span>
+      <span class="race-info-item"><span class="race-info-label">Time</span><span class="race-info-value race-info-time" id="timeDisplay">00:00.0</span></span>
     </div>
 
-    <button class="sound-btn" id="soundToggleBtn" aria-label="Toggle Sound">🔊</button>
+    <button class="icon-btn" id="soundToggleBtn" aria-label="Toggle Sound">🔊</button>
   </div>
 
   <!-- 3D Driver Screen Arena -->
@@ -4994,6 +4997,8 @@ body {
     }
     var lapDisp = document.getElementById('lapDisplay');
     if (lapDisp) lapDisp.textContent = '1/' + currentLevel.totalLaps;
+    var timeDisp = document.getElementById('timeDisplay');
+    if (timeDisp) timeDisp.textContent = '00:00.0';
 
     updateHeaderBadges();
     updateHomeMenuDisplay();
@@ -5627,6 +5632,7 @@ body {
     var rBtn = document.getElementById('racerSelectBtn');
     var gBtn = document.getElementById('garageBtn');
     if (locked) {
+      document.body.classList.add('kart-in-race');
       if (badge) badge.classList.add('disabled-in-race');
       if (rBtn) rBtn.classList.add('disabled-in-race');
       if (gBtn) gBtn.classList.add('disabled-in-race');
@@ -5666,6 +5672,7 @@ body {
     stopBGM();
     stopChampagneShower();
     setHeaderButtonsLocked(false);
+    document.body.classList.remove('kart-in-race');
 
     updateF1StartingGantry('HIDE');
     var ann = document.getElementById('centerAnnouncement');
@@ -9415,9 +9422,20 @@ body {
 
   // --- MAIN ANIMATION LOOP ---
   var lastTime = Date.now();
+  // Landscape only: while the device is held upright the rotate hint covers the game,
+  // so the race is frozen (the clock and the start lights wait too).
+  var portraitMQ = window.matchMedia ? window.matchMedia('(orientation: portrait) and (max-width: 1100px)') : null;
   function gameLoop() {
     try {
       var now = Date.now();
+      if (portraitMQ && portraitMQ.matches) {
+        var frozen = now - lastTime;
+        if (raceStartTime) raceStartTime += frozen;
+        if (countdownTimer) countdownTimer += frozen;
+        lastTime = now;
+        requestAnimationFrame(gameLoop);
+        return;
+      }
       var dt = Math.min(0.1, (now - lastTime) / 1000);
       if (isNaN(dt) || dt <= 0) dt = 0.016;
       lastTime = now;
