@@ -118,7 +118,9 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
 .prow { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 12px; color: var(--dim); font-weight: 700; }
 .form { display: inline-flex; gap: 3px; }
 .fm { width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: #fff; }
-.fm.W { background: #1F9D55; } .fm.D { background: #C98A12; } .fm.L { background: #C53030; } .fm.N { background: #4A5568; }
+.fm.P { background: #1F9D55; } .fm.S { background: #C98A12; } .fm.N { background: #3A455C; color: rgba(255,255,255,0.7); }
+.form-wrap { display: inline-flex; align-items: center; gap: 4px; }
+.form-wrap i { font-style: normal; font-size: 9.5px; font-weight: 800; color: var(--gold); letter-spacing: 0.02em; }
 .st { font-weight: 800; font-size: 15px; }
 .st.up { color: #4ADE80; } .st.flat { color: #CBD5E0; } .st.down { color: #FC8181; }
 .badges { display: inline-flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; }
@@ -145,7 +147,8 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
 .sh-cell p { font-size: 15px; font-weight: 700; line-height: 1.45; }
 .sh-cell p small { font-weight: 600; color: var(--dim); font-size: 13px; }
 .sh-form { display: flex; gap: 6px; margin-bottom: 6px; }
-.sh-form .fm { width: 30px; height: 30px; font-size: 14px; }
+.sh-form .fm { width: 30px; height: 30px; font-size: 15px; }
+.sh-form .form-wrap { gap: 6px; } .sh-form .form-wrap i { font-size: 11px; }
 #sheetClose { display: block; width: 100%; margin-top: 14px; padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.10); font-weight: 800; }
 
 /* ---------- mini game ---------- */
@@ -241,7 +244,7 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
   <div id="legend"></div>
   <div id="cards"></div>
   <p id="dataNote" data-t="dataNote"></p>
-  <div id="buildInfo">v1.0.0 · Updated Nov 13, 2026</div>
+  <div id="buildInfo">v1.1.0 · Updated Nov 13, 2026</div>
 </main>
 
 <main id="game" hidden>
@@ -343,8 +346,8 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
     stWC: ['2026 World Cup', '2026年W杯メンバー'],
     stUp: ['On the rise ↑', '上り調子 ↑'],
     legend: [
-      '<b>Form (last 5 matches)</b>: <span class="fm W">W</span> win · <span class="fm D">D</span> draw · <span class="fm L">L</span> loss · <span class="fm N">–</span> no match　<b>Status</b>: <span class="st up">↑</span> rising · <span class="st flat">→</span> steady · <span class="st down">↓</span> dropping<br>Tap a player to see more.',
-      '<b>直近5試合</b>: <span class="fm W">W</span> 勝ち(⭕️) · <span class="fm D">D</span> 引き分け(🔺) · <span class="fm L">L</span> 負け(❌) · <span class="fm N">–</span> 出場なし　<b>ステータス</b>: <span class="st up">↑</span> 上り調子 · <span class="st flat">→</span> 安定 · <span class="st down">↓</span> 下り調子<br>選手をタップすると、くわしく見られます。'
+      '<b>Last 5 matches (did he play?)</b>: <span class="fm P">○</span> played · <span class="fm S">△</span> played part of the match · <span class="fm N">ー</span> did not play. The <b>right end is the latest match</b>.　<b>Status</b>: <span class="st up">↑</span> rising · <span class="st flat">→</span> steady · <span class="st down">↓</span> dropping<br>Tap a player to see more.',
+      '<b>直近5試合の出場</b>: <span class="fm P">○</span> 出場 · <span class="fm S">△</span> 一部だけ出場 · <span class="fm N">ー</span> 出場なし。<b>右はしが、いちばん最近の試合</b>です。　<b>ステータス</b>: <span class="st up">↑</span> 上り調子 · <span class="st flat">→</span> 安定 · <span class="st down">↓</span> 下り調子<br>選手をタップすると、くわしく見られます。'
     ],
     wc: ['WC 2026', 'W杯2026'],
     wcVs: ['WC Japan match', 'W杯 日本戦'],
@@ -352,7 +355,9 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
     hClub: ['Club', '所属クラブ'],
     hLeague: ['League', 'リーグ'],
     hStatus: ['Status', 'ステータス'],
-    hForm: ['Last 5 matches', '直近5試合'],
+    hForm: ['Last 5 matches · did he play?', '直近5試合の出場'],
+    latest: ['latest', '最新'],
+    older: ['← older', '← 前'],
     hWC: ['2026 World Cup squad', '2026年W杯 出場'],
     hWCvs: ['Played in the World Cup Japan match', 'W杯の日本戦に出場'],
     yes: ['⭕️ Yes', '⭕️ あり'],
@@ -398,7 +403,8 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
 
   /* ================= squad data =================
      [number, English name, 日本語名, position, flag, club, league (EN), リーグ (JA), status, form, WC 2026, WC Japan match]
-     form: W = ⭕️ / D = 🔺 / L = ❌ / N = ➖。status: u = ↑ / f = → / d = ↓。
+     form: 直近5試合に出場したか(チームの勝ち負けではない)。右はしが、いちばん最近の試合。
+           W = ⭕️ → ○ 出場 / D = 🔺 → △ 一部だけ出場 / L = ❌ と N = ➖ → ー 出場なし。status: u = ↑ / f = → / d = ↓。
      保護者が用意した表のまま(伊東純也の漢字だけ直した)。 */
   var EN = ['🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'England', 'イングランド'], DE = ['🇩🇪', 'Germany', 'ドイツ'], FR = ['🇫🇷', 'France', 'フランス'],
       IT = ['🇮🇹', 'Italy', 'イタリア'], ES = ['🇪🇸', 'Spain', 'スペイン'], JP = ['🇯🇵', 'Japan', '日本'], BR = ['🇧🇷', 'Brazil', 'ブラジル'],
@@ -491,26 +497,31 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
     return n;
   }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
-  function formHTML(form) {
-    return form.split('').map(function (c) { return '<span class="fm ' + c + '">' + (c === 'N' ? '–' : c) + '</span>'; }).join('');
+  // Last five matches: did he play? The right end is the latest match.
+  var FORM_MARK = { W: ['P', '○'], D: ['S', '△'], L: ['N', 'ー'], N: ['N', 'ー'] };
+  function formHTML(form, labels) {
+    var dots = form.split('').map(function (c) { return '<span class="fm ' + FORM_MARK[c][0] + '">' + FORM_MARK[c][1] + '</span>'; }).join('');
+    return '<span class="form-wrap">' + (labels ? '<i style="color:var(--dim)">' + t('older') + '</i>' : '') + dots + '<i>◀ ' + t('latest') + '</i></span>';
   }
   function statusHTML(s) {
     return s === 'u' ? '<span class="st up">↑</span>' : s === 'd' ? '<span class="st down">↓</span>' : '<span class="st flat">→</span>';
   }
-  // A one-line comment made from the last five results.
+  // A one-line comment made from the last five matches.
   function formComment(form) {
-    var w = (form.match(/W/g) || []).length, d = (form.match(/D/g) || []).length, l = (form.match(/L/g) || []).length, n = (form.match(/N/g) || []).length;
+    var o = (form.match(/W/g) || []).length, d = (form.match(/D/g) || []).length, n = 5 - o - d;
     var line = save.lang === 'ja'
-      ? w + '勝 ' + d + '分 ' + l + '敗' + (n ? '(出場なし ' + n + ')' : '')
-      : w + ' W · ' + d + ' D · ' + l + ' L' + (n ? ' (' + n + ' not played)' : '');
+      ? '○ 出場 ' + o + ' · △ 一部 ' + d + ' · ー なし ' + n
+      : '○ played ' + o + ' · △ part ' + d + ' · ー none ' + n;
     var c;
-    if (n >= 3) c = ['Has not played much lately.', '最近は出場が少なめです。'];
-    else if (w === 5) c = ['Five wins out of five. Perfect form!', '5戦全勝。絶好調です!'];
-    else if (w === 4) c = ['Four wins in the last five. In great shape.', '直近5試合で4勝。とても良い調子です。'];
-    else if (w === 3) c = ['Three wins in five. Steady results.', '5試合で3勝。安定した成績です。'];
-    else if (l >= 2) c = ['A tough run lately. Looking to bounce back.', '最近は苦しい結果が続いています。巻き返しに期待。'];
-    else c = ['Up-and-down results. Many draws lately.', '勝ったり引き分けたり。波のある成績です。'];
-    return '<small>' + line + '</small><br>' + L(c);
+    if (o === 5) c = ['Played in all five. A regular in the team!', '5試合すべてに出場。チームの中心です!'];
+    else if (o + d >= 4) c = ['Plays in almost every match.', 'ほぼ毎試合に出場しています。'];
+    else if (o + d >= 2) c = ['In and out of the team lately.', '出たり出なかったりの5試合です。'];
+    else c = ['Has not played much lately.', '最近は出場が少なめです。'];
+    var last = form.charAt(4);
+    var l2 = last === 'W' ? ['Played in the latest match.', 'いちばん最近の試合にも出場。']
+      : last === 'D' ? ['Played part of the latest match.', 'いちばん最近の試合は一部だけ出場。']
+      : ['Did not play in the latest match.', 'いちばん最近の試合は出場なし。'];
+    return '<small>' + line + '</small><br>' + L(c) + ' ' + L(l2);
   }
 
   /* ================= guide ================= */
@@ -574,7 +585,7 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
     grid.innerHTML =
       '<div class="sh-cell"><h4>' + t('hClub') + '</h4><p>' + esc(p[5]) + '</p></div>' +
       '<div class="sh-cell"><h4>' + t('hLeague') + '</h4><p>' + p[4][0] + ' ' + (ja ? p[4][2] : p[4][1]) + '</p></div>' +
-      '<div class="sh-cell wide"><h4>' + t('hForm') + '</h4><div class="sh-form">' + formHTML(p[7]) + '</div><p>' + formComment(p[7]) + '</p></div>' +
+      '<div class="sh-cell wide"><h4>' + t('hForm') + '</h4><div class="sh-form">' + formHTML(p[7], true) + '</div><p>' + formComment(p[7]) + '</p></div>' +
       '<div class="sh-cell wide"><h4>' + t('hStatus') + '</h4><p>' + t(p[6] === 'u' ? 'stUpL' : p[6] === 'd' ? 'stDownL' : 'stFlatL') + '</p></div>' +
       '<div class="sh-cell"><h4>' + t('hWC') + '</h4><p>' + t(p[8] ? 'yes' : 'no') + '</p></div>' +
       '<div class="sh-cell"><h4>' + t('hWCvs') + '</h4><p>' + t(p[9] ? 'yes' : 'no') + '</p></div>';
@@ -583,8 +594,8 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
     var cv = $('sheetAvatar'), c = cv.getContext('2d');
     c.clearRect(0, 0, cv.width, cv.height);
     c.save();
-    c.translate(96, 158);
-    c.scale(5.2, 5.2);
+    c.translate(96, 204);
+    c.scale(4.9, 4.9);
     drawChibi(c, { team: team === 'jp' ? 0 : 1, gk: p[3] === 'GK', num: p[0], look: lookOf(p[1]), dir: 1, run: 0, moving: false });
     c.restore();
     $('sheetBack').hidden = false;
@@ -716,14 +727,31 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
   ];
   // Home spots for the side attacking to the right (mirrored for Brazil).
   var SPOTS = { GK: [PX0 + 24, GY], DF: [250, GY], MF: [[420, 190], [420, 430]], FW: [[610, 230], [610, 390]] };
-  var LOOKS = {};
+  // How each player looks (v1.1.0: retro big-head style with a thick outline).
+  // skin / hair colour, hair style, beard (0 none, 1 stubble, 2 full), brow (thickness).
+  // The twelve players in the mini game are drawn by hand; everyone else gets a look from their name.
+  var SKIN = { fair: '#F7D2AE', tan: '#E9B98A', brown: '#C68A5A', dark: '#8A5A3C', deep: '#6B4430' };
+  var LOOKS = {
+    'Zion Suzuki':       { skin: SKIN.brown, hair: '#1A1512', style: 'curly', beard: 0, brow: 1.5 },
+    'Ko Itakura':        { skin: SKIN.fair,  hair: '#1C1814', style: 'short', beard: 0, brow: 1.7 },
+    'Ao Tanaka':         { skin: SKIN.fair,  hair: '#201A16', style: 'part',  beard: 0, brow: 1.4 },
+    'Takumi Minamino':   { skin: SKIN.fair,  hair: '#181412', style: 'part',  beard: 0, brow: 1.8 },
+    'Ritsu Doan':        { skin: SKIN.tan,   hair: '#D9B45A', style: 'spiky', beard: 0, brow: 1.8, browCol: '#3A2A1A' },
+    'Takefusa Kubo':     { skin: SKIN.fair,  hair: '#15120F', style: 'fringe', beard: 0, brow: 1.5 },
+    'Bento':             { skin: SKIN.brown, hair: '#17130F', style: 'fade',  beard: 2, brow: 1.6 },
+    'Gabriel Magalhães': { skin: SKIN.dark,  hair: '#120E0C', style: 'fade',  beard: 2, brow: 1.8 },
+    'Bruno Guimarães':   { skin: SKIN.tan,   hair: '#2A1C12', style: 'short', beard: 2, brow: 1.7 },
+    'João Gomes':        { skin: SKIN.brown, hair: '#15110E', style: 'buzz',  beard: 1, brow: 1.5 },
+    'Raphinha':          { skin: SKIN.tan,   hair: '#1E1610', style: 'fringe', beard: 1, brow: 1.6 },
+    'Vinicius Junior':   { skin: SKIN.deep,  hair: '#0F0C0A', style: 'curly', beard: 0, brow: 1.6 }
+  };
   function lookOf(name) {
     if (LOOKS[name]) return LOOKS[name];
     var h = 0;
     for (var i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-    var skins = ['#F6CFA6', '#EBB98C', '#D9A066', '#B97A4E', '#8D5A3A'];
-    var hairs = ['#1E1A17', '#2B1D12', '#3A2A1A', '#151515'];
-    LOOKS[name] = { skin: skins[h % skins.length], hair: hairs[(h >> 3) % hairs.length], style: (h >> 5) % 4 };
+    var skins = [SKIN.fair, SKIN.tan, SKIN.brown, SKIN.dark], hairs = ['#1E1A17', '#2B1D12', '#151515'];
+    var styles = ['short', 'part', 'fringe', 'fade', 'buzz'];
+    LOOKS[name] = { skin: skins[h % skins.length], hair: hairs[(h >> 3) % hairs.length], style: styles[(h >> 5) % styles.length], beard: (h >> 9) % 4 === 0 ? 1 : 0, brow: 1.5 };
     return LOOKS[name];
   }
 
@@ -742,7 +770,7 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
     view.w = r.width; view.h = r.height;
     cv.width = Math.round(r.width * view.dpr); cv.height = Math.round(r.height * view.dpr);
     var fit = Math.min(r.width / FW, r.height / FH);
-    view.s = Math.max(fit, Math.min(r.height / 470, r.width / 820));
+    view.s = Math.max(fit, Math.min(r.height / 430, r.width / 800));
     pitchCache = null;
   }
 
@@ -1132,54 +1160,123 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
   }
 
   /* ----- drawing ----- */
-  // A 2-heads-tall player, drawn around (0, 0) = feet. About 26 units tall.
+  // A big-head player in a retro arcade style, drawn around (0, 0) = feet, facing right
+  // (mirrored when running left). About 37 units tall; the head is more than half of it.
+  var INK = '#2A1A12';
   function drawChibi(c, p) {
     var kit = p.team === 0
       ? (p.gk ? ['#F08A24', '#B85C0C', '#22262E'] : ['#2F5BD8', '#16307E', '#FFFFFF'])
       : (p.gk ? ['#3BB273', '#1E7A4A', '#22262E'] : ['#F5C518', '#0E8A45', '#2456C8']);
-    var sw = p.moving ? Math.sin(p.run) * 2.4 : 0;
+    var k = p.look, sw = p.moving ? Math.sin(p.run) * 2.6 : 0, bob = p.moving ? Math.abs(Math.sin(p.run)) * 0.8 : 0;
     c.save();
     c.scale(p.dir < 0 ? -1 : 1, 1);
-    // feet
+    c.lineJoin = 'round'; c.lineCap = 'round';
+    c.strokeStyle = INK; c.lineWidth = 1.3;
+    // boots
     c.fillStyle = '#1B1B1F';
-    c.beginPath(); c.ellipse(-3 + sw, -1, 2.8, 1.8, 0, 0, 6.3); c.fill();
-    c.beginPath(); c.ellipse(3 - sw, -1, 2.8, 1.8, 0, 0, 6.3); c.fill();
+    c.beginPath(); c.ellipse(-3 + sw, -1.2, 3.3, 2, 0, 0, 6.3); c.fill();
+    c.beginPath(); c.ellipse(3.4 - sw, -1.2, 3.3, 2, 0, 0, 6.3); c.fill();
+    // socks / legs
+    c.fillStyle = k.skin;
+    c.fillRect(-4.6 + sw * 0.6, -5, 3, 3.4); c.fillRect(2 - sw * 0.6, -5, 3, 3.4);
     // shorts
     c.fillStyle = kit[2];
-    c.beginPath(); c.roundRect(-5.5, -7, 11, 5.5, 2); c.fill();
+    c.beginPath(); c.roundRect(-6, -9.5, 12, 5.5, 2); c.fill(); c.stroke();
+    // back arm
+    c.fillStyle = kit[0];
+    c.beginPath(); c.ellipse(-7.6, -12 - sw * 0.5, 2.3, 3.4, 0.35, 0, 6.3); c.fill(); c.stroke();
     // shirt
+    c.beginPath(); c.roundRect(-7, -17, 14, 9, 3); c.fill(); c.stroke();
+    c.fillStyle = kit[1]; c.fillRect(-6.2, -16.4, 12.4, 1.8);
+    // front arm and fist
     c.fillStyle = kit[0];
-    c.beginPath(); c.roundRect(-6.5, -13.5, 13, 8.5, 3); c.fill();
-    c.fillStyle = kit[1];
-    c.fillRect(-6.5, -13.5, 13, 1.8);
-    // arms
-    c.fillStyle = kit[0];
-    c.beginPath(); c.ellipse(-7.2, -10 - sw * 0.4, 2, 3, 0.3, 0, 6.3); c.fill();
-    c.beginPath(); c.ellipse(7.2, -10 + sw * 0.4, 2, 3, -0.3, 0, 6.3); c.fill();
-    // head
-    c.fillStyle = p.look.skin;
-    c.beginPath(); c.arc(0, -20, 8.2, 0, 6.3); c.fill();
-    // hair
-    c.fillStyle = p.look.hair;
-    c.beginPath();
-    if (p.look.style === 0) { c.arc(0, -21.5, 8.4, Math.PI * 1.02, Math.PI * 1.98); c.quadraticCurveTo(3, -24, -8.2, -20.5); }
-    else if (p.look.style === 1) { c.arc(0, -21, 8.6, Math.PI * 0.95, Math.PI * 2.05); c.quadraticCurveTo(0, -27.5, -8.5, -19.5); }
-    else if (p.look.style === 2) { c.arc(0, -22, 8.2, Math.PI * 1.08, Math.PI * 1.92); c.lineTo(5, -27); c.lineTo(2, -24.5); c.lineTo(-1, -28); c.lineTo(-4, -24.5); c.closePath(); }
-    else { c.arc(0, -22.5, 8, Math.PI * 1.1, Math.PI * 1.9); c.closePath(); }
-    c.fill();
+    c.beginPath(); c.ellipse(7.4, -12 + sw * 0.5, 2.3, 3.4, -0.35, 0, 6.3); c.fill(); c.stroke();
+    c.fillStyle = k.skin;
+    c.beginPath(); c.arc(8.2, -8.8 + sw * 0.5, 1.7, 0, 6.3); c.fill(); c.stroke();
+
+    // ---- head ----
+    c.translate(0, -bob);
+    var hx = -10, hy = -37, hw = 21.5, hh = 21;        // head box
+    // ear (behind)
+    c.fillStyle = k.skin;
+    c.beginPath(); c.ellipse(hx + 1.2, hy + 12.5, 2.2, 2.8, 0, 0, 6.3); c.fill(); c.stroke();
     // face
-    c.fillStyle = '#1B1B1F';
-    c.beginPath(); c.arc(1.4, -19, 1.1, 0, 6.3); c.fill();
-    c.beginPath(); c.arc(5.4, -19, 1.1, 0, 6.3); c.fill();
-    c.fillStyle = 'rgba(240,110,110,0.45)';
-    c.beginPath(); c.arc(0, -16.6, 1.4, 0, 6.3); c.fill();
+    c.beginPath(); c.roundRect(hx, hy, hw, hh, [9, 9, 8, 7]); c.fill();
+    // beard (under the outline)
+    if (k.beard) {
+      c.save();
+      c.beginPath(); c.roundRect(hx, hy, hw, hh, [9, 9, 8, 7]); c.clip();
+      c.fillStyle = k.hair; c.globalAlpha = k.beard === 2 ? 0.85 : 0.28;
+      c.beginPath(); c.moveTo(hx, hy + 12.5); c.quadraticCurveTo(hx + 4, hy + 16, hx + 9, hy + 15.6);
+      c.lineTo(hx + 14, hy + 14.6); c.quadraticCurveTo(hx + 19, hy + 15.2, hx + hw, hy + 12.5);
+      c.lineTo(hx + hw, hy + hh); c.lineTo(hx, hy + hh); c.closePath(); c.fill();
+      c.restore();
+    }
+    c.beginPath(); c.roundRect(hx, hy, hw, hh, [9, 9, 8, 7]); c.stroke();
+    // hair
+    c.fillStyle = k.hair;
+    c.beginPath();
+    var top = hy - 1.4, L0 = hx - 0.9, R0 = hx + hw + 0.6;
+    if (k.style === 'buzz' || k.style === 'fade') {
+      c.moveTo(L0 + 1, hy + 7.2); c.quadraticCurveTo(L0 + 1, top + 0.6, hx + 9, top + 0.4);
+      c.quadraticCurveTo(R0 - 1, top + 0.6, R0 - 1, hy + 6.4);
+      c.quadraticCurveTo(hx + 12, hy + (k.style === 'fade' ? 2.6 : 3.6), L0 + 1, hy + 7.2);
+    } else if (k.style === 'curly') {
+      c.moveTo(L0, hy + 8.5);
+      c.quadraticCurveTo(L0 - 1.6, hy + 4, L0 + 2.2, hy + 1.6); c.quadraticCurveTo(L0 + 3, top - 2.2, hx + 7, top - 0.8);
+      c.quadraticCurveTo(hx + 10.5, top - 3, hx + 14, top - 0.8); c.quadraticCurveTo(hx + 18.5, top - 2, R0 - 1.6, hy + 2);
+      c.quadraticCurveTo(R0 + 1.2, hy + 4.2, R0 - 0.4, hy + 7.2);
+      c.quadraticCurveTo(hx + 17, hy + 4.6, hx + 12.5, hy + 5.6); c.quadraticCurveTo(hx + 8, hy + 4.4, hx + 4.4, hy + 6.4);
+      c.quadraticCurveTo(L0 + 1.6, hy + 6.6, L0, hy + 8.5);
+    } else if (k.style === 'spiky') {
+      c.moveTo(L0, hy + 9); c.lineTo(L0 + 0.4, hy + 2.5); c.lineTo(hx + 2.5, top - 2.6); c.lineTo(hx + 5.6, top + 0.6);
+      c.lineTo(hx + 8.4, top - 3.6); c.lineTo(hx + 11.4, top + 0.4); c.lineTo(hx + 15, top - 3.2); c.lineTo(hx + 17.4, top + 1);
+      c.lineTo(R0 + 0.6, top - 0.6); c.lineTo(R0 - 0.2, hy + 7);
+      c.lineTo(hx + 17.6, hy + 4.4); c.lineTo(hx + 14.6, hy + 6.6); c.lineTo(hx + 11, hy + 4.2); c.lineTo(hx + 7.4, hy + 6.6); c.lineTo(hx + 4.2, hy + 5); c.closePath();
+    } else if (k.style === 'fringe') {
+      c.moveTo(L0, hy + 11); c.quadraticCurveTo(L0 - 1, top - 0.4, hx + 9, top - 1);
+      c.quadraticCurveTo(R0 + 1.2, top - 0.2, R0, hy + 9.2);
+      c.lineTo(hx + 19.4, hy + 6.6); c.lineTo(hx + 17, hy + 9); c.lineTo(hx + 14.2, hy + 6.8); c.lineTo(hx + 11.4, hy + 9); c.lineTo(hx + 8.4, hy + 6.8); c.lineTo(hx + 5.6, hy + 8.6);
+      c.lineTo(hx + 4, hy + 6); c.closePath();
+    } else if (k.style === 'part') {
+      c.moveTo(L0, hy + 10.4); c.quadraticCurveTo(L0 - 1, top - 0.6, hx + 9, top - 1.2);
+      c.quadraticCurveTo(R0 + 1.6, top - 0.6, R0 + 0.2, hy + 8.6);
+      c.quadraticCurveTo(hx + 19, hy + 3.4, hx + 13, hy + 4); c.quadraticCurveTo(hx + 7, hy + 4.6, hx + 4.6, hy + 8.4);
+      c.lineTo(hx + 3.8, hy + 5.6); c.closePath();
+    } else {   // short
+      c.moveTo(L0, hy + 9.4); c.quadraticCurveTo(L0 - 0.6, top, hx + 9, top - 0.6);
+      c.quadraticCurveTo(R0 + 1, top, R0, hy + 7.4);
+      c.lineTo(hx + 18.6, hy + 5); c.lineTo(hx + 15.4, hy + 6); c.lineTo(hx + 11.6, hy + 4.8); c.lineTo(hx + 7.6, hy + 6); c.lineTo(hx + 4.4, hy + 5.2); c.closePath();
+    }
+    if (k.style === 'buzz') { c.globalAlpha = 0.72; c.fill(); c.globalAlpha = 1; }
+    else { c.fill(); c.lineWidth = 1.1; c.stroke(); c.lineWidth = 1.3; }
+    // eyes: white with a big dark pupil looking forward
+    var ey = hy + 11.6;
+    c.fillStyle = '#FFFFFF';
+    c.beginPath(); c.ellipse(hx + 10.6, ey, 2.5, 2.9, 0, 0, 6.3); c.fill(); c.lineWidth = 0.8; c.stroke();
+    c.beginPath(); c.ellipse(hx + 17.2, ey, 2.2, 2.9, 0, 0, 6.3); c.fill(); c.stroke();
+    c.fillStyle = '#17110D';
+    c.beginPath(); c.ellipse(hx + 11.4, ey + 0.3, 1.35, 1.9, 0, 0, 6.3); c.fill();
+    c.beginPath(); c.ellipse(hx + 17.8, ey + 0.3, 1.25, 1.9, 0, 0, 6.3); c.fill();
+    c.fillStyle = '#FFFFFF';
+    c.beginPath(); c.arc(hx + 11.9, ey - 0.6, 0.5, 0, 6.3); c.fill();
+    c.beginPath(); c.arc(hx + 18.2, ey - 0.6, 0.45, 0, 6.3); c.fill();
+    // strong eyebrows
+    c.strokeStyle = k.browCol || k.hair; c.lineWidth = k.brow || 1.5;
+    c.beginPath(); c.moveTo(hx + 7.6, ey - 5); c.lineTo(hx + 13.2, ey - 3.9); c.stroke();
+    c.beginPath(); c.moveTo(hx + 15.4, ey - 3.9); c.lineTo(hx + 20, ey - 5); c.stroke();
+    // nose and mouth
+    c.strokeStyle = INK; c.lineWidth = 0.9;
+    c.beginPath(); c.moveTo(hx + 14.6, ey + 2.6); c.lineTo(hx + 15.8, ey + 3.4); c.stroke();
+    c.lineWidth = 1.1;
+    c.beginPath(); c.moveTo(hx + 12, ey + 6); c.quadraticCurveTo(hx + 14.6, ey + 7.2, hx + 17.4, ey + 5.6); c.stroke();
     c.restore();
     // number (never mirrored)
     if (p.num) {
       c.fillStyle = p.team === 0 || p.gk ? '#FFFFFF' : '#0B5A2C';
-      c.font = '800 6px -apple-system, "Segoe UI", sans-serif';
+      c.font = '800 6.4px -apple-system, "Segoe UI", sans-serif';
       c.textAlign = 'center'; c.textBaseline = 'middle';
-      c.fillText(p.num, 0, -8.6);
+      c.fillText(p.num, 0, -11.4);
     }
   }
 
@@ -1249,7 +1346,7 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
     var list = players.slice().sort(function (a, b) { return a.y - b.y; });
     // shadows
     ctx.fillStyle = 'rgba(0,0,0,0.28)';
-    list.forEach(function (p) { ctx.beginPath(); ctx.ellipse(p.x, p.y + 1, 9, 4, 0, 0, 6.3); ctx.fill(); });
+    list.forEach(function (p) { ctx.beginPath(); ctx.ellipse(p.x, p.y + 1, 10.5, 4.4, 0, 0, 6.3); ctx.fill(); });
     ctx.beginPath(); ctx.ellipse(ball.x, ball.y + 3, 5.5, 2.6, 0, 0, 6.3); ctx.fill();
     // ring under the player you control
     var c = G.ctrl;
@@ -1283,9 +1380,9 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
       if (!p || (i === 1 && p === c)) return;
       var s = nameOf(p), w = ctx.measureText(s).width + 10;
       ctx.fillStyle = p.team === 0 ? 'rgba(22,48,126,0.9)' : 'rgba(14,110,56,0.9)';
-      ctx.beginPath(); ctx.roundRect(p.x - w / 2, p.y - 45, w, 13, 6); ctx.fill();
-      ctx.fillStyle = '#fff'; ctx.fillText(s, p.x, p.y - 38.2);
-      if (p === c) { ctx.fillStyle = '#FFD35A'; ctx.beginPath(); ctx.moveTo(p.x - 4, p.y - 31); ctx.lineTo(p.x + 4, p.y - 31); ctx.lineTo(p.x, p.y - 27); ctx.fill(); }
+      ctx.beginPath(); ctx.roundRect(p.x - w / 2, p.y - 58, w, 13, 6); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.fillText(s, p.x, p.y - 51.2);
+      if (p === c) { ctx.fillStyle = '#FFD35A'; ctx.beginPath(); ctx.moveTo(p.x - 4, p.y - 44); ctx.lineTo(p.x + 4, p.y - 44); ctx.lineTo(p.x, p.y - 40); ctx.fill(); }
     });
     // confetti
     G.confetti.forEach(function (k) {
@@ -1431,6 +1528,7 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
   // roundRect is missing on older Safari (iPhone 7).
   if (!CanvasRenderingContext2D.prototype.roundRect) {
     CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+      if (r instanceof Array) r = r[0];
       r = Math.min(r, w / 2, h / 2);
       this.moveTo(x + r, y); this.arcTo(x + w, y, x + w, y + h, r); this.arcTo(x + w, y + h, x, y + h, r);
       this.arcTo(x, y + h, x, y, r); this.arcTo(x, y, x + w, y, r); this.closePath();

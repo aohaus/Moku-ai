@@ -451,9 +451,10 @@ Moku とは直接関係がないが、家族のイベント(試合を見に行�
 - **Moku のゲームではない**ので `CATALOG` / `GAMES` / `SHELVES` / `RECORDS` には入れない(XP・Completed・Achievements・Moint・Today's Pick に数えない。アイコン SVG とスクリーンショットもいらない)。
 - **足し方**: `event-<名前>.html` を作り、`EVENTS` に1件足す(`name` → `gameId` の順で書く。「Get the latest games & updates」と `ux:smoke` がこの並びでページを見つける)。ページはゲームと同じく `<head>` の先頭に `moku-errors.js` と `moku-gate.js`、最後に `moku-account.js`(`data-mode="background"`)。セーブは `moku:<gameId>:…`。左上に「◀ Hub」、`#buildInfo` はページの下。`#title-frame` はいらない。
 - **見た目とことば**: 特別アプリはイベントに合わせてよい(Moku の絵本の世界観・英語だけのルールの例外。保護者が頼んだ時だけ)。
-- **第1弾: Japan vs Brazil**(`event-japan-brazil.html`、v1.0.0。2026-11-14、National Stadium, Singapore): スタジアムの夜の配色、英語 / 日本語を右上のボタンで切り替え(初期値は英語)。
-  - **Squad Guide**: 日本 28 人・ブラジル 26 人。背番号・名前(英日)・ポジション・所属クラブとリーグの国・ステータス(↑ → ↓)・直近5試合(W / D / L / –)・2026年W杯・W杯の日本戦。チームの切り替え、ポジションの絞り込み、選手をタップで詳細(直近5試合から作る一言つき)。データは保護者が用意した表のまま、ページ内の `SQUADS`(確かめていない。画面の下にもそう書いてある)。
+- **第1弾: Japan vs Brazil**(`event-japan-brazil.html`、v1.1.0。2026-11-14、National Stadium, Singapore): スタジアムの夜の配色、英語 / 日本語を右上のボタンで切り替え(初期値は英語)。
+  - **Squad Guide**: 日本 28 人・ブラジル 26 人。背番号・名前(英日)・ポジション・所属クラブとリーグの国・ステータス(↑ → ↓)・直近5試合の**出場**(チームの勝ち負けではない。○ 出場 / △ 一部だけ出場 / ー 出場なし、右はしが最新。元の表の ⭕️ → ○、🔺 → △、❌ と ➖ → ー。v1.1.0〜)・2026年W杯・W杯の日本戦。チームの切り替え、ポジションの絞り込み、選手をタップで詳細(直近5試合から作る一言つき)。データは保護者が用意した表のまま、ページ内の `SQUADS`(確かめていない。画面の下にもそう書いてある)。
   - **Mini Game**: 横持ちの 6 対 6(GK+5)、2分。日本(鈴木彩艶・板倉・田中・南野・堂安・久保)を操作して CPU のブラジル(Bento・Gabriel・Bruno G.・J. Gomes・Raphinha・Vinicius)と対戦。左の画面でスティック、右に PASS / SHOOT(ボールがない時は SWITCH / TACKLE)。キーボードは 矢印 / WASD・X・Z / Space。Easy / Normal / Hard。ボールは外に出ない(壁ではね返る)。スコア・試合の分(0'〜90')・一言実況。カメラはボールを追う(スマホでは選手が見やすいよう少し拡大)。縦持ちは回転のお願い(ガイドは縦でも読める)。効果音は Web Audio。
+  - 選手の絵(v1.1.0〜): 頭の大きいレトロなアーケード風(太い輪郭・白目と大きい黒目・太い眉)。ゲームに出る12人は髪型・髪の色・肌の色・ひげを1人ずつ手で決めている(ページ内の `LOOKS`。写真は使わず、特徴だけ)。ほかの選手は名前から自動で決める。ガイドの詳細シートにも同じ絵。
   - 記録は `moku:event-japan-brazil:progress` = `{ version: 1, gameId, lang, level, played, wins, draws, losses, goals, updatedAt }`。
 
 ## 未決事項 / 次に決めること
