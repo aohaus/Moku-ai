@@ -621,6 +621,33 @@ body[data-band="morning"] #starsLayer { --star-opacity: 0.15; }
   transition: transform .25s ease;
 }
 
+/* Special Events: family-event apps that are not Moku games (SPEC.md §15).
+   One wide card per event, listed in EVENTS in the script below. */
+#eventsList { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+.event-card {
+  --hi: #2F5BD8; --lo: #0E8A45;
+  position: relative; display: flex; align-items: center; gap: 14px;
+  padding: 16px 18px; border-radius: 20px; overflow: hidden;
+  color: #EDEEF6; text-decoration: none;
+  border: 1px solid rgba(255,255,255,0.18);
+  background:
+    radial-gradient(70% 120% at 0% 0%, var(--hi), transparent 70%),
+    radial-gradient(70% 120% at 100% 100%, var(--lo), transparent 70%),
+    #121A2E;
+  box-shadow: 0 14px 34px rgba(0,0,0,0.4);
+  transition: transform .2s ease;
+}
+.event-card:hover { transform: translateY(-2px); }
+.event-card:active { transform: scale(0.99); }
+.event-flags { flex: none; font-size: clamp(34px, 8vw, 46px); line-height: 1; white-space: nowrap; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.45)); }
+.event-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
+.event-eyebrow { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 11px; font-weight: 800; letter-spacing: 0.1em; color: #FFD35A; }
+.event-when { letter-spacing: 0; font-size: 11px; background: #FFD35A; color: #3A2500; padding: 2px 8px; border-radius: 999px; }
+.event-title { font-size: clamp(18px, 4vw, 22px); font-weight: 800; letter-spacing: 0.01em; }
+.event-tag { font-size: 13px; font-weight: 600; color: rgba(237,238,246,0.75); }
+.event-go { flex: none; font-size: 14px; font-weight: 800; padding: 9px 14px; border-radius: 999px; background: rgba(255,255,255,0.16); white-space: nowrap; }
+@media (max-width: 420px) { .event-go { display: none; } }
+
 /* Today's Pick: one featured game per day, shown with its real screenshot. */
 #todayPick {
   --hi: #2EC4B6;
@@ -1867,6 +1894,11 @@ html.me-open #ceoPeek { display: none; }
     <div class="section-head"><h2 id="invitesHead">📬 Invites</h2><span class="section-sub" id="invitesSub">Friends are waiting for you!</span></div>
     <div id="invitesList" aria-live="polite"></div>
     <div class="inv-more" id="invitesMore" hidden></div>
+  </section>
+
+  <section class="game-section" id="eventsSection" aria-labelledby="eventsHead" hidden>
+    <div class="section-head"><h2 id="eventsHead">⭐ Special Events</h2><span class="section-sub">Made for our family's big days</span></div>
+    <div id="eventsList"></div>
   </section>
 
   <section id="todayPick" aria-label="Today's pick">
@@ -3254,7 +3286,8 @@ html.me-open #ceoPeek { display: none; }
   // For "Get the latest games & updates" (shared/moku-account.js): the games
   // this hub lists, so it can say which ones the last update didn't know about.
   window.MOKU_GAME_PAGES = function () {
-    return Object.keys(CATALOG).map(function (k) { return { page: CATALOG[k].gameId + '.html', name: CATALOG[k].name }; });
+    return Object.keys(CATALOG).map(function (k) { return { page: CATALOG[k].gameId + '.html', name: CATALOG[k].name }; })
+      .concat(EVENTS.map(function (ev) { return { page: ev.gameId + '.html', name: ev.name }; }));
   };
   var SHELVES = [
     { title: 'Action & Sports', sub: 'Fling, kick, fight, race', cards: ['mdp', 'mfg', 'mfr', 'mkt', 'br', 'mk', 'am'] },
@@ -3381,6 +3414,47 @@ html.me-open #ceoPeek { display: none; }
   function tileLabel(c, completed) {
     return c.name + ': ' + c.tag + (c.moint ? ' (Earn Moints)' : '') +
       (c.multi ? ' (Play with friends)' : '') + (completed ? ' (Completed)' : '');
+  }
+
+  // Special Events (SPEC.md §15): apps for family events. They are not Moku
+  // games, so they stay out of CATALOG / GAMES (no XP, records or Moints).
+  // To add one: make <gameId>.html and add an entry here (keep `name` then
+  // `gameId` in this order: the updater and ux-smoke find pages by that). The card shows from
+  // `from` to `until` (local dates, YYYY-MM-DD); `date` is the day of the event.
+  var EVENTS = [
+    { name: 'Japan vs Brazil', gameId: 'event-japan-brazil', flags: '🇯🇵 🇧🇷',
+      tag: 'Squad guide & mini soccer game · National Stadium, Singapore',
+      date: '2026-11-14', from: '2026-11-01', until: '2026-12-31', hi: '#2F5BD8', lo: '#0E8A45' }
+  ];
+  function buildEvents() {
+    var host = document.getElementById('eventsList'), section = document.getElementById('eventsSection');
+    if (!host || !section) return;
+    function day(s) { var p = s.split('-'); return new Date(+p[0], p[1] - 1, +p[2]).getTime(); }
+    var now = new Date(), today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    var shown = 0;
+    host.textContent = '';
+    EVENTS.forEach(function (ev) {
+      if (today < day(ev.from) || today > day(ev.until)) return;
+      var left = Math.round((day(ev.date) - today) / 86400000);
+      var when = left > 1 ? 'In ' + left + ' days' : left === 1 ? 'Tomorrow!' : left === 0 ? 'Today!' : '';
+      var a = el('a', 'event-card');
+      a.href = ev.gameId + '.html';
+      a.style.setProperty('--hi', ev.hi);
+      a.style.setProperty('--lo', ev.lo);
+      a.appendChild(el('span', 'event-flags', ev.flags));
+      var body = el('span', 'event-body');
+      var eyebrow = el('span', 'event-eyebrow');
+      eyebrow.appendChild(el('span', null, new Date(day(ev.date)).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()));
+      if (when) eyebrow.appendChild(el('span', 'event-when', when));
+      body.appendChild(eyebrow);
+      body.appendChild(el('span', 'event-title', ev.name));
+      body.appendChild(el('span', 'event-tag', ev.tag));
+      a.appendChild(body);
+      a.appendChild(el('span', 'event-go', 'Open ›'));
+      host.appendChild(a);
+      shown++;
+    });
+    section.hidden = !shown;
   }
 
   function buildShelves() {
@@ -3582,6 +3656,7 @@ html.me-open #ceoPeek { display: none; }
     if (sheetOpenKey) fillSheet(sheetOpenKey);
   }
 
+  buildEvents();
   buildShelves();
   setupTodayPick();
 

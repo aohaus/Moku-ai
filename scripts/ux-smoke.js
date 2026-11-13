@@ -49,6 +49,9 @@ function pageList() {
   const re = /^\s*\w+:\s*\{\s*name:\s*'[^']*',\s*gameId:\s*'([a-z0-9-]+)'/gm;
   let m;
   while ((m = re.exec(hub))) if (!ids.includes(m[1])) ids.push(m[1]);
+  // Special Events (hub.html EVENTS, SPEC.md §15): { name: '…', gameId: 'event-…' }
+  const ev = /\{\s*name:\s*'[^']*',\s*gameId:\s*'(event-[a-z0-9-]+)'/g;
+  while ((m = ev.exec(hub))) if (!ids.includes(m[1])) ids.push(m[1]);
   return ['index', 'hub'].concat(ids).filter((id) => fs.existsSync(path.join(ROOT, id + '.html')));
 }
 

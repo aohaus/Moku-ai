@@ -18,6 +18,7 @@
 ブラウザ (iPhone / iPad / Android / PC、モバイル優先)
   ├─ index.html(入口・ログイン) / hub.html(ゲーム一覧) / hollow.html / admin.html(保護者用・日本語)
   ├─ <game>.html × 22(単一HTML。Canvas 2D 中心、5本は three.js)
+  ├─ event-<名前>.html(Special Events。家族のイベント用の特別アプリ。ハブの EVENTS から開く。SPEC.md §15)
   └─ shared/*.js(アカウント・ゲート・通貨・エラー収集などの共通 UMD/IIFE スクリプト)
         │  fetch (CORS, Bearer トークン)
         ▼
