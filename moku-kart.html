@@ -2222,6 +2222,41 @@ body.kart-in-race .race-info-pill {
   .home-card-icon { font-size: 20px; }
   .home-start-btn { padding: 10px 18px; font-size: 15px; }
 }
+/* Result / standings panels must always show their buttons (landscape phones are short).
+   The page blocks touch scrolling (touch-action: none), so allow vertical scrolling inside panels,
+   keep the content centered when it fits, and pin the button row to the bottom. */
+.modal-overlay {
+  justify-content: flex-start;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.modal-overlay, .modal-overlay * { touch-action: pan-y; }
+.modal-overlay > :first-child { margin-top: auto; }
+.modal-overlay > :last-child { margin-bottom: auto; }
+.modal-overlay .modal-actions {
+  position: sticky;
+  bottom: -18px;
+  z-index: 2;
+  width: 100%;
+  padding: 8px 0 10px;
+  background: linear-gradient(to bottom, rgba(7, 8, 15, 0) 0%, rgba(7, 8, 15, 0.96) 35%);
+}
+.modal-overlay.modal-wide .modal-actions { bottom: -14px; }
+@media (max-height: 500px) {
+  .modal-overlay { padding: 8px 14px; }
+  .modal-overlay.modal-wide { max-height: 100%; padding: 8px 14px; }
+  .modal-overlay .modal-actions { bottom: -8px; padding: 6px 0 6px; }
+  .modal-overlay.modal-wide .modal-actions { bottom: -8px; }
+  .modal-title { font-size: 14px !important; margin-bottom: 4px; }
+  .modal-desc { font-size: 11px; margin-bottom: 6px; line-height: 1.3; }
+  .modal-card { padding: 8px 16px; margin-bottom: 8px; }
+  .modal-overlay .btn-large { padding: 9px 24px; font-size: 15px; }
+  .cup-progress-bar { margin-bottom: 2px; }
+  .cup-standings-table { border-spacing: 0 2px; margin: 4px 0 4px; }
+  .cup-row td { padding: 2px 8px; }
+  .cup-racer-avatar { width: 18px; height: 18px; }
+}
 </style>
 </head>
 <body>
@@ -2389,7 +2424,7 @@ body.kart-in-race .race-info-pill {
         <div class="stats-value" id="modalTimeVal" style="font-size: 22px; margin-bottom: 8px;">00:45.2</div>
         <div class="stats-label" id="modalBestRecord" style="color: var(--accent-mint); font-size: 11px;">★ BEST TIME RECORD! ★</div>
       </div>
-      <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+      <div class="modal-actions" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
         <button class="btn-large" id="modalActionBtn">▶ Next Level</button>
         <button class="btn-large" id="modalHomeBtn" style="background: rgba(255, 255, 255, 0.18); color: #FFF; box-shadow: none;">🏠 Home</button>
       </div>
@@ -2413,7 +2448,7 @@ body.kart-in-race .race-info-pill {
         </tbody>
       </table>
 
-      <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+      <div class="modal-actions" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
         <button class="btn-large" id="cupNextRaceBtn" style="background: linear-gradient(135deg, #2563EB, #7C3AED); color: #FFF;">▶ NEXT RACE (2/4)</button>
         <button class="btn-large" id="cupHomeBtn" style="background: rgba(255, 255, 255, 0.18); color: #FFF; box-shadow: none;">🏠 Quit Cup</button>
       </div>
@@ -2429,7 +2464,7 @@ body.kart-in-race .race-info-pill {
         <div style="font-size: 11px; color: rgba(255,255,255,0.8);" id="cupElimCourseVal">Course: Suzuka GP</div>
         <div style="font-size: 10px; color: rgba(255,255,255,0.6); margin-top: 4px;">In MokuMoku Cup survival rules, the last-place racer is eliminated.</div>
       </div>
-      <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+      <div class="modal-actions" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
         <button class="btn-large" id="cupRetryBtn" style="background: linear-gradient(135deg, #EF4444, #B91C1C); color: #FFF;">🔄 Retry Cup</button>
         <button class="btn-large" id="cupElimHomeBtn" style="background: rgba(255, 255, 255, 0.18); color: #FFF; box-shadow: none;">🏠 Home</button>
       </div>
@@ -2515,7 +2550,7 @@ body.kart-in-race .race-info-pill {
         </tbody>
       </table>
 
-      <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+      <div class="modal-actions" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
         <button class="btn-large" id="cupPlayAgainBtn" style="background: linear-gradient(135deg, #10B981, #059669); color: #FFF;">🏆 Play Cup Again</button>
         <button class="btn-large" id="cupVictoryHomeBtn" style="background: rgba(255, 255, 255, 0.18); color: #FFF; box-shadow: none;">🏠 Home</button>
       </div>
