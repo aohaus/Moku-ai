@@ -136,6 +136,14 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
 .pd-panel h2 { font-size: clamp(20px, 4.6vw, 28px); font-weight: 800; }
 .pd-panel p { color: var(--dim); font-weight: 600; font-size: 14px; line-height: 1.7; margin-top: 6px; }
 .pd-panel p b { color: var(--text); }
+.pd-howto { margin-top: 12px; display: grid; gap: 10px; }
+.pd-lang { border-radius: 14px; padding: 12px 14px; background: rgba(0,0,0,0.28); border: 1px solid var(--line); }
+.pd-lang h4 { font-size: 11px; font-weight: 800; letter-spacing: 0.1em; color: var(--gold); margin-bottom: 6px; }
+.pd-lang ol { margin: 0; padding-left: 20px; color: var(--dim); font-weight: 600; font-size: 13.5px; line-height: 1.7; }
+.pd-lang ol b { color: var(--text); }
+.pd-lang.sub { opacity: 0.85; }
+.pd-lang.sub ol { font-size: 12.5px; }
+@media (min-width: 760px) { .pd-howto { grid-template-columns: 1fr 1fr; } .pd-lang.sub { opacity: 1; } .pd-lang.sub ol { font-size: 13.5px; } }
 .pd-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .pd-prizes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
 .pd-prizes .stat b { font-size: 19px; }
@@ -282,7 +290,7 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
   <section class="pd-panel">
     <div class="hero-eyebrow" data-t="pdEyebrow"></div>
     <h2 data-t="pdTitle"></h2>
-    <p id="pdRules"></p>
+    <div class="pd-howto" id="pdRules"></div>
     <div class="pd-chips"><span class="chip gold" id="pdState"></span><span class="chip" id="pdWhen"></span></div>
     <div class="pd-prizes" id="pdPrizes"></div>
   </section>
@@ -383,13 +391,25 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
     pdEyebrow: ['MOINT EVENT', 'MOINT イベント'],
     pdTitle: ['🔮 Starting XI Prediction', '🔮 スタメン予想'],
     pdRules: [
-      'Who will start the match? Pick <b>11 players for Japan</b> and <b>11 for Brazil</b> (1 goalkeeper each). The more you get right, the more <b>Moints</b> you win! You can change your picks until kick-off. Your XI also plays in the Mini Game.',
-      '試合のスタメンはだれ?<b>日本の11人</b>と<b>ブラジルの11人</b>(GK は1人ずつ)を選ぼう。当たった数だけ <b>Moint</b> がもらえる!キックオフまで何回でも選び直せます。選んだ11人はミニゲームにも出てきます。'
+      ['HOW IT WORKS · ENGLISH', [
+        'Pick the players you think will <b>start the match</b>: <b>11 for Japan</b> and <b>11 for Brazil</b> (1 goalkeeper each).',
+        'Tap <b>“Enter my prediction”</b>. You can change your picks as many times as you like until <b>3 hours before kick-off</b> ({close}).',
+        'The results come <b>1 hour after the match</b> ({results}). Open this page again to see them.',
+        'You win <b>+{hit} Moints</b> for each correct player. Get 9 or 10 right in one team for <b>+{nine}</b> more, or all 11 for <b>+{all}</b> more! (Up to {max} Moints.)',
+        'Your XI also plays in the <b>Mini Game</b>.'
+      ]],
+      ['あそびかた · 日本語', [
+        '試合に<b>スタメン(先発)</b>で出ると思う選手を、<b>日本11人</b>・<b>ブラジル11人</b>(GK は1人ずつ)えらびます。',
+        '<b>「この予想でエントリー」</b>をおします。<b>キックオフの3時間前</b>({close})までは、何回でも選び直せます。',
+        '結果は<b>試合が終わった1時間後</b>({results})に出ます。このページをもう一度ひらいてね。',
+        '当たった選手1人につき <b>+{hit} Moint</b>。1チームで9〜10人当たると <b>+{nine}</b>、11人全員なら <b>+{all}</b>!(最大 {max} Moint)',
+        'えらんだ11人は<b>ミニゲーム</b>にも出てきます。'
+      ]]
     ],
     pdOpen: ['🟢 Entries are open', '🟢 エントリー受付中'],
     pdClosed: ['🔒 Entries are closed', '🔒 エントリーは締め切りました'],
     pdDone: ['🏁 Results are in!', '🏁 結果発表!'],
-    pdWhenOpen: ['Closes at kick-off: {t}', 'しめきり(キックオフ): {t}'],
+    pdWhenOpen: ['Entries close: {t} (3 hours before kick-off)', 'しめきり: {t}(キックオフの3時間前)'],
     pdWhenWait: ['Results: {t} (1 hour after the match)', '結果発表: {t}(試合終了の1時間後)'],
     pdWhenLate: ['Waiting for the official line-ups…', '公式のスタメンを入力中です…'],
     pdWhenDone: ['Thanks for playing!', '参加ありがとう!'],
@@ -554,10 +574,10 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
   var HOME = { jp: 'Japan', br: 'Brazil' };
 
   /* ----- starting XI prediction (Moint event) -----
-     Entries close at kick-off (18:15 Singapore time). Results: one hour after full time,
+     Entries close 3 hours before kick-off (15:15 Singapore time). Results: one hour after full time,
      once ACTUAL_XI below is filled in with the real starting line-ups (English names as in SQUADS). */
   var KICKOFF = Date.UTC(2026, 10, 14, 10, 15);          // Nov 14, 2026 18:15 SGT
-  var ENTRY_CLOSE = KICKOFF;
+  var ENTRY_CLOSE = KICKOFF - 3 * 60 * 60 * 1000;        // Nov 14, 2026 15:15 SGT
   var SETTLE_AT = KICKOFF + 3 * 60 * 60 * 1000;          // about 2 hours of match + 1 hour
   var PRIZE = { hit: 100, nine: 300, all: 1000 };        // per correct player / 9-10 in a team / all 11 in a team
   var ACTUAL_XI = { jp: [], br: [] };                    // ← fill in after the match (11 names each)
@@ -756,8 +776,8 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
     if (n < SETTLE_AT) return 'wait';
     return validXI('jp', ACTUAL_XI.jp) && validXI('br', ACTUAL_XI.br) ? 'done' : 'late';
   }
-  function fmtTime(ms) {
-    try { return new Date(ms).toLocaleString(save.lang === 'ja' ? 'ja-JP' : 'en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); }
+  function fmtTime(ms, lang) {
+    try { return new Date(ms).toLocaleString((lang || save.lang) === 'ja' ? 'ja-JP' : 'en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); }
     catch (e) { return new Date(ms).toString(); }
   }
   function scoreEntry() {
@@ -781,7 +801,15 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
   }
   function renderPredict() {
     var ph = phase(), entered = hasEntry(), ja = save.lang === 'ja';
-    $('pdRules').innerHTML = t('pdRules');
+    var max = (11 * PRIZE.hit + PRIZE.all) * 2;
+    var order = save.lang === 'ja' ? [1, 0] : [0, 1];
+    $('pdRules').innerHTML = order.map(function (i, k) {
+      var block = T.pdRules[i], lg = i ? 'ja' : 'en';
+      var vars = { close: fmtTime(ENTRY_CLOSE, lg), results: fmtTime(SETTLE_AT, lg), hit: PRIZE.hit, nine: PRIZE.nine, all: PRIZE.all, max: max.toLocaleString('en-US') };
+      return '<div class="pd-lang' + (k ? ' sub' : '') + '"' + (i ? ' lang="ja"' : ' lang="en"') + '><h4>' + block[0] + '</h4><ol>' +
+        block[1].map(function (line) { return '<li>' + line.replace(/\{(\w+)\}/g, function (m, v) { return vars[v] !== undefined ? vars[v] : m; }) + '</li>'; }).join('') +
+        '</ol></div>';
+    }).join('');
     $('pdState').textContent = t(ph === 'open' ? 'pdOpen' : ph === 'done' ? 'pdDone' : 'pdClosed');
     $('pdWhen').textContent = ph === 'open' ? t('pdWhenOpen', { t: fmtTime(ENTRY_CLOSE) }) : ph === 'wait' ? t('pdWhenWait', { t: fmtTime(SETTLE_AT) }) : ph === 'late' ? t('pdWhenLate') : t('pdWhenDone');
     $('pdPrizes').innerHTML = [[PRIZE.hit, 'pzHit'], [PRIZE.nine, 'pzNine'], [PRIZE.all, 'pzAll']].map(function (z) {
