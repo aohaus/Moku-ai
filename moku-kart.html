@@ -2261,6 +2261,73 @@ body.kart-in-race .race-info-pill {
   .cup-row td { padding: 2px 8px; }
   .cup-racer-avatar { width: 18px; height: 18px; }
 }
+/* ===== Full-screen game (2026-11-14) =====
+   The race fills the whole phone screen: no frame, no outer padding, and the top bar floats over
+   the game instead of taking its own row. Only the HUD, controls and panels keep clear of the notch
+   and the home bar (env(safe-area-inset-*)); the picture itself runs edge to edge. */
+#game-wrapper {
+  max-width: none;
+  width: 100%;
+  padding: 0;
+}
+.screen-container {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+.game-header {
+  position: absolute;
+  top: max(6px, env(safe-area-inset-top));
+  left: max(10px, env(safe-area-inset-left));
+  right: max(10px, env(safe-area-inset-right));
+  z-index: 70; /* above the home screen (60) and the race HUD; result panels (80) cover it */
+  pointer-events: none;
+}
+.game-header > * { pointer-events: auto; }
+.game-header .race-info-pill { pointer-events: none; }
+.game-header .icon-btn {
+  background: rgba(10, 11, 20, 0.45);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+.game-header .race-info-pill { background: rgba(10, 11, 20, 0.55); }
+/* HUD starts below the floating top bar and stays out of the notch / home bar */
+.hud-layer {
+  padding: 48px max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+}
+.hud-sector-badge {
+  left: max(8px, env(safe-area-inset-left));
+  bottom: max(8px, env(safe-area-inset-bottom));
+}
+.controls-panel {
+  left: max(20px, env(safe-area-inset-left));
+  right: max(20px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+}
+.home-modal-overlay {
+  border-radius: 0;
+  padding: 46px max(16px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+}
+.modal-overlay {
+  border-radius: 0;
+  padding-left: max(18px, env(safe-area-inset-left));
+  padding-right: max(18px, env(safe-area-inset-right));
+}
+@media (max-height: 500px) {
+  #game-wrapper { padding: 0; }
+  .screen-container { margin: 0; border-radius: 0; }
+  .hud-layer { padding-top: 44px; }
+  .controls-panel {
+    left: max(8px, env(safe-area-inset-left));
+    right: max(8px, env(safe-area-inset-right));
+    bottom: max(6px, env(safe-area-inset-bottom));
+  }
+  .home-modal-overlay { padding-top: 40px; }
+  .modal-overlay, .modal-overlay.modal-wide {
+    padding-left: max(14px, env(safe-area-inset-left));
+    padding-right: max(14px, env(safe-area-inset-right));
+  }
+}
 </style>
 </head>
 <body>
