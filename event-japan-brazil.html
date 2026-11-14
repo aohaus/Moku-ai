@@ -291,7 +291,7 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
   <div id="legend"></div>
   <div id="cards"></div>
   <p id="dataNote" data-t="dataNote"></p>
-  <div id="buildInfo">v1.5.0 · Updated Nov 13, 2026</div>
+  <div id="buildInfo">v1.6.0 · Updated Nov 14, 2026</div>
 </main>
 
 <main id="predict" hidden>
@@ -451,6 +451,8 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
     cdTomorrow: ['Tomorrow!', '明日!'],
     cdDays: ['in {n} days', 'あと{n}日'],
     cdDone: ['Finished', '試合終了'],
+    cdFinal: ['🎉 Full time: Japan {j}–{b} Brazil', '🎉 試合終了: 日本 {j}–{b} ブラジル'],
+    xiReal: ['🏟 The real starting XI (Nov 14)', '🏟 本当のスタメン(11月14日)'],
     all: ['All', 'すべて'],
     stPlayers: ['Players', '選手'],
     stAbroad: ['Play abroad', '海外でプレー'],
@@ -591,7 +593,12 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
   var OPENS_AT = Date.parse('2026-11-13T15:30:00+08:00'); // the page goes public (same as hub.html EVENTS opensAt)
   var SETTLE_AT = KICKOFF + 3 * 60 * 60 * 1000;          // about 2 hours of match + 1 hour
   var PRIZE = { hit: 100, nine: 300, all: 1000 };        // per correct player / 9-10 in a team / all 11 in a team
-  var ACTUAL_XI = { jp: [], br: [] };                    // ← fill in after the match (11 names each)
+  // The real starting XIs (Nov 14, 2026). Filling these in opens the results and pays the Moints.
+  var ACTUAL_XI = {
+    jp: ['Zion Suzuki', 'Shuto Nakano', 'Koki Machida', 'Ayumu Seko', 'Hiroki Ito', 'Ritsu Doan', 'Ao Tanaka', 'Daichi Kamada', 'Daizen Maeda', 'Takefusa Kubo', 'Keito Nakamura'],
+    br: ['Pedro Morisco', 'Jair Cunha', 'Wesley Franca', 'Gabriel Magalhães', 'Carlos Augusto', 'Andrey Santos', 'André Luiz', 'Bruno Guimarães', 'Estêvão', 'Vinicius Junior', 'Raphinha']
+  };
+  var FINAL = { jp: 3, br: 2 };                          // full-time score (null before the match ends)
 
   // Opened straight from disk (development): ?now=2026-11-14T22:00:00+08:00 and ?actual=demo try the later screens.
   var DEV = location.protocol === 'file:';
@@ -600,12 +607,13 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
     return m ? new Date(decodeURIComponent(m[1])).getTime() : Date.now();
   }
 
-  // Mini game: 11 a side. Your predicted XI if you entered, otherwise this one.
+  // Mini game: 11 a side. Your predicted XI if you entered, otherwise the real one (after the match).
   var DEFAULT_XI = {
     jp: ['Zion Suzuki', 'Yukinari Sugawara', 'Ko Itakura', 'Tsuyoshi Watanabe', 'Hiroki Ito', 'Ao Tanaka', 'Daichi Kamada', 'Takumi Minamino', 'Ritsu Doan', 'Koki Ogawa', 'Takefusa Kubo'],
     br: ['Bento', 'Vanderson', 'Gabriel Magalhães', 'Carlos Augusto', 'Douglas Santos', 'Bruno Guimarães', 'João Gomes', 'Danilo', 'Raphinha', 'Endrick', 'Vinicius Junior']
   };
   if (DEV && /[?&]actual=demo/.test(location.search)) ACTUAL_XI = { jp: DEFAULT_XI.jp.slice(), br: DEFAULT_XI.br.slice() };
+  if (ACTUAL_XI.jp.length === 11 && ACTUAL_XI.br.length === 11) DEFAULT_XI = { jp: ACTUAL_XI.jp.slice(), br: ACTUAL_XI.br.slice() };
   // Japan's list says "MF/FW": these ones play up front in the mini game.
   var JP_FW = ['Koki Ogawa', 'Daizen Maeda', 'Shio Fukuda', 'Keisuke Goto', 'Takefusa Kubo', 'Ritsu Doan', 'Junya Ito', 'Keito Nakamura', 'Yuki Soma', 'Tatsuhiro Sakamoto'];
   var SHORT = { 'Vinicius Junior': ['Vini Jr.', 'ヴィニシウス'], 'Bruno Guimarães': ['Bruno G.', 'ブルーノ'], 'Gabriel Magalhães': ['Gabriel M.', 'ガブリエウ'], 'Gabriel Bontempo': ['Bontempo', 'ボンテンポ'] };
@@ -709,6 +717,7 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
   /* ================= guide ================= */
   var team = 'jp', filter = 'ALL';
   function countdownText() {
+    if (FINAL) return t('cdFinal', { j: FINAL.jp, b: FINAL.br });
     var now = new Date();
     var today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
     var days = Math.round((new Date(2026, 10, 14).getTime() - today) / 86400000);
@@ -845,6 +854,7 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
         block[1].map(function (line) { return '<li>' + line.replace(/\{(\w+)\}/g, function (m, v) { return vars[v] !== undefined ? vars[v] : m; }) + '</li>'; }).join('') +
         '</ol></div>';
     }).join('');
+    $('pdRules').hidden = ph === 'done';   // results first; the how-to is no longer needed
     $('pdState').textContent = t(ph === 'open' ? 'pdOpen' : ph === 'done' ? 'pdDone' : 'pdClosed');
     $('pdWhen').textContent = ph === 'open' ? t('pdWhenOpen', { t: fmtTime(ENTRY_CLOSE) }) : ph === 'wait' ? t('pdWhenWait', { t: fmtTime(SETTLE_AT) }) : ph === 'late' ? t('pdWhenLate') : t('pdWhenDone');
     $('pdPrizes').innerHTML = [[PRIZE.hit, 'pzHit'], [PRIZE.nine, 'pzNine'], [PRIZE.all, 'pzAll']].map(function (z) {
@@ -859,7 +869,8 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
     if (ph === 'done' && entered) {
       var r = save.claimed || scoreEntry();
       res.hidden = false;
-      res.innerHTML = '<div class="big">' + t('pdGot', { m: r.moints }) + '</div>' + t('pdHits', { j: r.jp, b: r.br }) + '<small>' + t('pdReal') + '</small>';
+      res.innerHTML = (FINAL ? '<small style="margin:0 0 4px">' + t('cdFinal', { j: FINAL.jp, b: FINAL.br }) + '</small>' : '') +
+        '<div class="big">' + t('pdGot', { m: r.moints }) + '</div>' + t('pdHits', { j: r.jp, b: r.br }) + '<small>' + t('pdReal') + '</small>';
     }
 
     var picks = ph === 'open' ? draft[pteam] : (entered ? save.entry[pteam] : []);
@@ -976,7 +987,7 @@ body[data-team="br"] { --team: #E8B500; --team2: #0E8A45; }
       box.appendChild(ul);
       host.appendChild(box);
     });
-    host.appendChild(el('div', 'sub', t(hasEntry() ? 'xiMine' : 'xiDefault'))).style.cssText = 'grid-column:1/-1;text-align:center;color:var(--gold);font-weight:800;font-size:13px';
+    host.appendChild(el('div', 'sub', t(hasEntry() ? 'xiMine' : (ACTUAL_XI.jp.length === 11 ? 'xiReal' : 'xiDefault')))).style.cssText = 'grid-column:1/-1;text-align:center;color:var(--gold);font-weight:800;font-size:13px';
     var lv = $('levels');
     lv.innerHTML = '';
     T.lv.forEach(function (pair, i) {
