@@ -1970,9 +1970,191 @@
   @media (max-width: 768px) {
     .controls-help-pill { display: none; }
   }
+
+  /* =====================================================================
+     v1.4.0 — Landscape only + minimal top HUD (all modes)
+     Top-left: ◀ Hub + mode chip (icon only except Free Flight; tap = guide)
+     Top-center: ONE goal pill per mode (Free = stats, Quest = goal,
+                 Real-World = town, Art = progress chips)
+     Top-right: ☰ menu (all actions) + small radar
+     ===================================================================== */
+  #btnHubInGame {
+    top: calc(env(safe-area-inset-top, 0px) + 10px);
+    left: calc(env(safe-area-inset-left, 0px) + 10px);
+    width: 36px; height: 36px;
+    padding: 0;
+    justify-content: center;
+    font-size: 14px;
+    border-radius: 50%;
+  }
+  #inGameModeBadge {
+    top: calc(env(safe-area-inset-top, 0px) + 10px);
+    left: calc(env(safe-area-inset-left, 0px) + 54px);
+    height: 36px;
+    padding: 0 12px;
+    font-size: 12px;
+    border-radius: 18px;
+    border-width: 1px;
+    border-color: rgba(255, 209, 102, 0.45);
+    max-width: 30vw;
+    overflow: hidden;
+  }
+  #badgeModeText { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* Goal-based modes: the chip shrinks to an icon (the goal pill already names it) */
+  body[data-mode="quest"] #badgeModeText,
+  body[data-mode="realworld"] #badgeModeText,
+  body[data-mode="artworld"] #badgeModeText { display: none; }
+  body[data-mode="quest"] #inGameModeBadge,
+  body[data-mode="realworld"] #inGameModeBadge,
+  body[data-mode="artworld"] #inGameModeBadge { font-size: 0; gap: 0; width: 36px; padding: 0; justify-content: center; }
+  body[data-mode="quest"] #inGameModeBadge::before,
+  body[data-mode="realworld"] #inGameModeBadge::before,
+  body[data-mode="artworld"] #inGameModeBadge::before { font-size: 16px; }
+  body[data-mode="quest"] #inGameModeBadge .badge-info-icon,
+  body[data-mode="realworld"] #inGameModeBadge .badge-info-icon,
+  body[data-mode="artworld"] #inGameModeBadge .badge-info-icon { display: none; }
+  body[data-mode="quest"] #inGameModeBadge::before { content: '📜'; }
+  body[data-mode="realworld"] #inGameModeBadge::before { content: '🌍'; }
+  body[data-mode="artworld"] #inGameModeBadge::before { content: '🎨'; }
+
+  /* ☰ menu button + drop-down panel */
+  .hud-menu-btn {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 10px);
+    right: calc(env(safe-area-inset-right, 0px) + 136px);
+    z-index: 61;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: rgba(10, 14, 26, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    color: #FFF;
+    font-size: 17px;
+    font-weight: 800;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.15s, background 0.15s;
+  }
+  .hud-menu-btn:active { transform: scale(0.92); }
+  .hud-menu-btn[aria-expanded="true"] { background: rgba(255, 209, 102, 0.28); border-color: #FFD166; }
+  .top-right-group {
+    top: calc(env(safe-area-inset-top, 0px) + 52px);
+    right: calc(env(safe-area-inset-right, 0px) + 136px);
+    z-index: 61;
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    min-width: 170px;
+    max-height: calc(100vh - 70px);
+    overflow-y: auto;
+    padding: 8px;
+    background: rgba(10, 14, 26, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 16px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    transform-origin: top right;
+  }
+  .top-right-group.open { display: flex; animation: hudMenuPop 0.18s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+  @keyframes hudMenuPop { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
+  .top-right-group .hud-btn-action { justify-content: flex-start; padding: 8px 12px; font-size: 13px; }
+  #btnSoundToggle::after { content: ' Sound'; }
+
+  /* Smaller radar in the corner, label removed */
+  #radarMapBox {
+    top: calc(env(safe-area-inset-top, 0px) + 10px);
+    right: calc(env(safe-area-inset-right, 0px) + 12px);
+    width: 116px;
+    height: 116px;
+    border-width: 1.5px;
+  }
+  .radar-hud-label { display: none; }
+
+  /* One compact goal pill at the top center */
+  .hud-top-bar,
+  #hud-quest-panel,
+  #realworld-hud-pill,
+  #artworld-hud-pill {
+    top: calc(env(safe-area-inset-top, 0px) + 10px);
+    max-width: calc(100vw - 2 * (env(safe-area-inset-left, 0px) + 170px));
+  }
+  .hud-top-bar { height: 36px; padding: 0 14px; gap: 10px; box-shadow: none; border-color: rgba(255, 255, 255, 0.2); }
+  .hud-stat-pill { font-size: 12px; }
+  .hud-stat-icon { font-size: 13px; }
+  body[data-mode="quest"] .hud-top-bar,
+  body[data-mode="realworld"] .hud-top-bar,
+  body[data-mode="artworld"] .hud-top-bar { display: none; }
+  #hud-quest-panel { height: 36px; padding: 0 14px; border-width: 1px; border-radius: 18px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35); cursor: pointer; pointer-events: auto; }
+  .quest-hud-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .rw-location-badge { height: 36px; padding: 0 14px; font-size: 12px; border-width: 1px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35); max-width: 100%; }
+  #rwHudLocationName { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rw-location-change-tag { font-size: 0; padding: 0; background: none; }
+  .rw-location-change-tag::after { content: '▾'; font-size: 12px; }
+  .rw-street-nav, .rw-poi-nav { font-size: 10px; padding: 2px 10px; max-width: 100%; }
+  /* Art World: the 🎨 chip on the left opens the guide, so only the progress chips stay */
+  #btnArtRealmBadge { display: none; }
+
+  /* SPD / ALT sit clear of the radar */
+  .hud-tape-left { top: 34%; left: calc(env(safe-area-inset-left, 0px) + 16px); }
+  .hud-tape-right { top: 50%; right: calc(env(safe-area-inset-right, 0px) + 16px); }
+
+  /* Title screen: in-game HUD hidden; Moku Series frame/link/version shown (SPEC §4) */
+  body.on-title #btnHubInGame,
+  body.on-title #inGameModeBadge,
+  body.on-title #btnHudMenu,
+  body.on-title .top-right-group { display: none !important; }
+  body.on-title #title-frame { display: block; z-index: 46; }
+  body.on-title #buildInfo { display: block; }
+  body:not(.on-title) #hub-link { display: none; }
+
+  /* Title screen in landscape (short screens): logo left, menu right */
+  @media (orientation: landscape) and (max-height: 620px) {
+    #title-screen {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(250px, 330px);
+      grid-template-areas: "logo menu" "stats menu";
+      align-content: center;
+      align-items: center;
+      column-gap: 28px;
+      row-gap: 12px;
+      padding: 28px calc(env(safe-area-inset-right, 0px) + 40px) 28px calc(env(safe-area-inset-left, 0px) + 40px);
+    }
+    .title-logo-box { grid-area: logo; margin-bottom: 0; align-self: end; }
+    .title-avatar { width: 76px; height: 76px; margin-bottom: 4px; }
+    .title-text { font-size: clamp(26px, 5vw, 40px); }
+    .title-subtitle { font-size: 11px; letter-spacing: 2px; }
+    .title-menu-list { grid-area: menu; gap: 8px; max-width: none; }
+    .title-btn { padding: 9px 14px; font-size: 14px; border-radius: 16px; }
+    .title-stats-strip { grid-area: stats; align-self: start; justify-self: center; margin-top: 0; flex-wrap: wrap; justify-content: center; gap: 4px 12px; font-size: 11px; padding: 6px 14px; max-width: 360px; }
+  }
+
+  /* Landscape only: phones / tablets held upright see a "turn sideways" card */
+  #rotate-hint {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 24px;
+    text-align: center;
+    background: radial-gradient(circle at 50% 35%, #1B3A5C 0%, #0A0B12 100%);
+    color: #FFF;
+  }
+  .rotate-moku { width: 110px; height: 110px; object-fit: contain; animation: floatMoku 3.2s ease-in-out infinite; }
+  .rotate-phone { font-size: 44px; animation: rotatePhone 2s ease-in-out infinite; }
+  @keyframes rotatePhone { 0%, 20% { transform: rotate(0deg); } 55%, 100% { transform: rotate(-90deg); } }
+  .rotate-title { font-size: 20px; font-weight: 800; color: #FFD166; }
+  .rotate-sub { font-size: 13px; color: rgba(237, 238, 246, 0.75); }
+  @media (orientation: portrait) and (max-width: 1100px) {
+    #rotate-hint { display: flex; }
+  }
 </style>
 </head>
-<body>
+<body class="on-title" data-mode="free">
 
 <!-- WebGL 3D World Canvas -->
 <canvas id="webgl-canvas"></canvas>
@@ -1983,17 +2165,26 @@
 <!-- Title Frame & Hub Links (Moku Series Specification) -->
 <div id="title-frame"></div>
 <a href="hub.html" id="hub-link">🦉 Moku Series ▶</a>
-<div id="buildInfo">v1.3.0 · Updated Aug 28, 2026</div>
+<div id="buildInfo">v1.4.0 · Updated Nov 15, 2026</div>
+
+<!-- Landscape-only: shown on phones/tablets held upright (v1.4.0) -->
+<div id="rotate-hint">
+  <img src="brand/mokumoku-hero.png" alt="Moku" class="rotate-moku">
+  <div class="rotate-phone">📱</div>
+  <div class="rotate-title">Turn your device sideways</div>
+  <div class="rotate-sub">Flying Moku is played in landscape.</div>
+</div>
 
 <!-- In-Game Return Button & Mode Badge (Clickable for Quest Details & Guidance) -->
-<a href="hub.html" id="btnHubInGame">◀ Hub</a>
+<a href="hub.html" id="btnHubInGame" aria-label="Back to Moku Series">◀</a>
 <div id="inGameModeBadge" title="Click to view Quest Details & Map Hints">
   <span id="badgeModeText">🕊️ Free Flight</span>
   <span class="badge-info-icon">ℹ️</span>
 </div>
 
-<!-- Top Right Action Controls -->
-<div class="top-right-group">
+<!-- Top Right: one menu button. The action buttons live in a drop-down panel (v1.4.0, minimal top HUD) -->
+<button class="hud-menu-btn" id="btnHudMenu" aria-label="Menu" aria-expanded="false">☰</button>
+<div class="top-right-group" id="hudMenuPanel">
   <button class="hud-btn-action" id="btnTimeOfDayToggle" style="border-color:#F59E0B; color:#F59E0B;" title="Switch atmosphere and lighting based on time of day (Tap to change)" aria-label="Time of Day Mode">☀️ Day (Auto)</button>
   <button class="hud-btn-action" id="btnCalloutToggle" style="display:none; border-color:#38BDF8; color:#38BDF8;" title="Toggle 3D landmark callouts" aria-label="3D Speech Bubble Landmarks">💬 3D Places</button>
   <button class="hud-btn-action" id="btnOsmLayers" style="display:none; border-color:#38BDF8; color:#38BDF8;" aria-label="OSM Map Layers">🗺️ OSM Layers</button>
@@ -7911,8 +8102,23 @@
   // --- GAME LOOP & ANIMATION ---
   var clock = new THREE.Clock();
 
+  // v1.4.0: body classes for the minimal top HUD (mode + title screen)
+  var hudSyncMode = null, hudSyncTitle = null;
+  var portraitMQ = window.matchMedia ? window.matchMedia('(orientation: portrait) and (max-width: 1100px)') : null;
+  function syncHudState() {
+    var mode = gameState.gameMode || 'free';
+    if (mode !== hudSyncMode) { document.body.setAttribute('data-mode', mode); hudSyncMode = mode; }
+    var ts = document.getElementById('title-screen');
+    var onTitle = !!ts && ts.style.display !== 'none';
+    if (onTitle !== hudSyncTitle) { document.body.classList.toggle('on-title', onTitle); hudSyncTitle = onTitle; }
+  }
+
   function animate() {
     requestAnimationFrame(animate);
+    syncHudState();
+
+    // Landscape only: while held upright (rotate card is showing) Moku waits in the air
+    if (portraitMQ && portraitMQ.matches) { clock.getDelta(); return; }
 
     var dt = Math.min(0.04, clock.getDelta());
 
@@ -8625,6 +8831,39 @@
       if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { keys.left = false; updateKeyInput(); }
       if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { keys.right = false; updateKeyInput(); }
     });
+
+    // ☰ HUD menu (v1.4.0): every action button lives in one drop-down panel
+    var hudMenuBtn = document.getElementById('btnHudMenu');
+    var hudMenuPanel = document.getElementById('hudMenuPanel');
+    function setHudMenu(open) {
+      if (!hudMenuBtn || !hudMenuPanel) return;
+      hudMenuPanel.classList.toggle('open', open);
+      hudMenuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+    if (hudMenuBtn && hudMenuPanel) {
+      hudMenuBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        setHudMenu(!hudMenuPanel.classList.contains('open'));
+      });
+      // Tap outside closes it (capture: some buttons stop propagation)
+      window.addEventListener('pointerdown', function(e) {
+        if (!hudMenuPanel.classList.contains('open')) return;
+        if (hudMenuPanel.contains(e.target) || hudMenuBtn.contains(e.target)) return;
+        setHudMenu(false);
+      }, true);
+      // Buttons that open something close the menu; toggles (time of day, sound, 3D places) keep it open
+      hudMenuPanel.addEventListener('click', function(e) {
+        var b = e.target.closest ? e.target.closest('button') : null;
+        if (!b) return;
+        if (b.id === 'btnTimeOfDayToggle' || b.id === 'btnSoundToggle' || b.id === 'btnCalloutToggle') return;
+        setHudMenu(false);
+      }, true);
+      hudMenuPanel.addEventListener('touchend', function(e) {
+        var b = e.target.closest ? e.target.closest('button') : null;
+        if (b && b.id === 'btnRestPerchToggle') setHudMenu(false);
+      }, true);
+    }
 
     // Sound toggle
     var sndBtn = document.getElementById('btnSoundToggle');

@@ -104,6 +104,7 @@ Mokuball は実装済みだがハブ未公開(準備中)。
 - **表示タイミング**: 3要素とも「タイトル画面でのみ表示」。`body.on-title` のようなクラス、または各ゲームの画面遷移関数内で `style.display` を直接切り替える方式のいずれでもよい。プレイ中は必ず非表示にする。
 - **実装例**: `angry-mokumoku.html` / `shiri-of-moku.html` / `mokuball.html` を参照。
 - **横向き専用タイトルの場合**: `angry-mokumoku.html` と `mokuball.html` はゲーム内容上、横持ち固定(landscape-only)。`@media (max-width: 900px) and (orientation: portrait)` 相当の条件で `#rotate-hint`(回転を促す全画面オーバーレイ)を表示し、同条件で `#title-frame` / `#hub-link` / `#buildInfo` / ゲーム本体を非表示にするパターンを両タイトルで踏襲している。縦持ち基本のタイトルではこの節は不要。
+  - Flying Moku(2026-11-15、v1.4.0〜)も横向き専用。縦持ち(幅 1100px 以下)では `#rotate-hint` を出し、その間はゲームを止める。プレイ中の上の表示はミニマル: 左上に ◀(ハブ)とモードの印(Free Flight 以外はアイコンだけ。押すとガイド)、上のまん中にモードごとのピル1つ(Free = 集めた数 / Quest = お題と進み具合 / Real-World = 町 / Art = 進み具合)、右上に ☰(Day/Night・Switch Mode・Collection・Rest / Perch・Sound などはこの中)と小さいレーダー。
 
 ## 5. バージョン / 最終更新日時の表示
 
