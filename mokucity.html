@@ -615,7 +615,7 @@ canvas#c.dragging { cursor: grabbing; }
 <div id="rotate-hint"><span>📱</span><p>MokuCity is played in landscape.<br>Please rotate your device.</p></div>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v2.8.0 · Updated Nov 12, 2026</div>
+<div id="buildInfo">v2.9.0 · Updated Nov 15, 2026</div>
 
 <section class="screen active" id="titleScreen">
   <img id="titleMascot" src="brand/mokumoku-hero.png" alt="Mokumoku">
@@ -847,7 +847,13 @@ canvas#c.dragging { cursor: grabbing; }
       }
     }
     progress.merges.push({ type: mergedType, gx: gx, gy: gy, w: w, h: h });
+    countUse(mergedType);
     return true;
+  }
+  // 建てた・合体した・Clear した回数(お題で使う。Undo で戻す)
+  function countUse(key) {
+    if (!progress.used) progress.used = {};
+    progress.used[key] = (progress.used[key] || 0) + 1;
   }
   function checkMerges() {
     var didMerge = false;
@@ -1042,28 +1048,163 @@ canvas#c.dragging { cursor: grabbing; }
     }
     return list;
   })();
-  var FINAL_QUEST_INDEX = QUESTS.length + HARMONY_TARGETS.length;
-  var MAX_LEVEL = FINAL_QUEST_INDEX + 1;
-  var FINAL_QUEST = {
-    title: 'Perfect Harmony',
-    desc: 'You reached the top level! Keep your town green and happy.',
-    final: true,
-    check: function () { return false; },
-    progress: function (s) { return 'pop ' + s.population + ' · nature ' + s.nature + '%'; },
-    reward: 0
+  // ---------- 2026-11-15 (v2.9.0): どの建物も「使わないと進めない」お題 ----------
+  // 以前は Lv.10〜39 の Harmony が人口だけのお題で、Restaurant・Gift Shop・
+  // Highway・Station・Hotel・Airport・Land・Clear・合体(Apartment / Grove / Mall)を
+  // 一度も使わずに最後まで行けた。そこで
+  //  - Harmony の前半に「その建物を持っていること」を足し(人口の目標は同じ)、
+  //  - Lv.39 の先に新しい章「Moku's Dream Town」(17 のお題)を足した。
+  // 章2のお題の多くは「このお題が始まってから○個建てる」(progress.used の差)で数える。
+  // 前から街にある建物だけで一気にクリアにならないように。
+  var HARMONY_END_INDEX = QUESTS.length + HARMONY_TARGETS.length; // = 38(以前の最後)
+  var BUILD_LABEL = {
+    road: 'roads', land: 'land plots', house: 'houses', shop: 'shops', park: 'parks',
+    school: 'schools', landmark: 'landmarks', restaurant: 'restaurants', giftshop: 'gift shops',
+    highway: 'highway tiles', station: 'stations', hotel: 'hotels', airport: 'airports',
+    bulldoze: 'tiles cleared', house2: 'apartments', park2: 'groves', shop2: 'malls'
   };
+  // このお題が始まってから、その建物を建てた(合体した・Clear した)回数
+  function usedSinceQuest(key) {
+    var used = (progress.used && progress.used[key]) || 0;
+    var base = (progress.questStart && progress.questStart[key]) || 0;
+    return Math.max(0, used - base);
+  }
+  // 街を1回見て、お題に使う事実をまとめる
+  function cityFacts() {
+    var c = { count: {}, roadRun: 0, stationByRoad: false, airportBySea: false, islandHomes: 0 };
+    function at(x, y) { return (x < 0 || y < 0 || x >= GRID_W || y >= GRID_H) ? 'water' : tileAt(x, y); }
+    function nextTo(x, y, test) {
+      return test(at(x + 1, y)) || test(at(x - 1, y)) || test(at(x, y + 1)) || test(at(x, y - 1));
+    }
+    for (var gy = 0; gy < GRID_H; gy++) {
+      for (var gx = 0; gx < GRID_W; gx++) {
+        var t = tileAt(gx, gy);
+        if (!t || t === 'water') continue;
+        c.count[t] = (c.count[t] || 0) + 1;
+        if (ROAD_TYPES[t]) {
+          // まっすぐな道の長さ(左・上から数え始める)
+          if (!ROAD_TYPES[at(gx - 1, gy)]) {
+            var n = 0; while (ROAD_TYPES[at(gx + n, gy)]) n++;
+            c.roadRun = Math.max(c.roadRun, n);
+          }
+          if (!ROAD_TYPES[at(gx, gy - 1)]) {
+            var m = 0; while (ROAD_TYPES[at(gx, gy + m)]) m++;
+            c.roadRun = Math.max(c.roadRun, m);
+          }
+        }
+        if (t === 'station' && nextTo(gx, gy, function (v) { return !!ROAD_TYPES[v]; })) c.stationByRoad = true;
+        if (t === 'airport' && nextTo(gx, gy, function (v) { return v === 'water'; })) c.airportBySea = true;
+        if ((t === 'house' || t === 'house2') && islandAt(gx, gy)) c.islandHomes++;
+      }
+    }
+    return c;
+  }
+  function has(c, keys) {
+    for (var i = 0; i < keys.length; i++) if (c.count[keys[i]]) return true;
+    return false;
+  }
+  // 夢の街に必要な建物の種類(合体した建物は元の建物と同じ種類に数える)
+  var DREAM_KINDS = [
+    ['road'], ['highway'], ['house', 'house2'], ['shop', 'shop2'], ['park', 'park2'], ['school'],
+    ['landmark'], ['restaurant'], ['giftshop'], ['station'], ['hotel'], ['airport']
+  ];
+  // お題を組み立てる: track = {建物: 数}(このお題が始まってから)、
+  // need / needText = 街の状態、minNature / minPop = 自然・人口の下限
+  function makeQuest(o) {
+    return {
+      title: o.title, desc: o.desc, reward: o.reward, final: !!o.final,
+      check: function (s) {
+        if (o.final) return false;
+        var c = cityFacts();
+        for (var k in (o.track || {})) if (usedSinceQuest(k) < o.track[k]) return false;
+        if (o.minPop != null && s.population < o.minPop) return false;
+        if (o.minNature != null && s.nature < o.minNature) return false;
+        return !o.need || o.need(s, c);
+      },
+      progress: function (s) {
+        var c = cityFacts(), parts = [];
+        for (var k in (o.track || {})) {
+          parts.push(BUILD_LABEL[k] + ' ' + Math.min(usedSinceQuest(k), o.track[k]) + '/' + o.track[k]);
+        }
+        if (o.needText) parts.push(o.needText(s, c));
+        if (o.minPop != null) parts.push('pop ' + Math.min(s.population, o.minPop) + '/' + o.minPop);
+        if (o.minNature != null || o.final) parts.push('nature ' + s.nature + '%' + (o.minNature != null ? ' (need ' + o.minNature + '%+)' : ''));
+        return parts.join(' · ');
+      }
+    };
+  }
+  // Harmony の前半: 人口に加えて「この建物を持っていること」。ステップ番号 → 条件
+  // (そのレベルで建物がもう解放されている順。Hotel は Lv11・Airport は Lv13 で解放)
+  function hasNeed(keys, label) {
+    return { text: label, need: function (s, c) { return has(c, keys); }, needText: function (s, c) { return label + ' ' + (has(c, keys) ? '✓' : '—'); } };
+  }
+  var HARMONY_NEEDS = {
+    1: hasNeed(['restaurant'], 'a Restaurant'),
+    2: hasNeed(['giftshop'], 'a Moku Gift Shop'),
+    3: hasNeed(['highway'], 'a Highway'),
+    4: hasNeed(['station'], 'a Station'),
+    5: hasNeed(['hotel'], 'a Hotel'),
+    6: hasNeed(['airport'], 'an Airport'),
+    7: hasNeed(['house2'], 'an Apartment (4 Houses in a square)'),
+    8: hasNeed(['park2'], 'a Grove (4 Parks in a square or a line)'),
+    9: hasNeed(['shop2'], 'a Shopping Mall (4 Shops in a square)'),
+    10: { text: 'clear 1 tile', track: { bulldoze: 1 } },
+    11: { text: 'make 2 Land plots', track: { land: 2 } },
+    12: { text: 'a road 4 tiles long', need: function (s, c) { return c.roadRun >= 4; }, needText: function (s, c) { return 'longest road ' + Math.min(c.roadRun, 4) + '/4'; } }
+  };
+  var CHAPTER2 = [
+    { title: 'Spring Cleaning', desc: 'Clear 3 tiles and plant 3 Parks. Keep Nature at 50%+.', track: { bulldoze: 3, park: 3 }, minNature: 50, reward: 300 },
+    { title: 'Main Street', desc: 'Build a straight road 4 tiles long.', track: { road: 2 }, need: function (s, c) { return c.roadRun >= 4; }, needText: function (s, c) { return 'longest road ' + Math.min(c.roadRun, 4) + '/4'; }, reward: 300 },
+    { title: 'Ready the Land', desc: 'Flatten 4 Land plots for new homes.', track: { land: 4 }, reward: 250 },
+    { title: 'Big Home', desc: 'Make a new Apartment: 4 Houses in a square.', track: { house2: 1 }, reward: 400 },
+    { title: 'Dinner Time', desc: 'Open 2 new Restaurants.', track: { restaurant: 2 }, reward: 350 },
+    { title: 'Souvenirs', desc: 'Open 2 new Moku Gift Shops.', track: { giftshop: 2 }, reward: 350 },
+    { title: 'Shopping Day', desc: 'Make a new Shopping Mall: 4 Shops in a square.', track: { shop2: 1 }, reward: 450 },
+    { title: 'Fast Lane', desc: 'Build 4 Highway tiles.', track: { highway: 4 }, reward: 350 },
+    { title: 'All Aboard', desc: 'Build a new Station right next to a road.', track: { station: 1 }, need: function (s, c) { return c.stationByRoad; }, needText: function (s, c) { return 'by a road ' + (c.stationByRoad ? '✓' : '—'); }, reward: 400 },
+    { title: 'Welcome, Visitors', desc: 'Open 2 new Hotels.', track: { hotel: 2 }, reward: 450 },
+    { title: 'Fly High', desc: 'Build a new Airport right next to the sea.', track: { airport: 1 }, need: function (s, c) { return c.airportBySea; }, needText: function (s, c) { return 'by the sea ' + (c.airportBySea ? '✓' : '—'); }, reward: 500 },
+    { title: 'New School', desc: 'Build a new School for the growing town.', track: { school: 1 }, reward: 300 },
+    { title: 'Town Pride', desc: 'Build a new Landmark.', track: { landmark: 1 }, reward: 350 },
+    { title: 'Forest Path', desc: 'Make a new Grove: 4 Parks in a square or a line.', track: { park2: 1 }, reward: 450 },
+    { title: 'Island Life', desc: 'Have 3 homes on the islands.', track: { house: 1 }, need: function (s, c) { return c.islandHomes >= 3; }, needText: function (s, c) { return 'island homes ' + Math.min(c.islandHomes, 3) + '/3'; }, reward: 500 },
+    { title: 'Green Champion', desc: 'Keep Nature at 70%+ with 200+ people.', minPop: 200, minNature: 70, reward: 600 },
+    { title: "Moku's Dream Town", desc: 'Have every kind of building at once, with Nature at 60%+.', minNature: 60,
+      need: function (s, c) { return DREAM_KINDS.every(function (k) { return has(c, k); }); },
+      needText: function (s, c) { return 'kinds ' + DREAM_KINDS.filter(function (k) { return has(c, k); }).length + '/' + DREAM_KINDS.length; }, reward: 800 }
+  ].map(makeQuest);
+  var FINAL_QUEST_INDEX = HARMONY_END_INDEX + CHAPTER2.length;
+  var MAX_LEVEL = FINAL_QUEST_INDEX + 1;
+  var FINAL_QUEST = makeQuest({
+    title: 'Dream Town',
+    desc: "You built Moku's Dream Town! Keep it green and happy.",
+    final: true,
+    needText: function (s) { return 'pop ' + s.population; }
+  });
   function questForIndex(i) {
     if (i < QUESTS.length) return QUESTS[i];
     if (i >= FINAL_QUEST_INDEX) return FINAL_QUEST;
+    if (i >= HARMONY_END_INDEX) return CHAPTER2[i - HARMONY_END_INDEX];
     var step = i - QUESTS.length + 1;
     var popTarget = HARMONY_TARGETS[step - 1];
-    return {
+    var extra = HARMONY_NEEDS[step];
+    if (!extra) {
+      return {
+        title: 'Harmony Lv ' + (i + 2),
+        desc: 'Grow to ' + popTarget + ' population while keeping Nature at 50%+.',
+        check: function (s) { return s.population >= popTarget && s.nature >= 50; },
+        progress: function (s) { return 'pop ' + Math.min(s.population, popTarget) + '/' + popTarget + ' · nature ' + s.nature + '%'; },
+        reward: 150 + step * 50
+      };
+    }
+    var q = makeQuest({
       title: 'Harmony Lv ' + (i + 2),
-      desc: 'Grow to ' + popTarget + ' population while keeping Nature at 50%+.',
-      check: function (s) { return s.population >= popTarget && s.nature >= 50; },
-      progress: function (s) { return 'pop ' + Math.min(s.population, popTarget) + '/' + popTarget + ' · nature ' + s.nature + '%'; },
+      desc: 'Grow to ' + popTarget + ' population with Nature at 50%+, and ' + extra.text + '.',
+      track: extra.track, need: extra.need, needText: extra.needText,
+      minPop: popTarget, minNature: 50,
       reward: 150 + step * 50
-    };
+    });
+    return q;
   }
 
   // ---------- save data ----------
@@ -1099,6 +1240,8 @@ canvas#c.dragging { cursor: grabbing; }
       merges: [],
       playMinutes: 0,
       seenIslands: [],
+      used: {},
+      questStart: {},
       updatedAt: ''
     };
   }
@@ -1154,10 +1297,23 @@ canvas#c.dragging { cursor: grabbing; }
           if (!data.flags) data.flags = { shop: false };
           if (!Array.isArray(data.merges)) data.merges = [];
           if (typeof data.playMinutes !== 'number') data.playMinutes = 0;
-          // 無限レベルのバグ(2026-11-11 修正)で上がりすぎたレベルを最後のレベルに戻す。
-          // 街(grid)・お金はそのまま。
+          // 章2(2026-11-15〜)の進み具合は questIndexMain にも書く。Classic は
+          // Lv39 より上を Lv39 に戻して保存するが questIndexMain は残すので、ここで戻す。
+          if (typeof data.questIndexMain === 'number' && data.questIndexMain > data.questIndex) {
+            data.questIndex = Math.min(data.questIndexMain, FINAL_QUEST_INDEX);
+            data.level = data.questIndex + 1;
+          }
+          // 無限レベルのバグ(2026-11-11 修正)で上がりすぎたレベルは、以前の最後(Lv39)に戻す。
+          // (章2で正しく上がったセーブには questIndexMain がある)街(grid)・お金はそのまま。
+          if (typeof data.questIndexMain !== 'number' && data.questIndex > HARMONY_END_INDEX) {
+            data.questIndex = HARMONY_END_INDEX;
+            data.level = HARMONY_END_INDEX + 1;
+          }
           if (data.questIndex > FINAL_QUEST_INDEX) data.questIndex = FINAL_QUEST_INDEX;
           if (data.level > MAX_LEVEL) data.level = MAX_LEVEL;
+          if (!data.used || typeof data.used !== 'object') data.used = {};
+          // このお題がいつ始まったか分からない古いセーブは、今から数える
+          if (!data.questStart || typeof data.questStart !== 'object') data.questStart = JSON.parse(JSON.stringify(data.used));
           if (!Array.isArray(data.seenIslands)) data.seenIslands = [];
           return data;
         }
@@ -1281,6 +1437,9 @@ canvas#c.dragging { cursor: grabbing; }
       progress.coins += q.reward;
       progress.level++;
       progress.questIndex++;
+      progress.questIndexMain = progress.questIndex;
+      // 次のお題は、今から建てた分だけを数える
+      progress.questStart = JSON.parse(JSON.stringify(progress.used || {}));
       showToast('🎉 Level Up! Lv ' + progress.level + ' — +' + q.reward + ' coins');
       stats.coins = progress.coins;
       advanced = true;
@@ -2338,6 +2497,7 @@ canvas#c.dragging { cursor: grabbing; }
       grid: progress.grid.slice(),
       merges: JSON.parse(JSON.stringify(progress.merges)),
       flags: JSON.parse(JSON.stringify(progress.flags)),
+      used: JSON.parse(JSON.stringify(progress.used || {})),
       cost: cost
     };
   }
@@ -2359,6 +2519,7 @@ canvas#c.dragging { cursor: grabbing; }
     progress.grid = snap.grid;
     progress.merges = snap.merges;
     progress.flags = snap.flags;
+    progress.used = snap.used;
     progress.coins += snap.cost;
     if (snap.cost) addFloater(snap.gx, snap.gy, '+' + snap.cost, '#FFC94A');
     recompute();
@@ -2384,6 +2545,7 @@ canvas#c.dragging { cursor: grabbing; }
         var clearSnap = takeSnapshot(0);
         clearSnap.gx = gx; clearSnap.gy = gy;
         clearCell(gx, gy);
+        countUse('bulldoze');
         addFloater(gx, gy, 'Cleared', '#EDEEF6');
         offerUndo(clearSnap);
         recompute();
@@ -2402,6 +2564,7 @@ canvas#c.dragging { cursor: grabbing; }
     snap.gx = gx; snap.gy = gy;
     progress.coins -= b.cost;
     progress.grid[idx(gx, gy)] = selectedTool;
+    countUse(selectedTool);
     addFloater(gx, gy, '-' + b.cost, '#FFC94A');
     offerUndo(snap);
     if (selectedTool === 'shop') progress.flags.shop = true;
