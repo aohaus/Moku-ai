@@ -706,7 +706,7 @@
     'color:rgba(237,238,246,0.45);text-decoration:underline;text-underline-offset:2px;cursor:pointer}',
     '.mka-refresh:hover{color:rgba(237,238,246,0.75)}',
     '.mka-refresh:disabled{text-decoration:none;cursor:default}',
-    '.mka-update-note{margin:2px 4px 0;font-size:11px;font-weight:600;line-height:1.5;color:rgba(237,238,246,0.45);text-align:center}',
+    '.mka-update-note{margin:2px 4px 0;font-size:11px;font-weight:600;line-height:1.5;color:rgba(237,238,246,0.45);text-align:center;white-space:normal;overflow-wrap:anywhere}',
     '.mka-update-note b{color:rgba(237,238,246,0.7);font-weight:800}',
     '.mka-actions{display:flex;flex-direction:column;gap:10px}',
     '.mka-choice{display:flex;align-items:center;gap:12px;width:100%;padding:14px;border-radius:14px;text-align:left;',
@@ -1129,6 +1129,11 @@
   // before. Kept outside the synced prefixes: it's about this browser's copy.
   var UPDATE_KEY = 'mokuhub:update:last';
   var UPDATE_VERSIONS_KEY = 'mokuhub:update:versions';
+  // page → when that game was last updated (ISO). The later of the date in its
+  // #buildInfo ("Updated Nov 15, 2026") and the update that first saw its
+  // version change (a session that bumps the version but forgets the date).
+  // hub.html's My Games puts recently updated games on top with a badge.
+  var UPDATE_DATES_KEY = 'mokuhub:update:dates';
   function readJSONKey(k) {
     try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; }
   }
@@ -1199,15 +1204,27 @@
       done = true;
       // Compare each game's version with the update before this one.
       var prev = readJSONKey(UPDATE_VERSIONS_KEY);
+      var dates = readJSONKey(UPDATE_DATES_KEY) || {};
+      var nowIso = new Date().toISOString();
+      var lastAt = (readJSONKey(UPDATE_KEY) || {}).at || '';
       var now = {}, changed = [], newest = null;
       Object.keys(versions).forEach(function (page) {
         var info = versions[page], name = names[page] || page.replace(/\.html$/, '');
         now[page] = info.v;
-        if (prev && prev[page] !== info.v) changed.push({ name: name, v: info.v });
+        var verChanged = prev && prev[page] !== info.v;
+        if (verChanged) changed.push({ name: name, v: info.v });
         var t = Date.parse(info.date);
+        var when = isNaN(t) ? '' : new Date(t).toISOString();
+        // A new version whose date is older than the update before this one
+        // (the date wasn't bumped): count it as updated when we first saw it.
+        if (verChanged && prev[page] && (!when || (lastAt && when < lastAt))) when = nowIso;
+        if (when && !(dates[page] > when)) dates[page] = when;
         if (!isNaN(t) && (!newest || t > newest.t)) newest = { t: t, name: name, v: info.v, date: info.date };
       });
-      if (Object.keys(now).length) writeJSONKey(UPDATE_VERSIONS_KEY, now);
+      if (Object.keys(now).length) {
+        writeJSONKey(UPDATE_VERSIONS_KEY, now);
+        writeJSONKey(UPDATE_DATES_KEY, dates);
+      }
       writeJSONKey(UPDATE_KEY, {
         at: new Date().toISOString(), bytes: bytes, pages: Object.keys(names).length, games: Object.keys(names),
         newest: newest ? { name: newest.name, v: newest.v, date: newest.date } : null,
@@ -1232,7 +1249,7 @@
         .then(function (text) {
           if (text) {
             bytes += sizeOf(p, text);
-            var m = /id="buildInfo"[^>]*>\s*(v[0-9][^<·]*?)\s*·\s*Updated\s*([A-Z][a-z]{2} \d{1,2}, \d{4})/.exec(text);
+            var m = /id="buildInfo"[^>]*>[^<]*?(v[0-9][^<·]*?)\s*·\s*Updated\s*([A-Z][a-z]{2} \d{1,2}, \d{4})/.exec(text);
             if (m) versions[p] = { v: m[1].trim(), date: m[2] };
           }
           return text;

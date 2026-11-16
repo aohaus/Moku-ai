@@ -1330,6 +1330,13 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
 /* The game's version on this device (from the last "Get the latest games &
    updates"; shared/moku-account.js keeps it in mokuhub:update:versions). */
 .me-row-side small { display: block; margin-top: 3px; font-size: 10.5px; font-weight: 600; color: rgba(237,238,246,0.32); }
+/* Updated recently (mokuhub:update:dates): on top of My Games with a badge. */
+.me-row-main b .upd-pill {
+  display: inline-block; margin-left: 7px; padding: 2px 6px; border-radius: 999px;
+  vertical-align: 2px; font-size: 9.5px; font-weight: 800; letter-spacing: 0.04em;
+  color: #2A2208; background: linear-gradient(180deg, #FFE68A, #F5C044);
+}
+.me-row-side small.upd { color: rgba(255,226,122,0.75); }
 .me-best { flex: none; font-size: 15px; font-weight: 800; color: #FFE27A; white-space: nowrap; }
 .me-empty { grid-column: 1 / -1; padding: 14px; font-size: 13px; font-weight: 600; color: rgba(237,238,246,0.55); text-align: center; }
 
@@ -3533,6 +3540,13 @@ html.me-open #ceoPeek { display: none; }
     var d = new Date(t);
     return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()] + ' ' + d.getDate();
   }
+  // How long a game stays "✨ UPDATED" on top of My Games (from its update date).
+  var UPDATED_DAYS = 7;
+  // Always the date ("Nov 15"): the row's other time is when you last played.
+  function updatedLabel(t) {
+    var d = new Date(t);
+    try { return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); } catch (e) { return d.toDateString().slice(4, 10); }
+  }
   function meRow(tag, colors, iconSrc, title, sub) {
     var row = el(tag, 'me-row');
     if (tag === 'button') row.type = 'button';
@@ -3566,16 +3580,30 @@ html.me-open #ceoPeek { display: none; }
     try { savedAt = (window.MokuAccount && window.MokuAccount.getSavedAt()) || {}; } catch (e) {}
     var games = [];
     try { games = saveSummary(savedAt); } catch (e) {}
-    var versions = {};
+    var versions = {}, updated = {};
     try { versions = JSON.parse(localStorage.getItem('mokuhub:update:versions') || '{}') || {}; } catch (e) {}
+    try { updated = JSON.parse(localStorage.getItem('mokuhub:update:dates') || '{}') || {}; } catch (e) {}
+    // Games updated in the last UPDATED_DAYS days (as the last "Get the latest
+    // games & updates" saw them) go on top, newest update first, with a badge.
+    var recentSince = Date.now() - UPDATED_DAYS * 24 * 60 * 60 * 1000;
+    games.forEach(function (g) {
+      var t = CATALOG[g.card] ? Date.parse(updated[CATALOG[g.card].gameId + '.html']) : NaN;
+      g.updatedAt = t > recentSince ? t : 0;
+    });
+    games.sort(function (a, b) { return b.updatedAt - a.updatedAt; });   // stable: the rest stay newest-played first
     var list = document.getElementById('meGames');
     list.textContent = '';
     games.forEach(function (g) {
       var row = meRow('button', g, g.icon, g.name, g.summary);
       var ver = CATALOG[g.card] ? versions[CATALOG[g.card].gameId + '.html'] : '';
-      row.setAttribute('aria-label', g.name + ': ' + g.summary + (ver ? ' (' + ver + ')' : ''));
+      var upd = g.updatedAt ? updatedLabel(g.updatedAt) : '';
+      if (upd) {
+        row.classList.add('is-updated');
+        row.querySelector('.me-row-main b').appendChild(el('span', 'upd-pill', '✨ UPDATED'));
+      }
+      row.setAttribute('aria-label', g.name + (upd ? ' (updated ' + upd + ')' : '') + ': ' + g.summary + (ver ? ' (' + ver + ')' : ''));
       var side = el('span', 'me-row-side', g.savedAt ? relTime(g.savedAt) : '');
-      if (ver) side.appendChild(el('small', null, ver));
+      if (ver || upd) side.appendChild(el('small', upd ? 'upd' : null, (ver || '') + (ver && upd ? ' · ' : '') + upd));
       row.appendChild(side);
       row.addEventListener('click', function () { if (CATALOG[g.card]) openSheet(g.card, row); });
       list.appendChild(row);
@@ -4378,7 +4406,7 @@ html.me-open #ceoPeek { display: none; }
   };
 })();
 </script>
-<script src="shared/moku-account.js?v=20261116"></script>
+<script src="shared/moku-account.js?v=20261116b"></script>
 <script src="shared/moku-transfer.js?v=20261116"></script>
 <script src="shared/moku-moint.js?v=20261116"></script>
 <script>
