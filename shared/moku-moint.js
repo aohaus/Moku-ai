@@ -1512,11 +1512,15 @@
     silver: { name: 'Silver Box', price: 500 },
     gold: { name: 'Gold Box', price: 700 }
   };
-  // Some tabs give their boxes their own names (same price and look).
-  // Goods: the soccer box is Platinum, the Southeast Asia box is Titanium.
+  // Some tabs give their boxes their own names and prices (same look).
+  // Goods: the soccer box is Platinum (900), the Southeast Asia box is Titanium (1000).
   var BOX_NAMES = { hand: { silver: 'Platinum Box', gold: 'Titanium Box' } };
+  var BOX_PRICES = { hand: { silver: 900, gold: 1000 } };
   function boxName(slot, tier) {
     return (BOX_NAMES[slot] && BOX_NAMES[slot][tier]) || BLIND_BOXES[tier].name;
+  }
+  function boxPrice(slot, tier) {
+    return (BOX_PRICES[slot] && BOX_PRICES[slot][tier]) || BLIND_BOXES[tier].price;
   }
   // "★ SILVER" / "★ PLATINUM" … on items found in a box
   function boxLabel(slot, tier) { return boxName(slot, tier).replace(/ Box$/, ''); }
@@ -1530,9 +1534,10 @@
     var c = readCloset();
     var left = boxPool(slot, tier).filter(function (it) { return c.owned.indexOf(it.id) < 0; });
     if (!left.length) return { result: 'done' };
-    if (balance() < bb.price) return { result: 'poor' };
+    var price = boxPrice(slot, tier);
+    if (balance() < price) return { result: 'poor' };
     var it = left[Math.floor(Math.random() * left.length)];
-    addMoints(-bb.price);
+    addMoints(-price);
     c = readCloset();
     c.owned.push(it.id);
     c.equipped[it.slot] = it.id;   // put it on right away
@@ -1602,6 +1607,7 @@
     BLIND_BOXES: BLIND_BOXES,
     boxPool: boxPool,
     boxName: boxName,
+    boxPrice: boxPrice,
     openBox: openBox,
     SLOTS: SLOTS,
     balance: balance,
@@ -2000,9 +2006,9 @@
       var done = found >= pool.length;
       return '<button class="mm-item mm-boxtile' + (tier === 'gold' ? ' is-gold' : '') + (done ? ' is-done' : '') +
         (closetState.sel === 'box:' + tier ? ' is-sel' : '') + '" type="button" data-mm-box="' + tier + '" aria-label="' +
-        boxName(closetState.tab, tier) + ', ' + BLIND_BOXES[tier].price + ' Moints, ' + found + ' of ' + pool.length + ' found">' + boxArt(tier) +
+        boxName(closetState.tab, tier) + ', ' + boxPrice(closetState.tab, tier) + ' Moints, ' + found + ' of ' + pool.length + ' found">' + boxArt(tier) +
         '<span class="mm-item-name">' + boxName(closetState.tab, tier) + '</span>' +
-        (done ? '<span class="mm-tag">All found!</span>' : '<span class="mm-price">' + COIN + fmt(BLIND_BOXES[tier].price) + '</span>') +
+        (done ? '<span class="mm-tag">All found!</span>' : '<span class="mm-price">' + COIN + fmt(boxPrice(closetState.tab, tier)) + '</span>') +
         '<span class="mm-box-left">' + found + ' / ' + pool.length + ' found</span></button>';
     }).join('');
     html += '<button class="mm-item' + (isMood ? '' : ' mm-none') + (!worn && (!closetState.sel || closetState.sel === 'none') ? ' is-sel' : '') + '" type="button" data-mm-item="none">' +
@@ -2031,9 +2037,9 @@
     var boxTier = /^box:/.test(closetState.sel || '') ? closetState.sel.slice(4) : null;
     if (boxTier) {
       var left = boxPool(closetState.tab, boxTier).filter(function (it) { return c.owned.indexOf(it.id) < 0; }).length;
-      var need = BLIND_BOXES[boxTier].price - balance();
+      var need = boxPrice(closetState.tab, boxTier) - balance();
       act.disabled = !left;
-      act.innerHTML = !left ? 'You found all 5! ✨' : need > 0 ? 'Need ' + COIN + ' ' + fmt(need) + ' more' : 'Open for ' + COIN + ' ' + fmt(BLIND_BOXES[boxTier].price);
+      act.innerHTML = !left ? 'You found all 5! ✨' : need > 0 ? 'Need ' + COIN + ' ' + fmt(need) + ' more' : 'Open for ' + COIN + ' ' + fmt(boxPrice(closetState.tab, boxTier));
       act.setAttribute('data-mm-act', !left ? '' : need > 0 ? 'poor' : 'box');
     } else if (sel && c.owned.indexOf(sel.id) < 0) {
       var short = sel.price - balance();
