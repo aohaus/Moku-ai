@@ -291,7 +291,7 @@ body[data-team="br"] { --team: #D52B1E; --team2: #1F3F9A; }
   <div id="legend"></div>
   <div id="cards"></div>
   <p id="dataNote" data-t="dataNote"></p>
-  <div id="buildInfo">v1.0.0 · Updated Nov 16, 2026</div>
+  <div id="buildInfo">v1.1.0 · Updated Nov 17, 2026</div>
 </main>
 
 <main id="predict" hidden>
@@ -385,6 +385,9 @@ body[data-team="br"] { --team: #D52B1E; --team2: #1F3F9A; }
     if (raw && typeof raw === 'object') for (var k in save) if (raw[k] !== undefined && (typeof raw[k] === typeof save[k] || k === 'entry' || k === 'claimed')) save[k] = raw[k];
   } catch (e) {}
   if (save.lang !== 'ja') save.lang = 'en';
+  // v1.1.0 fixed some Paraguay spellings (from the official line-up). Entries made before that still count.
+  var RENAMED = { 'Júnior Alonso': 'Junior Alonso', 'Kléber Ferreira': 'Clever Ferreira', 'Alan Uruk': 'Allan Wlk', 'Roberto Morales': 'Robert Morales', 'Maurício': 'Maurício Magalhães' };
+  if (save.entry && save.entry.br instanceof Array) save.entry.br = save.entry.br.map(function (n) { return RENAMED[n] || n; });
   if (!(save.level >= 0 && save.level <= 2)) save.level = 0;
   function persist() {
     save.updatedAt = new Date().toISOString();
@@ -480,8 +483,8 @@ body[data-team="br"] { --team: #D52B1E; --team2: #1F3F9A; }
     stDownL: ['↓ Dropping', '↓ 下り調子'],
     close: ['Close', 'とじる'],
     dataNote: [
-      'Japan: the same player data as the Brazil match (Kamada is out of this match). Paraguay: the call-up list announced on Nov 7, with clubs only (no shirt numbers or recent matches yet). The real squad may be different on match day.',
-      '日本: ブラジル戦と同じ選手データ(鎌田はこの試合は離脱)。パラグアイ: 11月7日に発表された招集メンバーで、所属クラブだけ(背番号・直近の試合はまだありません)。当日のメンバーは変わることがあります。'
+      'Japan: the same player data as the Brazil match (Kamada is out of this match). Paraguay: the call-up list announced on Nov 7, with shirt numbers from their match vs Singapore (no recent-match data). The real squad may be different on match day.',
+      '日本: ブラジル戦と同じ選手データ(鎌田はこの試合は離脱)。パラグアイ: 11月7日に発表された招集メンバーで、背番号はシンガポール戦のもの(直近の試合のデータはありません)。当日のメンバーは変わることがあります。'
     ],
     gameTitle: ['⚽ Japan vs Paraguay Mini Match', '⚽ 日本 vs パラグアイ ミニマッチ'],
     gameSub: ['You are Japan! 11 against 11. Beat Paraguay in a 3-minute match.', 'きみは日本代表!11人対11人。3分間の試合でパラグアイに勝とう。'],
@@ -555,35 +558,36 @@ body[data-team="br"] { --team: #D52B1E; --team2: #1F3F9A; }
       [28, 'Shio Fukuda', '福田 師王', 'MF/FW', DE, 'Karlsruher SC', 'u', 'WWDWW', 1, 0],
       [0, 'Keisuke Goto', '後藤 啓介', 'MF/FW', DE, 'SC Freiburg', 'f', 'DDWWD', 1, 1]
     ],
-    // Paraguay: the call-up list (Nov 7). Clubs only: no shirt numbers, status, recent matches or World Cup data (null = not shown).
+    // Paraguay: the call-up list (Nov 7), with shirt numbers and spellings from the official line-up vs Singapore (Nov 13).
+    // Otherwise clubs only: no status, recent matches or World Cup data (null = not shown).
     br: [
-      [0, 'Orlando Gill', 'オルランド・ヒル', 'GK', FR, 'Lille', null, null, null, null],
-      [0, 'Gastón Olveira', 'ガストン・オルベイラ', 'GK', PY, 'Olimpia', null, null, null, null],
+      [12, 'Orlando Gill', 'オルランド・ヒル', 'GK', FR, 'Lille', null, null, null, null],
+      [22, 'Gastón Olveira', 'ガストン・オルベイラ', 'GK', PY, 'Olimpia', null, null, null, null],
       [0, 'Santiago Rojas', 'サンティアゴ・ロハス', 'GK', PY, 'Nacional', null, null, null, null],
-      [0, 'Facundo Insfrán', 'ファクンド・インスフラン', 'GK', AE, 'Al-Wahda', null, null, null, null],
-      [0, 'Gustavo Gómez', 'グスタボ・ゴメス', 'DF', BR, 'Palmeiras', null, null, null, null],
-      [0, 'Omar Alderete', 'オマル・アルデレーテ', 'DF', EN, 'Sunderland', null, null, null, null],
-      [0, 'Júnior Alonso', 'ジュニオール・アロンソ', 'DF', US, 'Atlanta United', null, null, null, null],
-      [0, 'Kléber Ferreira', 'クレベル・フェレイラ', 'DF', AR, 'Atlético Tucumán', null, null, null, null],
-      [0, 'Mateo Gamarra', 'マテオ・ガマラ', 'DF', PY, 'Olimpia', null, null, null, null],
-      [0, 'Mauro Coronel', 'マウロ・コロネル', 'DF', PY, 'Nacional', null, null, null, null],
-      [0, 'Juan José Cáceres', 'フアン・ホセ・カセレス', 'DF', RU, 'Dynamo Moscow', null, null, null, null],
-      [0, 'Alan Benítez', 'アラン・ベニテス', 'DF', PY, 'Libertad', null, null, null, null],
-      [0, 'Alexandro Maidana', 'アレクサンドロ・マイダナ', 'DF', AR, 'Talleres', null, null, null, null],
-      [0, 'Damián Bobadilla', 'ダミアン・ボバディジャ', 'MF', BR, 'São Paulo', null, null, null, null],
-      [0, 'Hugo Cuenca', 'ウーゴ・クエンカ', 'MF', ES, 'Celta Fortuna', null, null, null, null],
-      [0, 'Eduardo Delmás', 'エドゥアルド・デルマス', 'MF', PY, 'Olimpia', null, null, null, null],
-      [0, 'Diego Gómez', 'ディエゴ・ゴメス', 'MF', EN, 'Brighton', null, null, null, null],
-      [0, 'Maurício', 'マウリシオ', 'MF', BR, 'Palmeiras', null, null, null, null],
-      [0, 'Matías Galarza', 'マティアス・ガラルサ', 'MF', US, 'Inter Miami', null, null, null, null],
-      [0, 'Mathías Villasanti', 'マティアス・ビジャサンティ', 'MF', BR, 'Grêmio', null, null, null, null],
-      [0, 'Braian Ojeda', 'ブライアン・オヘダ', 'MF', US, 'Orlando City', null, null, null, null],
-      [0, 'Miguel Almirón', 'ミゲル・アルミロン', 'FW', US, 'Atlanta United', null, null, null, null],
-      [0, 'Julio Enciso', 'フリオ・エンシソ', 'FW', EN, 'Ipswich Town', null, null, null, null],
-      [0, 'Gustavo Caballero', 'グスタボ・カバジェロ', 'FW', BR, 'Santos', null, null, null, null],
-      [0, 'Alan Uruk', 'アラン・ウルク', 'FW', AR, 'Lanús', null, null, null, null],
-      [0, 'Hugo Adrián Benítez', 'ウーゴ・アドリアン・ベニテス', 'FW', PY, 'Nacional', null, null, null, null],
-      [0, 'Roberto Morales', 'ロベルト・モラレス', 'FW', MX, 'Pumas', null, null, null, null]
+      [1, 'Facundo Insfrán', 'ファクンド・インスフラン', 'GK', AE, 'Al-Wahda', null, null, null, null],
+      [15, 'Gustavo Gómez', 'グスタボ・ゴメス', 'DF', BR, 'Palmeiras', null, null, null, null],
+      [3, 'Omar Alderete', 'オマル・アルデレーテ', 'DF', EN, 'Sunderland', null, null, null, null],
+      [6, 'Junior Alonso', 'ジュニオール・アロンソ', 'DF', US, 'Atlanta United', null, null, null, null],
+      [5, 'Clever Ferreira', 'クレベル・フェレイラ', 'DF', AR, 'Atlético Tucumán', null, null, null, null],
+      [13, 'Mateo Gamarra', 'マテオ・ガマラ', 'DF', PY, 'Olimpia', null, null, null, null],
+      [25, 'Mauro Coronel', 'マウロ・コロネル', 'DF', PY, 'Nacional', null, null, null, null],
+      [4, 'Juan José Cáceres', 'フアン・ホセ・カセレス', 'DF', RU, 'Dynamo Moscow', null, null, null, null],
+      [2, 'Alan Benítez', 'アラン・ベニテス', 'DF', PY, 'Libertad', null, null, null, null],
+      [26, 'Alexandro Maidana', 'アレクサンドロ・マイダナ', 'DF', AR, 'Talleres', null, null, null, null],
+      [16, 'Damián Bobadilla', 'ダミアン・ボバディジャ', 'MF', BR, 'São Paulo', null, null, null, null],
+      [17, 'Hugo Cuenca', 'ウーゴ・クエンカ', 'MF', ES, 'Celta Fortuna', null, null, null, null],
+      [7, 'Eduardo Delmás', 'エドゥアルド・デルマス', 'MF', PY, 'Olimpia', null, null, null, null],
+      [8, 'Diego Gómez', 'ディエゴ・ゴメス', 'MF', EN, 'Brighton', null, null, null, null],
+      [11, 'Maurício Magalhães', 'マウリシオ・マガリャンイス', 'MF', BR, 'Palmeiras', null, null, null, null],
+      [23, 'Matías Galarza', 'マティアス・ガラルサ', 'MF', US, 'Inter Miami', null, null, null, null],
+      [20, 'Mathías Villasanti', 'マティアス・ビジャサンティ', 'MF', BR, 'Grêmio', null, null, null, null],
+      [14, 'Braian Ojeda', 'ブライアン・オヘダ', 'MF', US, 'Orlando City', null, null, null, null],
+      [10, 'Miguel Almirón', 'ミゲル・アルミロン', 'FW', US, 'Atlanta United', null, null, null, null],
+      [19, 'Julio Enciso', 'フリオ・エンシソ', 'FW', EN, 'Ipswich Town', null, null, null, null],
+      [24, 'Gustavo Caballero', 'グスタボ・カバジェロ', 'FW', BR, 'Santos', null, null, null, null],
+      [18, 'Allan Wlk', 'アラン・ウルク', 'FW', AR, 'Lanús', null, null, null, null],
+      [9, 'Hugo Adrián Benítez', 'ウーゴ・アドリアン・ベニテス', 'FW', PY, 'Nacional', null, null, null, null],
+      [21, 'Robert Morales', 'ロベルト・モラレス', 'FW', MX, 'Pumas', null, null, null, null]
     ]
   };
   var HOME = { jp: 'Japan', br: 'Paraguay' };
@@ -610,7 +614,7 @@ body[data-team="br"] { --team: #D52B1E; --team2: #1F3F9A; }
   // Mini game: 11 a side. Your predicted XI if you entered, otherwise the real one (after the match).
   var DEFAULT_XI = {
     jp: ['Zion Suzuki', 'Shuto Nakano', 'Koki Machida', 'Ayumu Seko', 'Hiroki Ito', 'Ritsu Doan', 'Ao Tanaka', 'Kaishu Sano', 'Daizen Maeda', 'Takefusa Kubo', 'Keito Nakamura'],
-    br: ['Orlando Gill', 'Gustavo Gómez', 'Omar Alderete', 'Júnior Alonso', 'Juan José Cáceres', 'Damián Bobadilla', 'Mathías Villasanti', 'Diego Gómez', 'Matías Galarza', 'Miguel Almirón', 'Julio Enciso']
+    br: ['Orlando Gill', 'Alan Benítez', 'Mauro Coronel', 'Junior Alonso', 'Alexandro Maidana', 'Mathías Villasanti', 'Matías Galarza', 'Gustavo Caballero', 'Maurício Magalhães', 'Eduardo Delmás', 'Robert Morales']
   };
   if (DEV && /[?&]actual=demo/.test(location.search)) ACTUAL_XI = { jp: DEFAULT_XI.jp.slice(), br: DEFAULT_XI.br.slice() };
   if (ACTUAL_XI.jp.length === 11 && ACTUAL_XI.br.length === 11) DEFAULT_XI = { jp: ACTUAL_XI.jp.slice(), br: ACTUAL_XI.br.slice() };
@@ -660,7 +664,7 @@ body[data-team="br"] { --team: #D52B1E; --team2: #1F3F9A; }
   // Face illustrations from the call-up sheets (events/japan-brazil/faces/<slug>.jpg).
   // Players without one keep the number box (and the drawn player in the detail sheet).
   var FACES = 'alisson-santana allan andre-luiz andrey-santos ao-tanaka arthur-dias ayumu-seko bento bruno-guimaraes carlos-augusto daichi-kamada daizen-maeda danilo douglas-santos endrick estevao gabriel-bontempo gabriel-magalhaes hiroki-ito jair-cunha joao-gomes jonathan-jesus junnosuke-suzuki junya-ito kaishu-sano keisuke-goto keito-nakamura ko-itakura kodai-sano koki-machida koki-ogawa kuryu-matsuki leo-kokubo lucas-perri marlon-gomes pedro-morisco raphinha rayan ritsu-doan shio-fukuda shuto-nakano takefusa-kubo takumi-minamino tatsuhiro-sakamoto tomoki-hayakawa tsuyoshi-watanabe vanderson vinicius-junior vitor-reis wesley-franca yuito-suzuki yuki-soma yukinari-sugawara zion-suzuki'.split(' ');
-  var FACES_OPP = 'alan-benitez alan-uruk alexandro-maidana braian-ojeda damian-bobadilla diego-gomez eduardo-delmas facundo-insfran gaston-olveira gustavo-caballero gustavo-gomez hugo-adrian-benitez hugo-cuenca juan-jose-caceres julio-enciso junior-alonso kleber-ferreira mateo-gamarra mathias-villasanti matias-galarza mauricio mauro-coronel miguel-almiron omar-alderete orlando-gill roberto-morales santiago-rojas'.split(' ');
+  var FACES_OPP = 'alan-benitez alexandro-maidana allan-wlk braian-ojeda clever-ferreira damian-bobadilla diego-gomez eduardo-delmas facundo-insfran gaston-olveira gustavo-caballero gustavo-gomez hugo-adrian-benitez hugo-cuenca juan-jose-caceres julio-enciso junior-alonso mateo-gamarra mathias-villasanti matias-galarza mauricio-magalhaes mauro-coronel miguel-almiron omar-alderete orlando-gill robert-morales santiago-rojas'.split(' ');
   function faceSlug(name) {
     var n = name.toLowerCase();
     try { n = n.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); } catch (e) { /* old browsers */ }
