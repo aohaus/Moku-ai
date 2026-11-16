@@ -1512,6 +1512,14 @@
     silver: { name: 'Silver Box', price: 500 },
     gold: { name: 'Gold Box', price: 700 }
   };
+  // Some tabs give their boxes their own names (same price and look).
+  // Goods: the soccer box is Platinum, the Southeast Asia box is Titanium.
+  var BOX_NAMES = { hand: { silver: 'Platinum Box', gold: 'Titanium Box' } };
+  function boxName(slot, tier) {
+    return (BOX_NAMES[slot] && BOX_NAMES[slot][tier]) || BLIND_BOXES[tier].name;
+  }
+  // "★ SILVER" / "★ PLATINUM" … on items found in a box
+  function boxLabel(slot, tier) { return boxName(slot, tier).replace(/ Box$/, ''); }
   function boxPool(slot, tier) {
     return BOX_ITEMS.filter(function (it) { return it.slot === slot && it.blind === tier; });
   }
@@ -1593,6 +1601,7 @@
     BOX_ITEMS: BOX_ITEMS,
     BLIND_BOXES: BLIND_BOXES,
     boxPool: boxPool,
+    boxName: boxName,
     openBox: openBox,
     SLOTS: SLOTS,
     balance: balance,
@@ -1991,8 +2000,8 @@
       var done = found >= pool.length;
       return '<button class="mm-item mm-boxtile' + (tier === 'gold' ? ' is-gold' : '') + (done ? ' is-done' : '') +
         (closetState.sel === 'box:' + tier ? ' is-sel' : '') + '" type="button" data-mm-box="' + tier + '" aria-label="' +
-        BLIND_BOXES[tier].name + ', ' + BLIND_BOXES[tier].price + ' Moints, ' + found + ' of ' + pool.length + ' found">' + boxArt(tier) +
-        '<span class="mm-item-name">' + BLIND_BOXES[tier].name + '</span>' +
+        boxName(closetState.tab, tier) + ', ' + BLIND_BOXES[tier].price + ' Moints, ' + found + ' of ' + pool.length + ' found">' + boxArt(tier) +
+        '<span class="mm-item-name">' + boxName(closetState.tab, tier) + '</span>' +
         (done ? '<span class="mm-tag">All found!</span>' : '<span class="mm-price">' + COIN + fmt(BLIND_BOXES[tier].price) + '</span>') +
         '<span class="mm-box-left">' + found + ' / ' + pool.length + ' found</span></button>';
     }).join('');
@@ -2011,7 +2020,7 @@
       var sel = closetState.sel ? closetState.sel === it.id : wearing;
       html += '<button class="mm-item' + (sel ? ' is-sel' : '') + '" type="button" data-mm-item="' + it.id + '" aria-label="' + it.name +
         (have ? (wearing ? ', wearing' : ', owned') : ', ' + it.price + ' Moints') + '">' + iconSVG(it.id) +
-        (it.blind ? '<span class="mm-rare' + (it.blind === 'gold' ? ' is-gold' : '') + '">' + (it.blind === 'gold' ? '★ GOLD' : '★ SILVER') + '</span>' : '') +
+        (it.blind ? '<span class="mm-rare' + (it.blind === 'gold' ? ' is-gold' : '') + '">' + '★ ' + boxLabel(it.slot, it.blind).toUpperCase() + '</span>' : '') +
         '<span class="mm-item-name">' + it.name + '</span>' +
         (wearing ? '<span class="mm-tag is-wear">Wearing</span>' : have ? '<span class="mm-tag">Owned</span>' :
           '<span class="mm-price">' + COIN + fmt(it.price) + '</span>') + '</button>';
@@ -2090,9 +2099,9 @@
     var host = openOverlay;
     var rv = document.createElement('div');
     rv.className = 'mm-reveal';
-    rv.innerHTML = '<div class="mm-reveal-card' + (gold ? ' is-gold' : '') + '" role="dialog" aria-modal="true" aria-label="' + BLIND_BOXES[tier].name + '">' +
+    rv.innerHTML = '<div class="mm-reveal-card' + (gold ? ' is-gold' : '') + '" role="dialog" aria-modal="true" aria-label="' + boxName(slot, tier) + '">' +
       '<div class="mm-reveal-stage"><span class="mm-reveal-box">' + boxArt(tier) + '</span></div>' +
-      '<h3>' + (gold ? 'Gold Box…' : 'Silver Box…') + '</h3><p>What will it be?</p></div>';
+      '<h3>' + boxName(slot, tier) + '…</h3><p>What will it be?</p></div>';
     host.appendChild(rv);
     sfxRattle();
     renderCards();
@@ -2101,7 +2110,7 @@
       var card = rv.querySelector('.mm-reveal-card');
       card.innerHTML = '<div class="mm-reveal-stage"><span class="mm-reveal-rays"></span><span class="mm-reveal-item">' + iconSVG(it.id) + '</span></div>' +
         '<span class="mm-reveal-new">NEW!</span><h3>' + it.name + '</h3>' +
-        '<p>' + (gold ? '★ Gold Box' : '★ Silver Box') + ' · Moku is wearing it now!</p>' +
+        '<p>★ ' + boxName(slot, tier) + (slot === 'hand' ? ' · Moku is holding it now!' : ' · Moku is wearing it now!') + '</p>' +
         '<button class="mm-big" type="button" data-mm-yay>Yay!</button>';
       sfxTada(gold);
       burst(card);
