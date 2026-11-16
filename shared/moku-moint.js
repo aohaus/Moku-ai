@@ -41,9 +41,9 @@
   var EARNED_KEY = 'moku:moint:earned';
   var DAILY_GAME_CAP = 500;     // 1ゲームで1日にもらえる「毎回もらえる分」の上限(実績は別)
   var HERO_SRC = 'brand/mokumoku-hero.png';
-  var SLOTS = ['head', 'mood', 'face', 'neck'];  // what Moku wears (mood = his expression)
+  var SLOTS = ['head', 'mood', 'face', 'neck', 'hand'];  // what Moku wears (mood = his expression, hand = Goods he holds)
   var TABS = SLOTS.concat('bg');                 // Closet tabs (bg = background card behind Moku)
-  var SLOT_LABELS = { head: 'Hats', mood: 'Moods', face: 'Face', neck: 'Necklaces', bg: 'Backgrounds' };
+  var SLOT_LABELS = { head: 'Hats', mood: 'Moods', face: 'Face', neck: 'Necklaces', hand: 'Goods', bg: 'Backgrounds' };
 
   var script = document.currentScript;
   var mode = (script && script.getAttribute('data-mode')) || 'full';
@@ -1303,6 +1303,206 @@
         });
       } }
   ];
+  // ---------- Goods (2026-11-16): things Moku holds in his wing ----------
+  // Moku's right wing tip (on the viewer's right) is about (89, 72) on the
+  // hero's grid. Each good is drawn first, then grip() draws the wing tip
+  // over its handle so it looks held. Shop goods come from the series' games;
+  // soccer goods are in the Silver Box, Southeast Asia goods in the Gold Box.
+  var GOOD_INK = '#5A3A22';
+  function grip(x, y) {
+    return '<ellipse cx="' + x + '" cy="' + y + '" rx="4.6" ry="3.4" fill="#D9A06A" stroke="#A8683A" stroke-width="0.6"/>' +
+      '<path d="M' + (x - 2.6) + ' ' + (y - 0.6) + ' Q' + (x - 1) + ' ' + (y + 1.6) + ' ' + (x + 1.2) + ' ' + (y - 0.4) +
+      ' M' + (x - 0.4) + ' ' + (y - 2) + ' Q' + (x + 1.4) + ' ' + (y + 0.2) + ' ' + (x + 3.2) + ' ' + (y - 1.4) + '" stroke="#A8683A" stroke-width="0.5" fill="none" stroke-linecap="round"/>';
+  }
+  var GOODS = [
+    { id: 'good-chess-knight', name: 'Chess Knight', price: 250, box: [79, 50, 22, 30],
+      svg: function () {
+        return '<rect x="81" y="73.4" width="16" height="4.6" rx="1.6" fill="#E8D2B4" stroke="' + GOOD_INK + '" stroke-width="0.7"/>' +
+          '<path d="M84.4 73.6 L85.4 66 Q82 62 84.8 57 Q88 52 93 53 Q97.4 55 96.4 60.4 L92.4 60.6 Q90.8 63.4 94 66.4 L95 73.6 Z" fill="#FFF3DF" stroke="' + GOOD_INK + '" stroke-width="0.8" stroke-linejoin="round"/>' +
+          '<path d="M86.4 56.6 Q84.6 61 86.6 65" stroke="#C9A27C" stroke-width="1" fill="none" stroke-linecap="round"/>' +
+          '<circle cx="91.6" cy="56.8" r="0.9" fill="' + GOOD_INK + '"/>' + grip(89, 77);
+      } },
+    { id: 'good-fishing-rod', name: 'Fishing Rod', price: 220, box: [84, 40, 26, 36],
+      svg: function () {
+        return '<path d="M89 75 L104 43" stroke="#8A5A3A" stroke-width="1.5" stroke-linecap="round"/>' +
+          '<path d="M104 43 Q107 50 106.4 59" stroke="#F4F1EA" stroke-width="0.4" fill="none"/>' +
+          '<circle cx="92" cy="68.4" r="2.2" fill="#B9C2CC" stroke="' + GOOD_INK + '" stroke-width="0.5"/>' +
+          '<circle cx="106.4" cy="61" r="2.2" fill="#FFFFFF" stroke="' + GOOD_INK + '" stroke-width="0.5"/>' +
+          '<path d="M104.2 61 A2.2 2.2 0 0 1 108.6 61 Z" fill="#E2574C"/>' + grip(89, 74);
+      } },
+    { id: 'good-slingshot', name: 'Slingshot', price: 200, box: [80, 52, 20, 30],
+      svg: function () {
+        return '<path d="M89 80 L89 67 M89 67 Q85 64 84.4 57.6 M89 67 Q93 64 95.6 57.6" stroke="#9A6234" stroke-width="2.2" fill="none" stroke-linecap="round"/>' +
+          '<path d="M84.4 58.4 Q90 64 95.6 58.4" stroke="#E2574C" stroke-width="0.9" fill="none"/>' +
+          '<ellipse cx="90" cy="61.6" rx="2" ry="1.4" fill="#7A4A2A"/>' + grip(89, 75);
+      } },
+    { id: 'good-bento', name: 'Bento Box', price: 180, box: [78, 55, 22, 22],
+      svg: function () {
+        return '<rect x="79.6" y="58" width="19" height="14" rx="2.4" fill="#E2574C" stroke="' + GOOD_INK + '" stroke-width="0.8"/>' +
+          '<rect x="81.4" y="59.8" width="15.4" height="10.4" rx="1.2" fill="#FFF6E8"/>' +
+          '<path d="M89.4 59.8 L89.4 70.2" stroke="#E2574C" stroke-width="0.6"/>' +
+          '<circle cx="83.8" cy="62.6" r="1" fill="#FFFFFF" stroke="#E8DCC8" stroke-width="0.3"/><circle cx="86.6" cy="62.6" r="1" fill="#FFFFFF" stroke="#E8DCC8" stroke-width="0.3"/>' +
+          '<rect x="82.4" y="65" width="6" height="4" rx="0.8" fill="#2E2A28"/>' +
+          '<rect x="90.4" y="60.8" width="5.4" height="3.6" rx="0.8" fill="#FFD25A"/>' +
+          '<circle cx="92" cy="67.4" r="1.9" fill="#5FB85A"/><circle cx="94.6" cy="66.6" r="1.4" fill="#FF8FA3"/>' + grip(89, 74);
+      } },
+    { id: 'good-latte', name: 'Cafe Latte', price: 150, box: [80, 46, 20, 30],
+      svg: function () {
+        return '<path d="M86 52.4 Q87.6 50.4 86 48.4 M90 52.4 Q91.6 50.4 90 48.4" stroke="#E8DCC8" stroke-width="0.7" fill="none" stroke-linecap="round"/>' +
+          '<path d="M82.4 56 L95.6 56 L93.4 74 L84.6 74 Z" fill="#FFFFFF" stroke="' + GOOD_INK + '" stroke-width="0.8" stroke-linejoin="round"/>' +
+          '<path d="M83.4 62.4 L94.6 62.4 L94 67.6 L84 67.6 Z" fill="#B97A4A"/>' +
+          '<ellipse cx="89" cy="56" rx="6.8" ry="1.9" fill="#E8C9A0" stroke="' + GOOD_INK + '" stroke-width="0.6"/>' +
+          '<path d="' + heartPath(89, 55.9, 1.1) + '" fill="#FFF6E8"/>' + grip(89, 73);
+      } },
+    { id: 'good-gummy', name: 'Moyo Gummy', price: 160, box: [80, 52, 20, 24],
+      svg: function () {
+        return '<path d="M82.6 69 Q81.6 56 90 55.4 Q98.4 56 97.4 69 Q90 71.6 82.6 69 Z" fill="#7FE0C4" stroke="#3E9C84" stroke-width="0.8"/>' +
+          '<ellipse cx="86.6" cy="59.4" rx="2" ry="1.2" fill="rgba(255,255,255,0.7)"/>' +
+          '<circle cx="87.4" cy="63.4" r="0.9" fill="#1F4A40"/><circle cx="92.6" cy="63.4" r="0.9" fill="#1F4A40"/>' +
+          '<path d="M88.6 65.6 Q90 66.8 91.4 65.6" stroke="#1F4A40" stroke-width="0.6" fill="none" stroke-linecap="round"/>' + grip(89, 72);
+      } },
+    { id: 'good-pencil', name: 'Riddle Pencil', price: 150, box: [80, 46, 24, 34],
+      svg: function () {
+        return '<g transform="rotate(25 89 66)">' +
+          '<rect x="87.3" y="50.6" width="3.4" height="24" fill="#FFD25A" stroke="' + GOOD_INK + '" stroke-width="0.6"/>' +
+          '<path d="M87.3 50.6 L89 46 L90.7 50.6 Z" fill="#F0C79A" stroke="' + GOOD_INK + '" stroke-width="0.5" stroke-linejoin="round"/>' +
+          '<path d="M88.4 47.6 L89 46 L89.6 47.6 Z" fill="#3A3A48"/>' +
+          '<rect x="87.3" y="74.6" width="3.4" height="1.6" fill="#B9C2CC"/><rect x="87.3" y="76.2" width="3.4" height="2.6" rx="0.8" fill="#FF8FA3" stroke="' + GOOD_INK + '" stroke-width="0.5"/>' +
+          '</g>' + grip(89, 70);
+      } },
+    { id: 'good-shopping-bag', name: 'Shopping Bag', price: 200, box: [79, 66, 22, 24],
+      svg: function () {
+        return '<path d="M85.4 76 Q85.4 69 89.6 69 Q93.8 69 93.8 76" stroke="' + GOOD_INK + '" stroke-width="0.9" fill="none"/>' +
+          '<path d="M81.6 75.4 L97.6 75.4 L98.6 89 L80.6 89 Z" fill="#FF8A9E" stroke="' + GOOD_INK + '" stroke-width="0.8" stroke-linejoin="round"/>' +
+          txt(89.6, 85.6, 7, '#FFF6E8', 'M') + grip(89.6, 71);
+      } },
+    { id: 'good-golden-acorn', name: 'Golden Acorn', price: 300, box: [80, 48, 20, 28],
+      svg: function () {
+        return '<defs><linearGradient id="mmAcornG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFE68A"/><stop offset="1" stop-color="#E0A21B"/></linearGradient></defs>' +
+          '<ellipse cx="90" cy="63.4" rx="6" ry="7" fill="url(#mmAcornG)" stroke="#C98A14" stroke-width="0.7"/>' +
+          '<ellipse cx="87.6" cy="62.4" rx="1.5" ry="2.6" fill="rgba(255,255,255,0.55)"/>' +
+          '<path d="M82.6 58.8 Q90 50.6 97.4 58.8 Q90 60.8 82.6 58.8 Z" fill="#8A5A3A" stroke="' + GOOD_INK + '" stroke-width="0.6"/>' +
+          '<path d="M90 53.4 L90.8 50.6" stroke="' + GOOD_INK + '" stroke-width="1" stroke-linecap="round"/>' +
+          sparkle(97.4, 52, 2.2) + grip(89, 73);
+      } },
+    { id: 'good-kart-wheel', name: 'Kart Wheel', price: 260, box: [79, 52, 22, 24],
+      svg: function () {
+        return '<circle cx="90" cy="63" r="8" fill="none" stroke="#3A3A48" stroke-width="2.4"/>' +
+          '<path d="M82.4 62 L97.6 62 M90 63 L90 70.6" stroke="#3A3A48" stroke-width="1.6" stroke-linecap="round"/>' +
+          '<circle cx="90" cy="62.6" r="2.8" fill="#FF9A3C" stroke="' + GOOD_INK + '" stroke-width="0.5"/>' +
+          txt(90, 64, 3.4, '#FFF6E8', 'M') +
+          '<path d="M85.4 56.4 A8 8 0 0 1 94.6 56.4" stroke="#FF9A3C" stroke-width="2.4" fill="none"/>' + grip(88.4, 71.4);
+      } }
+  ];
+  var BOX_GOODS = [
+    // ---- Silver Box: soccer ----
+    { id: 'good-soccer-ball', blind: 'silver', name: 'Soccer Ball', box: [81, 55, 18, 18],
+      svg: function () {
+        return '<circle cx="90" cy="63.6" r="7" fill="#FFFFFF" stroke="#2E2A28" stroke-width="0.8"/>' +
+          '<path d="M90 60.8 L92.7 62.8 L91.7 66 L88.3 66 L87.3 62.8 Z" fill="#2E2A28"/>' +
+          '<path d="M90 60.8 L90 56.8 M92.7 62.8 L96.4 61.6 M91.7 66 L93.8 69.4 M88.3 66 L86.2 69.4 M87.3 62.8 L83.6 61.6" stroke="#2E2A28" stroke-width="0.6"/>' +
+          '<path d="M88 56.9 L90 56.6 L92 56.9 L91.2 58 L88.8 58 Z M95.4 59 L96.8 60.8 L96.6 63 L95.6 62 Z M83.4 61.2 L84.4 59.2 L84.6 61.6 L83.4 62.8 Z" fill="#2E2A28"/>' + grip(89, 72.4);
+      } },
+    { id: 'good-yellow-card', blind: 'silver', name: 'Yellow Card', box: [80, 46, 20, 28],
+      svg: function () {
+        return '<rect x="84" y="48" width="11" height="15.4" rx="1.4" fill="#FFD400" stroke="' + GOOD_INK + '" stroke-width="0.7" transform="rotate(12 89.5 56)"/>' +
+          '<path d="M85.6 52 L87 50.6" stroke="rgba(255,255,255,0.7)" stroke-width="0.9" stroke-linecap="round" transform="rotate(12 89.5 56)"/>' + grip(89, 70);
+      } },
+    { id: 'good-team-flag', blind: 'silver', name: 'Team Flag', box: [82, 44, 22, 34],
+      svg: function () {
+        return '<path d="M89 78 L89 46" stroke="#B9C2CC" stroke-width="1.2" stroke-linecap="round"/>' +
+          '<path d="M89.6 47 L103 51.6 L89.6 56.2 Z" fill="#2F6FB0" stroke="' + GOOD_INK + '" stroke-width="0.6" stroke-linejoin="round"/>' +
+          '<path d="M89.6 50 L97.4 51.6 L89.6 53.2 Z" fill="#FFFFFF"/>' +
+          '<path d="' + starPath(93.4, 51.6, 1.3) + '" fill="#FFD25A"/>' + grip(89, 72);
+      } },
+    { id: 'good-goalie-glove', blind: 'silver', name: 'Goalie Glove', box: [80, 54, 20, 22],
+      svg: function () {
+        var s = '<path d="M83.6 74 L83.4 66 Q83 63 84.6 62.6 L85.2 58 Q85.6 56.4 87 56.8 L87.4 62 L87.6 56 Q88 54.6 89.4 55 L89.6 61.6 L90 56.2 Q90.6 54.8 91.8 55.4 L91.8 62 L92.4 57.6 Q93.2 56.6 94.2 57.4 L94.6 66 Q97.6 63.2 98.6 64.6 Q99 66 94.8 71 L94.4 74 Z" fill="#4CBE55" stroke="' + GOOD_INK + '" stroke-width="0.7" stroke-linejoin="round"/>';
+        return s + '<rect x="83" y="72" width="12" height="4.4" rx="1.2" fill="#FFFFFF" stroke="' + GOOD_INK + '" stroke-width="0.6"/>' +
+          '<path d="M85 67 Q89 69 93 67" stroke="#2E8A3A" stroke-width="0.6" fill="none"/>';
+      } },
+    { id: 'good-mini-cup', blind: 'silver', name: 'Mini Cup', box: [80, 50, 20, 28],
+      svg: function () {
+        return '<defs><linearGradient id="mmCupS" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F6F8FB"/><stop offset="1" stop-color="#A9B2C3"/></linearGradient></defs>' +
+          '<path d="M83.6 54 L94.4 54 Q94.6 63 89 64.4 Q83.4 63 83.6 54 Z" fill="url(#mmCupS)" stroke="#6F7A8A" stroke-width="0.7"/>' +
+          '<path d="M83.8 56 Q80.4 56.4 81.6 59.6 Q82.4 61 84.6 60.8 M94.2 56 Q97.6 56.4 96.4 59.6 Q95.6 61 93.4 60.8" stroke="#8A94A3" stroke-width="0.9" fill="none"/>' +
+          '<path d="M88 64.2 L90 64.2 L90.6 69 L87.4 69 Z" fill="#A9B2C3"/>' +
+          '<rect x="85" y="69" width="8" height="3.4" rx="0.8" fill="#6F7A8A"/>' +
+          '<path d="' + starPath(89, 58.4, 1.8) + '" fill="#FFFFFF"/>' + grip(89, 73.6);
+      } },
+    // ---- Gold Box: Southeast Asia ----
+    { id: 'good-wau-kite', blind: 'gold', name: 'Wau Kite', box: [80, 32, 28, 44],
+      svg: function () {
+        return BOX_GOLD + '<path d="M89 73 Q90 66 94 60" stroke="#F4F1EA" stroke-width="0.4" fill="none"/>' +
+          '<path d="M94 35 Q99 37 98 42 L104.4 45.6 Q100 48.6 96 47.6 L96.8 53.4 Q103 54.6 105 59.6 Q99 57.6 94 60.6 Q89 57.6 83 59.6 Q85 54.6 91.2 53.4 L92 47.6 Q88 48.6 83.6 45.6 L90 42 Q89 37 94 35 Z" fill="#E2574C" stroke="url(#mmGoldB)" stroke-width="1.1" stroke-linejoin="round"/>' +
+          '<path d="M94 38 L94 58" stroke="#FFD25A" stroke-width="0.6"/><circle cx="94" cy="44" r="1.6" fill="#FFD25A"/>' +
+          '<path d="' + heartPath(94, 51.6, 1.4) + '" fill="#2F6FB0"/>' + sparkle(102, 39, 2) + grip(89, 73.4);
+      } },
+    { id: 'good-durian', blind: 'gold', name: 'Durian', box: [80, 52, 21, 24],
+      svg: function () {
+        var s = BOX_GOLD, cx = 90, cy = 63, i;
+        for (i = 0; i < 14; i++) {
+          var a = i / 14 * Math.PI * 2, x = cx + Math.cos(a) * 7.2, y = cy + Math.sin(a) * 6.4;
+          s += '<path d="M' + (cx + Math.cos(a - 0.2) * 6).toFixed(2) + ' ' + (cy + Math.sin(a - 0.2) * 5.3).toFixed(2) + ' L' + (x + Math.cos(a) * 1.6).toFixed(2) + ' ' + (y + Math.sin(a) * 1.6).toFixed(2) +
+            ' L' + (cx + Math.cos(a + 0.2) * 6).toFixed(2) + ' ' + (cy + Math.sin(a + 0.2) * 5.3).toFixed(2) + ' Z" fill="#8FA83A" stroke="#5E7420" stroke-width="0.4"/>';
+        }
+        return s + '<ellipse cx="' + cx + '" cy="' + cy + '" rx="6.6" ry="5.8" fill="#A9C24A" stroke="#5E7420" stroke-width="0.6"/>' +
+          '<path d="M86.4 59.4 L87.4 60.6 M90 58.6 L90.6 60 M93 59.6 L92.6 61 M87 64 L88 65 M91.6 64.6 L92.6 65.8" stroke="#5E7420" stroke-width="0.6" stroke-linecap="round"/>' +
+          '<path d="M90 56.6 L90.6 53.6" stroke="#6B4226" stroke-width="1.1" stroke-linecap="round"/>' +
+          '<path d="M87.6 66.8 Q90 68.4 92.4 66.8" stroke="url(#mmGoldB)" stroke-width="1.2" fill="none" stroke-linecap="round"/>' +
+          sparkle(97.6, 55.4, 2.2) + grip(89, 72.6);
+      } },
+    { id: 'good-satay', blind: 'gold', name: 'Satay', box: [80, 46, 24, 32],
+      svg: function () {
+        var s = BOX_GOLD;
+        [[-18, 0], [0, 1], [18, 2]].forEach(function (k) {
+          s += '<g transform="rotate(' + k[0] + ' 89 74)"><path d="M89 76 L89 49" stroke="url(#mmGoldB)" stroke-width="0.8" stroke-linecap="round"/>' +
+            '<rect x="87" y="51" width="4" height="4.2" rx="1.4" fill="#A85A2A" stroke="' + GOOD_INK + '" stroke-width="0.4"/>' +
+            '<rect x="87" y="55.8" width="4" height="4.2" rx="1.4" fill="#B8662E" stroke="' + GOOD_INK + '" stroke-width="0.4"/>' +
+            '<rect x="87" y="60.6" width="4" height="4.2" rx="1.4" fill="#A85A2A" stroke="' + GOOD_INK + '" stroke-width="0.4"/>' +
+            '<path d="M87.6 52.4 L90 52 M87.6 57.2 L90 56.8 M87.6 62 L90 61.6" stroke="#E8A23A" stroke-width="0.5"/></g>';
+        });
+        return s + sparkle(99, 50, 2) + grip(89, 73.6);
+      } },
+    { id: 'good-merlion', blind: 'gold', name: 'Merlion', box: [78, 44, 28, 34],
+      svg: function () {
+        return BOX_GOLD + '<path d="M95 52.6 Q101 50 104 56" stroke="#8FE3FF" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-dasharray="1.6 1.2"/>' +
+          '<rect x="82.4" y="71" width="13.2" height="4" rx="1" fill="url(#mmGoldB)" stroke="#C98A14" stroke-width="0.6"/>' +
+          '<path d="M85 71 Q83 64 86.4 60 Q88 63 87.4 66 Q90.6 64 92.6 67.4 Q93.4 70 92 71 Z" fill="#F4F1EA" stroke="#8A94A3" stroke-width="0.6" stroke-linejoin="round"/>' +
+          '<path d="M86.8 67.6 Q88.4 66.8 89.6 68.2 M88.2 69.6 Q89.6 68.8 90.8 70" stroke="#B9C2CC" stroke-width="0.5" fill="none"/>' +
+          '<circle cx="90" cy="55.6" r="5.4" fill="#E8D9B0" stroke="#8A94A3" stroke-width="0.6"/>' +
+          '<circle cx="91.6" cy="55.4" r="3.2" fill="#F4F1EA" stroke="#8A94A3" stroke-width="0.5"/>' +
+          '<circle cx="91" cy="54.4" r="0.6" fill="' + GOOD_INK + '"/><path d="M93 56.4 Q94.4 56 94.8 54.8" stroke="' + GOOD_INK + '" stroke-width="0.5" fill="none"/>' +
+          '<circle cx="94.8" cy="55" r="0.9" fill="#E2574C"/>' +
+          '<path d="M86.4 60 Q85.2 62 85.6 63.6" stroke="#E8D9B0" stroke-width="1.2" fill="none"/>' +
+          sparkle(100, 47.6, 2) + grip(89, 75.6);
+      } },
+    { id: 'good-paper-umbrella', blind: 'gold', name: 'Paper Umbrella', box: [76, 28, 32, 50],
+      svg: function () {
+        var s = BOX_GOLD + '<path d="M92 44 L89 74" stroke="#8A5A3A" stroke-width="1" stroke-linecap="round"/>' +
+          '<path d="M78.6 44.6 Q80 30.6 92 30.4 Q104 30.6 105.4 44.6 Q98.6 42.4 92 44.6 Q85.4 42.4 78.6 44.6 Z" fill="#FF9A3C" stroke="' + GOOD_INK + '" stroke-width="0.7" stroke-linejoin="round"/>';
+        for (var i = 0; i < 7; i++) {
+          var a = Math.PI + (i + 0.5) / 7 * Math.PI;
+          s += '<path d="M92 31.6 L' + (92 + Math.cos(a) * 13).toFixed(2) + ' ' + (44 + Math.sin(a) * 13 + 0.6).toFixed(2) + '" stroke="#C96A1C" stroke-width="0.4"/>';
+        }
+        return s + flower(86, 37.6, 2.4, '#FFFFFF', '#E2574C') + flower(97, 36.6, 2, '#FFD25A', '#E2574C') +
+          '<circle cx="92" cy="30.4" r="1" fill="url(#mmGoldB)"/>' + sparkle(104.6, 33, 2) + grip(89, 73.6);
+      } }
+  ];
+  // drawn small on the grid above, then shown 1.5× bigger around the wing tip
+  var GOOD_SCALE = 1.5, GOOD_AT = [89, 72];
+  function asGood(g) {
+    var art = g.svg;
+    g.slot = 'hand';
+    g.svg = function () {
+      return '<g transform="translate(' + GOOD_AT[0] + ' ' + GOOD_AT[1] + ') scale(' + GOOD_SCALE + ') translate(' + (-GOOD_AT[0]) + ' ' + (-GOOD_AT[1]) + ')">' + art() + '</g>';
+    };
+    var b = g.box;
+    g.box = [GOOD_AT[0] + (b[0] - GOOD_AT[0]) * GOOD_SCALE, GOOD_AT[1] + (b[1] - GOOD_AT[1]) * GOOD_SCALE, b[2] * GOOD_SCALE, b[3] * GOOD_SCALE];
+    return g;
+  }
+  GOODS.forEach(function (g) { ITEMS.push(asGood(g)); });
+  BOX_GOODS.forEach(function (g) { BOX_ITEMS.push(asGood(g)); });
   BOX_MOODS.forEach(function (m) {
     m.slot = 'mood';
     m.svg = function () { return moodPatch() + m.art(); };
@@ -1360,7 +1560,7 @@
   function outfitSVG(equipped) {
     var inner = '';
     // expression first, so glasses (face) and hats sit on top of it
-    ['mood', 'neck', 'face', 'head'].forEach(function (s) {
+    ['mood', 'neck', 'hand', 'face', 'head'].forEach(function (s) {
       var it = equipped && ITEM_BY_ID[equipped[s]];
       if (it) inner += it.svg();
     });
