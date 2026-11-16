@@ -1512,6 +1512,25 @@
     silver: { name: 'Silver Box', price: 500 },
     gold: { name: 'Gold Box', price: 700 }
   };
+  // Some tabs give their boxes their own names and prices (same look).
+  // Goods: the soccer box is Platinum (900), the Southeast Asia box is Titanium (1000).
+  var BOX_NAMES = { hand: { silver: 'Platinum Box', gold: 'Titanium Box' } };
+  var BOX_PRICES = { hand: { silver: 900, gold: 1000 } };
+  function boxName(slot, tier) {
+    return (BOX_NAMES[slot] && BOX_NAMES[slot][tier]) || BLIND_BOXES[tier].name;
+  }
+  // Box colors: Goods has its own Platinum (pearl white + lavender) and
+  // Titanium (blue-gray steel + blue/purple ribbon) boxes.
+  var BOX_LOOKS = { hand: { silver: 'platinum', gold: 'titanium' } };
+  function boxLook(slot, tier) {
+    return (BOX_LOOKS[slot] && BOX_LOOKS[slot][tier]) || tier;
+  }
+  function lookClass(look) { return look === 'silver' ? '' : ' is-' + look; }
+  function boxPrice(slot, tier) {
+    return (BOX_PRICES[slot] && BOX_PRICES[slot][tier]) || BLIND_BOXES[tier].price;
+  }
+  // "★ SILVER" / "★ PLATINUM" … on items found in a box
+  function boxLabel(slot, tier) { return boxName(slot, tier).replace(/ Box$/, ''); }
   function boxPool(slot, tier) {
     return BOX_ITEMS.filter(function (it) { return it.slot === slot && it.blind === tier; });
   }
@@ -1522,9 +1541,10 @@
     var c = readCloset();
     var left = boxPool(slot, tier).filter(function (it) { return c.owned.indexOf(it.id) < 0; });
     if (!left.length) return { result: 'done' };
-    if (balance() < bb.price) return { result: 'poor' };
+    var price = boxPrice(slot, tier);
+    if (balance() < price) return { result: 'poor' };
     var it = left[Math.floor(Math.random() * left.length)];
-    addMoints(-bb.price);
+    addMoints(-price);
     c = readCloset();
     c.owned.push(it.id);
     c.equipped[it.slot] = it.id;   // put it on right away
@@ -1593,6 +1613,8 @@
     BOX_ITEMS: BOX_ITEMS,
     BLIND_BOXES: BLIND_BOXES,
     boxPool: boxPool,
+    boxName: boxName,
+    boxPrice: boxPrice,
     openBox: openBox,
     SLOTS: SLOTS,
     balance: balance,
@@ -1721,18 +1743,24 @@
     // blind boxes (Silver 500 / Gold 700): first two tiles of each outfit tab
     '.mm-boxtile{background:linear-gradient(180deg,#F7F9FC,#DCE4EE);box-shadow:0 3px 0 #AEBBCB,inset 0 0 0 2px #FFFFFF}',
     '.mm-boxtile.is-gold{background:linear-gradient(180deg,#FFF8DC,#FFDF8A);box-shadow:0 3px 0 #D9A63A,inset 0 0 0 2px #FFFFFF}',
+    '.mm-boxtile.is-platinum{background:linear-gradient(160deg,#FFFFFF,#ECE8FB 55%,#D9D6F0);box-shadow:0 3px 0 #A9A3D6,inset 0 0 0 2px #FFFFFF}',
+    '.mm-boxtile.is-titanium{background:linear-gradient(160deg,#E2E9F2,#B7C3D3 60%,#9AA9BE);box-shadow:0 3px 0 #5E6C82,inset 0 0 0 2px #EEF3F9}',
     '.mm-boxtile.is-sel{box-shadow:0 3px 0 #C9781A,inset 0 0 0 3px #F5B83D}',
     '.mm-boxtile svg{animation:mmWiggle 2.8s ease-in-out infinite}',
-    '.mm-boxtile.is-gold svg{animation-delay:-1.4s}',
+    '.mm-boxtile.is-gold svg,.mm-boxtile.is-titanium svg{animation-delay:-1.4s}',
     '.mm-boxtile.is-done svg{animation:none;opacity:0.55}',
     '@keyframes mmWiggle{0%,82%,100%{transform:none}86%{transform:rotate(-7deg)}90%{transform:rotate(7deg)}94%{transform:rotate(-4deg)}}',
     '.mm-box-left{font-size:10.5px;font-weight:800;color:#8A6A4A}',
     '.mm-rare{position:absolute;top:5px;right:5px;font-size:9px;font-weight:900;letter-spacing:0.04em;padding:1px 5px;border-radius:999px;background:#DCE4EE;color:#4A5A70}',
     '.mm-rare.is-gold{background:#FFD86A;color:#7A4A0C}',
+    '.mm-rare.is-platinum{background:#E6E0FA;color:#5A4799}',
+    '.mm-rare.is-titanium{background:#5E6C82;color:#E3F4FF}',
     '.mm-reveal{position:fixed;inset:0;z-index:75;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(30,18,10,0.6);animation:mmFade .2s ease-out}',
     '.mm-reveal-card{position:relative;width:min(300px,100%);padding:22px 18px 18px;border-radius:22px;background:#FFF6E8;color:#4A2F1A;text-align:center;overflow:hidden;',
     'box-shadow:0 18px 50px rgba(40,20,5,0.45),inset 0 0 0 3px #F1D9B5;font-family:-apple-system,"Segoe UI",Roboto,sans-serif}',
     '.mm-reveal-card.is-gold{box-shadow:0 18px 50px rgba(40,20,5,0.45),inset 0 0 0 3px #F5B83D}',
+    '.mm-reveal-card.is-platinum{box-shadow:0 18px 50px rgba(40,20,5,0.45),inset 0 0 0 3px #B9A8EE}',
+    '.mm-reveal-card.is-titanium{box-shadow:0 18px 50px rgba(40,20,5,0.45),inset 0 0 0 3px #6F8098}',
     '.mm-reveal-stage{position:relative;height:150px;display:flex;align-items:center;justify-content:center}',
     '.mm-reveal-box svg{width:140px;height:140px;animation:mmShake 1.1s ease-in-out}',
     '@keyframes mmShake{0%{transform:none}12%{transform:rotate(-9deg)}24%{transform:rotate(9deg)}36%{transform:rotate(-11deg)}48%{transform:rotate(11deg)}',
@@ -1741,6 +1769,8 @@
     'background:repeating-conic-gradient(rgba(255,214,120,0.55) 0 10deg,rgba(255,214,120,0) 10deg 20deg);',
     '-webkit-mask:radial-gradient(circle,#000 30%,transparent 68%);mask:radial-gradient(circle,#000 30%,transparent 68%);animation:mmRays 8s linear infinite}',
     '.mm-reveal-card:not(.is-gold) .mm-reveal-rays{background:repeating-conic-gradient(rgba(170,190,215,0.55) 0 10deg,rgba(170,190,215,0) 10deg 20deg)}',
+    '.mm-reveal-card.is-platinum .mm-reveal-rays{background:repeating-conic-gradient(rgba(185,160,240,0.5) 0 10deg,rgba(185,160,240,0) 10deg 20deg)}',
+    '.mm-reveal-card.is-titanium .mm-reveal-rays{background:repeating-conic-gradient(rgba(90,170,230,0.5) 0 10deg,rgba(130,110,240,0.35) 10deg 20deg)}',
     '@keyframes mmRays{to{transform:rotate(360deg)}}',
     '.mm-reveal-item{position:relative;width:130px;height:130px;animation:mmPop .5s cubic-bezier(.2,1.6,.4,1)}',
     '.mm-reveal-item > svg,.mm-reveal-item .mm-mood-icon{width:100%;height:100%}',
@@ -1989,11 +2019,12 @@
       var pool = boxPool(closetState.tab, tier);
       var found = pool.filter(function (it) { return c.owned.indexOf(it.id) >= 0; }).length;
       var done = found >= pool.length;
-      return '<button class="mm-item mm-boxtile' + (tier === 'gold' ? ' is-gold' : '') + (done ? ' is-done' : '') +
+      var look = boxLook(closetState.tab, tier);
+      return '<button class="mm-item mm-boxtile' + lookClass(look) + (done ? ' is-done' : '') +
         (closetState.sel === 'box:' + tier ? ' is-sel' : '') + '" type="button" data-mm-box="' + tier + '" aria-label="' +
-        BLIND_BOXES[tier].name + ', ' + BLIND_BOXES[tier].price + ' Moints, ' + found + ' of ' + pool.length + ' found">' + boxArt(tier) +
-        '<span class="mm-item-name">' + BLIND_BOXES[tier].name + '</span>' +
-        (done ? '<span class="mm-tag">All found!</span>' : '<span class="mm-price">' + COIN + fmt(BLIND_BOXES[tier].price) + '</span>') +
+        boxName(closetState.tab, tier) + ', ' + boxPrice(closetState.tab, tier) + ' Moints, ' + found + ' of ' + pool.length + ' found">' + boxArt(look) +
+        '<span class="mm-item-name">' + boxName(closetState.tab, tier) + '</span>' +
+        (done ? '<span class="mm-tag">All found!</span>' : '<span class="mm-price">' + COIN + fmt(boxPrice(closetState.tab, tier)) + '</span>') +
         '<span class="mm-box-left">' + found + ' / ' + pool.length + ' found</span></button>';
     }).join('');
     html += '<button class="mm-item' + (isMood ? '' : ' mm-none') + (!worn && (!closetState.sel || closetState.sel === 'none') ? ' is-sel' : '') + '" type="button" data-mm-item="none">' +
@@ -2011,7 +2042,7 @@
       var sel = closetState.sel ? closetState.sel === it.id : wearing;
       html += '<button class="mm-item' + (sel ? ' is-sel' : '') + '" type="button" data-mm-item="' + it.id + '" aria-label="' + it.name +
         (have ? (wearing ? ', wearing' : ', owned') : ', ' + it.price + ' Moints') + '">' + iconSVG(it.id) +
-        (it.blind ? '<span class="mm-rare' + (it.blind === 'gold' ? ' is-gold' : '') + '">' + (it.blind === 'gold' ? '★ GOLD' : '★ SILVER') + '</span>' : '') +
+        (it.blind ? '<span class="mm-rare' + lookClass(boxLook(it.slot, it.blind)) + '">' + '★ ' + boxLabel(it.slot, it.blind).toUpperCase() + '</span>' : '') +
         '<span class="mm-item-name">' + it.name + '</span>' +
         (wearing ? '<span class="mm-tag is-wear">Wearing</span>' : have ? '<span class="mm-tag">Owned</span>' :
           '<span class="mm-price">' + COIN + fmt(it.price) + '</span>') + '</button>';
@@ -2022,9 +2053,9 @@
     var boxTier = /^box:/.test(closetState.sel || '') ? closetState.sel.slice(4) : null;
     if (boxTier) {
       var left = boxPool(closetState.tab, boxTier).filter(function (it) { return c.owned.indexOf(it.id) < 0; }).length;
-      var need = BLIND_BOXES[boxTier].price - balance();
+      var need = boxPrice(closetState.tab, boxTier) - balance();
       act.disabled = !left;
-      act.innerHTML = !left ? 'You found all 5! ✨' : need > 0 ? 'Need ' + COIN + ' ' + fmt(need) + ' more' : 'Open for ' + COIN + ' ' + fmt(BLIND_BOXES[boxTier].price);
+      act.innerHTML = !left ? 'You found all 5! ✨' : need > 0 ? 'Need ' + COIN + ' ' + fmt(need) + ' more' : 'Open for ' + COIN + ' ' + fmt(boxPrice(closetState.tab, boxTier));
       act.setAttribute('data-mm-act', !left ? '' : need > 0 ? 'poor' : 'box');
     } else if (sel && c.owned.indexOf(sel.id) < 0) {
       var short = sel.price - balance();
@@ -2055,11 +2086,17 @@
   }
 
   // ---------- blind boxes: box art and the opening show ----------
-  function boxArt(tier) {
-    var gold = tier === 'gold';
-    var body = gold ? ['#FFE68A', '#E9AE2E'] : ['#F2F5FA', '#B9C5D4'];
-    var ribbon = gold ? '#E8473C' : '#3E8EDB', knot = gold ? '#C62F3E' : '#2F6FB0';
-    var id = 'mmBox' + tier;
+  var BOX_ART = {
+    silver: { body: ['#F2F5FA', '#B9C5D4'], ribbon: '#3E8EDB', knot: '#2F6FB0' },
+    gold: { body: ['#FFE68A', '#E9AE2E'], ribbon: '#E8473C', knot: '#C62F3E' },
+    platinum: { body: ['#FFFFFF', '#D3D3EC'], ribbon: '#9B7FE0', knot: '#7457C9' },
+    titanium: { body: ['#9AA9BE', '#4C5A70'], ribbon: '#4FB8E8', knot: '#7A6CF0' }
+  };
+  function boxArt(look) {
+    var a = BOX_ART[look] || BOX_ART.silver;
+    var gold = look === 'gold', shiny = look === 'platinum' || look === 'titanium';
+    var body = a.body, ribbon = a.ribbon, knot = a.knot;
+    var id = 'mmBox' + look;
     return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><linearGradient id="' + id + '" x1="0" y1="0" x2="0" y2="1">' +
       '<stop offset="0" stop-color="' + body[0] + '"/><stop offset="1" stop-color="' + body[1] + '"/></linearGradient></defs>' +
       '<ellipse cx="50" cy="93" rx="34" ry="4" fill="rgba(74,47,26,0.18)"/>' +
@@ -2071,7 +2108,11 @@
       '<circle cx="50" cy="31" r="5.6" fill="' + knot + '"/>' +
       '<text x="31" y="78" font-size="22" font-weight="900" fill="#FFFFFF" stroke="rgba(74,47,26,0.35)" stroke-width="1" font-family="-apple-system,Segoe UI,Roboto,sans-serif" text-anchor="middle">?</text>' +
       '<text x="69" y="78" font-size="22" font-weight="900" fill="#FFFFFF" stroke="rgba(74,47,26,0.35)" stroke-width="1" font-family="-apple-system,Segoe UI,Roboto,sans-serif" text-anchor="middle">?</text>' +
-      (gold ? sparkle(86, 30, 5, '#FFF6C8') + sparkle(14, 56, 3.6, '#FFF6C8') : sparkle(86, 30, 4, '#FFFFFF')) + '</svg>';
+      (look === 'titanium' ? '<path d="M24 52 L36 52 L26 86 L20 86 Z" fill="rgba(255,255,255,0.18)"/>' : '') +
+      (look === 'platinum' ? '<path d="M24 52 L36 52 L26 86 L20 86 Z" fill="rgba(190,170,255,0.25)"/>' : '') +
+      (gold ? sparkle(86, 30, 5, '#FFF6C8') + sparkle(14, 56, 3.6, '#FFF6C8')
+        : shiny ? sparkle(86, 30, 5, look === 'titanium' ? '#CFEFFF' : '#FFFFFF') + sparkle(14, 56, 3.6, look === 'titanium' ? '#CFEFFF' : '#E9E0FF')
+        : sparkle(86, 30, 4, '#FFFFFF')) + '</svg>';
   }
   function sfxRattle() { [0, 0.14, 0.28, 0.42, 0.56, 0.7].forEach(function (t, i) { tone(i % 2 ? 392 : 440, 0.06, t, 'square', 0.03); }); }
   function sfxTada(gold) {
@@ -2086,13 +2127,14 @@
     if (res.result !== 'ok') { renderCloset(false); return; }
     revealing = true;
     var it = ITEM_BY_ID[res.id];
-    var gold = tier === 'gold';
+    var look = boxLook(slot, tier);
+    var gold = tier === 'gold';   // the higher box: bigger fanfare
     var host = openOverlay;
     var rv = document.createElement('div');
     rv.className = 'mm-reveal';
-    rv.innerHTML = '<div class="mm-reveal-card' + (gold ? ' is-gold' : '') + '" role="dialog" aria-modal="true" aria-label="' + BLIND_BOXES[tier].name + '">' +
-      '<div class="mm-reveal-stage"><span class="mm-reveal-box">' + boxArt(tier) + '</span></div>' +
-      '<h3>' + (gold ? 'Gold Box…' : 'Silver Box…') + '</h3><p>What will it be?</p></div>';
+    rv.innerHTML = '<div class="mm-reveal-card' + lookClass(look) + '" role="dialog" aria-modal="true" aria-label="' + boxName(slot, tier) + '">' +
+      '<div class="mm-reveal-stage"><span class="mm-reveal-box">' + boxArt(look) + '</span></div>' +
+      '<h3>' + boxName(slot, tier) + '…</h3><p>What will it be?</p></div>';
     host.appendChild(rv);
     sfxRattle();
     renderCards();
@@ -2101,7 +2143,7 @@
       var card = rv.querySelector('.mm-reveal-card');
       card.innerHTML = '<div class="mm-reveal-stage"><span class="mm-reveal-rays"></span><span class="mm-reveal-item">' + iconSVG(it.id) + '</span></div>' +
         '<span class="mm-reveal-new">NEW!</span><h3>' + it.name + '</h3>' +
-        '<p>' + (gold ? '★ Gold Box' : '★ Silver Box') + ' · Moku is wearing it now!</p>' +
+        '<p>★ ' + boxName(slot, tier) + (slot === 'hand' ? ' · Moku is holding it now!' : ' · Moku is wearing it now!') + '</p>' +
         '<button class="mm-big" type="button" data-mm-yay>Yay!</button>';
       sfxTada(gold);
       burst(card);
