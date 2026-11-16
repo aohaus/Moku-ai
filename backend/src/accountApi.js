@@ -19,7 +19,7 @@ const MAX_SAVE_KEY_LEN = 200;
 const MAX_DEVICE_LEN = 40;
 // Hollow (hub.html#hollow): each player's public card — what their Moku
 // wears and a few highlights. Built by the hub, sent with PUT /save.
-const CARD_SLOTS = ["head", "mood", "face", "neck", "bg"];
+const CARD_SLOTS = ["head", "mood", "face", "neck", "hand", "bg"];
 const MAX_CARD_HIGHLIGHTS = 4;
 const CARD_ID_RE = /^[a-z0-9-]{1,40}$/;
 const MAX_CARD_RECORDS = 40;           // one record per game (hub Achievements page)

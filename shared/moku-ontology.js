@@ -32,7 +32,7 @@
  *   MokuOntology.remember(memory, ambience, 'YYYY-MM-DD') → the room's slowly growing memory
  *
  * A card is the same shape the server keeps (backend/API_SPEC.md, PUT /save):
- *   { level, outfit: { head, mood, face, neck, bg }, highlights: [{ title, value, game }], records: { gameId: n } }
+ *   { level, outfit: { head, mood, face, neck, hand, bg }, highlights: [{ title, value, game }], records: { gameId: n } }
  * `extra` (only for yourself, read from this device): { played: [gameId], owned: n, balance: n }.
  *
  * Everything here must stay deterministic (same input → same words), so the
@@ -142,7 +142,17 @@
     [/moint-eyes|clover|gold/, { luck: 0.5, collector: 0.4 }],
     [/sleepy|snoring|meh|cozy-scarf|beanie/, { calm: 0.6 }],
     [/cool|shades|bow|beret|cat-eye|pearls|heart|tiara|rainbow/, { style: 0.6 }],
-    [/^bg-/, { travel: 1 }]
+    [/^bg-/, { travel: 1 }],
+    // Goods (things Moku holds)
+    [/good-chess/, { strategy: 0.8 }],
+    [/good-fishing/, { patience: 0.8, nature: 0.4 }],
+    [/good-slingshot|good-kart/, { action: 0.5, speed: 0.5 }],
+    [/good-bento|good-latte|good-satay|good-durian/, { food: 0.9 }],
+    [/good-gummy/, { sweets: 0.9 }],
+    [/good-pencil/, { words: 0.9 }],
+    [/good-shopping|good-golden-acorn/, { collector: 0.7 }],
+    [/good-soccer|good-yellow-card|good-team-flag|good-goalie|good-mini-cup/, { team: 0.8, action: 0.3 }],
+    [/good-wau|good-merlion|good-paper-umbrella|good-durian|good-satay/, { travel: 0.6 }]
   ];
   var ITEM_BASE_STYLE = 0.25;
 
@@ -222,7 +232,7 @@
     // outfit: hidden sides of a player (a Chess fan with Cookie Eyes is a secret Sweet Tooth)
     var outfit = card.outfit && typeof card.outfit === 'object' ? card.outfit : {};
     var spent = 0, worn = 0;
-    ['head', 'mood', 'face', 'neck', 'bg'].forEach(function (slot) {
+    ['head', 'mood', 'face', 'neck', 'hand', 'bg'].forEach(function (slot) {
       var id = outfit[slot];
       if (typeof id !== 'string' || !id) return;
       worn++;
