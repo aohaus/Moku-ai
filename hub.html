@@ -3192,8 +3192,13 @@ html.me-open #ceoPeek { display: none; }
   // Sir CEO Moku's peek (bottom of this file) tells the player about it until they open it. The card shows from
   // `from` to `until` (local dates, YYYY-MM-DD); `date` is the day of the event.
   var EVENTS = [
-    { name: 'Japan vs Brazil', gameId: 'event-japan-brazil', flags: '🇯🇵 🇧🇷',
-      tag: 'Predict the starting XI and win Moints! Squad guide & mini soccer game',
+    { name: 'Japan vs Paraguay', gameId: 'event-japan-paraguay', flags: '🇯🇵 🇵🇾',
+      tag: 'Predict the starting XI and win Moints! Watch online on Tue 9:10 PM',
+      date: '2026-11-17', from: '2026-11-16', until: '2026-12-31', opensAt: '2026-11-16T00:00:00+08:00',
+      hi: '#2F5BD8', lo: '#D52B1E',
+      peek: 'Next up: Japan vs Paraguay! Guess the starting XI again and win Moints, moku!' },
+    { name: 'Japan vs Brazil', gameId: 'event-japan-brazil', flags: '🇯🇵 🇧🇷', result: 'Japan won 3–2! 🎉',
+      tag: 'See your prediction results, the squad guide & the mini soccer game',
       date: '2026-11-14', from: '2026-11-01', until: '2026-12-31', opensAt: '2026-11-13T15:30:00+08:00',
       hi: '#2F5BD8', lo: '#0E8A45',
       peek: 'Japan vs Brazil is open! Guess the starting XI and win Moints, moku!' }
@@ -3235,7 +3240,7 @@ html.me-open #ceoPeek { display: none; }
     host.textContent = '';
     liveEvents().forEach(function (ev) {
       var left = Math.round((day(ev.date) - today) / 86400000);
-      var when = left > 1 ? 'In ' + left + ' days' : left === 1 ? 'Tomorrow!' : left === 0 ? 'Today!' : '';
+      var when = left > 1 ? 'In ' + left + ' days' : left === 1 ? 'Tomorrow!' : left === 0 ? 'Today!' : (ev.result || '');
       var a = el('a', 'event-card');
       a.href = ev.gameId + '.html';
       a.addEventListener('click', function () {
