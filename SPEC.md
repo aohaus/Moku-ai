@@ -466,6 +466,12 @@ Moku とは直接関係がないが、家族のイベント(試合を見に行�
   - 選手の絵(v1.1.0〜): 頭の大きいレトロなアーケード風(太い輪郭・白目と大きい黒目・太い眉)。ゲームに出る12人は髪型・髪の色・肌の色・ひげを1人ずつ手で決めている(ページ内の `LOOKS`。写真は使わず、特徴だけ)。ほかの選手は名前から自動で決める。ガイドの詳細シートにも同じ絵。
   - 記録は `moku:event-japan-brazil:progress` = `{ version: 1, gameId, lang, level, played, wins, draws, losses, goals, entry: { jp, br, at }, claimed: { moints, jp, br, at }, updatedAt }`。
 
+- **第2弾: Japan vs Paraguay**(`event-japan-paraguay.html`、v1.0.0。2026-11-17 21:10 マレーシア / シンガポール時間 KO、家族はオンラインで観戦。2026-11-16 公開): ブラジル戦のページをもとに作った(`event-japan-brazil.html` と同じ作り。ガイド・🔮 Predict・⚽ Game。プログラムの中では相手チームのキーを `br` のまま使い、`SQUADS.br` = パラグアイ)。
+  - 締め切りなどはブラジル戦と同じ決まり: エントリーはキックオフの3時間前(18:10)まで、結果は試合終了の1時間後(`SETTLE_AT` = キックオフ+3時間、00:10)から、`ACTUAL_XI` を入れてマージした時に確定。Moint も同じ(1人 +100、1チーム 9〜10人 +300、11人 +1000)。セーブは `moku:event-japan-paraguay:progress`。
+  - 日本: ブラジル戦の表のまま、離脱した鎌田だけ外した(27人。顔は `events/japan-brazil/faces/`)。パラグアイ: 11月7日発表の招集メンバー27人(GK4・DF9・MF8・FW6、監督グスタボ・アルファロ)。所属クラブだけで、背番号・ステータス・直近5試合・W杯のデータは `null`(画面に出さない。チームの数字も「–」)。英語名は保護者がくれたカタカナから起こした(確かめていない)。顔は招集メンバーのイラストから `events/japan-paraguay/faces/`。
+  - ミニゲームのパラグアイは赤いシャツ・青いパンツ(GK は緑)。おまかせの11人(`DEFAULT_XI`)は日本 = ブラジル戦のスタメンの鎌田を佐野海舟に、パラグアイ = Gill / G.Gómez・Alderete・Alonso・Cáceres / Bobadilla・Villasanti・D.Gómez・Galarza / Almirón・Enciso。
+  - ハブ: パラグアイ戦のカードを先に、ブラジル戦は「Japan won 3–2! 🎉」(`EVENTS[].result`。イベントの日を過ぎたら日付の横に出す)を付けて残す。CEO のひょっこりはパラグアイ戦を知らせる(まだ開いていない人に)。
+
 ## 未決事項 / 次に決めること
 
 - [ ] `shared/moku-ui.css`・`shared/moku-save.js` の実ファイルを作成するか
