@@ -293,7 +293,7 @@ body[data-team="br"] { --team: #D52B1E; --team2: #1F3F9A; }
   <div id="legend"></div>
   <div id="cards"></div>
   <p id="dataNote" data-t="dataNote"></p>
-  <div id="buildInfo">v1.2.0 · Updated Nov 17, 2026</div>
+  <div id="buildInfo">v1.3.0 · Updated Nov 17, 2026</div>
 </main>
 
 <main id="predict" hidden>
@@ -456,7 +456,7 @@ body[data-team="br"] { --team: #D52B1E; --team2: #1F3F9A; }
     cdTomorrow: ['Tomorrow!', '明日!'],
     cdDays: ['in {n} days', 'あと{n}日'],
     cdDone: ['Finished', '試合終了'],
-    cdFinal: ['🎉 Full time: Japan {j}–{b} Paraguay', '🎉 試合終了: 日本 {j}–{b} パラグアイ'],
+    cdFinal: ['⚽ Full time: Japan {j}–{b} Paraguay', '⚽ 試合終了: 日本 {j}–{b} パラグアイ'],
     xiReal: ['🏟 The real starting XI (Nov 17)', '🏟 本当のスタメン(11月17日)'],
     all: ['All', 'すべて'],
     stPlayers: ['Players', '選手'],
@@ -603,8 +603,11 @@ body[data-team="br"] { --team: #D52B1E; --team2: #1F3F9A; }
   var SETTLE_AT = KICKOFF + 3 * 60 * 60 * 1000;          // about 2 hours of match + 1 hour
   var PRIZE = { hit: 100, nine: 300, all: 1000 };        // per correct player / 9-10 in a team / all 11 in a team
   // The real starting XIs. Filling these in opens the results and pays the Moints.
-  var ACTUAL_XI = { jp: [], br: [] };                    // ← fill in after the match (11 names each)
-  var FINAL = null;                                      // full-time score, e.g. { jp: 2, br: 1 } (null before the match ends)
+  var ACTUAL_XI = {
+    jp: ['Zion Suzuki', 'Yukinari Sugawara', 'Ko Itakura', 'Tsuyoshi Watanabe', 'Junnosuke Suzuki', 'Yuki Soma', 'Yuito Suzuki', 'Kodai Sano', 'Kaishu Sano', 'Tatsuhiro Sakamoto', 'Keisuke Goto'],
+    br: ['Orlando Gill', 'Omar Alderete', 'Juan José Cáceres', 'Mateo Gamarra', 'Gustavo Gómez', 'Diego Gómez', 'Miguel Almirón', 'Damián Bobadilla', 'Hugo Cuenca', 'Allan Wlk', 'Julio Enciso']
+  };
+  var FINAL = { jp: 1, br: 2 };                          // full-time score (null before the match ends)
 
   // Opened straight from disk (development): ?now=2026-11-14T22:00:00+08:00 and ?actual=demo try the later screens.
   var DEV = location.protocol === 'file:';
