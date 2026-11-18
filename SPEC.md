@@ -71,6 +71,7 @@ Mokuball は実装済みだがハブ未公開(準備中)。
     - Moku Dropper: `#A79BFF` / `#3F3590`(ライラック。木の根元の紫のポータルの色)
     - Moku Mall: `#FF8A9E` / `#7A2433`(ローズ。ショッピングバッグの色)
     - Sir CEO Moku: `#D9925A` / `#6A3A1C`(マホガニー。社長の机の色)
+    - Where's Moku?: `#E85C9A` / `#7A2050`(ハイビスカスのピンク。南国の花と絵はがきの色)
     - 追加タイトルは新規ペアを定義(既存と被らない色相を選ぶ)
 - **タイポグラフィ**: `-apple-system, "Segoe UI", Roboto, sans-serif`。見出しは `font-weight: 800`、字間 `0.01〜0.04em`。
 - **タイトル画面メニューの統一(2026-08-14〜)**: フォント**ファミリー**はゲームごとの世界観を尊重して統一しない(Angry MokumokuはCourier New、他はArial/システムフォントのままでよい)。ただし**サイズ・太さ・揃え方・行間**は統一する。
@@ -149,7 +150,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
 **ゲーム一覧のリデザイン(2026-10-13〜、`hub.html`)**: 旧来の「全タイトル同サイズのカードグリッド(枠線+絵文字+説明文)」を廃止し、以下の構成に変更した。
 - **Today's Pick**: 1日1本を大きなバナーで紹介(実際のゲーム画面スクリーンショット背景)。候補はプレイ画面が撮れているタイトルのみ(`FEATURED` 配列)。
 - **Continue**: `moku:played:<card>` のタイムスタンプが新しい順に最大3本。未プレイなら非表示。
-- **ジャンル棚**(`SHELVES` 配列): Action & Sports / Puzzle & Brain / Cozy & Create / Party & Arcade。各ゲームは「遊びの内容を想起させるモノ」のアイコン(`icons/games/<gameId>.svg`)をアクセントカラーの角丸タイルに載せて表示。Mokuのキャラ絵は並べない。
+- **ジャンル棚**(`SHELVES` 配列): Live in ASIA(2026-11-18〜、先頭。東南アジアを事実で楽しく知るゲーム。CLAUDE.md §2)/ Action & Sports / Puzzle & Brain / Cozy & Create / Party & Arcade。各ゲームは「遊びの内容を想起させるモノ」のアイコン(`icons/games/<gameId>.svg`)をアクセントカラーの角丸タイルに載せて表示。Mokuのキャラ絵は並べない。
 - **詳細シート**: タイルを押すと開く。スクリーンショット(`screenshots/<gameId>.jpg`)・説明文・ローカル進捗(`GAMES[].badge()` / `progress()`)・Playボタン。
 - **NEW表示**は `CATALOG[].newUntil` の日付まで自動で出る(付けっぱなしにしない)。
 - 表示用データは `hub.html` の `CATALOG`、進捗ロジックは従来どおり `GAMES`(同じ `card` キー)。新規タイトル追加時は両方+`SHELVES`+アイコンSVG+スクリーンショットを追加する。
@@ -243,7 +244,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
     - Lambda には `backend/` しか入らないので `backend/src/vendor/moku-ontology.js` にコピーを置いている。**`shared/` の方を直して `cp shared/moku-ontology.js backend/src/vendor/`**(違うと `npm test` が失敗する)。
   - 次の候補: ハブの `#hollow` と1つにまとめる / マッチ・チャレンジの対戦履歴を辺に足す。
 - **Achievements**(`hub.html#awards`、2026-10-26〜。下部ナビの左から2番目「🏆 Achievements」。それまでは Coming soon で押せなかった): ゲームごとに「難関の記録」を1つ決め、全プレイヤーの Top 3 を出す画面。
-  - **記録**(大きいほど上。`hub.html` の `RECORDS`、`GAMES` と同じ card キー): Angry Mokumoku / Moku Drop / Moku Bento / Moku Rhythm Cafe / Moku Future Run = High Score、Moyomoyo = Marathon High Score、MK Mobile = Strongest Player(持っている選手の Sp+Sh+Def の最大)、Battle Royal = Battle Level、Shiri of Moku = Stages Cleared、Moku City = City Level、Moku-rane = Prizes Won、Moku Fishing Pond = Fish Caught、Moku Kart = Grand Prix Trophies、Flying Moku = Acorns Found、Moku Wolf = Rounds Played、Moku Fight = Wins、Moku Watch 6 Lazy = Laziest Watch、Moku Bridge = Luckiest Steps、Moku Chess = Strongest CPU Beaten(勝ったCPUの最高レベル)、Moku Word Riddles = Riddles Solved(自力で解いた問題の数)、Moku Dropper = Races Won(1位を取ったレースの数、最大7)、Moku Mall = Most Coins(今までで一番多く持っていたコイン)。新しいタイトルは `RECORDS` に1つ足す。
+  - **記録**(大きいほど上。`hub.html` の `RECORDS`、`GAMES` と同じ card キー): Angry Mokumoku / Moku Drop / Moku Bento / Moku Rhythm Cafe / Moku Future Run = High Score、Moyomoyo = Marathon High Score、MK Mobile = Strongest Player(持っている選手の Sp+Sh+Def の最大)、Battle Royal = Battle Level、Shiri of Moku = Stages Cleared、Moku City = City Level、Moku-rane = Prizes Won、Moku Fishing Pond = Fish Caught、Moku Kart = Grand Prix Trophies、Flying Moku = Acorns Found、Moku Wolf = Rounds Played、Moku Fight = Wins、Moku Watch 6 Lazy = Laziest Watch、Moku Bridge = Luckiest Steps、Moku Chess = Strongest CPU Beaten(勝ったCPUの最高レベル)、Moku Word Riddles = Riddles Solved(自力で解いた問題の数)、Moku Dropper = Races Won(1位を取ったレースの数、最大7)、Moku Mall = Most Coins(今までで一番多く持っていたコイン)、Where's Moku? = Stamps Collected(絵はがきで集めた切手の合計)。新しいタイトルは `RECORDS` に1つ足す。
   - **表示**: ゲームごとのカード(アイコン・名前・記録の名前)に 🥇🥈🥉 の3人(着せ替えた Moku の顔・表示名・`#u` タグ・記録)。同じ記録は同じ順位。**1位の行は大きく**(金色の帯、Moku の顔・名前・記録が大きい)、2位・3位・空きの行は小さく1行(2026-10-31〜。2026-11-01 にもう一回り小さくし、2位・3位は `#u` タグを出さず名前だけ)。自分が4位以下なら「⋮」の下に自分の行(小さい方)と「Beat ○○ to move up!」。1位なら「You are No. 1! 👑」。記録がまだないゲームは1行(「No records yet. Be the first!」)で、記録のあるゲームを上に並べる。幅 700px 以上は2列。全部のゲームを出す(「All Games / Games I Play」の切り替えは 2026-10-31 にやめた)。
   - **Medal Count**(2026-10-31〜、ゲームのカードの上): 全ゲームのメダルを人ごとに数え、金の多い順(同じなら銀、銅の順)に並べる。メダルは数だけ絵文字を並べる(金5個なら 🥇🥇🥇🥇🥇、銀3個なら 🥈🥈🥈)。1個ずつの要素にして、行の幅を超えたら次の行へ折り返す(同じ色のメダルが2行にまたがってもよい)。画面は横にずれない(`#awardsPage` は `overflow-x: hidden`)。自分はメダルがなくても出す(「No medals yet. Go get one!」)。表彰台のような「終わった感」を出さないよう、順位の数字や台は付けず、「● LIVE」と「It changes every time someone plays. Go grab a medal!」で、いつでも動く途中経過として見せる。
   - **データ**: Hollow と同じ公開カードに `records = { gameId: 数 }` を足した(`window.MOKU_PUBLIC_CARD()`。サーバーは正の数だけ整数で残す。`backend/API_SPEC.md`)。ほかの人の記録はその人が次にハブで保存した時から出る。自分の記録はこの端末から直接読む。管理者アカウントは Players と同じく出ない。
@@ -315,7 +316,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
 - 他のタイトルで Moint を配る・使う場合も同じキーを読み書きする。`balance` は 0 未満にしない。
 - **他のゲームへの展開**(2026-10-25〜、1本ずつ): 相場は「1回遊ぶ(2〜3分)と 50〜150、毎日遊べば 300 Moint の物が1日1個買える」。
   - 配る時は `MokuMoint.earn(gameId, amount)`。毎回もらえる分(勝ち・クリアなど)は**1ゲーム1日 500 まで**(`DAILY_GAME_CAP`)。1回きりの実績は `{ capped: false }` で上限の外。今日の分は `moku:moint:earned` = `{ version: 1, day, games: { gameId: n }, updatedAt }`(クラウドセーブではこの端末の値を使う)。実績を受け取ったかどうかはそのゲーム自身のセーブに記録する(2台で食い違った時、ゲームごとに選ばせるため)。
-  - **ハブの印**: `hub.html` の `CATALOG` に `moint: { how, cap }` を書いたゲームは、タイルの左上に小さい金色のMコインが付き、詳細シートに「Earn Moints」(もらい方の説明。`cap` があれば今日の分 n / 500)が出る。今は Moku Fight / Moku Bridge / Moku Drop / Moyomoyo / MK Mobile / Moku Chess / Moku Word Riddles / Moku Dropper / Moku Rhythm Cafe / Moku Bento / Moku Future Run / Moku Mall / Sir CEO Moku。
+  - **ハブの印**: `hub.html` の `CATALOG` に `moint: { how, cap }` を書いたゲームは、タイルの左上に小さい金色のMコインが付き、詳細シートに「Earn Moints」(もらい方の説明。`cap` があれば今日の分 n / 500)が出る。今は Moku Fight / Moku Bridge / Moku Drop / Moyomoyo / MK Mobile / Moku Chess / Moku Word Riddles / Moku Dropper / Moku Rhythm Cafe / Moku Bento / Moku Future Run / Moku Mall / Sir CEO Moku / Where's Moku?。
   - 次の候補: Moku Kart(独自コインがあるので実績だけにするか要相談)など。
 - **Moku Drop**(2026-10-26〜): ビンがいっぱいになった(JAR FULL)時の画面に内訳と今日の分 n / 500。途中で 🔄 でやり直した回は払わない。
   - 毎回(上限 500/日): スコア 100 点ごとに 1(1回で最大 150。コンボで点が大きく伸びるので Moyomoyo より割る数を大きくした)。自己ベスト更新 +30(ベストが 0 の初回は除く)。
@@ -374,6 +375,15 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
   - 泥棒は ATM で盗んだあと、近い方の横の出口へ走って逃げ、着いたら消える(逃げている間もつかまえられる。逃げられた分の Moint・+$200 はなし)。取り込み前は ATM の前に居座り、スーパー泥棒だと次の泥棒も来なかった。悪いお客さんはモールを切り替えるたびに1〜2人入れ直す。
   - 背景(v1.1.0): モール名に合わせて描いた。Moku's Garden Mall = 晴れた花の庭(花壇・木・温室・バラのアーチ・チョウ)、Moku Sunshine Resort Mall = いちばん豪華な海辺のリゾート(太陽・海・ヤシ・噴水のプール・パラソル)。壁と床の色もそれぞれの雰囲気に合わせた(`MALL_DEFS`)。モールの建物が真ん中をおおうので、見どころは左右の端に置き、メニュー・Check / Superpower・ジョイスティックと重ならない高さにする。看板は右の壁と画面の端のすき間に入る大きさで描き、狭い時は短い名前にする(`drawSignBoard`)。
   - 画面: 横向き専用(縦持ちは `#rotate-hint`)。Retina では canvas を最大2倍の画素で描く(`pxRatio`。描画は論理サイズ `VW` × `VH` の座標)。モールの絵は決まった大きさ(`TILE` 44)なので、画面が 1000×860 より小さい時は canvas の内部サイズを広げて全体を縮小表示する(`VIEW_MIN_W` / `VIEW_MIN_H`、`toCanvas()` でタップ位置を直す)。背の低い画面(高さ 520px 以下)では店の一覧を 5 列にする。
+- **Where's Moku?**(`wheres-moku.html`、2026-11-18〜、v0.1.0。ハブの Live in ASIA の棚): 旅に出た Moku から届く絵はがきの手がかりで、東南アジア 11 か国(ASEAN)のどこにいるかを地図で当てる。目標は CLAUDE.md §2。
+  - **地図**: 経度・緯度の点から描いたかんたんな絵本の地図(SVG、`SHAPES`。1度 = 20)。国の色・こげ茶の輪郭・水色の海。中国・インド・オーストラリアは灰色のうすい陸。名前に争いのある海の名前は書かない。シンガポール・ブルネイ・東ティモールは小さいので、近くの海を押しても当たり(`TINY`)。国名は、Postcards ではもう見つけた国だけ出る(覚えるほど地図がうまっていく)。文字の大きさは地図の縮み方から決め、スマホでも 13〜15px くらいに見える(`fitLabels()`)。
+  - **✉️ Postcards**(1回 5 枚): 手がかりは 1 枚ずつ開く(①その国らしい特徴 ②あいさつか食べ物 ③名所かお金 ④国旗+首都)。手がかり1枚で当てると切手 3、2枚で 2、3〜4枚で 1。まちがえると、押した国の名前とあいさつが出て次の手がかりが開く(4枚とも開いて6回まちがえたら答えを見せる)。当てたら Passport のページ(国の情報+いちばん似ている国の「Like …」+ちがいの「Unlike …」+友達に話す一文「Tell a friend」)。まだ見つけていない国が出やすい。
+  - **⚖️ Twin or Not?**(8問): どっちが大きい・人が多い・同じ側を走る・同じあいさつ・陸でとなり同士・島の国・海がない・ドル・メコン川。答えのあとに数字つきの説明(「Indonesia is about 6 times bigger」)。地図で2つの国を光らせる。
+  - **🗣️ Be the Guide**(1台を回して 2〜4 人、各自2回ガイド): ガイドが秘密の国の手がかりカード(首都と国旗は除く)から 3 枚を順番に選び、次の人が地図で当てる。早く当たるほど2人とも点(1枚目 3 / 2枚目 2 / 3枚目 1)。カードには、その手がかりを持つ国の数(⭐ Only here / 👥 n countries)が出る。結果に「Moku's guide tip」(その国だけの手がかり)。Moint はなし。
+  - **📕 My Passport**: 見つけた国の切手(国旗。1枚目で当てた国に ⭐)。押すとその国のページ。
+  - **事実のデータ**はページ内の `COUNTRIES`(数字は 2024〜2025 年ごろのおおよその値)と、そこから作る `CARDS`。手がかりの文にその国の名前を書かない(起動時にコンソールで知らせる)。
+  - Moint: 毎回(上限 500/日)= 切手 1 枚 +5(1回で最大 75)、5 枚とも手がかり1枚で当てた旅 +25、Twin or Not? 1問正解 +5、8問全部 +20。1回きり = その国を初めて見つけた +30、11 か国そろった +300。受け取り済みは `mointClaims`(`c:<国のコード>` `all`)。
+  - 記録は `moku:wheres-moku:progress` = `{ version: 1, gameId, found: { 国: 回数 }, master: { 国: 1 }(手がかり1枚で当てた), stamps: { 国: 枚数 }, totalStamps, trips, bestTrip, twinRounds, twinBest, twinCorrect, guideGames, played, mointClaims, updatedAt }`。音のオン/オフと Be the Guide のプレイヤー名は `moku:wheres-moku:settings`。
 - **Sir CEO Moku**(`ceo-moku.html`、2026-11-08〜、v0.5.0。ハブの Cozy & Create、Achievements は Pop Quizzes Solved): Moku-ai games のオーナー「Sir CEO Moku」(シルクハット・モノクル・Moint Medallion。表情は Closet の Moods を会話に合わせて切り替え、大事なセリフで寄る)の社長室で会話する。会話はスクリプトで、外部への通信はしない。UI は英語で、口ぐせは文末の「…, moku」。
   - **日本語モード**(v0.3.0〜、§3 の例外。このページだけ): 会話ウィンドウの右上の「🌐 日本語 / 🌐 English」で切りかえる。英語が初期値で、選んだことばは `moku:ceo-moku:settings` の `lang`。日本語の名前は「モクCEO」(v0.5.0〜。それまでは「モク社長」)、語尾「〜モク」。一人称は「ワタクシ」(いばる時・ていねいな時)か「モク」(気がゆるんだ時・ひとりごと・あまえる時)で、「ワタシ」は使わない(2026-11-08、v0.3.1)。決まり文句は `ceo-moku.html` の **Moku用語**(`MOKU_WORDS`。新しい用語は `[英語, 日本語]` で足す):失礼なことを言われた時(アイデア・クイズの答えに失礼なことばを書いた時。`isRude()`)は怒り眉の顔で「いまなんていったモク!」(英語は “What did you just say, moku?!”)と言い、やさしく注意する。そのことばはアイデアにも記憶(`log`)にも残さず、クイズの回数にも数えない。セリフは `tr(英語, 日本語)` / `L([英語, 日本語])` で両方を持つ(新しいセリフを足す時は両方書く)。Riddle の問題・ヒント・用例と答えの入力は英語のまま(英語の練習のため)。メニューの時に切りかえるとすぐ言い直し、会話の途中なら次のセリフから。アイデアのコメントは日本語のキーワードも見る。
   - **画面**(v0.4.1〜): 外枠(`#title-frame`)なし(§4 の例外)。窓の外は時間帯で変わる(端末の時計。朝 5〜10時 = 水色の空と低い朝日 / 昼 10〜16時 = 青空と高い太陽 / 夕方 16〜19時 = 夕焼け / 夜 19〜5時 = 紺の空・三日月・星・遠くの家の明かり、部屋も少し暗く。`setSky()`、5分おきに見直す。`?sky=night` などで確かめられる)。縦持ちでは会話ウィンドウを上に広げる(高さ 190〜320px、画面の高さの約3割)。上の帯の Moint 残高は、ハブと同じ真ん中に「M」の金色のコイン(`.mcoin`。絵文字の 🪙 は iPhone で銀色になるので使わない。v0.4.2〜)。
