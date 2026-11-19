@@ -11,7 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
 <!--
   Moku Money Market(v0.1.0、2026-11-19)— 棚「Live in ASIA」の第2弾。
-  東南アジア 6 か国の屋台で、その国のお金で買い物をする。ねらい(Live in ASIA の目標、CLAUDE.md §2 に合わせて):
+  東南アジア 8 か国の屋台で(v0.2.0 でブルネイとカンボジアを足した)、その国のお金で買い物をする。ねらい(Live in ASIA の目標、CLAUDE.md §2 に合わせて):
   ①国とお金の名前・記号・書き方を覚える(RM5 / S$5 / ฿60 / 50.000₫ / Rp20.000 / ₱100)
   ②同じ物でも国によって数字がまるで違う(フォー1杯 50.000₫ ≈ RM8)ことを、自分のお金に直してくらべる
   ③「10.000₫ ≈ RM1.6 だから…」という目安を自分のことばで説明できる。
@@ -27,7 +27,7 @@
   色の系統と数字だけ(本物そっくりのお札は描かない)。宗教・政治・王室の話は入れない。
 
   Moint(SPEC.md §13): 毎回(1日 500 まで)= ⭐1つ +5(1回で最大 75)、⭐15 そろえた +25、Price Check 1問 +5・8問全部 +20。
-  1回きり = その国の市場に初めて行った +30、6 か国全部 +200(受け取り済みは progress.mointClaims の m:<国> と all)。
+  1回きり = その国の市場に初めて行った +30、8 か国全部 +200(受け取り済みは progress.mointClaims の m:<国> と all)。
   記録は moku:moku-money-market:progress、音と My money は moku:moku-money-market:settings。
 -->
 <style>
@@ -285,7 +285,7 @@ svg.flag { display: block; border-radius: 2px; }
 
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.1.0 · Updated Nov 19, 2026</div>
+<div id="buildInfo">v0.2.0 · Updated Nov 19, 2026</div>
 <button id="soundBtn" aria-label="Sound">🔊</button>
 
 <div id="titleScreen">
@@ -297,12 +297,12 @@ svg.flag { display: block; border-radius: 2px; }
         <span class="floatCoin" style="right:12%;top:8px;animation-delay:-1.2s">฿</span>
         <span class="floatCoin" style="right:18%;top:66px;animation-delay:-0.6s">₫</span>
         <div id="titleLogo">Moku <span>Money Market</span></div>
-        <div id="titleSub">Live in Asia · 6 markets</div>
+        <div id="titleSub">Live in Asia · 8 markets</div>
       </div>
       <div id="titleMenu">
-        <button class="titleMenuItem primary" id="goTrip"><span class="ic">🛒</span><span>Market Trip<small>Shop with real money from 6 countries</small></span></button>
+        <button class="titleMenuItem primary" id="goTrip"><span class="ic">🛒</span><span>Market Trip<small>Shop with real money from 8 countries</small></span></button>
         <button class="titleMenuItem" id="goCheck"><span class="ic">💱</span><span>Price Check<small>How much is it in your money?</small></span></button>
-        <button class="titleMenuItem" id="goBook"><span class="ic">📒</span><span>Money Book<small id="bookCount">0 / 6 currencies</small></span></button>
+        <button class="titleMenuItem" id="goBook"><span class="ic">📒</span><span>Money Book<small id="bookCount">0 / 8 currencies</small></span></button>
       </div>
       <div id="homeRow">My money: <span class="seg" id="homeSeg"></span></div>
       <div id="titleMoints"><span class="mcoin">M</span><span id="titleBal">0</span><span id="titleToday"></span></div>
@@ -368,6 +368,18 @@ svg.flag { display: block; border-radius: 2px; }
             { name: 'Char kway teow', em: '🍜', p: 6, what: 'fried flat noodles' }
           ],
           facts: ['S$1 is a coin, not a note.', 'Singapore and Brunei dollars are worth exactly the same — shops in both countries take both!', 'At hawker centres the price is fixed — no bargaining.'] },
+    BN: { country: 'Brunei', cur: 'Brunei dollar', perUSD: 1.3, anchor: 1, place: 'Gadong night market',
+          fmt: function (n) { return 'B$' + group(n, ','); }, write: 'B$2 — “B$” for Brunei dollar',
+          vendor: { em: '🐒', name: 'Proboscis monkey' },
+          money: [{ v: 1, c: '#3E6FC0' }, { v: 5, c: '#3E9B5A' }, { v: 10, c: '#C8443B' }, { v: 50, c: '#9A6A3A' }, { v: 100, c: '#7B4FA8' }],
+          items: [
+            { name: 'Nasi katok', em: '🍗', p: 2, what: 'rice with fried chicken and sambal' },
+            { name: 'Teh tarik', em: '🧋', p: 2, what: 'pulled milk tea' },
+            { name: 'Satay (10 sticks)', em: '🍢', p: 5, what: 'grilled skewers with peanut sauce' },
+            { name: 'Kuih (3 pieces)', em: '🍡', p: 1, what: 'little colorful sweet cakes' },
+            { name: 'Ambuyat set', em: '🥢', p: 15, what: 'sticky sago with dips, to share' }
+          ],
+          facts: ['Brunei and Singapore dollars are worth exactly the same — shops in both countries take both!', 'Nasi katok is famous for being cheap — only about B$1 to B$2.', 'Brunei notes are made of plastic (polymer).'] },
     TH: { country: 'Thailand', cur: 'baht', perUSD: 33, anchor: 100, place: 'Street food market',
           fmt: function (n) { return '฿' + group(n, ','); }, write: '฿60 — or “60 baht”',
           vendor: { em: '🐘', name: 'Elephant' },
@@ -380,6 +392,18 @@ svg.flag { display: block; border-radius: 2px; }
             { name: 'Coconut', em: '🥥', p: 40, what: 'fresh coconut water' }
           ],
           facts: ['฿ is the baht sign. 100 satang = 1 baht.', 'Small amounts are coins: 1, 2, 5 and 10 baht.', 'Many street stalls now take QR code payments too.'] },
+    KH: { country: 'Cambodia', cur: 'riel', perUSD: 4000, anchor: 1000, place: 'Riverside night market',
+          fmt: function (n) { return group(n, ',') + '៛'; }, write: '5,000៛ — the riel sign ៛ comes after the number',
+          vendor: { em: '🐂', name: 'Kouprey (wild ox)' },
+          money: [{ v: 500, c: '#B5853E' }, { v: 1000, c: '#3E9B5A' }, { v: 2000, c: '#C8443B' }, { v: 5000, c: '#7B4FA8' }, { v: 10000, c: '#3E6FC0' }, { v: 20000, c: '#C24E86' }],
+          items: [
+            { name: 'Nom banh chok', em: '🍜', p: 5000, what: 'rice noodles with green fish curry' },
+            { name: 'Bai sach chrouk', em: '🍚', p: 8000, what: 'grilled pork with rice, for breakfast' },
+            { name: 'Iced coffee', em: '🧋', p: 4000, what: 'strong coffee with sweet milk' },
+            { name: 'Sugarcane juice', em: '🥤', p: 2000, what: 'fresh-pressed sugarcane' },
+            { name: 'Fish amok', em: '🐟', p: 16000, what: 'fish curry steamed in a banana leaf' }
+          ],
+          facts: ['People often pay in US dollars and get the change in riel. US$1 is about 4,000៛.', 'Coins are almost never used — even small change is paper riel.', '៛ is the riel sign.'] },
     VN: { country: 'Vietnam', cur: 'đồng', perUSD: 26000, anchor: 10000, place: 'Street food corner',
           fmt: function (n) { return group(n, '.') + '₫'; }, write: '50.000₫ — dots, not commas, and ₫ comes last',
           vendor: { em: '🐃', name: 'Water buffalo' },
@@ -417,7 +441,7 @@ svg.flag { display: block; border-radius: 2px; }
           ],
           facts: ['₱ is the peso sign. 100 centavos = ₱1.', '₱1, ₱5, ₱10 and ₱20 are coins.', 'Jeepney rides cost only a few pesos.'] }
   };
-  var ORDER = ['MY', 'SG', 'TH', 'VN', 'ID', 'PH'];
+  var ORDER = ['MY', 'SG', 'BN', 'TH', 'KH', 'VN', 'ID', 'PH'];
   // My money(自分のお金に直す用)
   var HOME = {
     RM:  { label: 'RM',  perUSD: 4.2, fmt: function (v) { return 'RM' + nice(v); } },
@@ -502,6 +526,8 @@ svg.flag { display: block; border-radius: 2px; }
   function moneyHTML(m, mk, attr) {
     var label = MARKETS[mk].fmt(m.v).replace(/^(RM|S\$|Rp)/, '<small style="font-size:0.72em;opacity:0.9">$1</small>');
     if (mk === 'VN' || mk === 'ID') label = shortK(m.v, mk);
+    if (mk === 'KH') label = group(m.v, ',') + '<small style="font-size:0.72em">៛</small>';
+    if (mk === 'BN') label = '<small style="font-size:0.72em;opacity:0.9">B$</small>' + m.v;
     return '<button class="money ' + (m.coin ? 'coin' : 'note') + '" style="--nc:' + m.c + '" ' + (attr || '') + '><span>' + label + '</span></button>';
   }
   function shortK(v, mk) { return (mk === 'ID' ? '<small style="font-size:0.72em">Rp</small>' : '') + group(v, '.') + (mk === 'VN' ? '<small style="font-size:0.72em">₫</small>' : ''); }
@@ -590,7 +616,7 @@ svg.flag { display: block; border-radius: 2px; }
   function showTitle() {
     document.body.classList.add('on-title');
     var n = ORDER.filter(visited).length;
-    $('bookCount').textContent = n + ' / 6 currencies · ⭐ ' + progress.totalStars;
+    $('bookCount').textContent = n + ' / ' + ORDER.length + ' currencies · ⭐ ' + progress.totalStars;
     $('titleBal').textContent = Math.round(balance()).toLocaleString('en-US');
     $('titleToday').textContent = '· Today ' + earnedToday() + ' / ' + dailyCap();
     $('homeSeg').innerHTML = Object.keys(HOME).map(function (k) { return '<button data-h="' + k + '" class="' + (settings.home === k ? 'on' : '') + '">' + HOME[k].label + '</button>'; }).join('');
@@ -620,7 +646,7 @@ svg.flag { display: block; border-radius: 2px; }
     scene.innerHTML = h;
   }
   // 国の色(ひさしの縞)。国旗の色から
-  var COLORS = { MY: ['#C8443B', '#FFF4DE'], SG: ['#E0262E', '#FFF4DE'], TH: ['#2D2A6B', '#FFF4DE'], VN: ['#DA251D', '#FFDD66'], ID: ['#E0262E', '#FFF4DE'], PH: ['#0038A8', '#FFF4DE'] };
+  var COLORS = { MY: ['#C8443B', '#FFF4DE'], SG: ['#E0262E', '#FFF4DE'], BN: ['#E3B80F', '#FFF4DE'], KH: ['#032EA1', '#FFF4DE'], TH: ['#2D2A6B', '#FFF4DE'], VN: ['#DA251D', '#FFDD66'], ID: ['#E0262E', '#FFF4DE'], PH: ['#0038A8', '#FFF4DE'] };
 
   function countryPicker(onPick, note) {
     return '<div class="picks">' + ORDER.map(function (id) {
@@ -761,7 +787,7 @@ svg.flag { display: block; border-radius: 2px; }
     }
     renderOrder();
   }
-  var THANKS = { MY: 'Terima kasih!', SG: 'Thank you!', TH: 'Khop khun!', VN: 'Cảm ơn!', ID: 'Terima kasih!', PH: 'Salamat!' };
+  var THANKS = { MY: 'Terima kasih!', SG: 'Thank you!', BN: 'Terima kasih!', TH: 'Khop khun!', KH: 'Orkun!', VN: 'Cảm ơn!', ID: 'Terima kasih!', PH: 'Salamat!' };
   function pay() {
     var cur = trip.cur, m = MARKETS[trip.id];
     var clean = noExtra();
@@ -791,7 +817,7 @@ svg.flag { display: block; border-radius: 2px; }
     var lines = [['Stars: ' + trip.stars + ' × 5', earn(trip.stars * 5)]];
     if (trip.stars >= 15) lines.push(['All 15 stars! ⭐', earn(25)]);
     if (first) lines.push(['First visit to ' + m.country + '!', claimOnce('m:' + id, 30)]);
-    if (ORDER.every(visited)) lines.push(['All 6 markets visited! 🎉', claimOnce('all', 200)]);
+    if (ORDER.every(visited)) lines.push(['All ' + ORDER.length + ' markets visited! 🎉', claimOnce('all', 200)]);
     save();
     sfx.fanfare();
     drawScene(id, [], 'That was fun! See you next time!');
@@ -902,7 +928,7 @@ svg.flag { display: block; border-radius: 2px; }
   // =====================================================================
   function openBook(sel) {
     showPlay('📒 Money Book');
-    $('topInfo').textContent = ORDER.filter(visited).length + '/6';
+    $('topInfo').textContent = ORDER.filter(visited).length + '/' + ORDER.length;
     function draw(open) {
       drawScene(open || null, [], open ? 'This is the ' + esc(MARKETS[open].cur) + '!' : 'Visit a market to fill your Money Book.');
       var h = '<div class="card"><div class="h">Money Book</div><div class="sub">A page opens when you visit that market.</div><div class="picks">' +

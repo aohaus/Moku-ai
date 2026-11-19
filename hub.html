@@ -2894,10 +2894,10 @@ html.me-open #ceoPeek { display: none; }
       name: 'Moku Money Market',
       card: 'mmm',
       gameId: 'moku-money-market',
-      // 完了 = 6 か国すべての市場で ⭐15(1回の満点)を取った
+      // 完了 = 8 か国すべての市場で ⭐15(1回の満点)を取った
       isCompleted: function () {
         if (isExplicitlyMarked('completed', 'mmm')) return true;
-        return mmmCount(15) >= 6;
+        return mmmCount(15) >= 8;
       },
       isPlayed: function () {
         if (isExplicitlyMarked('played', 'mmm')) return true;
@@ -2906,13 +2906,13 @@ html.me-open #ceoPeek { display: none; }
       },
       progress: function () {
         if (this.isCompleted()) return 1;
-        // 行った市場(6)を半分、満点の市場(6)を半分
-        return Math.min(1, mmmCount(1) / 6 * 0.5 + mmmCount(15) / 6 * 0.5);
+        // 行った市場(8)を半分、満点の市場(8)を半分
+        return Math.min(1, mmmCount(1) / 8 * 0.5 + mmmCount(15) / 8 * 0.5);
       },
       badge: function () {
         var p = readJSON('moku:moku-money-market:progress');
         if (!p || !this.isPlayed()) return null;
-        var line = '🛒 ' + mmmCount(1) + ' / 6 markets · ⭐ ' + num(p.totalStars | 0);
+        var line = '🛒 ' + mmmCount(1) + ' / 8 markets · ⭐ ' + num(p.totalStars | 0);
         return p.checkBest ? line + ' · 💱 ' + p.checkBest + '/8' : line;
       }
     },
@@ -3115,9 +3115,9 @@ html.me-open #ceoPeek { display: none; }
            desc: 'Moku sends postcards from Southeast Asia. Read the clues — hello, food, money, flags — and find him on the map! Compare countries in Twin or Not?, then explain a secret country to your friends in Be the Guide.',
            moint: { cap: true, how: 'Postcards: +5 for every stamp (up to +75 a trip), every postcard on clue 1: +25. Twin or Not?: +5 for each right answer, all 8 right: +20. First visit to each country: +30. All 11 countries: +300.' } },
     mmm: { name: 'Moku Money Market', gameId: 'moku-money-market', genre: 'Market Math · Southeast Asia', cta: 'Shop', hi: '#E8A23A', lo: '#6E4510', newUntil: '2026-12-10',
-           tag: 'Shop with real money from 6 countries!',
-           desc: 'Buy street food at markets in Malaysia, Singapore, Thailand, Vietnam, Indonesia and the Philippines. Add up the prices, pay with their notes and coins, and check your change. Then guess what things cost in your own money!',
-           moint: { cap: true, how: 'Market Trip: +5 for every star (up to +75), all 15 stars: +25. Price Check: +5 for each right answer, all 8 right: +20. First visit to each market: +30. All 6 markets: +200.' } },
+           tag: 'Shop with real money from 8 countries!',
+           desc: 'Buy street food at markets in Malaysia, Singapore, Brunei, Thailand, Cambodia, Vietnam, Indonesia and the Philippines. Add up the prices, pay with their notes and coins, and check your change. Then guess what things cost in your own money!',
+           moint: { cap: true, how: 'Market Trip: +5 for every star (up to +75), all 15 stars: +25. Price Check: +5 for each right answer, all 8 right: +20. First visit to each market: +30. All 8 markets: +200.' } },
     ceo: { name: 'Sir CEO Moku', gameId: 'ceo-moku', genre: 'Chat & Quiz', cta: 'Visit', hi: '#D9925A', lo: '#6A3A1C', newUntil: '2026-12-08',
            tag: 'Meet the boss of Moku games!',
            desc: 'Visit Sir CEO Moku in his office. He picks a game for you every day, gives surprise quizzes, and listens to your game ideas. He is a little silly… and a little greedy.',
