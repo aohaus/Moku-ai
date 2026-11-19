@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script src="shared/moku-errors.js?v=20261119c"></script>
+<script src="shared/moku-gate.js?v=20261119c"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Fact or Fib? Asia</title>
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<!--
+  Fact or Fib? Asia(v0.1.0、2026-11-19)— 棚「Live in ASIA」の第3弾。
+  「うそみたいな本当の話」と「本当っぽいうそ」を見分ける。Live in ASIA の目標(CLAUDE.md §2)に合わせて:
+  ①どの話にも国旗と国の名前が付く(国を覚える)②くらべる話が多い(いちばん大きい・同じお金 など)
+  ③答えのあとに必ず理由。うそ(Fib)には「本当は…」を出して、友達に説明できるようにする。
+  - 🎯 Quiz(1人): 10問。正解 +5 Moint、10問全部 +25(1日 500 の上限の中)。続けて正解すると Streak。
+  - 🎉 Party(1台を回して 2〜4人): 8問。1問ごとに全員が自分の列で Fact / Fib を押す(何を押したかは出さず ✓ だけ)
+    → Reveal で答えと理由 → 当たった人に 1点。Moint はなし(Moku Wolf と同じ)。
+  - 📚 Fact Book: 一度でも正解した話が国ごとにたまる。
+  話のデータは下の CLAIMS(a: true = Fact / false = Fib)。うそは「まちがいがはっきりしている」ものだけ(言い方しだいで
+  本当にもなる話は入れない)。宗教・政治・争いのある話は入れない。新しい話は id を変えずに足す(id はセーブのキー)。
+  記録は moku:moku-fact-or-fib:progress、音とプレイヤー名は moku:moku-fact-or-fib:settings。
+-->
+<style>
+:root {
+  --hi: #9A4FA6; --lo: #42204A;               /* プラム(ひみつの話の色) */
+  --ink: #3B2A20; --ink-soft: #8B6E57;
+  --paper: #FFF7E8; --paper2: #F7EBDD;
+  --wood: #7A4A2C; --wood-dark: #4E2C17; --line: #5A3A22;
+  --fact: #3E9B5A; --fib: #E0607E;
+  --round: "Fredoka", -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { background: #F3DCC6; color: var(--ink); font-family: -apple-system, "Segoe UI", Roboto, sans-serif; overflow: hidden;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; touch-action: manipulation; }
+input { font: inherit; -webkit-user-select: text; user-select: text; }
+#title-frame { position: fixed; inset: 14px; border: 3px solid var(--hi); border-radius: 10px; pointer-events: none; z-index: 40; }
+#title-frame::after { content: ''; position: absolute; inset: 5px; border: 1px solid var(--lo); border-radius: 8px; }
+#hub-link { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 16px); right: calc(env(safe-area-inset-right, 0px) + 16px);
+  z-index: 41; font-size: 14px; font-weight: 800; color: var(--lo); text-decoration: none; text-shadow: 0 1px 0 rgba(255,255,255,0.6);
+  animation: hubLinkPulse 2.2s ease-in-out infinite; }
+@keyframes hubLinkPulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+#buildInfo { position: fixed; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); left: calc(env(safe-area-inset-left, 0px) + 18px);
+  z-index: 41; font-size: 10.5px; letter-spacing: 0.02em; color: rgba(255,255,255,0.28); text-shadow: 0 0 1px rgba(90,58,34,0.5); pointer-events: none; }
+body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo,
+body:not(.on-title) #titleScreen, body:not(.on-title) #soundBtn { display: none; }
+body.on-title #playScreen { display: none; }
+#soundBtn { position: fixed; z-index: 41; top: calc(env(safe-area-inset-top, 0px) + 12px); left: calc(env(safe-area-inset-left, 0px) + 22px);
+  width: 36px; height: 36px; border-radius: 50%; background: rgba(255,247,232,0.85); border: 2px solid rgba(90,58,34,0.3); font-size: 17px; }
+
+/* title */
+#titleScreen { position: fixed; inset: 0; overflow: hidden; background: linear-gradient(#FBE3C6, #EFC1A8 60%, #D9A2B5); }
+.bgq { position: absolute; font: 700 64px var(--round); color: rgba(154,79,166,0.12); animation: drift 7s ease-in-out infinite; }
+@keyframes drift { 0%, 100% { transform: translateY(0) rotate(-8deg); } 50% { transform: translateY(-14px) rotate(8deg); } }
+#titleInner { position: absolute; inset: 0; display: flex; align-items: flex-start; justify-content: center; overflow-y: auto;
+  padding: calc(env(safe-area-inset-top, 0px) + 44px) 28px calc(env(safe-area-inset-bottom, 0px) + 36px); }
+#titleCard { margin: auto; position: relative; width: min(420px, 100%); background: var(--paper); border-radius: 18px; border: 3px solid var(--line);
+  box-shadow: 0 10px 0 rgba(90,58,34,0.25), 0 18px 40px rgba(90,58,34,0.25); padding: 16px 18px; text-align: center; }
+#titleHero { position: relative; width: 112px; height: 112px; margin: 0 auto; animation: heroFloat 3.2s ease-in-out infinite; }
+#titleHero img, #titleHero svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#titleHero img { object-fit: cover; object-position: center 30%; filter: drop-shadow(0 4px 8px rgba(66,32,74,0.35)); }
+@keyframes heroFloat { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-7px) rotate(2deg); } }
+.paddle { position: absolute; top: 40px; padding: 4px 10px; border-radius: 10px; border: 3px solid var(--line); font: 700 15px var(--round); color: #fff;
+  box-shadow: 0 3px 0 rgba(0,0,0,0.2); animation: wave 1.6s ease-in-out infinite; }
+.paddle.f { left: 6%; background: var(--fact); transform-origin: bottom center; }
+.paddle.x { right: 6%; background: var(--fib); animation-delay: -0.8s; }
+@keyframes wave { 0%, 100% { transform: rotate(-10deg); } 50% { transform: rotate(10deg); } }
+#titleLogo { font: 700 36px/1 var(--round); color: var(--lo); margin-top: 6px; }
+#titleLogo span { color: var(--hi); }
+#titleSub { font: 600 12.5px var(--round); color: var(--ink-soft); letter-spacing: 0.14em; margin-top: 6px; text-transform: uppercase; }
+#titleMenu { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 10px; }
+.titleMenuItem { width: 100%; max-width: 300px; font-size: 19px; font-weight: 800; padding: 8px 18px; border-radius: 14px; background: #fff;
+  border: 2px solid rgba(90,58,34,0.25); color: var(--ink); display: flex; align-items: center; gap: 10px; text-align: left; transition: transform 0.12s; }
+.titleMenuItem .ic { font-size: 22px; width: 28px; text-align: center; }
+.titleMenuItem small { display: block; font-size: 11.5px; font-weight: 600; color: var(--ink-soft); margin-top: 1px; }
+.titleMenuItem.primary { background: var(--hi); border-color: var(--lo); color: #fff; box-shadow: 0 4px 0 var(--lo); }
+.titleMenuItem.primary small { color: rgba(255,255,255,0.88); }
+.titleMenuItem:active { transform: translateY(2px) scale(0.98); }
+#titleMoints { margin-top: 10px; font-size: 12.5px; font-weight: 700; color: var(--ink-soft); display: flex; align-items: center; justify-content: center; gap: 6px; }
+.mcoin { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #FFF2A8, #F2C230 55%, #C9901A); border: 1.5px solid #9A6A10; color: #7A4E00; font: 800 9.5px/1 var(--round); }
+@media (orientation: landscape) and (max-height: 560px) {
+  #titleInner { padding-top: calc(env(safe-area-inset-top, 0px) + 30px); padding-bottom: 20px; }
+  #titleCard { width: min(660px, 100%); display: grid; grid-template-columns: 210px 1fr; column-gap: 14px; align-items: center; padding: 12px 14px; }
+  #titleHead { grid-row: 1 / 3; position: relative; }
+  #titleHero { width: 96px; height: 96px; }
+  #titleLogo { font-size: 28px; }
+  #titleMenu, #titleMoints { grid-column: 2; }
+  #titleMenu { margin-top: 0; }
+}
+#titleHead { position: relative; }
+
+/* play */
+#playScreen { position: fixed; inset: 0; display: flex; flex-direction: column; background: var(--paper2); }
+#topbar { flex: none; display: flex; align-items: center; gap: 8px;
+  padding: calc(env(safe-area-inset-top, 0px) + 6px) calc(env(safe-area-inset-right, 0px) + 12px) 6px calc(env(safe-area-inset-left, 0px) + 10px);
+  background: linear-gradient(#8A5634, var(--wood)); border-bottom: 3px solid var(--wood-dark); color: #FFF4E0; }
+#menuBtn { padding: 6px 12px; border-radius: 10px; background: rgba(255,255,255,0.14); font-weight: 800; font-size: 14px; }
+#modeTitle { flex: 1; font: 700 17px var(--round); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#topInfo { font-weight: 800; font-size: 14px; white-space: nowrap; }
+#main { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 14px calc(env(safe-area-inset-right, 0px) + 14px) calc(env(safe-area-inset-bottom, 0px) + 18px) calc(env(safe-area-inset-left, 0px) + 14px); }
+#inner { max-width: 600px; margin: 0 auto; }
+.card { background: var(--paper); border: 2.5px solid var(--line); border-radius: 16px; padding: 14px; box-shadow: 0 5px 0 rgba(90,58,34,0.18); }
+.enter { animation: cardIn 0.4s cubic-bezier(.2,1.3,.5,1) both; }
+@keyframes cardIn { from { transform: translateY(16px) rotate(-1deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.dots { display: flex; justify-content: center; gap: 5px; margin-bottom: 8px; }
+.dots i { width: 10px; height: 10px; border-radius: 50%; background: #E3D3B8; }
+.dots i.ok { background: var(--fact); } .dots i.no { background: var(--fib); } .dots i.now { background: var(--hi); }
+.host { display: flex; align-items: flex-start; gap: 10px; }
+.av { position: relative; width: 58px; height: 58px; flex: none; }
+.av img, .av svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.av img { object-fit: cover; object-position: center 30%; }
+.bub { position: relative; flex: 1; background: #fff; border: 2.5px solid var(--line); border-radius: 14px; padding: 10px 12px; }
+.bub::before { content: ''; position: absolute; left: -10px; top: 18px; border: 8px solid transparent; border-right-color: var(--line); border-left: 0; }
+.where { display: flex; align-items: center; gap: 6px; font: 700 12.5px var(--round); color: var(--ink-soft); letter-spacing: 0.04em; text-transform: uppercase; }
+.where svg.flag { width: 24px; height: 16px; }
+.claim { font: 600 20px/1.35 var(--round); color: var(--ink); margin-top: 6px; }
+.ff { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+.big { padding: 16px 8px; border-radius: 16px; font: 700 22px var(--round); color: #fff; border: 3px solid rgba(0,0,0,0.2); box-shadow: 0 5px 0 rgba(0,0,0,0.2); }
+.big small { display: block; font-size: 12px; opacity: 0.9; font-weight: 600; }
+.big.fact { background: var(--fact); } .big.fib { background: var(--fib); }
+.big:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.2); }
+.big.dim { opacity: 0.35; }
+.verdict { margin-top: 14px; padding: 12px; border-radius: 14px; animation: cardIn 0.35s ease-out both; }
+.verdict.ok { background: #EAF7E6; border: 2px solid rgba(62,155,90,0.45); }
+.verdict.no { background: #FDECEF; border: 2px solid rgba(224,96,126,0.45); }
+.verdict .t { font: 700 19px var(--round); }
+.verdict .stamp { display: inline-block; padding: 2px 10px; border-radius: 8px; color: #fff; font: 700 14px var(--round); margin-right: 6px; transform: rotate(-4deg); }
+.stamp.fact { background: var(--fact); } .stamp.fib { background: var(--fib); }
+.verdict p { margin-top: 6px; font-size: 15px; line-height: 1.45; font-weight: 600; }
+.row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.btn { flex: 1; min-width: 120px; padding: 11px 14px; border-radius: 12px; font-weight: 800; font-size: 15.5px; background: #fff;
+  border: 2px solid rgba(90,58,34,0.3); box-shadow: 0 3px 0 rgba(90,58,34,0.2); }
+.btn.primary { background: var(--hi); color: #fff; border-color: var(--lo); box-shadow: 0 3px 0 var(--lo); }
+.btn:disabled { opacity: 0.45; }
+.btn:active:not(:disabled) { transform: translateY(2px); box-shadow: none; }
+.tip { margin-top: 8px; font-size: 12.5px; color: var(--ink-soft); font-weight: 600; text-align: center; }
+.h { font: 700 21px var(--round); color: var(--lo); }
+.sub { font-size: 13px; color: var(--ink-soft); font-weight: 700; margin-top: 2px; }
+.bigNum { font: 700 30px var(--round); color: var(--lo); text-align: center; margin-top: 6px; }
+.moints { margin-top: 10px; background: #FFF6DA; border: 2px solid #E0B85A; border-radius: 12px; padding: 10px 12px; font-size: 14px; font-weight: 700; }
+.moints div { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; }
+.moints .tot { border-top: 1.5px dashed #E0B85A; margin-top: 4px; padding-top: 6px; font-size: 16px; font-weight: 800; color: #7A5200; }
+.streak { display: inline-block; margin-left: 6px; font: 700 13px var(--round); color: #B4560E; }
+/* party */
+.pl { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 8px; border-radius: 12px; background: #fff; border: 2px solid rgba(90,58,34,0.15); }
+.pl .nm { flex: 1; font: 700 16px var(--round); display: flex; align-items: center; gap: 6px; min-width: 0; }
+.pl .nm i { width: 14px; height: 14px; border-radius: 50%; flex: none; }
+.pl .nm span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mini { padding: 9px 12px; border-radius: 10px; font: 700 15px var(--round); color: #fff; border: 2px solid rgba(0,0,0,0.15); }
+.mini.fact { background: var(--fact); } .mini.fib { background: var(--fib); }
+.lock { font: 700 14px var(--round); color: var(--ink-soft); padding: 0 8px; }
+.res { font: 700 14px var(--round); padding: 0 8px; }
+.res.ok { color: var(--fact); } .res.no { color: var(--fib); }
+.pts { font: 700 15px var(--round); color: var(--lo); min-width: 44px; text-align: right; }
+.players input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 2px solid rgba(90,58,34,0.25); background: #fff; font-weight: 700; font-size: 16px; margin-top: 8px; }
+.seg { display: flex; gap: 6px; margin-top: 8px; }
+.seg button { flex: 1; padding: 9px 0; border-radius: 10px; background: #fff; border: 2px solid rgba(90,58,34,0.25); font-weight: 800; font-size: 16px; }
+.seg button.on { background: var(--hi); color: #fff; border-color: var(--lo); }
+/* book */
+.cgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin-top: 10px; }
+.cbtn { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-radius: 12px; background: #fff; border: 2px solid rgba(90,58,34,0.2); text-align: left; font: 700 14px var(--round); }
+.cbtn svg.flag { width: 26px; height: 17px; flex: none; }
+.cbtn small { display: block; font-size: 11px; color: var(--ink-soft); }
+.cbtn.on { border-color: var(--hi); background: #F6ECF8; }
+.facts { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.fitem { background: #fff; border-radius: 12px; padding: 10px 12px; border: 2px solid rgba(90,58,34,0.12); font-size: 14.5px; line-height: 1.45; font-weight: 600; }
+.fitem.locked { color: #B9A88E; background: repeating-linear-gradient(-45deg, #F6EBD8 0 8px, #FBF3E5 8px 16px); }
+.fitem .why { display: block; margin-top: 4px; font-size: 13px; color: var(--ink-soft); }
+svg.flag { display: block; border-radius: 2px; }
+/* cover */
+#cover { position: fixed; inset: 0; z-index: 60; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 14px;
+  background: linear-gradient(#FBE3C6, #D9A2B5); text-align: center; padding: 24px; }
+#cover.show { display: flex; }
+#cover h2 { font: 700 28px var(--round); color: var(--lo); }
+#cover p { font-weight: 700; color: var(--ink-soft); max-width: 340px; line-height: 1.45; }
+@media (prefers-reduced-motion: reduce) { #titleHero, .paddle, .bgq { animation: none; } }
+</style>
+</head>
+<body class="on-title">
+<script src="shared/moku-account.js?v=20261119c" data-mode="background"></script>
+<script src="shared/moku-moint.js?v=20261119c" data-mode="none"></script>
+
+<div id="title-frame"></div>
+<a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
+<div id="buildInfo">v0.1.0 · Updated Nov 19, 2026</div>
+<button id="soundBtn" aria-label="Sound">🔊</button>
+
+<div id="titleScreen">
+  <span class="bgq" style="left:6%;top:14%">?</span><span class="bgq" style="right:8%;top:30%;animation-delay:-2s">!</span>
+  <span class="bgq" style="left:12%;bottom:12%;animation-delay:-4s">?</span><span class="bgq" style="right:14%;bottom:20%;animation-delay:-1s">?</span>
+  <div id="titleInner">
+    <div id="titleCard">
+      <div id="titleHead">
+        <span class="paddle f">FACT</span><span class="paddle x">FIB</span>
+        <div id="titleHero"><img src="brand/mokumoku-hero.png" alt="Moku"><span id="titleOutfit"></span></div>
+        <div id="titleLogo">Fact <span>or</span> Fib?</div>
+        <div id="titleSub">Live in Asia · true or not?</div>
+      </div>
+      <div id="titleMenu">
+        <button class="titleMenuItem primary" id="goQuiz"><span class="ic">🎯</span><span>Quiz<small>10 surprising claims. Fact or fib?</small></span></button>
+        <button class="titleMenuItem" id="goParty"><span class="ic">🎉</span><span>Party<small>2–4 players · one phone</small></span></button>
+        <button class="titleMenuItem" id="goBook"><span class="ic">📚</span><span>Fact Book<small id="bookCount">0 facts</small></span></button>
+      </div>
+      <div id="titleMoints"><span class="mcoin">M</span><span id="titleBal">0</span><span id="titleToday"></span></div>
+    </div>
+  </div>
+</div>
+
+<div id="playScreen">
+  <div id="topbar"><button id="menuBtn">◀ Menu</button><div id="modeTitle"></div><div id="topInfo"></div></div>
+  <div id="main"><div id="inner"></div></div>
+</div>
+<div id="cover"></div>
+
+<script>
+(function () {
+  'use strict';
+  var GAME_ID = 'moku-fact-or-fib';
+  var SAVE_KEY = 'moku:' + GAME_ID + ':progress', SET_KEY = 'moku:' + GAME_ID + ':settings';
+  var $ = function (id) { return document.getElementById(id); };
+  function readJSON(k) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+  function writeJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+
+  var NAMES = { MM: 'Myanmar', TH: 'Thailand', LA: 'Laos', KH: 'Cambodia', VN: 'Vietnam', MY: 'Malaysia', SG: 'Singapore', BN: 'Brunei', ID: 'Indonesia', PH: 'Philippines', TL: 'Timor-Leste' };
+  var ORDER = ['MM', 'TH', 'LA', 'KH', 'VN', 'MY', 'SG', 'BN', 'ID', 'PH', 'TL'];
+
+  // =====================================================================
+  // 話のデータ。a: true = Fact(本当)/ false = Fib(うそ)。why: 理由(うそなら「本当は…」)。
+  // id はセーブのキーなので変えない。うそは、まちがいがはっきりしている話だけ。
+  // =====================================================================
+  var CLAIMS = [
+    { id: 'sg-gum', c: 'SG', a: true, t: 'Selling chewing gum is not allowed in Singapore.', why: 'Since 1992, shops can’t sell chewing gum (only some special gum from a pharmacy). It keeps streets and trains clean.' },
+    { id: 'th-longname', c: 'TH', a: true, t: 'Bangkok’s full name is the longest city name in the world.', why: 'Its full name, starting “Krung Thep Maha Nakhon…”, has over 160 letters in English. People just say “Krung Thep”.' },
+    { id: 'id-17000', c: 'ID', a: true, t: 'Indonesia has more than 17,000 islands.', why: 'True! That’s more islands than any other country here — people live on only some of them.' },
+    { id: 'ph-7000', c: 'PH', a: true, t: 'The Philippines has more than 7,000 islands.', why: 'It has 7,641 islands. The two biggest are Luzon and Mindanao.' },
+    { id: 'bn-sgd', c: 'BN', a: true, t: 'Brunei dollars and Singapore dollars are worth exactly the same.', why: 'Since 1967, one Brunei dollar = one Singapore dollar, and shops in both countries take both.' },
+    { id: 'vn-s', c: 'VN', a: true, t: 'Vietnam is shaped a bit like the letter S.', why: 'It is long and thin, curving down the coast — about 1,650 km from north to south.' },
+    { id: 'la-nosea', c: 'LA', a: true, t: 'Laos is the only Southeast Asian country with no sea.', why: 'Laos is surrounded by land. The Mekong River is its big “water road”.' },
+    { id: 'kh-flag', c: 'KH', a: true, t: 'Cambodia’s flag has a temple on it.', why: 'It shows Angkor Wat in white, in the middle of the red stripe.' },
+    { id: 'my-bridge', c: 'MY', a: true, t: 'The Petronas Twin Towers in Kuala Lumpur are joined by a sky bridge.', why: 'The bridge joins the towers on the 41st and 42nd floors. Each tower has 88 floors.' },
+    { id: 'mm-thanaka', c: 'MM', a: true, t: 'Many people in Myanmar wear a paste made from tree bark on their cheeks.', why: 'It’s called thanaka. It keeps skin cool and protects it from the sun.' },
+    { id: 'tl-asean', c: 'TL', a: true, t: 'Timor-Leste joined ASEAN in 2025.', why: 'It became the 11th member country of ASEAN in October 2025.' },
+    { id: 'id-komodo', c: 'ID', a: true, t: 'The biggest lizard in the world lives in Indonesia.', why: 'The Komodo dragon can grow to about 3 meters long. It lives on a few islands like Komodo.' },
+    { id: 'th-colony', c: 'TH', a: true, t: 'Thailand was never ruled by a European country.', why: 'It is the only country in Southeast Asia that was never a European colony.' },
+    { id: 'ph-flag', c: 'PH', a: true, t: 'The Philippine flag is flipped upside down in wartime.', why: 'Normally blue is on top. In war, red goes on top.' },
+    { id: 'kh-river', c: 'KH', a: true, t: 'A river in Cambodia changes direction every year.', why: 'In the rainy season, the Tonlé Sap River flows backward and fills the Tonlé Sap lake.' },
+    { id: 'my-two', c: 'MY', a: true, t: 'Malaysia is in two parts, with the sea in between.', why: 'One part is on a peninsula next to Thailand, and the other is on the island of Borneo.' },
+    { id: 'sg-four', c: 'SG', a: true, t: 'Singapore has four official languages.', why: 'English, Malay, Mandarin Chinese and Tamil.' },
+    { id: 'vn-coins', c: 'VN', a: true, t: 'People in Vietnam almost never use coins.', why: 'Coins stopped being used in daily life. Even the smallest money is a note.' },
+    { id: 'bn-stilts', c: 'BN', a: true, t: 'Brunei has a whole village built on stilts over the water.', why: 'Kampong Ayer has houses, schools and shops on stilts. People get around by water taxi.' },
+    { id: 'mm-capital', c: 'MM', a: true, t: 'Myanmar’s capital is not its biggest city.', why: 'The capital is Naypyidaw. The biggest city is Yangon.' },
+    { id: 'ph-jeepney', c: 'PH', a: true, t: 'Jeepneys in the Philippines started as old army jeeps.', why: 'After World War II, people turned leftover army jeeps into colorful buses.' },
+    { id: 'sg-hour', c: 'SG', a: true, t: 'You can drive across Singapore in under an hour.', why: 'It’s only about 50 km from east to west.' },
+    { id: 'my-tapir', c: 'MY', a: true, t: 'Wild tapirs live in Malaysia’s forests.', why: 'The Malayan tapir is black and white — like it’s wearing a blanket! It comes out at night.' },
+    { id: 'vn-halong', c: 'VN', a: true, t: 'Hạ Long Bay in Vietnam has almost 2,000 rock islands.', why: 'About 1,900 limestone islands rise out of the green water.' },
+    { id: 'kh-usd', c: 'KH', a: true, t: 'Many people in Cambodia pay with US dollars.', why: 'Prices are often in US dollars, and small change comes back in riel.' },
+    { id: 'id-capital', c: 'ID', a: true, t: 'Indonesia is building a brand-new capital city.', why: 'It’s called Nusantara, on the island of Borneo. Jakarta is the capital for now.' },
+    { id: 'th-left', c: 'TH', a: true, t: 'In Thailand, cars drive on the left.', why: 'Like Malaysia, Singapore and Japan. Vietnam and Cambodia drive on the right.' },
+    { id: 'la-rice', c: 'LA', a: true, t: 'In Laos, people often eat sticky rice with their hands.', why: 'They roll it into a little ball and dip it into other food.' },
+
+    { id: 'sg-biggest', c: 'SG', a: false, t: 'Singapore is the biggest country in Southeast Asia.', why: 'It’s the smallest! The biggest is Indonesia — more than 2,000 times bigger.' },
+    { id: 'la-beach', c: 'LA', a: false, t: 'Laos has long sandy beaches on its coast.', why: 'Laos has no sea at all, so no sea beaches — only river banks.' },
+    { id: 'th-xinchao', c: 'TH', a: false, t: 'In Thailand, people say “Xin chào” to say hello.', why: '“Xin chào” is Vietnamese. In Thailand, people say “Sawasdee”.' },
+    { id: 'vn-baht', c: 'VN', a: false, t: 'Vietnam’s money is the baht.', why: 'Vietnam uses the đồng. The baht is Thailand’s money.' },
+    { id: 'id-17', c: 'ID', a: false, t: 'Indonesia has only 17 islands.', why: 'Add three zeros! It has more than 17,000 islands.' },
+    { id: 'ph-border', c: 'PH', a: false, t: 'You can walk from the Philippines into Vietnam.', why: 'The Philippines is all islands, so it has no land border with any country.' },
+    { id: 'my-20', c: 'MY', a: false, t: 'The Petronas Twin Towers have 20 floors each.', why: 'They have 88 floors each!' },
+    { id: 'bn-big', c: 'BN', a: false, t: 'Brunei is bigger than Indonesia.', why: 'Brunei is one of the smallest. Indonesia is more than 300 times bigger.' },
+    { id: 'kh-angkor', c: 'KH', a: false, t: 'Angkor Wat is in Thailand.', why: 'Angkor Wat is in Cambodia, near the city of Siem Reap.' },
+    { id: 'mm-left', c: 'MM', a: false, t: 'In Myanmar, cars drive on the left.', why: 'Myanmar drives on the right — even though many cars there have the steering wheel on the right!' },
+    { id: 'tl-borneo', c: 'TL', a: false, t: 'Timor-Leste is on the island of Borneo.', why: 'It’s on the island of Timor, which it shares with Indonesia.' },
+    { id: 'sg-eagle', c: 'SG', a: false, t: 'The Merlion is half lion and half eagle.', why: 'It’s half lion and half fish!' },
+    { id: 'th-chiangmai', c: 'TH', a: false, t: 'Thailand’s capital is Chiang Mai.', why: 'The capital is Bangkok. Chiang Mai is a big city in the north.' },
+    { id: 'vn-pho', c: 'VN', a: false, t: 'Phở is a sweet mango dessert.', why: 'Phở is a noodle soup, often with beef or chicken.' },
+    { id: 'id-fly', c: 'ID', a: false, t: 'Komodo dragons can fly short distances.', why: 'They can’t fly — but they can run fast and swim well.' },
+    { id: 'my-dollar', c: 'MY', a: false, t: 'Malaysia’s money is the dollar.', why: 'It’s the ringgit, written RM.' },
+    { id: 'ph-onelang', c: 'PH', a: false, t: 'Filipino is the only official language of the Philippines.', why: 'English is an official language too.' },
+    { id: 'la-capital', c: 'LA', a: false, t: 'The capital of Laos is Phnom Penh.', why: 'It’s Vientiane. Phnom Penh is the capital of Cambodia.' },
+    { id: 'kh-star', c: 'KH', a: false, t: 'Cambodia’s flag is red with one big yellow star.', why: 'That’s Vietnam’s flag. Cambodia’s flag shows Angkor Wat.' },
+    { id: 'bn-kumusta', c: 'BN', a: false, t: 'In Brunei, people say “Kumusta” to say hello.', why: '“Kumusta” is Filipino. In Brunei, people say “Selamat pagi” in Malay.' },
+    { id: 'mm-island', c: 'MM', a: false, t: 'Myanmar is an island country.', why: 'Myanmar is on the mainland — it is the biggest mainland country in Southeast Asia.' },
+    { id: 'sg-right', c: 'SG', a: false, t: 'In Singapore, cars drive on the right.', why: 'Singapore drives on the left.' },
+    { id: 'th-songkran', c: 'TH', a: false, t: 'Songkran, the Thai New Year water festival, is in December.', why: 'It’s in April — the hottest time of the year, perfect for water fights!' },
+    { id: 'vn-capital', c: 'VN', a: false, t: 'Vietnam’s capital is Ho Chi Minh City.', why: 'The capital is Hanoi. Ho Chi Minh City is the biggest city.' },
+    { id: 'tl-euro', c: 'TL', a: false, t: 'Timor-Leste uses the euro.', why: 'It uses the US dollar, with its own coins.' },
+    { id: 'id-rendang', c: 'ID', a: false, t: 'Rendang is a cold drink.', why: 'Rendang is a slow-cooked beef curry with coconut and spices.' },
+    { id: 'my-noodle', c: 'MY', a: false, t: 'Nasi lemak is a kind of noodle.', why: '“Nasi” means rice! Nasi lemak is rice cooked with coconut milk.' },
+    { id: 'ph-halo', c: 'PH', a: false, t: 'Halo-halo is a hot soup.', why: 'Halo-halo is a cold dessert with shaved ice, milk, beans, fruit and ice cream.' }
+  ];
+  var BY_ID = {}; CLAIMS.forEach(function (c) { BY_ID[c.id] = c; });
+
+  // ---------- 国旗(Where's Moku? と同じ絵。30×20) ----------
+  function starPts(cx, cy, r, n, inner, rot) {
+    n = n || 5; inner = inner || 0.4; rot = rot == null ? -90 : rot;
+    var pts = [];
+    for (var i = 0; i < n * 2; i++) {
+      var rr = i % 2 ? r * inner : r, a = (rot + i * 180 / n) * Math.PI / 180;
+      pts.push((cx + rr * Math.cos(a)).toFixed(2) + ',' + (cy + rr * Math.sin(a)).toFixed(2));
+    }
+    return pts.join(' ');
+  }
+  function flagInner(id) {
+    var s = '';
+    switch (id) {
+      case 'ID': s = '<rect width="30" height="10" fill="#E0262E"/><rect y="10" width="30" height="10" fill="#fff"/>'; break;
+      case 'SG':
+        s = '<rect width="30" height="10" fill="#E0262E"/><rect y="10" width="30" height="10" fill="#fff"/>' +
+            '<circle cx="6.6" cy="5" r="3.4" fill="#fff"/><circle cx="7.9" cy="5" r="3.1" fill="#E0262E"/>';
+        for (var i = 0; i < 5; i++) { var a = (-90 + i * 72) * Math.PI / 180; s += '<polygon fill="#fff" points="' + starPts(10.6 + 1.7 * Math.cos(a), 5 + 1.7 * Math.sin(a), 0.62) + '"/>'; }
+        break;
+      case 'MY':
+        for (var k = 0; k < 14; k++) s += '<rect y="' + (k * 20 / 14).toFixed(3) + '" width="30" height="' + (20 / 14 + 0.02).toFixed(3) + '" fill="' + (k % 2 ? '#fff' : '#D0222B') + '"/>';
+        s += '<rect width="15" height="11.43" fill="#0B2B7A"/><circle cx="5.4" cy="5.7" r="3.7" fill="#F8C619"/><circle cx="6.4" cy="5.7" r="3.1" fill="#0B2B7A"/>' +
+             '<polygon fill="#F8C619" points="' + starPts(10.6, 5.7, 2.7, 14, 0.45) + '"/>';
+        break;
+      case 'TH': s = '<rect width="30" height="20" fill="#D9262E"/><rect y="3.33" width="30" height="13.34" fill="#fff"/><rect y="6.67" width="30" height="6.66" fill="#2D2A6B"/>'; break;
+      case 'VN': s = '<rect width="30" height="20" fill="#DA251D"/><polygon fill="#FFDD00" points="' + starPts(15, 10.4, 6) + '"/>'; break;
+      case 'LA': s = '<rect width="30" height="20" fill="#CE1126"/><rect y="5" width="30" height="10" fill="#002868"/><circle cx="15" cy="10" r="4" fill="#fff"/>'; break;
+      case 'KH':
+        s = '<rect width="30" height="20" fill="#032EA1"/><rect y="5" width="30" height="10" fill="#E00025"/>' +
+            '<g fill="#fff"><rect x="9" y="12.2" width="12" height="1.6"/><rect x="13.7" y="8.2" width="2.6" height="4"/><polygon points="13.7,8.2 15,6.2 16.3,8.2"/>' +
+            '<rect x="10.4" y="9.6" width="2" height="2.6"/><polygon points="10.4,9.6 11.4,8 12.4,9.6"/><rect x="17.6" y="9.6" width="2" height="2.6"/><polygon points="17.6,9.6 18.6,8 19.6,9.6"/></g>';
+        break;
+      case 'MM': s = '<rect width="30" height="6.67" fill="#FECB00"/><rect y="6.67" width="30" height="6.67" fill="#34B233"/><rect y="13.33" width="30" height="6.67" fill="#EA2839"/><polygon fill="#fff" points="' + starPts(15, 11, 6.6) + '"/>'; break;
+      case 'PH':
+        s = '<rect width="30" height="10" fill="#0038A8"/><rect y="10" width="30" height="10" fill="#CE1126"/><polygon fill="#fff" points="0,0 17.3,10 0,20"/>' +
+            '<g stroke="#FCD116" stroke-width="0.7">';
+        for (var r = 0; r < 8; r++) { var b = r * Math.PI / 4; s += '<line x1="' + (6 + 2 * Math.cos(b)).toFixed(2) + '" y1="' + (10 + 2 * Math.sin(b)).toFixed(2) + '" x2="' + (6 + 3.4 * Math.cos(b)).toFixed(2) + '" y2="' + (10 + 3.4 * Math.sin(b)).toFixed(2) + '"/>'; }
+        s += '</g><circle cx="6" cy="10" r="1.7" fill="#FCD116"/>' +
+             '<polygon fill="#FCD116" points="' + starPts(1.8, 2.4, 0.95) + '"/><polygon fill="#FCD116" points="' + starPts(1.8, 17.6, 0.95) + '"/><polygon fill="#FCD116" points="' + starPts(14.5, 10, 0.95) + '"/>';
+        break;
+      case 'BN':
+        s = '<rect width="30" height="20" fill="#F7E017"/><polygon fill="#fff" points="0,3.2 30,13.2 30,15.8 0,5.8"/><polygon fill="#111" points="0,5.8 30,15.8 30,18.4 0,8.4"/>' +
+            '<circle cx="15" cy="11.2" r="3" fill="#CF1126"/><circle cx="15" cy="10.1" r="2.5" fill="#F7E017"/><rect x="14.6" y="6.5" width="0.8" height="4.6" fill="#CF1126"/><polygon fill="#CF1126" points="12.6,7.4 17.4,7.4 15,5.6"/>';
+        break;
+      case 'TL':
+        s = '<rect width="30" height="20" fill="#DC241F"/><polygon fill="#FFC72C" points="0,0 15,10 0,20"/><polygon fill="#000" points="0,0 10,10 0,20"/>' +
+            '<polygon fill="#fff" points="' + starPts(3.6, 10, 2.6, 5, 0.4, -60) + '"/>';
+        break;
+    }
+    return s;
+  }
+  function flagSVG(id) {
+    return '<svg class="flag" viewBox="0 0 30 20" aria-label="Flag"><clipPath id="fc' + id + '"><rect width="30" height="20" rx="1.6"/></clipPath><g clip-path="url(#fc' + id + ')">' + flagInner(id) +
+      '</g><rect x="0.3" y="0.3" width="29.4" height="19.4" rx="1.4" fill="none" stroke="rgba(60,40,20,0.45)" stroke-width="0.6"/></svg>';
+  }
+
+  // =====================================================================
+  // 地図(経度・緯度の点から作る、かんたんな絵本の地図。1度 = 20)
+  // =====================================================================
+
+  // ---------- save / settings / Moint / sound ----------
+  function loadProgress() {
+    var p = readJSON(SAVE_KEY);
+    if (!p || p.version !== 1) p = {};
+    return { version: 1, gameId: GAME_ID, known: p.known || {}, quizzes: p.quizzes | 0, best: p.best | 0, bestStreak: p.bestStreak | 0,
+      correct: p.correct | 0, parties: p.parties | 0, played: p.played | 0, updatedAt: p.updatedAt || null };
+  }
+  var progress = loadProgress();
+  function save() { progress.updatedAt = new Date().toISOString(); writeJSON(SAVE_KEY, progress); }
+  function knownCount() { return Object.keys(progress.known).filter(function (k) { return BY_ID[k]; }).length; }
+  var settings = readJSON(SET_KEY) || {};
+  if (settings.sound === undefined) settings.sound = true;
+  function saveSettings() { writeJSON(SET_KEY, settings); }
+
+  function balance() { if (window.MokuMoint) return MokuMoint.balance(); var w = readJSON('moku:moint:wallet'); return w && w.balance > 0 ? w.balance : 0; }
+  function earn(n) {
+    if (!n) return 0;
+    if (window.MokuMoint) return MokuMoint.earn(GAME_ID, n);
+    writeJSON('moku:moint:wallet', { version: 1, balance: Math.max(0, balance() + n), updatedAt: new Date().toISOString() });
+    return n;
+  }
+  function earnedToday() { return window.MokuMoint ? MokuMoint.earnedToday(GAME_ID) : 0; }
+  function dailyCap() { return window.MokuMoint ? MokuMoint.DAILY_GAME_CAP : 500; }
+  function mointBox(lines) {
+    var got = lines.filter(function (l) { return l[1] > 0; });
+    if (!got.length) return '';
+    var tot = got.reduce(function (a, l) { return a + l[1]; }, 0);
+    return '<div class="moints">' + got.map(function (l) { return '<div><span>' + esc(l[0]) + '</span><span>+' + l[1] + '</span></div>'; }).join('') +
+      '<div class="tot"><span><span class="mcoin">M</span> Moints</span><span>+' + tot + '</span></div>' +
+      '<div style="font-size:12px;color:#9A7420;justify-content:flex-start">Today: ' + earnedToday() + ' / ' + dailyCap() + '</div></div>';
+  }
+  var actx = null, gestured = false;
+  function audio() {
+    if (!settings.sound || !gestured) return null;
+    if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
+    if (actx.state === 'suspended') actx.resume();
+    return actx;
+  }
+  document.addEventListener('pointerdown', function () { gestured = true; if (settings.sound) audio(); }, { passive: true });
+  function tone(f, t0, dur, type, vol) {
+    var a = audio(); if (!a) return;
+    var o = a.createOscillator(), g = a.createGain(), t = a.currentTime + (t0 || 0);
+    o.type = type || 'sine'; o.frequency.setValueAtTime(f, t);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol || 0.15, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + dur + 0.05);
+  }
+  var sfx = {
+    tap: function () { tone(660, 0, 0.08, 'triangle', 0.08); },
+    lock: function () { tone(520, 0, 0.06, 'square', 0.05); },
+    good: function () { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, i * 0.08, 0.22, 'triangle', 0.13); }); },
+    bad: function () { tone(330, 0, 0.16, 'sine', 0.12); tone(262, 0.12, 0.22, 'sine', 0.12); },
+    drum: function () { for (var i = 0; i < 6; i++) tone(120 + i * 8, i * 0.07, 0.08, 'triangle', 0.12); },
+    fanfare: function () { [392, 523, 659, 784, 659, 784, 1047].forEach(function (f, i) { tone(f, i * 0.11, 0.25, 'triangle', 0.12); }); }
+  };
+  function syncSoundBtn() { $('soundBtn').textContent = settings.sound ? '🔊' : '🔇'; }
+  $('soundBtn').addEventListener('click', function () { settings.sound = !settings.sound; saveSettings(); syncSoundBtn(); if (settings.sound) sfx.tap(); });
+
+  // ---------- screens ----------
+  var inner = $('inner'), fresh = false;
+  function setInner(h) {
+    inner.innerHTML = h;
+    if (fresh) { var c = inner.querySelector('.card'); if (c) c.classList.add('enter'); $('main').scrollTop = 0; }
+    fresh = false;
+  }
+  function avatar() {
+    var o = '';
+    if (window.MokuMoint) { try { o = MokuMoint.outfitSVG(MokuMoint.closet().equipped); } catch (e) {} }
+    return '<span class="av"><img src="brand/mokumoku-hero.png" alt="">' + o + '</span>';
+  }
+  function showTitle() {
+    document.body.classList.add('on-title');
+    $('cover').classList.remove('show');
+    $('bookCount').textContent = knownCount() + ' / ' + CLAIMS.length + ' facts found';
+    $('titleBal').textContent = Math.round(balance()).toLocaleString('en-US');
+    $('titleToday').textContent = '· Today ' + earnedToday() + ' / ' + dailyCap();
+    try { if (window.MokuMoint) $('titleOutfit').innerHTML = MokuMoint.outfitSVG(MokuMoint.closet().equipped); } catch (e) {}
+  }
+  function showPlay(title) { document.body.classList.remove('on-title'); $('modeTitle').textContent = title; $('topInfo').textContent = ''; fresh = true; }
+  $('menuBtn').addEventListener('click', function () { sfx.tap(); showTitle(); });
+  function claimHTML(cl) {
+    return '<div class="where">' + flagSVG(cl.c) + esc(NAMES[cl.c]) + '</div><div class="claim">' + esc(cl.t) + '</div>';
+  }
+  function verdictHTML(cl, ok, extra) {
+    return '<div class="verdict ' + ((ok === null ? cl.a : ok) ? 'ok' : 'no') + '"><div class="t"><span class="stamp ' + (cl.a ? 'fact' : 'fib') + '">' + (cl.a ? 'FACT ✓' : 'FIB ✗') + '</span>' +
+      (ok === null ? '' : ok ? 'You got it!' : 'Oops!') + (extra || '') + '</div><p>' + (cl.a ? '' : '<b>The truth:</b> ') + esc(cl.why) + '</p></div>';
+  }
+  // 出す話: まだ正解していない話を多めに、Fact と Fib を半分ずつ
+  function pickClaims(n) {
+    var facts = shuffle(CLAIMS.filter(function (c) { return c.a; })), fibs = shuffle(CLAIMS.filter(function (c) { return !c.a; }));
+    var newFirst = function (list) { return list.filter(function (c) { return !progress.known[c.id]; }).concat(list.filter(function (c) { return progress.known[c.id]; })); };
+    facts = newFirst(facts); fibs = newFirst(fibs);
+    var out = facts.slice(0, Math.ceil(n / 2)).concat(fibs.slice(0, Math.floor(n / 2)));
+    return shuffle(out);
+  }
+
+  // =====================================================================
+  // 🎯 Quiz
+  // =====================================================================
+  var QUIZ_LEN = 10, quiz = null;
+  function startQuiz() {
+    progress.played++; save();
+    quiz = { list: pickClaims(QUIZ_LEN), i: 0, res: [], streak: 0, bestStreak: 0, answered: null };
+    showPlay('🎯 Quiz');
+    renderQuiz();
+  }
+  function renderQuiz() {
+    var cl = quiz.list[quiz.i];
+    $('topInfo').textContent = (quiz.i + 1) + '/' + QUIZ_LEN + ' · ✓ ' + quiz.res.filter(Boolean).length;
+    var dots = '<div class="dots">' + quiz.list.map(function (x, i) { return '<i class="' + (i < quiz.res.length ? (quiz.res[i] ? 'ok' : 'no') : i === quiz.i ? 'now' : '') + '"></i>'; }).join('') + '</div>';
+    var h = '<div class="card">' + dots + '<div class="host">' + avatar() + '<div class="bub">' + claimHTML(cl) + '</div></div>';
+    if (quiz.answered === null) {
+      h += '<div class="ff"><button class="big fact" data-a="1">✓ FACT<small>It’s true!</small></button><button class="big fib" data-a="0">✗ FIB<small>That’s made up!</small></button></div>' +
+        '<div class="tip">Hmm… true or made up? Trust your brain!</div>';
+    } else {
+      var ok = quiz.res[quiz.i];
+      h += '<div class="ff"><button class="big fact' + (quiz.answered ? '' : ' dim') + '" disabled>✓ FACT</button><button class="big fib' + (quiz.answered ? ' dim' : '') + '" disabled>✗ FIB</button></div>' +
+        verdictHTML(cl, ok, ok && quiz.streak >= 3 ? '<span class="streak">🔥 ' + quiz.streak + ' in a row!</span>' : '') +
+        '<div class="row"><button class="btn primary" id="qNext">' + (quiz.i + 1 >= QUIZ_LEN ? 'See results ▶' : 'Next ▶') + '</button></div>';
+    }
+    h += '</div>';
+    setInner(h);
+    inner.querySelectorAll('[data-a]').forEach(function (b) { b.addEventListener('click', function () { answerQuiz(b.getAttribute('data-a') === '1'); }); });
+    if ($('qNext')) $('qNext').addEventListener('click', function () { sfx.tap(); quiz.i++; quiz.answered = null; fresh = true; if (quiz.i >= QUIZ_LEN) endQuiz(); else renderQuiz(); });
+  }
+  function answerQuiz(said) {
+    if (quiz.answered !== null) return;
+    var cl = quiz.list[quiz.i], ok = said === cl.a;
+    quiz.answered = said; quiz.res.push(ok);
+    if (ok) { quiz.streak++; quiz.bestStreak = Math.max(quiz.bestStreak, quiz.streak); progress.known[cl.id] = 1; progress.correct++; sfx.good(); }
+    else { quiz.streak = 0; sfx.bad(); }
+    save();
+    renderQuiz();
+  }
+  function endQuiz() {
+    var n = quiz.res.filter(Boolean).length;
+    progress.quizzes++; progress.best = Math.max(progress.best, n); progress.bestStreak = Math.max(progress.bestStreak, quiz.bestStreak);
+    var lines = [['Right answers: ' + n + ' × 5', earn(n * 5)]];
+    if (n === QUIZ_LEN) lines.push(['All 10 right! ⭐', earn(25)]);
+    save(); sfx.fanfare();
+    $('topInfo').textContent = '✓ ' + n + '/' + QUIZ_LEN;
+    fresh = true;
+    var missed = quiz.list.filter(function (c, i) { return !quiz.res[i]; });
+    setInner('<div class="card"><div class="host">' + avatar() + '<div class="bub"><div class="h">' + (n === QUIZ_LEN ? 'Perfect! You can’t be fooled!' : n >= 7 ? 'Great fact-finder!' : 'Good try — tricky ones!') + '</div>' +
+      '<div class="sub">Best streak this time: 🔥 ' + quiz.bestStreak + '</div></div></div>' +
+      '<div class="bigNum">' + n + ' / ' + QUIZ_LEN + '</div>' + mointBox(lines) +
+      (missed.length ? '<div class="sub" style="margin-top:12px">Remember these:</div>' + missed.map(function (c) { return verdictHTML(c, null); }).join('') : '') +
+      '<div class="row"><button class="btn primary" id="again">🎯 Play again</button><button class="btn" id="toMenu">Menu</button></div>' +
+      '<div class="tip">📚 ' + knownCount() + ' / ' + CLAIMS.length + ' facts in your Fact Book</div></div>');
+    $('again').addEventListener('click', function () { sfx.tap(); startQuiz(); });
+    $('toMenu').addEventListener('click', function () { sfx.tap(); showTitle(); });
+  }
+
+  // =====================================================================
+  // 🎉 Party(1台で 2〜4人)
+  // =====================================================================
+  var PARTY_LEN = 8, COLORS = ['#E8A23A', '#4AA3DF', '#3E9B5A', '#E0607E'], party = null;
+  function startPartySetup() {
+    showPlay('🎉 Party');
+    var saved = settings.players || ['Player 1', 'Player 2', 'Player 3', 'Player 4'], count = settings.playerCount || 2;
+    function draw() {
+      var h = '<div class="card"><div class="host">' + avatar() + '<div class="bub"><div class="h">Party time!</div><div class="sub">Put the phone in the middle. Read each claim out loud, then everyone taps <b>Fact</b> or <b>Fib</b> on their own row. Then reveal!</div></div></div>' +
+        '<div class="sub" style="margin-top:12px">How many players?</div><div class="seg">' + [2, 3, 4].map(function (n) { return '<button data-n="' + n + '" class="' + (n === count ? 'on' : '') + '">' + n + '</button>'; }).join('') + '</div><div class="players">';
+      for (var i = 0; i < count; i++) h += '<input maxlength="12" data-p="' + i + '" value="' + esc(saved[i] || 'Player ' + (i + 1)) + '">';
+      h += '</div><div class="row"><button class="btn primary" id="pStart">▶ Start (' + PARTY_LEN + ' claims)</button></div></div>';
+      setInner(h);
+      inner.querySelectorAll('[data-n]').forEach(function (b) { b.addEventListener('click', function () { collect(); count = +b.getAttribute('data-n'); sfx.tap(); draw(); }); });
+      $('pStart').addEventListener('click', function () {
+        collect(); settings.players = saved; settings.playerCount = count; saveSettings();
+        var names = saved.slice(0, count).map(function (s, i) { return (s || '').trim() || 'Player ' + (i + 1); });
+        sfx.tap(); progress.played++; save();
+        party = { names: names, pts: names.map(function () { return 0; }), list: pickClaims(PARTY_LEN), i: 0, votes: {}, revealed: false };
+        fresh = true; renderParty();
+      });
+    }
+    function collect() { inner.querySelectorAll('[data-p]').forEach(function (inp) { saved[+inp.getAttribute('data-p')] = inp.value.trim().slice(0, 12); }); }
+    draw();
+  }
+  function renderParty() {
+    var cl = party.list[party.i];
+    $('topInfo').textContent = (party.i + 1) + '/' + PARTY_LEN;
+    var all = party.names.every(function (n, i) { return party.votes[i] !== undefined; });
+    var h = '<div class="card"><div class="host">' + avatar() + '<div class="bub">' + claimHTML(cl) + '</div></div>';
+    party.names.forEach(function (n, i) {
+      var v = party.votes[i];
+      h += '<div class="pl"><div class="nm"><i style="background:' + COLORS[i] + '"></i><span>' + esc(n) + '</span></div>';
+      if (party.revealed) {
+        var ok = v === cl.a;
+        h += '<span class="res ' + (ok ? 'ok' : 'no') + '">' + (v ? 'Fact' : 'Fib') + (ok ? ' ✓ +1' : ' ✗') + '</span>';
+      } else if (v === undefined) {
+        h += '<button class="mini fact" data-p="' + i + '" data-v="1">Fact</button><button class="mini fib" data-p="' + i + '" data-v="0">Fib</button>';
+      } else {
+        h += '<span class="lock">🔒 Locked</span><button class="mini" style="background:#B9A88E" data-undo="' + i + '">↺</button>';
+      }
+      h += '<span class="pts">' + party.pts[i] + (party.pts[i] === 1 ? ' pt' : ' pts') + '</span></div>';
+    });
+    if (!party.revealed) h += '<div class="row"><button class="btn primary" id="reveal"' + (all ? '' : ' disabled') + '>🥁 Reveal!</button></div>' +
+      '<div class="tip">No peeking! Your answer stays hidden until Reveal.</div>';
+    else h += verdictHTML(cl, null) + '<div class="row"><button class="btn primary" id="pNext">' + (party.i + 1 >= PARTY_LEN ? 'Final scores ▶' : 'Next claim ▶') + '</button></div>';
+    h += '</div>';
+    setInner(h);
+    inner.querySelectorAll('[data-p][data-v]').forEach(function (b) { b.addEventListener('click', function () { party.votes[+b.getAttribute('data-p')] = b.getAttribute('data-v') === '1'; sfx.lock(); renderParty(); }); });
+    inner.querySelectorAll('[data-undo]').forEach(function (b) { b.addEventListener('click', function () { delete party.votes[+b.getAttribute('data-undo')]; sfx.tap(); renderParty(); }); });
+    if ($('reveal')) $('reveal').addEventListener('click', function () {
+      sfx.drum();
+      party.names.forEach(function (n, i) { if (party.votes[i] === cl.a) party.pts[i]++; });
+      party.revealed = true;
+      setTimeout(function () { sfx.good(); }, 450);
+      renderParty();
+    });
+    if ($('pNext')) $('pNext').addEventListener('click', function () {
+      sfx.tap(); party.i++; party.votes = {}; party.revealed = false; fresh = true;
+      if (party.i >= PARTY_LEN) endParty(); else renderParty();
+    });
+  }
+  function endParty() {
+    progress.parties++; save(); sfx.fanfare();
+    var top = Math.max.apply(null, party.pts), win = party.names.filter(function (n, i) { return party.pts[i] === top; });
+    var rows = party.names.map(function (n, i) { return { n: n, p: party.pts[i], i: i }; }).sort(function (a, b) { return b.p - a.p; });
+    fresh = true;
+    setInner('<div class="card"><div class="host">' + avatar() + '<div class="bub"><div class="h">' + (win.length > 1 ? 'A tie! Super fact-finders!' : esc(win[0]) + ' wins!') + '</div>' +
+      '<div class="sub">Now tell your family one surprising fact you learned!</div></div></div>' +
+      rows.map(function (r) { return '<div class="pl"><div class="nm"><i style="background:' + COLORS[r.i] + '"></i><span>' + (r.p === top ? '👑 ' : '') + esc(r.n) + '</span></div><span class="pts">' + r.p + (r.p === 1 ? ' pt' : ' pts') + '</span></div>'; }).join('') +
+      '<div class="row"><button class="btn primary" id="pAgain">🎉 Play again</button><button class="btn" id="pMenu">Menu</button></div></div>');
+    $('topInfo').textContent = '';
+    $('pAgain').addEventListener('click', function () {
+      sfx.tap(); progress.played++; save();
+      party = { names: party.names, pts: party.names.map(function () { return 0; }), list: pickClaims(PARTY_LEN), i: 0, votes: {}, revealed: false };
+      fresh = true; renderParty();
+    });
+    $('pMenu').addEventListener('click', function () { sfx.tap(); showTitle(); });
+  }
+
+  // =====================================================================
+  // 📚 Fact Book
+  // =====================================================================
+  function openBook() {
+    showPlay('📚 Fact Book');
+    $('topInfo').textContent = knownCount() + '/' + CLAIMS.length;
+    var sel = settings.bookC || 'MY';
+    function draw() {
+      var h = '<div class="card"><div class="h">Fact Book</div><div class="sub">Claims you got right are saved here. Tap a country.</div><div class="cgrid">' +
+        ORDER.map(function (c) {
+          var all = CLAIMS.filter(function (x) { return x.c === c; }), got = all.filter(function (x) { return progress.known[x.id]; }).length;
+          return '<button class="cbtn' + (c === sel ? ' on' : '') + '" data-c="' + c + '">' + flagSVG(c) + '<span>' + esc(NAMES[c]) + '<small>' + got + ' / ' + all.length + '</small></span></button>';
+        }).join('') + '</div><div class="facts">' +
+        CLAIMS.filter(function (x) { return x.c === sel; }).map(function (x) {
+          if (!progress.known[x.id]) return '<div class="fitem locked">🔒 Not found yet — play a Quiz!</div>';
+          return '<div class="fitem"><span class="stamp ' + (x.a ? 'fact' : 'fib') + '" style="display:inline-block;padding:1px 8px;border-radius:6px;color:#fff;font:700 12px var(--round);margin-right:6px">' + (x.a ? 'FACT' : 'FIB') + '</span>' + esc(x.t) +
+            '<span class="why">' + (x.a ? '' : 'The truth: ') + esc(x.why) + '</span></div>';
+        }).join('') + '</div></div>';
+      setInner(h);
+      inner.querySelectorAll('[data-c]').forEach(function (b) { b.addEventListener('click', function () { sel = b.getAttribute('data-c'); settings.bookC = sel; saveSettings(); sfx.tap(); draw(); }); });
+    }
+    draw();
+  }
+
+  // ---------- start ----------
+  syncSoundBtn();
+  $('goQuiz').addEventListener('click', function () { sfx.tap(); startQuiz(); });
+  $('goParty').addEventListener('click', function () { sfx.tap(); startPartySetup(); });
+  $('goBook').addEventListener('click', function () { sfx.tap(); openBook(); });
+  window.addEventListener('moku:moint', function () { if (document.body.classList.contains('on-title')) showTitle(); });
+  showTitle();
+  try {
+    var scr = new URLSearchParams(location.search).get('screen');
+    if (scr === 'quiz') startQuiz(); else if (scr === 'party') startPartySetup(); else if (scr === 'book') openBook();
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>

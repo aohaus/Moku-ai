@@ -125,6 +125,7 @@
     'moku-mall':               { name: 'Moku Mall',         traits: { builder: 0.9, courage: 0.4, collector: 0.3 } },
     'wheres-moku':             { name: "Where's Moku?",     traits: { travel: 1, explorer: 0.6, words: 0.3 } },
     'moku-money-market':       { name: 'Money Market',      traits: { travel: 0.8, food: 0.6, puzzle: 0.5 } },
+    'moku-fact-or-fib':        { name: 'Fact or Fib?',      traits: { travel: 0.7, party: 0.6, words: 0.5 } },
     'mokuball':                { name: 'Mokuball',          traits: { action: 0.5, luck: 0.4 } }
   };
 
