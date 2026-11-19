@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<script src="shared/moku-errors.js?v=20261119d"></script>
-<script src="shared/moku-gate.js?v=20261119d"></script>
+<script src="shared/moku-errors.js?v=20261119e"></script>
+<script src="shared/moku-gate.js?v=20261119e"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Moku Series</title>
 <!-- Icons: made by scripts/make-icons.py. Bump ?v= when they change so browsers refetch. -->
@@ -2236,6 +2236,11 @@ html.me-open #ceoPeek { display: none; }
     var p = readJSON('moku:moku-night-jungle:progress'), f = p && p.found;
     return f && typeof f === 'object' ? Math.min(MNJ_TOTAL, Object.keys(f).filter(function (k) { return f[k] > 0; }).length) : 0;
   }
+  // Moku Festival Lights: 飾りごとのいちばん良い ⭐ の合計(6 つ × 3 = 18)
+  function mflStars() {
+    var p = readJSON('moku:moku-festival-lights:progress'), b = p && p.best;
+    return b && typeof b === 'object' ? Object.keys(b).reduce(function (a, k) { return a + Math.min(3, b[k] | 0); }, 0) : 0;
+  }
   function mallCleared() {
     var p = readJSON('moku:moku-mall:progress');
     return p && Array.isArray(p.cleared) ? p.cleared.filter(Boolean).length : 0;
@@ -2979,6 +2984,31 @@ html.me-open #ceoPeek { display: none; }
       }
     },
     {
+      name: 'Moku Festival Lights',
+      card: 'mfl',
+      gameId: 'moku-festival-lights',
+      // 完了 = 6 つの飾りを全部 ⭐3 で作った
+      isCompleted: function () {
+        if (isExplicitlyMarked('completed', 'mfl')) return true;
+        return mflStars() >= 18;
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'mfl')) return true;
+        var p = readJSON('moku:moku-festival-lights:progress');
+        return Boolean(p && p.played > 0);
+      },
+      progress: function () {
+        if (this.isCompleted()) return 1;
+        return Math.min(1, mflStars() / 18);
+      },
+      badge: function () {
+        var p = readJSON('moku:moku-festival-lights:progress');
+        if (!p || !this.isPlayed()) return null;
+        var made = p.made && typeof p.made === 'object' ? Object.keys(p.made).length : 0;
+        return '🏮 ' + made + ' / 6 crafts · ⭐ ' + mflStars() + ' / 18';
+      }
+    },
+    {
       name: 'Sir CEO Moku',
       card: 'ceo',
       gameId: 'ceo-moku',
@@ -3064,6 +3094,7 @@ html.me-open #ceoPeek { display: none; }
     mmm: { title: 'Market Stars', read: function () { var p = readJSON('moku:moku-money-market:progress'); return p && p.totalStars; }, fmt: function (n) { return num(n) + ' ⭐'; } },
     mff: { title: 'Facts Found', read: mffKnown, fmt: function (n) { return n + ' / ' + MFF_TOTAL + ' 📚'; } },
     mnj: { title: 'Critters Found', read: mnjFound, fmt: function (n) { return n + ' / ' + MNJ_TOTAL + ' 🔦'; } },
+    mfl: { title: 'Festival Stars', read: mflStars, fmt: function (n) { return n + ' / 18 ⭐'; } },
     ceo: { title: 'Pop Quizzes Solved', read: function () { var m = readJSON('moku:ceo-moku:memory'); return m && m.quiz && m.quiz.wins; }, fmt: function (n) { return n + ' 🧩'; } }
   };
   function myRecords() {
@@ -3190,6 +3221,10 @@ html.me-open #ceoPeek { display: none; }
            tag: 'Shine your light. Who’s there?',
            desc: 'It’s night in the Southeast Asian rainforest. Use your flashlight, follow the glowing eyes and listen for calls to find real animals — a tarsier with giant eyes, a bearcat that smells like popcorn, the world’s biggest flower and more. Collect them all in your Junglepedia!',
            moint: { cap: true, how: 'Night Walk: +10 for each animal you find (up to +50), all 5 with battery left: +20. First time you find each one: +20. All 14: +200.' } },
+    mfl: { name: 'Moku Festival Lights', gameId: 'moku-festival-lights', genre: 'Trace & Craft · Festivals', cta: 'Make', hi: '#E0473B', lo: '#6E1C16', newUntil: '2026-12-10',
+           tag: 'Trace, color and light it up!',
+           desc: 'Make festival crafts from Southeast Asia with your finger: batik from Indonesia, a kolam, a Hội An silk lantern, a Thai krathong, a Filipino parol and a mooncake. Trace the glowing dots, pick a color, and watch them all light up on Festival Night!',
+           moint: { cap: true, how: 'Make a craft: +10 for each star (up to +30). First time you make each one: +30. All 6: +200.' } },
     ceo: { name: 'Sir CEO Moku', gameId: 'ceo-moku', genre: 'Chat & Quiz', cta: 'Visit', hi: '#D9925A', lo: '#6A3A1C', newUntil: '2026-12-08',
            tag: 'Meet the boss of Moku games!',
            desc: 'Visit Sir CEO Moku in his office. He picks a game for you every day, gives surprise quizzes, and listens to your game ideas. He is a little silly… and a little greedy.',
@@ -3203,7 +3238,7 @@ html.me-open #ceoPeek { display: none; }
   };
   // Live in ASIA(2026-11-18〜): 東南アジアを事実で楽しく知るゲームの棚。5本の予定で、第1弾が Where's Moku?
   var SHELVES = [
-    { title: 'Live in ASIA',    sub: 'Explore Southeast Asia',   cards: ['wm', 'mmm', 'mff', 'mnj'] },
+    { title: 'Live in ASIA',    sub: 'Explore Southeast Asia',   cards: ['wm', 'mmm', 'mff', 'mnj', 'mfl'] },
     { title: 'Action & Sports', sub: 'Fling, kick, fight, race', cards: ['mdp', 'mfg', 'mfr', 'mkt', 'br', 'mk', 'am'] },
     { title: 'Puzzle & Brain',  sub: 'Think, match, merge',      cards: ['mwr', 'mch', 'md', 'so', 'mm'] },
     { title: 'Cozy & Create',   sub: 'Take it slow',             cards: ['ceo', 'mml', 'mw6', 'mrc', 'fm', 'mf', 'mb', 'mc'] },
@@ -4558,9 +4593,9 @@ html.me-open #ceoPeek { display: none; }
   };
 })();
 </script>
-<script src="shared/moku-account.js?v=20261119d"></script>
-<script src="shared/moku-transfer.js?v=20261119d"></script>
-<script src="shared/moku-moint.js?v=20261119d"></script>
+<script src="shared/moku-account.js?v=20261119e"></script>
+<script src="shared/moku-transfer.js?v=20261119e"></script>
+<script src="shared/moku-moint.js?v=20261119e"></script>
 <script>
 // ---------- Invites (SPEC.md §7) ----------
 // Friends waiting for you in a multiplayer game, at the top of the hub:

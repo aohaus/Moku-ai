@@ -127,6 +127,7 @@
     'moku-money-market':       { name: 'Money Market',      traits: { travel: 0.8, food: 0.6, puzzle: 0.5 } },
     'moku-fact-or-fib':        { name: 'Fact or Fib?',      traits: { travel: 0.7, party: 0.6, words: 0.5 } },
     'moku-night-jungle':       { name: 'Night Jungle',      traits: { nature: 1, explorer: 0.8, collector: 0.4 } },
+    'moku-festival-lights':    { name: 'Festival Lights',   traits: { style: 0.8, calm: 0.6, travel: 0.5 } },
     'mokuball':                { name: 'Mokuball',          traits: { action: 0.5, luck: 0.4 } }
   };
 

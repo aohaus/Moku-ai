@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<script src="shared/moku-errors.js?v=20261119d"></script>
-<script src="shared/moku-gate.js?v=20261119d"></script>
+<script src="shared/moku-errors.js?v=20261119e"></script>
+<script src="shared/moku-gate.js?v=20261119e"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>Sir CEO Moku</title>
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
@@ -469,12 +469,12 @@ body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
 </div>
 
 <a id="hub-link" href="index.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.5.4 · Updated Nov 19, 2026</div>
+<div id="buildInfo">v0.5.5 · Updated Nov 19, 2026</div>
 
-<script src="shared/moku-account.js?v=20261119d" data-mode="background"></script>
-<script src="shared/moku-moint.js?v=20261119d" data-mode="none"></script>
-<script src="shared/moku-random.js?v=20261119d"></script>
-<script src="shared/moku-riddles.js?v=20261119d"></script>
+<script src="shared/moku-account.js?v=20261119e" data-mode="background"></script>
+<script src="shared/moku-moint.js?v=20261119e" data-mode="none"></script>
+<script src="shared/moku-random.js?v=20261119e"></script>
+<script src="shared/moku-riddles.js?v=20261119e"></script>
 <script>
 (function () {
   'use strict';
@@ -566,7 +566,8 @@ body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
     { id: 'wheres-moku', name: "Where's Moku?", icon: '🌏' },
     { id: 'moku-money-market', name: 'Moku Money Market', icon: '🛒' },
     { id: 'moku-fact-or-fib', name: 'Fact or Fib? Asia', icon: '🤔' },
-    { id: 'moku-night-jungle', name: 'Moku Night Jungle', icon: '🔦' }
+    { id: 'moku-night-jungle', name: 'Moku Night Jungle', icon: '🔦' },
+    { id: 'moku-festival-lights', name: 'Moku Festival Lights', icon: '🏮' }
   ];
 
   // CEO の服(Moku Closet のアイテム)。表情は Moods から
@@ -1287,7 +1288,8 @@ body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
     { re: /where'?s moku|postcard|絵はがき|東南アジア|asean/i, id: 'wheres-moku' },
     { re: /money market|マネーマーケット|ringgit|baht|リンギット|バーツ/i, id: 'moku-money-market' },
     { re: /fact or fib|ほんと.?うそ|ファクト/i, id: 'moku-fact-or-fib' },
-    { re: /night jungle|ジャングル|jungle/i, id: 'moku-night-jungle' }
+    { re: /night jungle|ジャングル|jungle/i, id: 'moku-night-jungle' },
+    { re: /festival|フェスティバル|お祭り|ランタン|lantern/i, id: 'moku-festival-lights' }
   ];
   var GAME_TALK = {
     'moku-fight': ['Moku Fight! My secret move is… running away. Very fast, moku.', 'Moku Fight モク!ワタクシの必殺技は…にげること。すごく速いモク。'],
@@ -1302,6 +1304,7 @@ body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
     'moku-bento': ['Moku Bento! Please make one for me. Extra rice, moku.', 'Moku Bento モク!ワタクシにも1つ作ってほしいモク。ごはん大盛りモク。'],
     'moku-future-run': ['Future Run! Run, jump, slide! My hat falls off every time, moku.', 'Future Run モク!走って、とんで、すべるモク!モクの帽子はいつも落ちるモク。'],
     'moku-mall': ['Moku Mall! Shops and coins… my favorite kind of game, moku!', 'Moku Mall モク!お店とコイン…ワタクシの大好きなゲームモク!'],
+    'moku-festival-lights': ['Festival Lights! I made a lantern once. It was so bright, I had to wear sunglasses, moku.', 'Festival Lights モク!ワタクシもランタンを作ったモク。明るすぎてサングラスをかけたモク。'],
     'moku-night-jungle': ['Night Jungle! I am an owl, so I see well at night. …I still bring a flashlight, moku.', 'Night Jungle モク!ワタクシはフクロウだから夜も見えるモク。…でも懐中電灯は持っていくモク。'],
     'moku-fact-or-fib': ['Fact or Fib! Fact: I am the best CEO. …Fine, that one might be a fib, moku.', 'Fact or Fib モク!ほんと:ワタクシは最高の社長。…それはうそかもしれないモク。'],
     'moku-money-market': ['Money Market! I count my Moints in ringgit, baht AND đồng. That is a LOT of zeros, moku.', 'Money Market モク!ワタクシは Moint をリンギットとバーツとドンで数えるモク。ゼロがいっぱいモク。'],
