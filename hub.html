@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<script src="shared/moku-errors.js?v=20261119c"></script>
-<script src="shared/moku-gate.js?v=20261119c"></script>
+<script src="shared/moku-errors.js?v=20261119d"></script>
+<script src="shared/moku-gate.js?v=20261119d"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Moku Series</title>
 <!-- Icons: made by scripts/make-icons.py. Bump ?v= when they change so browsers refetch. -->
@@ -2230,6 +2230,12 @@ html.me-open #ceoPeek { display: none; }
     var p = readJSON('moku:moku-fact-or-fib:progress'), k = p && p.known;
     return k && typeof k === 'object' ? Math.min(MFF_TOTAL, Object.keys(k).length) : 0;
   }
+  // Moku Night Jungle: 見つけた生き物の数(ゲームの CRITTERS の数と合わせる)
+  var MNJ_TOTAL = 14;
+  function mnjFound() {
+    var p = readJSON('moku:moku-night-jungle:progress'), f = p && p.found;
+    return f && typeof f === 'object' ? Math.min(MNJ_TOTAL, Object.keys(f).filter(function (k) { return f[k] > 0; }).length) : 0;
+  }
   function mallCleared() {
     var p = readJSON('moku:moku-mall:progress');
     return p && Array.isArray(p.cleared) ? p.cleared.filter(Boolean).length : 0;
@@ -2948,6 +2954,31 @@ html.me-open #ceoPeek { display: none; }
       }
     },
     {
+      name: 'Moku Night Jungle',
+      card: 'mnj',
+      gameId: 'moku-night-jungle',
+      // 完了 = 14 の生き物を全部見つけた(moku-night-jungle.html の CRITTERS)
+      isCompleted: function () {
+        if (isExplicitlyMarked('completed', 'mnj')) return true;
+        return mnjFound() >= MNJ_TOTAL;
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'mnj')) return true;
+        var p = readJSON('moku:moku-night-jungle:progress');
+        return Boolean(p && p.played > 0);
+      },
+      progress: function () {
+        if (this.isCompleted()) return 1;
+        return Math.min(1, mnjFound() / MNJ_TOTAL);
+      },
+      badge: function () {
+        var p = readJSON('moku:moku-night-jungle:progress');
+        if (!p || !this.isPlayed()) return null;
+        var line = '📗 ' + mnjFound() + ' / ' + MNJ_TOTAL + ' critters';
+        return p.nights ? line + ' · 🔦 ' + p.nights + (p.nights === 1 ? ' night' : ' nights') : line;
+      }
+    },
+    {
       name: 'Sir CEO Moku',
       card: 'ceo',
       gameId: 'ceo-moku',
@@ -3032,6 +3063,7 @@ html.me-open #ceoPeek { display: none; }
     wm:  { title: 'Stamps Collected', read: function () { var p = readJSON('moku:wheres-moku:progress'); return p && p.totalStamps; }, fmt: function (n) { return num(n) + ' 🔖'; } },
     mmm: { title: 'Market Stars', read: function () { var p = readJSON('moku:moku-money-market:progress'); return p && p.totalStars; }, fmt: function (n) { return num(n) + ' ⭐'; } },
     mff: { title: 'Facts Found', read: mffKnown, fmt: function (n) { return n + ' / ' + MFF_TOTAL + ' 📚'; } },
+    mnj: { title: 'Critters Found', read: mnjFound, fmt: function (n) { return n + ' / ' + MNJ_TOTAL + ' 🔦'; } },
     ceo: { title: 'Pop Quizzes Solved', read: function () { var m = readJSON('moku:ceo-moku:memory'); return m && m.quiz && m.quiz.wins; }, fmt: function (n) { return n + ' 🧩'; } }
   };
   function myRecords() {
@@ -3154,6 +3186,10 @@ html.me-open #ceoPeek { display: none; }
            tag: 'Weird but true… or made up?',
            desc: 'Chewing gum can’t be sold in Singapore. Thailand’s capital has the world’s longest name. True or made up? Spot the facts and the fibs from 11 Southeast Asian countries — alone, or as a party game on one phone!',
            moint: { cap: true, how: 'Quiz: +5 for each right answer, all 10 right: +25. Party mode is just for fun (no Moints).' } },
+    mnj: { name: 'Moku Night Jungle', gameId: 'moku-night-jungle', genre: 'Flashlight Explore · Rainforest', cta: 'Explore', hi: '#3F8FA0', lo: '#173F47', newUntil: '2026-12-10',
+           tag: 'Shine your light. Who’s there?',
+           desc: 'It’s night in the Southeast Asian rainforest. Use your flashlight, follow the glowing eyes and listen for calls to find real animals — a tarsier with giant eyes, a bearcat that smells like popcorn, the world’s biggest flower and more. Collect them all in your Junglepedia!',
+           moint: { cap: true, how: 'Night Walk: +10 for each animal you find (up to +50), all 5 with battery left: +20. First time you find each one: +20. All 14: +200.' } },
     ceo: { name: 'Sir CEO Moku', gameId: 'ceo-moku', genre: 'Chat & Quiz', cta: 'Visit', hi: '#D9925A', lo: '#6A3A1C', newUntil: '2026-12-08',
            tag: 'Meet the boss of Moku games!',
            desc: 'Visit Sir CEO Moku in his office. He picks a game for you every day, gives surprise quizzes, and listens to your game ideas. He is a little silly… and a little greedy.',
@@ -3167,7 +3203,7 @@ html.me-open #ceoPeek { display: none; }
   };
   // Live in ASIA(2026-11-18〜): 東南アジアを事実で楽しく知るゲームの棚。5本の予定で、第1弾が Where's Moku?
   var SHELVES = [
-    { title: 'Live in ASIA',    sub: 'Explore Southeast Asia',   cards: ['wm', 'mmm', 'mff'] },
+    { title: 'Live in ASIA',    sub: 'Explore Southeast Asia',   cards: ['wm', 'mmm', 'mff', 'mnj'] },
     { title: 'Action & Sports', sub: 'Fling, kick, fight, race', cards: ['mdp', 'mfg', 'mfr', 'mkt', 'br', 'mk', 'am'] },
     { title: 'Puzzle & Brain',  sub: 'Think, match, merge',      cards: ['mwr', 'mch', 'md', 'so', 'mm'] },
     { title: 'Cozy & Create',   sub: 'Take it slow',             cards: ['ceo', 'mml', 'mw6', 'mrc', 'fm', 'mf', 'mb', 'mc'] },
@@ -4522,9 +4558,9 @@ html.me-open #ceoPeek { display: none; }
   };
 })();
 </script>
-<script src="shared/moku-account.js?v=20261119c"></script>
-<script src="shared/moku-transfer.js?v=20261119c"></script>
-<script src="shared/moku-moint.js?v=20261119c"></script>
+<script src="shared/moku-account.js?v=20261119d"></script>
+<script src="shared/moku-transfer.js?v=20261119d"></script>
+<script src="shared/moku-moint.js?v=20261119d"></script>
 <script>
 // ---------- Invites (SPEC.md §7) ----------
 // Friends waiting for you in a multiplayer game, at the top of the hub:
