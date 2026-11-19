@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<script src="shared/moku-errors.js?v=20261119"></script>
-<script src="shared/moku-gate.js?v=20261119"></script>
+<script src="shared/moku-errors.js?v=20261119b"></script>
+<script src="shared/moku-gate.js?v=20261119b"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Moku Series</title>
 <!-- Icons: made by scripts/make-icons.py. Bump ?v= when they change so browsers refetch. -->
@@ -2219,6 +2219,11 @@ html.me-open #ceoPeek { display: none; }
     var p = readJSON('moku:wheres-moku:progress'), o = p && p[field];
     return o && typeof o === 'object' ? Object.keys(o).filter(function (k) { return o[k] > 0; }).length : 0;
   }
+  // Moku Money Market: いちばん良い ⭐ が min 以上の市場の数(min 1 = 行ったことがある)
+  function mmmCount(min) {
+    var p = readJSON('moku:moku-money-market:progress'), m = p && p.markets;
+    return m && typeof m === 'object' ? Object.keys(m).filter(function (k) { return m[k] && (min <= 1 ? m[k].played > 0 : (m[k].best | 0) >= min); }).length : 0;
+  }
   function mallCleared() {
     var p = readJSON('moku:moku-mall:progress');
     return p && Array.isArray(p.cleared) ? p.cleared.filter(Boolean).length : 0;
@@ -2886,6 +2891,32 @@ html.me-open #ceoPeek { display: none; }
       }
     },
     {
+      name: 'Moku Money Market',
+      card: 'mmm',
+      gameId: 'moku-money-market',
+      // 完了 = 6 か国すべての市場で ⭐15(1回の満点)を取った
+      isCompleted: function () {
+        if (isExplicitlyMarked('completed', 'mmm')) return true;
+        return mmmCount(15) >= 6;
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'mmm')) return true;
+        var p = readJSON('moku:moku-money-market:progress');
+        return Boolean(p && p.played > 0);
+      },
+      progress: function () {
+        if (this.isCompleted()) return 1;
+        // 行った市場(6)を半分、満点の市場(6)を半分
+        return Math.min(1, mmmCount(1) / 6 * 0.5 + mmmCount(15) / 6 * 0.5);
+      },
+      badge: function () {
+        var p = readJSON('moku:moku-money-market:progress');
+        if (!p || !this.isPlayed()) return null;
+        var line = '🛒 ' + mmmCount(1) + ' / 6 markets · ⭐ ' + num(p.totalStars | 0);
+        return p.checkBest ? line + ' · 💱 ' + p.checkBest + '/8' : line;
+      }
+    },
+    {
       name: 'Sir CEO Moku',
       card: 'ceo',
       gameId: 'ceo-moku',
@@ -2968,6 +2999,7 @@ html.me-open #ceoPeek { display: none; }
     mdp: { title: 'Races Won', read: dropperWins, fmt: function (n) { return n + ' / ' + DROPPER_RACES.length + ' 🥇'; } },
     mml: { title: 'Most Coins', read: function () { var p = readJSON('moku:moku-mall:progress'); return p && p.bestCoins; }, fmt: function (n) { return '$' + num(n); } },
     wm:  { title: 'Stamps Collected', read: function () { var p = readJSON('moku:wheres-moku:progress'); return p && p.totalStamps; }, fmt: function (n) { return num(n) + ' 🔖'; } },
+    mmm: { title: 'Market Stars', read: function () { var p = readJSON('moku:moku-money-market:progress'); return p && p.totalStars; }, fmt: function (n) { return num(n) + ' ⭐'; } },
     ceo: { title: 'Pop Quizzes Solved', read: function () { var m = readJSON('moku:ceo-moku:memory'); return m && m.quiz && m.quiz.wins; }, fmt: function (n) { return n + ' 🧩'; } }
   };
   function myRecords() {
@@ -3082,6 +3114,10 @@ html.me-open #ceoPeek { display: none; }
            tag: 'Moku is traveling. Find him!',
            desc: 'Moku sends postcards from Southeast Asia. Read the clues — hello, food, money, flags — and find him on the map! Compare countries in Twin or Not?, then explain a secret country to your friends in Be the Guide.',
            moint: { cap: true, how: 'Postcards: +5 for every stamp (up to +75 a trip), every postcard on clue 1: +25. Twin or Not?: +5 for each right answer, all 8 right: +20. First visit to each country: +30. All 11 countries: +300.' } },
+    mmm: { name: 'Moku Money Market', gameId: 'moku-money-market', genre: 'Market Math · Southeast Asia', cta: 'Shop', hi: '#E8A23A', lo: '#6E4510', newUntil: '2026-12-10',
+           tag: 'Shop with real money from 6 countries!',
+           desc: 'Buy street food at markets in Malaysia, Singapore, Thailand, Vietnam, Indonesia and the Philippines. Add up the prices, pay with their notes and coins, and check your change. Then guess what things cost in your own money!',
+           moint: { cap: true, how: 'Market Trip: +5 for every star (up to +75), all 15 stars: +25. Price Check: +5 for each right answer, all 8 right: +20. First visit to each market: +30. All 6 markets: +200.' } },
     ceo: { name: 'Sir CEO Moku', gameId: 'ceo-moku', genre: 'Chat & Quiz', cta: 'Visit', hi: '#D9925A', lo: '#6A3A1C', newUntil: '2026-12-08',
            tag: 'Meet the boss of Moku games!',
            desc: 'Visit Sir CEO Moku in his office. He picks a game for you every day, gives surprise quizzes, and listens to your game ideas. He is a little silly… and a little greedy.',
@@ -3095,7 +3131,7 @@ html.me-open #ceoPeek { display: none; }
   };
   // Live in ASIA(2026-11-18〜): 東南アジアを事実で楽しく知るゲームの棚。5本の予定で、第1弾が Where's Moku?
   var SHELVES = [
-    { title: 'Live in ASIA',    sub: 'Explore Southeast Asia',   cards: ['wm'] },
+    { title: 'Live in ASIA',    sub: 'Explore Southeast Asia',   cards: ['wm', 'mmm'] },
     { title: 'Action & Sports', sub: 'Fling, kick, fight, race', cards: ['mdp', 'mfg', 'mfr', 'mkt', 'br', 'mk', 'am'] },
     { title: 'Puzzle & Brain',  sub: 'Think, match, merge',      cards: ['mwr', 'mch', 'md', 'so', 'mm'] },
     { title: 'Cozy & Create',   sub: 'Take it slow',             cards: ['ceo', 'mml', 'mw6', 'mrc', 'fm', 'mf', 'mb', 'mc'] },
@@ -4450,9 +4486,9 @@ html.me-open #ceoPeek { display: none; }
   };
 })();
 </script>
-<script src="shared/moku-account.js?v=20261119"></script>
-<script src="shared/moku-transfer.js?v=20261119"></script>
-<script src="shared/moku-moint.js?v=20261119"></script>
+<script src="shared/moku-account.js?v=20261119b"></script>
+<script src="shared/moku-transfer.js?v=20261119b"></script>
+<script src="shared/moku-moint.js?v=20261119b"></script>
 <script>
 // ---------- Invites (SPEC.md §7) ----------
 // Friends waiting for you in a multiplayer game, at the top of the hub:

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="240" height="240"><ellipse cx="60" cy="107" rx="36" ry="5" fill="#000" opacity=".18"/>
+<g fill="#FFFFFF" fill-opacity=".14"><circle cx="18" cy="20" r="3"/><circle cx="102" cy="28" r="2.5"/></g>
+<path d="M14 30h92v14H14z" fill="#FFF4DE" stroke="#4E2C17" stroke-width="3" stroke-linejoin="round"/>
+<path d="M14 30h15v14H14zM44 30h16v14H44zM75 30h16v14H75z" fill="#C8443B"/>
+<path d="M14 44c0 6 15 6 15 0c0 6 15 6 15 0c0 6 16 6 16 0c0 6 15 6 15 0c0 6 16 6 16 0c0 6 15 6 15 0" fill="#FFF4DE" stroke="#4E2C17" stroke-width="3" stroke-linejoin="round"/>
+<path d="M20 50v42M100 50v42" stroke="#7A4A2C" stroke-width="5" stroke-linecap="round"/>
+<rect x="12" y="84" width="96" height="14" rx="4" fill="#B07A4C" stroke="#4E2C17" stroke-width="3"/>
+<g transform="rotate(-8 46 74)"><rect x="26" y="62" width="40" height="22" rx="4" fill="#3E9B5A" stroke="#1E5A30" stroke-width="2.5"/><circle cx="36" cy="73" r="5" fill="#fff" opacity=".45"/><text x="52" y="78" text-anchor="middle" font-family="Arial Rounded MT Bold, Arial, sans-serif" font-weight="900" font-size="12" fill="#fff">50</text></g>
+<circle cx="80" cy="74" r="12" fill="#F2C230" stroke="#9A6A10" stroke-width="2.5"/><circle cx="80" cy="74" r="7.5" fill="none" stroke="#FFF2A8" stroke-width="1.5"/>
+<circle cx="94" cy="80" r="8" fill="#C9C9C9" stroke="#7A7A7A" stroke-width="2"/>
+<path d="M100 10l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#FFFFFF"/></svg>

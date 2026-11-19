@@ -124,6 +124,7 @@
     'moku-dropper':            { name: 'Moku Dropper',      traits: { courage: 0.8, speed: 0.6, explorer: 0.3 } },
     'moku-mall':               { name: 'Moku Mall',         traits: { builder: 0.9, courage: 0.4, collector: 0.3 } },
     'wheres-moku':             { name: "Where's Moku?",     traits: { travel: 1, explorer: 0.6, words: 0.3 } },
+    'moku-money-market':       { name: 'Money Market',      traits: { travel: 0.8, food: 0.6, puzzle: 0.5 } },
     'mokuball':                { name: 'Mokuball',          traits: { action: 0.5, luck: 0.4 } }
   };
 
