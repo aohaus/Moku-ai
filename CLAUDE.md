@@ -95,6 +95,8 @@ cd backend && npm test   # アカウントAPIのテスト(AWS不要)
 ```
 
 ビルド工程はない。各ゲームは単一HTMLファイル(HTML/CSS/JSインライン)で、ブラウザで直接開いても動く。
+
+**マージ前のスマホでの確認**(2026-11-19〜): 作業ブランチを push すると、Cloudflare Pages(プロジェクト `moku-ai`、ビルドなし・出力は `/`)がそのブランチのプレビュー用アドレス `https://<ブランチ>.moku-ai.pages.dev/<ゲーム>.html` を自動で作る(正確なアドレスは Cloudflare の Deployments に出る)。`*.pages.dev` はプレビューモードで、ログインなし・クラウドセーブなし・画面の上に「PREVIEW」(SPEC.md §10)。本番(`aohaus.github.io` / `dechatgpt.com`)は今までどおり `main` へのマージで反映。
 変更後はブラウザ(Playwright + Chromium が利用可)で対象ゲームを実際に開いて、コンソールエラーがないことを確認する。
 
 ### 端末対応で気をつけること
