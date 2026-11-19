@@ -1,3 +1,4 @@
 {"at":"2026-11-19T10:48:04.202Z","cycle":"2026-11-19-weekly","commit":"3782621","branch":"ux/2026-11-19-weekly","type":"cycle_start"}
 {"at":"2026-11-19T10:48:04.241Z","cycle":"2026-11-19-weekly","commit":"3782621","branch":"ux/2026-11-19-weekly","type":"note","text":"scheduled run"}
 {"at":"2026-11-19T10:48:10.516Z","cycle":"2026-11-19-weekly","commit":"3782621","branch":"ux/2026-11-19-weekly","type":"agent_start","agent":"moku-detective","agentId":"afa1b24f7bc024514","session":"17517551-cc45-558f-a6ad-bd2afc5d9814"}
+{"at":"2026-11-19T10:52:21.232Z","cycle":"2026-11-19-weekly","commit":"05d7265","branch":"ux/2026-11-19-weekly","type":"agent_report","agent":"moku-detective","agentId":"afa1b24f7bc024514","session":"17517551-cc45-558f-a6ad-bd2afc5d9814","files":[],"report":""}
