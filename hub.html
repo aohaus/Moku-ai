@@ -4044,12 +4044,12 @@ html.me-open #ceoPeek { display: none; }
       order.forEach(function (g, i) { pos[g.gameId] = i; });
       order.sort(function (a, b) { return totals[b.gameId] - totals[a.gameId] || pos[a.gameId] - pos[b.gameId]; });
     }
+    // 5 tiers by position in the sorted list (ties are split by that order, so the
+    // marks always spread out even when many games have the same count).
     var tierOf = {};
+    var playedN = order.filter(function (g) { return totals[g.gameId] > 0; }).length;
     order.forEach(function (g, i) {
-      // ties share a tier; games nobody has played yet are always the last tier
-      var rank = i;
-      while (rank > 0 && totals[order[rank - 1].gameId] === totals[g.gameId]) rank--;
-      tierOf[g.gameId] = totals[g.gameId] > 0 ? 5 - Math.min(4, Math.floor(rank * 5 / order.length)) : 1;
+      tierOf[g.gameId] = totals[g.gameId] > 0 ? 5 - Math.min(4, Math.floor(i * 5 / playedN)) : 1;
     });
     people.forEach(function (p) { p.medals = [0, 0, 0]; });
     order.forEach(function (g) {
