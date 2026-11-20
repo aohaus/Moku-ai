@@ -396,6 +396,8 @@ body:not(.on-title) #soundBtn { display: none; }
 .stamps { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 6px; height: calc(100% - 40px); margin-top: 6px; }
 .st { background: none; border: 0; padding: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 .st svg.stmp { width: 100%; height: auto; opacity: 0.95; mix-blend-mode: multiply; }
+.st.rb svg.stmp { opacity: 1; filter: drop-shadow(0 0 4px rgba(255,214,90,0.8)); animation: rbGlow 2.4s ease-in-out infinite; }
+@keyframes rbGlow { 50% { filter: drop-shadow(0 0 9px rgba(255,180,220,0.95)); } }
 .visa .empty { grid-column: 1 / -1; grid-row: 1 / -1; align-self: center; text-align: center; color: rgba(46,90,80,0.6); font-weight: 700; font-size: 13px; padding: 20px; }
 .pgNo { position: absolute; bottom: 8px; right: 12px; font: 700 11px var(--round); color: rgba(46,90,80,0.5); }
 .bookNav { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 10px; font-weight: 800; font-size: 13px; color: var(--ink-soft); }
@@ -1172,13 +1174,13 @@ body:not(.on-title) #soundBtn { display: none; }
       if (cur.shown === 1 && cur.wrong === 0) progress.master[id] = 1;
       progress.stamps[id] = (progress.stamps[id] | 0) + st;
       progress.totalStamps += st;
-      addVisit(id, st, cur.shown === 1 && cur.wrong === 0);
+      var rainbow = addVisit(id, st, cur.shown === 1 && cur.wrong === 0);
       var lines = [];
       if (first) lines.push(['First visit to ' + COUNTRIES[id].name + '!', claimOnce('c:' + id, 30)]);
       if (knownIds().length >= ORDER.length) lines.push(['All 11 countries found! 🎉', claimOnce('all', 300)]);
       save();
       cur.mointNote = mointBox(lines);
-      cur.say = '🔖 +' + st + ' stamp' + (st > 1 ? 's' : '') + (cur.shown === 1 && cur.wrong === 0 ? ' — with just one clue! ⭐' : '!') + (first ? ' New country for your Passport!' : '');
+      cur.say = '🔖 +' + st + ' stamp' + (st > 1 ? 's' : '') + (cur.shown === 1 && cur.wrong === 0 ? ' — with just one clue! ⭐' : '!') + (first ? ' New country for your Passport!' : '') + (rainbow ? ' <b>🌈 WOW — a RAINBOW stamp in your Passport!</b>' : '');
       cur.sayCls = 'ok';
       ctryEl(id).classList.add('good');
       setLabels(knownIds());
@@ -1548,18 +1550,27 @@ body:not(.on-title) #soundBtn { display: none; }
   // 当てた日を記録する(同じ国・同じ日は1つ。切手の多い方を残す)
   function addVisit(id, st, one) {
     var d = today(), v = progress.visits.filter(function (x) { return x.c === id && x.d === d; })[0];
-    if (v) { v.st = Math.max(v.st, st); v.one = v.one || one; }
-    else progress.visits.push({ c: id, d: d, st: st, one: one });
+    if (v) { v.st = Math.max(v.st, st); v.one = v.one || one; return false; }
+    // 新しいスタンプは 1/50 の確率でレインボー(RAINBOW_ODDS)
+    var rb = Math.random() < 1 / RAINBOW_ODDS;
+    progress.visits.push(rb ? { c: id, d: d, st: st, one: one, rainbow: true } : { c: id, d: d, st: st, one: one });
+    return rb;
   }
+  var RAINBOW_ODDS = 50;
   function stampSVG(v, k) {
     var look = STAMP_LOOK[v.c] || ['#333', 'rect'], ink = look[0], name = COUNTRIES[v.c].name.toUpperCase(), fid = 'grain' + k;
-    var s = '<defs><filter id="' + fid + '"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="' + (hashN(v.c + v.d) % 50) + '" result="n"/>' +
+    var rbDef = '';
+    if (v.rainbow) {   // レインボースタンプ: 虹色のインク
+      ink = 'url(#rb' + k + ')';
+      rbDef = '<linearGradient id="rb' + k + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E8443A"/><stop offset="0.2" stop-color="#F29A2E"/><stop offset="0.4" stop-color="#E8C22E"/><stop offset="0.6" stop-color="#3EA65A"/><stop offset="0.8" stop-color="#2E7FD0"/><stop offset="1" stop-color="#8A4FB8"/></linearGradient>';
+    }
+    var s = '<defs>' + rbDef + '<filter id="' + fid + '"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="' + (hashN(v.c + v.d) % 50) + '" result="n"/>' +
       '<feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.1 1.3" result="m"/><feComposite in="SourceGraphic" in2="m" operator="in"/></filter></defs>' +
       '<g filter="url(#' + fid + ')" fill="none" stroke="' + ink + '" font-family="\'Courier New\', monospace" font-weight="700">';
     var fs = name.length > 9 ? 12 : 15;
     if (look[1] === 'circle') {
       s += '<circle cx="80" cy="60" r="54" stroke-width="4"/><circle cx="80" cy="60" r="46" stroke-width="1.5"/>' +
-        '<path id="arc' + k + '" d="M42 62 a38 38 0 0 1 76 0"/><text fill="' + ink + '" stroke="none" font-size="' + Math.min(fs, 12) + '" letter-spacing="1"><textPath href="#arc' + k + '" startOffset="50%" text-anchor="middle">' + esc(name) + '</textPath></text>' +
+        '<path id="arc' + k + '" d="M42 62 a38 38 0 0 1 76 0" stroke="none"/><text fill="' + ink + '" stroke="none" font-size="' + Math.min(fs, 12) + '" letter-spacing="1"><textPath href="#arc' + k + '" startOffset="50%" text-anchor="middle">' + esc(name) + '</textPath></text>' +
         '<text x="80" y="76" fill="' + ink + '" stroke="none" font-size="11" text-anchor="middle">' + stampDate(v.d) + '</text>' +
         '<text x="80" y="94" fill="' + ink + '" stroke="none" font-size="10" text-anchor="middle" letter-spacing="1">✈ ARRIVAL</text>';
     } else if (look[1] === 'oval') {
@@ -1579,6 +1590,7 @@ body:not(.on-title) #soundBtn { display: none; }
         '<text x="80" y="90" fill="' + ink + '" stroke="none" font-size="10" text-anchor="middle" letter-spacing="1">ARRIVAL</text>';
     }
     if (v.one) s += '<text x="146" y="22" fill="' + ink + '" stroke="none" font-size="16" text-anchor="middle">★</text>';
+    if (v.rainbow) s += '<text x="14" y="112" fill="' + ink + '" stroke="none" font-size="15">✦</text><text x="150" y="108" fill="' + ink + '" stroke="none" font-size="11">✦</text>';
     s += '</g>';
     return '<svg class="stmp" viewBox="0 0 160 120" aria-label="' + esc(COUNTRIES[v.c].name + ' ' + stampDate(v.d)) + '">' + s + '</svg>';
   }
@@ -1613,7 +1625,7 @@ body:not(.on-title) #soundBtn { display: none; }
       h += '<div class="pg visa"><div class="vHead">VISAS · STAMPS</div><div class="stamps">' +
         (vs.length ? vs.map(function (v, i) {
           var r = hashN(v.c + v.d + i), rot = (r % 21) - 10, dx = (r % 13) - 6, dy = ((r >> 3) % 11) - 5;
-          return '<button class="st" data-c="' + v.c + '" style="transform:translate(' + dx + 'px,' + dy + 'px) rotate(' + rot + 'deg)">' + stampSVG(v, page + '_' + i) + '</button>';
+          return '<button class="st' + (v.rainbow ? ' rb' : '') + '" data-c="' + v.c + '" style="transform:translate(' + dx + 'px,' + dy + 'px) rotate(' + rot + 'deg)">' + stampSVG(v, page + '_' + i) + '</button>';
         }).join('') : '<div class="empty">Find Moku on a postcard to get your next stamp here!</div>') +
         '</div><div class="pgNo">' + (page - 1) + '</div></div>';
     }
