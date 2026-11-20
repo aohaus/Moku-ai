@@ -1,11 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="240" height="240"><ellipse cx="60" cy="107" rx="36" ry="5" fill="#000" opacity=".18"/>
-<g fill="#FFFFFF" fill-opacity=".14"><circle cx="18" cy="20" r="3"/><circle cx="102" cy="26" r="2.5"/></g>
-<g transform="rotate(-14 36 64)"><rect x="33" y="64" width="6" height="34" rx="3" fill="#B07A4C" stroke="#4E2C17" stroke-width="2.5"/>
-<rect x="14" y="34" width="44" height="34" rx="9" fill="#3E9B5A" stroke="#1E5A30" stroke-width="3"/>
-<path d="M26 51l6 6 12-13" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></g>
-<g transform="rotate(14 84 64)"><rect x="81" y="64" width="6" height="34" rx="3" fill="#B07A4C" stroke="#4E2C17" stroke-width="2.5"/>
-<rect x="62" y="34" width="44" height="34" rx="9" fill="#E0607E" stroke="#8A2A40" stroke-width="3"/>
-<path d="M75 42l18 18M93 42L75 60" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/></g>
-<circle cx="60" cy="22" r="13" fill="#FFF4E2" stroke="#42204A" stroke-width="3"/>
-<path d="M55 18c0-4 3-6 6-6s6 2 6 6c0 4-6 4-6 8" fill="none" stroke="#9A4FA6" stroke-width="3.5" stroke-linecap="round"/><circle cx="61" cy="30" r="2" fill="#9A4FA6"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="240" height="240"><ellipse cx="60" cy="107" rx="34" ry="5" fill="#000" opacity=".18"/>
+<path d="M24 22h72a10 10 0 0 1 10 10v40a10 10 0 0 1-10 10H54l-18 16v-16H24a10 10 0 0 1-10-10V32a10 10 0 0 1 10-10z" fill="#FFF4E2" stroke="#42204A" stroke-width="3" stroke-linejoin="round"/>
+<text x="60" y="68" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="900" font-size="38" fill="#9A4FA6">?!</text>
+<circle cx="96" cy="84" r="13" fill="#5DBB63" stroke="#42204A" stroke-width="3"/><path d="M90 84l4.5 4.5L103 79" fill="none" stroke="#FFF" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="22" cy="80" r="11" fill="#E8604F" stroke="#42204A" stroke-width="3"/><path d="M18 76l8 8M26 76l-8 8" stroke="#FFF" stroke-width="3.2" stroke-linecap="round"/>
+<path d="M100 8l2.5 5 5 2.5-5 2.5-2.5 5-2.5-5-5-2.5 5-2.5Z" fill="#FFE27A"/></svg>
