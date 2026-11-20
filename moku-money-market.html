@@ -250,8 +250,14 @@ body.on-title #playScreen { display: none; }
 .note { width: 88px; height: 44px; border-radius: 6px; box-shadow: 0 2px 0 rgba(0,0,0,0.22); font-size: 15px; overflow: hidden; border: 0; padding: 0; background: none; }
 .money .nart { position: absolute; inset: 0; width: 100%; height: 100%; }
 .note span { position: absolute; right: 7px; top: 3px; z-index: 1; text-shadow: 0 1px 0 rgba(0,0,0,0.45), 0 0 3px rgba(0,0,0,0.35); }
-.coin { width: 46px; height: 46px; border-radius: 50%; border: 0; padding: 0; background: none; font-size: 12.5px; color: #3A2A18; text-shadow: 0 1px 0 rgba(255,255,255,0.6); filter: drop-shadow(0 2px 0 rgba(0,0,0,0.22)); }
-.coin span { position: relative; z-index: 1; }
+.coin { width: 50px; height: 50px; border-radius: 50%; border: 0; padding: 0; background: none; font-size: 11.5px; color: #3A2A18; text-shadow: 0 1px 0 rgba(255,255,255,0.6); filter: drop-shadow(0 2px 0 rgba(0,0,0,0.22)); }
+.coin span { position: absolute; left: 0; right: 0; bottom: 8px; z-index: 1; text-align: center; line-height: 1; }
+.coinBook { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px 8px; margin-top: 8px; }
+.cb { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; font-size: 12px; line-height: 1.25; }
+.cb .cbArt { width: 72px; height: 72px; position: relative; filter: drop-shadow(0 2px 0 rgba(0,0,0,0.2)); }
+.cb .cbArt svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.cb b { font-family: var(--round); font-size: 14px; }
+.cb span { color: var(--ink-soft); font-weight: 700; }
 .paid { min-height: 56px; margin-top: 8px; padding: 8px; border-radius: 12px; border: 2.5px dashed #C9A87D; background: #FFFDF6;
   display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; align-items: center; }
 .paid:empty::before { content: 'Tap money to put it here'; color: #C5AE88; font-weight: 700; font-size: 13px; }
@@ -307,7 +313,7 @@ svg.flag { display: block; border-radius: 2px; }
 
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.3.1 · Updated Nov 20, 2026</div>
+<div id="buildInfo">v0.4.0 · Updated Nov 20, 2026</div>
 <button id="soundBtn" aria-label="Sound">🔊</button>
 
 <div id="titleScreen">
@@ -381,7 +387,7 @@ svg.flag { display: block; border-radius: 2px; }
     SG: { country: 'Singapore', cur: 'Singapore dollar', perUSD: 1.3, anchor: 1, place: 'Hawker centre',
           fmt: function (n) { return 'S$' + group(n, ','); }, write: 'S$5 — or just $5 in Singapore',
           vendor: { em: '🦁', name: 'Lion (the “Lion City”)' },
-          money: [{ v: 1, coin: true, metal: 'silver', ring: 'gold' }, { v: 2, c: '#8C5DB8', c2: '#43206E', mo: 'cap', poly: true }, { v: 5, c: '#4C9E58', c2: '#1F5228', mo: 'tree', poly: true }, { v: 10, c: '#D04A55', c2: '#741C26', mo: 'ball', poly: true }, { v: 50, c: '#3F7CC4', c2: '#1A3C70', mo: 'palette', poly: true }],
+          money: [{ v: 1, coin: true, metal: 'silver', ring: 'gold', mo: 'merlion' }, { v: 2, c: '#8C5DB8', c2: '#43206E', mo: 'cap', poly: true }, { v: 5, c: '#4C9E58', c2: '#1F5228', mo: 'tree', poly: true }, { v: 10, c: '#D04A55', c2: '#741C26', mo: 'ball', poly: true }, { v: 50, c: '#3F7CC4', c2: '#1A3C70', mo: 'palette', poly: true }],
           items: [
             { name: 'Kopi', em: 'kopi', p: 2, what: 'local coffee' },
             { name: 'Chicken rice', em: 'chickenrice', p: 5, what: 'chicken with fragrant rice' },
@@ -405,7 +411,7 @@ svg.flag { display: block; border-radius: 2px; }
     TH: { country: 'Thailand', cur: 'baht', perUSD: 33, anchor: 100, place: 'Street food market',
           fmt: function (n) { return '฿' + group(n, ','); }, write: '฿60 — or “60 baht”',
           vendor: { em: '🐘', name: 'Elephant' },
-          money: [{ v: 1, coin: true, metal: 'silver' }, { v: 5, coin: true, metal: 'silver' }, { v: 10, coin: true, metal: 'gold', ring: 'silver' }, { v: 20, c: '#4E9E5A', c2: '#1F5228', mo: 'star', poly: true }, { v: 50, c: '#3F7CC4', c2: '#1A3C70', mo: 'star' }, { v: 100, c: '#D04A3E', c2: '#7A1E1A', mo: 'star' }, { v: 500, c: '#8456B0', c2: '#3E2066', mo: 'star' }],
+          money: [{ v: 1, coin: true, metal: 'silver', mo: 'roofs' }, { v: 5, coin: true, metal: 'silver', mo: 'marble' }, { v: 10, coin: true, metal: 'gold', ring: 'silver', mo: 'prang' }, { v: 20, c: '#4E9E5A', c2: '#1F5228', mo: 'star', poly: true }, { v: 50, c: '#3F7CC4', c2: '#1A3C70', mo: 'star' }, { v: 100, c: '#D04A3E', c2: '#7A1E1A', mo: 'star' }, { v: 500, c: '#8456B0', c2: '#3E2066', mo: 'star' }],
           items: [
             { name: 'Thai iced tea', em: 'thaitea', p: 30, what: 'sweet orange milk tea' },
             { name: 'Pad thai', em: 'padthai', p: 60, what: 'fried rice noodles' },
@@ -453,7 +459,7 @@ svg.flag { display: block; border-radius: 2px; }
     PH: { country: 'Philippines', cur: 'peso', perUSD: 57, anchor: 100, place: 'Street food stall',
           fmt: function (n) { return '₱' + group(n, ','); }, write: '₱100 — the peso sign has two lines',
           vendor: { em: '🦅', name: 'Philippine eagle' },
-          money: [{ v: 1, coin: true, metal: 'silver' }, { v: 5, coin: true, metal: 'gold', shape: 'nonagon' }, { v: 10, coin: true, metal: 'silver' }, { v: 20, coin: true, metal: 'silver', ring: 'gold' }, { v: 50, c: '#D04A3E', c2: '#7A1E1A', mo: 'cat', poly: true }, { v: 100, c: '#8456B0', c2: '#3E2066', mo: 'bird', poly: true }, { v: 500, c: '#E0A63A', c2: '#7A5210', mo: 'deer', poly: true }],
+          money: [{ v: 1, coin: true, metal: 'silver', mo: 'orchid' }, { v: 5, coin: true, metal: 'gold', shape: 'nonagon', mo: 'jadevine' }, { v: 10, coin: true, metal: 'silver', mo: 'flower' }, { v: 20, coin: true, metal: 'silver', ring: 'gold', mo: 'nara' }, { v: 50, c: '#D04A3E', c2: '#7A1E1A', mo: 'cat', poly: true }, { v: 100, c: '#8456B0', c2: '#3E2066', mo: 'bird', poly: true }, { v: 500, c: '#E0A63A', c2: '#7A5210', mo: 'deer', poly: true }],
           items: [
             { name: 'Taho', em: 'taho', p: 20, what: 'warm soft tofu with syrup' },
             { name: 'Turon', em: 'turon', p: 15, what: 'fried banana roll' },
@@ -697,6 +703,29 @@ svg.flag { display: block; border-radius: 2px; }
     cat: 'M8 26 q-2 -10 7 -12 q9 2 7 12Z M9 15 l1 -6 l4 4 M21 15 l-1 -6 l-4 4 M12 18 a1 1 0 1 0 .1 0 M18 18 a1 1 0 1 0 .1 0 M22 24 q6 0 6 -6',
     bird: 'M5 18 q4 -10 14 -8 l6 -2 l-3 4 q2 6 -4 10 q-8 4 -13 -4Z M19 10 l2 -5 M14 22 l-2 5 M17 22 l2 5'
   };
+  // 硬貨の裏の絵(本物の硬貨の題材。人の顔のある面は描かない)。0〜30 の座標の線
+  var COIN_MOTIF = {
+    merlion: 'M7 12 q0 -8 8 -8 q7 0 7 7 q0 5 -5 7 q5 2 4 7 q4 0 5 3 q-6 2 -10 -2 q-3 -4 -1 -8 q-7 -1 -8 -6Z M12 10 a1 1 0 1 0 .1 0 M19 6 q4 4 1 9 M9 6 q-3 3 -2 7 M14 15 h3',
+    esplanade: 'M3 24 q4 -14 11 -14 q7 0 9 14 M15 24 q2 -10 7 -10 q5 0 6 10 M7 17 l2 -1 M10 14 l2 -1 M18 19 l2 -1 M2 24 h27',
+    flats: 'M4 26 v-16 h7 v16 M12 26 v-20 h7 v20 M20 26 v-13 h7 v13 M6 13 h3 M6 17 h3 M6 21 h3 M14 9 h3 M14 13 h3 M14 17 h3 M14 21 h3 M22 16 h3 M22 20 h3 M2 26 h27',
+    airport: 'M8 27 v-15 h-3 v-3 h10 v3 h-3 v15 M4 27 h12 M17 12 l12 -3 l-2 3 l-6 2 l3 4 l-2 0 l-4 -3 l-3 1Z',
+    port: 'M2 22 h20 l-3 5 h-15Z M5 22 v-5 h12 v5 M7 17 v-3 h6 v3 M23 26 v-20 M23 6 h-10 M15 6 v5 M27 26 h-8',
+    prang: 'M15 2 v3 M13 6 q2 -2 4 0 l1 4 h-6Z M11 10 h8 l2 6 h-12Z M8 16 h14 l2 10 h-18Z M3 27 h24 M15 18 v8',
+    roofs: 'M15 3 v3 M9 11 l6 -5 l6 5 M6 16 l9 -6 l9 6 M4 21 l11 -7 l11 7 M7 21 v6 M23 21 v6 M12 27 v-4 h6 v4 M3 27 h24',
+    marble: 'M15 4 l-6 6 h12Z M6 14 l9 -6 l9 6 M5 14 h20 v4 h-20Z M7 18 v8 M11 18 v8 M19 18 v8 M23 18 v8 M4 27 h22',
+    destar: 'M4 22 l11 -15 l11 15 q-11 5 -22 0Z M15 7 v13 M9 16 l6 -3 l6 3 M8 21 q7 3 14 0',
+    congkak: 'M2 18 q13 -10 26 0 q-13 8 -26 0Z M7 16 a1.4 1.4 0 1 0 .1 0 M11 15 a1.4 1.4 0 1 0 .1 0 M15 15 a1.4 1.4 0 1 0 .1 0 M19 15 a1.4 1.4 0 1 0 .1 0 M23 16 a1.4 1.4 0 1 0 .1 0 M7 20 a1.4 1.4 0 1 0 .1 0 M11 21 a1.4 1.4 0 1 0 .1 0 M15 21 a1.4 1.4 0 1 0 .1 0 M19 21 a1.4 1.4 0 1 0 .1 0 M23 20 a1.4 1.4 0 1 0 .1 0',
+    tepak: 'M5 14 h20 v11 h-20Z M4 10 h22 l-1 4 h-20Z M11 10 q4 -4 8 0 M8 18 l3 3 l3 -3 l3 3 l3 -3 l3 3',
+    wau: 'M15 3 q8 3 11 9 q-6 2 -9 0 q4 6 -2 15 q-6 -9 -2 -15 q-3 2 -9 0 q3 -6 11 -9Z M15 3 v24 M7 17 q8 -3 16 0',
+    cockatoo: 'M10 26 q-4 -10 4 -16 q-2 -6 -6 -7 q6 0 9 5 q6 2 6 8 l3 2 l-3 1 q-2 8 -13 7Z M18 14 a1 1 0 1 0 .1 0',
+    myna: 'M6 20 q2 -10 12 -10 q5 0 6 4 l4 1 l-4 2 q0 8 -10 9 q-6 0 -8 -6Z M19 13 a1.2 1.2 0 1 0 .1 0 M10 26 l-1 3 M15 26 l1 3',
+    jasmine: 'M15 6 q4 4 0 8 q-4 -4 0 -8Z M23 13 q-3 5 -8 2 q3 -5 8 -2Z M20 23 q-6 1 -5 -7 q5 2 5 7Z M10 23 q-1 -6 5 -7 q1 8 -5 7Z M7 13 q5 -3 8 2 q-5 3 -8 -2Z M15 15 a1.5 1.5 0 1 0 .1 0',
+    orchid: 'M15 15 l-9 -8 q-2 6 6 9 M15 15 l9 -8 q2 6 -6 9 M15 15 l-8 7 q4 3 7 -3 M15 15 l8 7 q-4 3 -7 -3 M15 15 l0 -11 q-4 5 0 11 q4 -6 0 -11 M15 15 a2 2 0 1 0 .1 0',
+    jadevine: 'M4 4 q11 2 22 0 M9 5 q-2 5 2 7 M15 5 q-2 6 2 8 q-3 4 1 7 M21 5 q-2 5 2 7 M11 12 q-2 4 2 6 M23 12 q-2 4 1 6 M17 20 q-2 4 1 6',
+    flower: 'M15 4 q4 5 0 9 q-4 -4 0 -9Z M26 15 q-5 4 -9 0 q4 -4 9 0Z M15 26 q-4 -5 0 -9 q4 4 0 9Z M4 15 q5 -4 9 0 q-4 4 -9 0Z M15 15 a2 2 0 1 0 .1 0',
+    nara: 'M15 27 v-10 M15 20 l-4 -3 M15 18 l4 -3 M15 17 q-12 0 -10 -7 q-1 -7 10 -7 q11 0 10 7 q2 7 -10 7Z M5 27 h20',
+    rosette: 'M15 3 l2 6 l6 -2 l-2 6 l6 2 l-6 2 l2 6 l-6 -2 l-2 6 l-2 -6 l-6 2 l2 -6 l-6 -2 l6 -2 l-2 -6 l6 2Z M15 15 a3 3 0 1 0 .1 0'
+  };
   // 硬貨の色
   var METAL = { silver: '#C9CED4', gold: '#D9B24E', copper: '#C27A4A' };
   function noteSVG(m, mk) {
@@ -716,7 +745,7 @@ svg.flag { display: block; border-radius: 2px; }
     s += '<text x="' + (m.poly ? 92 : 96) + '" y="55" text-anchor="end" font-size="7.5" font-weight="700" fill="rgba(255,255,255,0.85)" font-family="sans-serif" letter-spacing="0.5">' + MARKETS[mk].country.toUpperCase() + '</text>';
     return '<svg class="nart" viewBox="0 0 120 60" aria-hidden="true">' + s + '</svg>';
   }
-  function coinSVG(m) {
+  function coinSVG(m, big) {
     var body = METAL[m.metal] || METAL.silver, ring = m.ring ? METAL[m.ring] : null, s = '';
     var shape = function (r, fill, extra) {
       if (m.shape === 'nonagon') {
@@ -727,10 +756,58 @@ svg.flag { display: block; border-radius: 2px; }
       return '<circle cx="30" cy="30" r="' + r + '" fill="' + fill + '" ' + (extra || '') + '/>';
     };
     s += shape(28, ring || body, 'stroke="rgba(60,40,20,0.45)" stroke-width="1.5"');
-    if (ring) s += shape(18, body, 'stroke="rgba(60,40,20,0.3)" stroke-width="1"');
-    else s += shape(23, 'none', 'stroke="rgba(255,255,255,0.55)" stroke-width="1.5"');
-    s += '<path d="M14 18 q8 -10 20 -8" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="3" stroke-linecap="round"/>';
+    if (ring) s += shape(19, body, 'stroke="rgba(60,40,20,0.3)" stroke-width="1"');
+    else s += shape(24, 'none', 'stroke="rgba(255,255,255,0.55)" stroke-width="1.5"');
+    // 浮き彫りの絵(白い光+こい影)。お金を払う小さい硬貨は、数字の上に小さく
+    var mo = COIN_MOTIF[m.mo];
+    if (mo) {
+      var sc = big ? 1.15 : (ring ? 0.62 : 0.72), y0 = big ? 13 : 9;
+      var tf = 'translate(' + (30 - 15 * sc).toFixed(1) + ' ' + y0 + ') scale(' + sc + ')';
+      var dark = m.metal === 'gold' ? '#7A5410' : '#5E6670';
+      s += '<g transform="' + tf + '" fill="none" stroke-linecap="round" stroke-linejoin="round">' +
+        '<path d="' + mo + '" stroke="rgba(255,255,255,0.75)" stroke-width="2.2" transform="translate(-0.6 -0.6)"/>' +
+        '<path d="' + mo + '" stroke="' + dark + '" stroke-width="1.6"/></g>';
+    }
+    if (!big) s += '<path d="M14 16 q8 -10 20 -8" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="3" stroke-linecap="round"/>';
     return '<svg class="nart" viewBox="0 0 60 60" aria-hidden="true">' + s + '</svg>';
+  }
+  // Money Book に並べる硬貨(本物の硬貨の裏の題材)。払う時に使う硬貨は MARKETS の money と同じ形と絵
+  var COIN_BOOK = {
+    MY: { list: [
+      { name: '5 sen', metal: 'silver', mo: 'destar', what: 'Destar — a woven cloth headdress' },
+      { name: '10 sen', metal: 'silver', mo: 'congkak', what: 'Congkak — a board game played with shells' },
+      { name: '20 sen', metal: 'gold', mo: 'tepak', what: 'Tepak sirih — a box of betel leaves for guests' },
+      { name: '50 sen', metal: 'silver', mo: 'wau', what: 'Wau bulan — the moon kite' } ] },
+    SG: { list: [
+      { name: '5¢', metal: 'gold', mo: 'esplanade', what: 'The Esplanade — the “durian” theatre' },
+      { name: '10¢', metal: 'silver', mo: 'flats', what: 'HDB flats — homes for most people' },
+      { name: '20¢', metal: 'silver', mo: 'airport', what: 'Changi Airport' },
+      { name: '50¢', metal: 'silver', mo: 'port', what: 'The Port of Singapore' },
+      { name: 'S$1', metal: 'silver', ring: 'gold', mo: 'merlion', what: 'The Merlion' } ] },
+    BN: { list: [ { name: '1–50 sen', metal: 'silver', mo: 'rosette', what: 'Brunei has 1, 5, 10, 20 and 50 sen coins with flower patterns.' } ] },
+    TH: { list: [
+      { name: '฿1', metal: 'silver', mo: 'roofs', what: 'A temple with layered roofs (Wat Phra Kaew)' },
+      { name: '฿5', metal: 'silver', mo: 'marble', what: 'The Marble Temple (Wat Benchamabophit)' },
+      { name: '฿10', metal: 'gold', ring: 'silver', mo: 'prang', what: 'The Temple of Dawn (Wat Arun)' } ] },
+    KH: { note: 'Cambodia has riel coins, but people almost never use them — even small money is a note.' },
+    VN: { note: 'Vietnam stopped using coins. All money is notes now.' },
+    ID: { list: [
+      { name: 'Rp100', metal: 'silver', mo: 'cockatoo', what: 'Palm cockatoo' },
+      { name: 'Rp200', metal: 'silver', mo: 'myna', what: 'Bali myna — a rare white bird' },
+      { name: 'Rp500', metal: 'silver', mo: 'jasmine', what: 'Jasmine — a national flower' } ], note: 'These older coins are still used. Newer coins show heroes of Indonesia.' },
+    PH: { list: [
+      { name: '₱1', metal: 'silver', mo: 'orchid', what: 'Waling-waling orchid' },
+      { name: '₱5', metal: 'gold', shape: 'nonagon', mo: 'jadevine', what: 'Jade vine (tayabak)' },
+      { name: '₱10', metal: 'silver', mo: 'flower', what: 'Kapa-kapa — a pink forest flower' },
+      { name: '₱20', metal: 'silver', ring: 'gold', mo: 'nara', what: 'Narra — the national tree' } ] }
+  };
+  function coinBookHTML(id) {
+    var b = COIN_BOOK[id]; if (!b) return '';
+    var h = '<div class="sec">Coins — look at the back!</div>';
+    if (b.list) h += '<div class="coinBook">' + b.list.map(function (c) {
+      return '<div class="cb"><div class="cbArt">' + coinSVG(c, true) + '</div><b>' + esc(c.name) + '</b><span>' + esc(c.what) + '</span></div>'; }).join('') + '</div>';
+    if (b.note) h += '<div class="tip" style="margin-top:6px">' + esc(b.note) + '</div>';
+    return h;
   }
   function moneyHTML(m, mk, attr) {
     var label = MARKETS[mk].fmt(m.v).replace(/^(RM|S\$|Rp)/, '<small style="font-size:0.72em;opacity:0.9">$1</small>');
@@ -1151,9 +1228,10 @@ svg.flag { display: block; border-radius: 2px; }
           '<dl class="facts"><dt>✏️ Written</dt><dd>' + esc(m.write) + '</dd><dt>💱 About</dt><dd>' + esc(rule(open)) + '</dd><dt>🍜 Street food</dt><dd>' +
           m.items.slice(0, 3).map(function (it) { return esc(it.name) + ' ' + esc(m.fmt(it.p)); }).join(' · ') + '</dd></dl>' +
           '<div class="sec">Notes & coins</div><div class="tray">' + m.money.map(function (x) { return moneyHTML(x, open, 'tabindex="-1"'); }).join('') + '</div>' +
+          coinBookHTML(open) +
           '<div class="fun">' + m.facts.map(function (f) { return '<div>✨ ' + esc(f) + '</div>'; }).join('') + '</div>' +
           '<div class="tell"><span class="cn">🗣️ Tell a friend</span>In ' + esc(m.country) + ', money is the <b>' + esc(m.cur) + '</b>. ' + esc(m.items[0].name) + ' costs about ' + esc(m.fmt(m.items[0].p)) + ', and ' + esc(rule(open)) + '.</div>' +
-          '<div class="tip">Colors only — real notes look different. Rates change every day.</div></div>';
+          '<div class="tip">Notes show the real colors, not the real pictures. Coins show what is on their back. Rates change every day.</div></div>';
       }
       setPanel(h);
       panel.querySelectorAll('.pick[data-c]:not([disabled])').forEach(function (b) { b.addEventListener('click', function () { sfx.tap(); draw(b.getAttribute('data-c')); var c = panel.querySelectorAll('.card')[1]; if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); }); });
