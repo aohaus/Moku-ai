@@ -163,6 +163,15 @@ body.on-title #playScreen { display: none; }
 .found { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; margin-top: 10px; }
 .fc { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px; border-radius: 12px; background: #fff; border: 2px solid rgba(90,58,34,0.18); font: 700 12.5px var(--round); text-align: center; }
 .fc.miss { opacity: 0.45; border-style: dashed; }
+.stages { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.stg { display: flex; align-items: center; gap: 12px; text-align: left; padding: 10px 12px; border-radius: 14px; background: #fff; border: 2px solid rgba(90,58,34,0.18); font: inherit; color: inherit; cursor: pointer; }
+.stg .si { font-size: 34px; width: 46px; text-align: center; flex: none; }
+.stg .st { display: flex; flex-direction: column; gap: 2px; }
+.stg b { font: 800 16px var(--round); }
+.stg small { font-size: 12.5px; color: #7A6450; font-weight: 700; }
+.stg small.sp { color: #3F8FA0; }
+.stg.lock { opacity: 0.55; cursor: default; }
+.unlock { margin: 8px auto 0; text-align: center; font-weight: 800; color: #3F8FA0; }
 .fc img { width: 52px; height: 52px; } .fc .em { font-size: 40px; line-height: 52px; }
 .fc.lock { color: #B9A88E; } .fc.lock .q { width: 52px; height: 52px; border-radius: 50%; background: #EFE4D2; display: flex; align-items: center; justify-content: center; font-size: 22px; }
 .entry { margin-top: 12px; padding: 12px; border-radius: 14px; background: #fff; border: 2px solid rgba(90,58,34,0.15); }
@@ -183,7 +192,7 @@ body.on-title #playScreen { display: none; }
 
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.1.1 · Updated Nov 20, 2026</div>
+<div id="buildInfo">v0.2.0 · Updated Nov 20, 2026</div>
 <button id="soundBtn" aria-label="Sound">🔊</button>
 
 <div id="titleScreen">
@@ -200,8 +209,8 @@ body.on-title #playScreen { display: none; }
         <div id="titleSub">Live in Asia · rainforest at night</div>
       </div>
       <div id="titleMenu">
-        <button class="titleMenuItem primary" id="goWalk"><span class="ic">🔦</span><span>Night Walk<small>Find 5 animals before your battery runs out</small></span></button>
-        <button class="titleMenuItem" id="goBook"><span class="ic">📗</span><span>Junglepedia<small id="bookCount">0 / 14 found</small></span></button>
+        <button class="titleMenuItem primary" id="goWalk"><span class="ic">🔦</span><span>Night Walk<small>3 places · find 5 animals before your battery runs out</small></span></button>
+        <button class="titleMenuItem" id="goBook"><span class="ic">📗</span><span>Junglepedia<small id="bookCount">0 / 18 found</small></span></button>
       </div>
       <div id="titleMoints"><span class="mcoin">M</span><span id="titleBal">0</span><span id="titleToday"></span></div>
     </div>
@@ -264,7 +273,7 @@ body.on-title #playScreen { display: none; }
     tapir: '<rect x="14" y="44" width="72" height="34" rx="17" fill="#2E2A2A" ' + O + '/>' +
       '<rect x="40" y="44" width="34" height="34" fill="#F4F0E8"/>' +
       '<rect x="14" y="44" width="72" height="34" rx="17" fill="none" ' + O + '/>' +
-      '<path d="M22 76 v14M36 76 v14M64 76 v14M78 76 v14" ' + O + ' stroke-width="7"/>' +
+      '<path d="M22 76 v14M36 76 v14M64 76 v14M78 76 v14" stroke="#4A2E1A" stroke-width="7" stroke-linecap="round"/>' +
       '<path d="M16 54 Q4 58 6 70" fill="none" stroke="#2E2A2A" stroke-width="7" stroke-linecap="round"/>' +
       '<circle cx="22" cy="54" r="2.4" fill="#fff"/><ellipse cx="26" cy="44" rx="4" ry="5" fill="#2E2A2A" ' + O + '/>',
     hornbill: '<path d="M30 46 Q36 82 60 88 L62 70 Q58 52 46 44Z" fill="#232020" ' + O + '/>' +
@@ -346,8 +355,37 @@ body.on-title #playScreen { display: none; }
     { id: 'firefly', name: 'Fireflies', em: '✨', eyes: null, snd: 'blink', where: 'Malaysia, Thailand, and more',
       clue: 'Find the lights that blink all together by the river.',
       facts: ['In some places, thousands of fireflies blink at the same time.', 'Near Kuala Lumpur, people take boats at night to watch them light up the trees.'],
-      tell: 'tiny bugs that blink their lights together' }
+      tell: 'tiny bugs that blink their lights together' },
+    { id: 'mousedeer', name: 'Lesser mouse-deer', em: '🦌', eyes: [0.36, 0.30], snd: 'stomp', where: 'across Southeast Asia',
+      clue: 'Find the smallest hoofed animal in the world — about the size of a rabbit.',
+      facts: ['It’s the smallest hoofed animal in the world, about as big as a rabbit.', 'In Malay folk tales, the clever mouse-deer “Sang Kancil” tricks much bigger animals.'],
+      tell: 'a tiny deer-like animal as small as a rabbit' },
+    { id: 'fishowl', name: 'Buffy fish owl', em: '🦉', eyes: [0.38, 0.38, 0.62, 0.38], snd: 'hoot', where: 'Malaysia, Singapore, Indonesia, Thailand, Brunei',
+      clue: 'Find the owl that catches fish and frogs by the river.',
+      facts: ['It catches fish and frogs from the water with its sharp feet.', 'Its feathery “ears” are not ears at all — they are just feathers!'],
+      tell: 'an owl that catches fish at night' },
+    { id: 'proboscis', name: 'Proboscis monkey', em: '🐒', eyes: [0.40, 0.36, 0.58, 0.36], snd: 'honk2', where: 'only on Borneo (Malaysia, Indonesia, Brunei)',
+      clue: 'Find the monkey with a big nose that sleeps in trees by the river.',
+      facts: ['The males have a huge nose that makes their honking calls louder.', 'It has webbed toes and is a great swimmer. It sleeps in trees by the river.'],
+      tell: 'a big-nosed monkey that swims and lives only on Borneo' },
+    { id: 'fishingcat', name: 'Fishing cat', em: '🐈', eyes: [0.30, 0.30, 0.42, 0.30], snd: 'mew', where: 'Thailand, Cambodia, Myanmar, Indonesia (Java)',
+      clue: 'Find the wild cat that loves water and scoops up fish with its paws.',
+      facts: ['Unlike most cats, it loves water! It has partly webbed feet.', 'It scoops fish out of the water with its paws, and can even dive.'],
+      tell: 'a wild cat that swims and catches fish' }
   ];
+  // ステージ(本物の公園・動物園の名前をもじった名前)。pool = その夜に出る生き物
+  var STAGES = [
+    { id: 'safari', name: 'Moku Night Safari', from: 'Night Safari, Singapore', icon: '🦁', sub: 'A zoo you visit after dark — follow the lamp-lit paths!',
+      pool: ['tapir', 'binturong', 'pangolin', 'flyingfox', 'loris', 'mousedeer', 'fishingcat', 'fishowl', 'leopard'],
+      sky: ['#24325E', '#2E3E4A', '#22301E'], look: 'safari' },
+    { id: 'gara', name: 'Taman Moku-gara', from: 'Taman Negara, Malaysia', icon: '🌳', sub: 'One of the oldest rainforests in the world, by a dark river.',
+      pool: ['tapir', 'sunbear', 'firefly', 'frog', 'hornbill', 'mousedeer', 'loris', 'moth', 'fishowl', 'flyingfox'],
+      sky: ['#1E3A5A', '#2A4A3E', '#1E3424'], look: 'forest' },
+    { id: 'kina', name: 'Moku-nabalu Park', from: 'Kinabalu Park and the rivers of Borneo', icon: '⛰️', sub: 'Under the tallest mountain in Malaysia, on the island of Borneo.',
+      pool: ['orangutan', 'proboscis', 'rafflesia', 'tarsier', 'frog', 'hornbill', 'leopard', 'moth', 'sunbear', 'pangolin', 'binturong'],
+      sky: ['#2A2C5E', '#34405A', '#1E3424'], look: 'mountain' }
+  ];
+  var STAGE_BY = {}; STAGES.forEach(function (st) { STAGE_BY[st.id] = st; });
   var BY = {}; CRITTERS.forEach(function (c) { BY[c.id] = c; });
 
   // ---------- save / settings / Moint ----------
@@ -355,10 +393,12 @@ body.on-title #playScreen { display: none; }
     var p = readJSON(SAVE_KEY);
     if (!p || p.version !== 1) p = {};
     return { version: 1, gameId: GAME_ID, found: p.found || {}, seen: p.seen || {}, nights: p.nights | 0, best: p.best | 0, perfect: p.perfect | 0,
-      played: p.played | 0, mointClaims: p.mointClaims || {}, updatedAt: p.updatedAt || null };
+      played: p.played | 0, stages: p.stages || {}, mointClaims: p.mointClaims || {}, updatedAt: p.updatedAt || null };
   }
   var progress = loadProgress();
   function save() { progress.updatedAt = new Date().toISOString(); writeJSON(SAVE_KEY, progress); }
+  // 前のステージで3つ以上見つけた夜があれば、次のステージが開く
+  function stageOpen(i) { if (i === 0) return true; var prev = progress.stages[STAGES[i - 1].id]; return !!(prev && prev.best >= 3); }
   function foundCount() { return CRITTERS.filter(function (c) { return progress.found[c.id]; }).length; }
   var settings = readJSON(SET_KEY) || {};
   if (settings.sound === undefined) settings.sound = true;
@@ -417,6 +457,10 @@ body.on-title #playScreen { display: none; }
     croak: function () { [0, 0.3, 0.6].forEach(function (t) { tone(380, t, 0.14, 'square', 0.06, 300); }); },
     chirp: function () { for (var i = 0; i < 5; i++) tone(2200 + Math.random() * 600, i * 0.11, 0.06, 'square', 0.04); },
     growl: function () { noise(0, 0.7, 180, 0.4); },
+    stomp: function () { for (var i = 0; i < 6; i++) noise(i * 0.07, 0.05, 300, 0.4); },
+    hoot: function () { tone(330, 0, 0.35, 'sine', 0.12, 300); tone(330, 0.5, 0.5, 'sine', 0.12, 290); },
+    honk2: function () { [0, 0.3, 0.6].forEach(function (t) { tone(240, t, 0.2, 'sawtooth', 0.07, 200); }); },
+    mew: function () { tone(700, 0, 0.35, 'triangle', 0.08, 500); },
     grunt: function () { tone(140, 0, 0.18, 'sawtooth', 0.08, 110); tone(140, 0.3, 0.18, 'sawtooth', 0.08, 110); },
     smell: function () { tone(500, 0, 0.12, 'triangle', 0.08); }, look: function () { tone(880, 0, 0.12, 'triangle', 0.06); }, blink: function () { [0, 0.25, 0.5].forEach(function (t) { tone(1760, t, 0.06, 'sine', 0.06); }); }
   };
@@ -450,8 +494,16 @@ body.on-title #playScreen { display: none; }
     bg = document.createElement('canvas'); bg.width = cv.width; bg.height = cv.height;
     var b = bg.getContext('2d'); b.scale(DPR, DPR);
     var R = rnd(night.seed);
-    var g = b.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#1E3A5A'); g.addColorStop(0.5, '#2A4A3E'); g.addColorStop(1, '#1E3424'); b.fillStyle = g; b.fillRect(0, 0, W, H);
-    b.fillStyle = '#FFF4C8'; b.beginPath(); b.arc(W * 0.82, H * 0.14, Math.min(W, H) * 0.05, 0, 7); b.fill();
+    var st = STAGE_BY[night.stage] || STAGES[1], sky = st.sky;
+    var g = b.createLinearGradient(0, 0, 0, H); g.addColorStop(0, sky[0]); g.addColorStop(0.5, sky[1]); g.addColorStop(1, sky[2]); b.fillStyle = g; b.fillRect(0, 0, W, H);
+    b.fillStyle = '#FFF4C8'; b.beginPath(); b.arc(W * (st.look === 'mountain' ? 0.18 : 0.82), H * 0.14, Math.min(W, H) * 0.05, 0, 7); b.fill();
+    if (st.look === 'mountain') {
+      // キナバル山のぎざぎざの頂上
+      b.fillStyle = '#3A4466'; b.strokeStyle = '#232A44'; b.lineWidth = 3; b.beginPath(); b.moveTo(W * 0.2, H * 0.62);
+      [[0.38, 0.3], [0.46, 0.22], [0.5, 0.27], [0.55, 0.16], [0.6, 0.24], [0.64, 0.18], [0.7, 0.28], [0.85, 0.4], [1.05, 0.62]].forEach(function (q) { b.lineTo(W * q[0], H * q[1]); });
+      b.closePath(); b.fill(); b.stroke();
+      b.fillStyle = 'rgba(255,255,255,0.18)'; b.beginPath(); b.moveTo(W * 0.46, H * 0.22); b.lineTo(W * 0.55, H * 0.16); b.lineTo(W * 0.64, H * 0.18); b.lineTo(W * 0.6, H * 0.26); b.lineTo(W * 0.5, H * 0.28); b.closePath(); b.fill();
+    }
     // 木の幹
     for (var i = 0; i < 6; i++) {
       var x = W * (0.05 + i * 0.18 + R() * 0.06), w = 16 + R() * 22;
@@ -464,6 +516,17 @@ body.on-title #playScreen { display: none; }
     b.fillStyle = '#2C5A6A'; b.beginPath(); b.moveTo(0, H * 0.84); b.bezierCurveTo(W * 0.3, H * 0.78, W * 0.6, H * 0.92, W, H * 0.86); b.lineTo(W, H); b.lineTo(0, H); b.closePath(); b.fill();
     b.strokeStyle = 'rgba(255,255,255,0.25)'; b.lineWidth = 2;
     for (var k = 0; k < 8; k++) { var wx = R() * W, wy = H * (0.88 + R() * 0.1); b.beginPath(); b.moveTo(wx, wy); b.quadraticCurveTo(wx + 10, wy - 4, wx + 20, wy); b.stroke(); }
+    if (st.look === 'safari') {
+      // 動物園の小道と、あたたかい色の街灯
+      b.fillStyle = '#5A4A36'; b.beginPath(); b.moveTo(0, H * 0.8); b.bezierCurveTo(W * 0.35, H * 0.7, W * 0.65, H * 0.76, W, H * 0.7); b.lineTo(W, H * 0.76); b.bezierCurveTo(W * 0.65, H * 0.82, W * 0.35, H * 0.78, 0, H * 0.86); b.closePath(); b.fill();
+      [0.12, 0.42, 0.72, 0.94].forEach(function (lx) {
+        var x = W * lx, y = H * 0.74;
+        b.strokeStyle = '#2A1A10'; b.lineWidth = 4; b.beginPath(); b.moveTo(x, y); b.lineTo(x, y - H * 0.16); b.stroke();
+        var gg = b.createRadialGradient(x, y - H * 0.17, 2, x, y - H * 0.17, 40); gg.addColorStop(0, 'rgba(255,214,120,0.55)'); gg.addColorStop(1, 'rgba(255,214,120,0)');
+        b.fillStyle = gg; b.beginPath(); b.arc(x, y - H * 0.17, 40, 0, 7); b.fill();
+        b.fillStyle = '#FFD678'; b.beginPath(); b.arc(x, y - H * 0.17, 5, 0, 7); b.fill();
+      });
+    }
     // 葉のかたまり(上と下)
     for (var j = 0; j < 26; j++) {
       var lx = R() * W, ly = j < 12 ? R() * H * 0.25 : H * (0.6 + R() * 0.25), lr = 20 + R() * 34;
@@ -577,16 +640,17 @@ body.on-title #playScreen { display: none; }
   // 🔦 Night Walk
   // =====================================================================
   var TARGETS = 5;
-  function startWalk() {
+  function startWalk(stageId) {
+    var st = STAGE_BY[stageId] || STAGE_BY[(night && night.stage) || ''] || STAGES[0];
     progress.played++; save();
     document.body.classList.remove('on-title');
-    $('modeTitle').textContent = '🔦 Night Walk';
+    $('modeTitle').textContent = st.icon + ' ' + st.name;
     $('sheet').classList.remove('show');
     $('hint').style.opacity = 1;
     // まだ見つけていない生き物を先に
-    var pool = shuffle(CRITTERS).sort(function (a, b) { return (progress.found[a.id] ? 1 : 0) - (progress.found[b.id] ? 1 : 0); });
+    var pool = shuffle(st.pool.map(function (id) { return BY[id]; })).sort(function (a, b) { return (progress.found[a.id] ? 1 : 0) - (progress.found[b.id] ? 1 : 0); });
     var targets = pool.slice(0, TARGETS), decoys = pool.slice(TARGETS, TARGETS + 2);
-    night = { seed: Math.floor(Math.random() * 1e6) + 1, targets: targets.map(function (c) { return c.id; }), cur: 0, found: [], wrong: 0,
+    night = { stage: st.id, seed: Math.floor(Math.random() * 1e6) + 1, targets: targets.map(function (c) { return c.id; }), cur: 0, found: [], wrong: 0,
       battery: 100, drain: 2.2, over: false,
       items: targets.concat(decoys).map(function (c) { return { c: c, state: 'hidden' }; }) };
     resize();
@@ -669,6 +733,10 @@ body.on-title #playScreen { display: none; }
     night.over = true; night.overAt = t || performance.now();
     var n = night.found.length, perfect = n === TARGETS && night.battery >= 30;
     progress.nights++; progress.best = Math.max(progress.best, n); if (perfect) progress.perfect++;
+    var si = STAGES.indexOf(STAGE_BY[night.stage]), hasNext = si >= 0 && si < STAGES.length - 1, wasOpen = hasNext ? stageOpen(si + 1) : true;
+    var rec = progress.stages[night.stage] || (progress.stages[night.stage] = { nights: 0, best: 0 });
+    rec.nights++; rec.best = Math.max(rec.best, n);
+    var unlocked = hasNext && !wasOpen && stageOpen(si + 1);
     var lines = [['Animals found: ' + n + ' × 10', earn(n * 10)]];
     if (perfect) lines.push(['All 5 with battery left! 🔋', earn(20)]);
     night.found.forEach(function (id) { if (!progress.mointClaims['s:' + id]) lines.push(['First ' + BY[id].name + '!', claimOnce('s:' + id, 20)]); });
@@ -680,14 +748,38 @@ body.on-title #playScreen { display: none; }
       sh.innerHTML = '<div class="card"><div class="h">' + (n === TARGETS ? '🌅 Good morning! You found them all!' : night.battery <= 0 ? '🔋 Your battery ran out!' : '🌅 Good morning!') + '</div>' +
         '<div class="sub">The jungle wakes up. Here’s what you found tonight.</div>' +
         '<div class="bigNum">' + n + ' / ' + TARGETS + '</div>' +
+        (unlocked ? '<div class="unlock">🔓 New place opened: <b>' + esc(STAGES[si + 1].icon + ' ' + STAGES[si + 1].name) + '</b>!</div>' : '') +
         '<div class="found">' + night.targets.map(function (id) { var c = BY[id], got = night.found.indexOf(id) >= 0;
           return '<div class="fc' + (got ? '' : ' miss') + '">' + artHTML(c) + '<span>' + esc(c.name) + '</span></div>'; }).join('') + '</div>' +
         mointBox(lines) +
-        '<div class="row"><button class="btn primary" id="again">🔦 Another night</button><button class="btn" id="toBook">📗 Junglepedia</button></div></div>';
+        '<div class="row"><button class="btn primary" id="again">🔦 Another night</button><button class="btn" id="toStages">🗺️ Places</button><button class="btn" id="toBook">📗 Junglepedia</button></div></div>';
       sh.classList.add('show');
-      $('again').addEventListener('click', function () { sfx.tap(); startWalk(); });
+      $('again').addEventListener('click', function () { sfx.tap(); startWalk(night.stage); });
+      $('toStages').addEventListener('click', function () { sfx.tap(); openStages(); });
       $('toBook').addEventListener('click', function () { sfx.tap(); openBook(); });
     }, 1300);
+  }
+
+  // =====================================================================
+  // 🗺️ どこを歩く?(ステージ)
+  // =====================================================================
+  function openStages() {
+    document.body.classList.remove('on-title');
+    $('modeTitle').textContent = '🔦 Night Walk';
+    $('topInfo').textContent = '';
+    night = { stage: (night && night.stage) || 'safari', seed: 77, items: [], targets: [], found: [], over: true, overAt: -1e9, battery: 0 };
+    resize(); drawBG();
+    cancelAnimationFrame(raf); last = 0; raf = requestAnimationFrame(loop);
+    var sh = $('sheet');
+    sh.innerHTML = '<div class="card"><div class="h">Where will you walk tonight?</div><div class="sub">Find 3 animals in one night to open the next place.</div><div class="stages">' +
+      STAGES.map(function (st, i) {
+        var open = stageOpen(i), rec = progress.stages[st.id], got = st.pool.filter(function (id) { return progress.found[id]; }).length;
+        return '<button class="stg' + (open ? '' : ' lock') + '" data-s="' + st.id + '"' + (open ? '' : ' disabled') + '><span class="si">' + (open ? st.icon : '🔒') + '</span><span class="st"><b>' + esc(st.name) + '</b>' +
+          '<small>Like ' + esc(st.from) + '</small><small>' + (open ? esc(st.sub) : 'Find 3 animals in ' + esc(STAGES[i - 1].name) + ' to open') + '</small>' +
+          (open ? '<small class="sp">📗 ' + got + ' / ' + st.pool.length + ' animals' + (rec && rec.best ? ' · best night ' + rec.best + ' / ' + TARGETS : '') + '</small>' : '') + '</span></button>';
+      }).join('') + '</div></div>';
+    sh.classList.add('show');
+    sh.querySelectorAll('.stg[data-s]:not([disabled])').forEach(function (b) { b.addEventListener('click', function () { sfx.tap(); startWalk(b.getAttribute('data-s')); }); });
   }
 
   // =====================================================================
@@ -718,7 +810,7 @@ body.on-title #playScreen { display: none; }
       h += '<div class="row"><button class="btn primary" id="walk">🔦 Night Walk</button></div><div class="tip">Animals you shine your light on (even by mistake) show up here too.</div></div>';
       sh.innerHTML = h; sh.classList.add('show');
       sh.querySelectorAll('[data-c]').forEach(function (b) { b.addEventListener('click', function () { sfx.tap(); var c = BY[b.getAttribute('data-c')]; CALLS[c.snd] && CALLS[c.snd](); draw(c.id); var e = sh.querySelector('.entry'); if (e) e.scrollIntoView({ behavior: 'smooth', block: 'center' }); }); });
-      $('walk').addEventListener('click', function () { sfx.tap(); startWalk(); });
+      $('walk').addEventListener('click', function () { sfx.tap(); openStages(); });
     }
     draw(sel);
   }
@@ -734,14 +826,15 @@ body.on-title #playScreen { display: none; }
   }
   $('menuBtn').addEventListener('click', function () { sfx.tap(); showTitle(); });
   syncSoundBtn();
-  $('goWalk').addEventListener('click', function () { sfx.tap(); startWalk(); });
+  $('goWalk').addEventListener('click', function () { sfx.tap(); openStages(); });
   $('goBook').addEventListener('click', function () { sfx.tap(); openBook(); });
   window.addEventListener('moku:moint', function () { if (document.body.classList.contains('on-title')) showTitle(); });
   showTitle();
   // 開発用: ?screen=walk|book
   try {
     var scr = new URLSearchParams(location.search).get('screen');
-    if (scr === 'walk') startWalk(); else if (scr === 'book') openBook();
+    var stg = new URLSearchParams(location.search).get('stage');
+    if (scr === 'walk') startWalk(stg); else if (scr === 'stages') openStages(); else if (scr === 'book') openBook();
     if (location.protocol === 'file:') window.__mnj = { items: function () { return night && night.items.map(function (it) { return { id: it.c.id, x: it.x, y: it.y, state: it.state }; }); }, target: function () { return night && night.cur < TARGETS ? curTarget().id : null; } };
   } catch (e) {}
 })();

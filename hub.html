@@ -2231,7 +2231,7 @@ html.me-open #ceoPeek { display: none; }
     return k && typeof k === 'object' ? Math.min(MFF_TOTAL, Object.keys(k).length) : 0;
   }
   // Moku Night Jungle: 見つけた生き物の数(ゲームの CRITTERS の数と合わせる)
-  var MNJ_TOTAL = 14;
+  var MNJ_TOTAL = 18;
   function mnjFound() {
     var p = readJSON('moku:moku-night-jungle:progress'), f = p && p.found;
     return f && typeof f === 'object' ? Math.min(MNJ_TOTAL, Object.keys(f).filter(function (k) { return f[k] > 0; }).length) : 0;
@@ -2962,7 +2962,7 @@ html.me-open #ceoPeek { display: none; }
       name: 'Moku Night Jungle',
       card: 'mnj',
       gameId: 'moku-night-jungle',
-      // 完了 = 14 の生き物を全部見つけた(moku-night-jungle.html の CRITTERS)
+      // 完了 = 18 の生き物を全部見つけた(moku-night-jungle.html の CRITTERS)
       isCompleted: function () {
         if (isExplicitlyMarked('completed', 'mnj')) return true;
         return mnjFound() >= MNJ_TOTAL;
