@@ -307,7 +307,7 @@ svg.flag { display: block; border-radius: 2px; }
 
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.3.0 · Updated Nov 20, 2026</div>
+<div id="buildInfo">v0.3.1 · Updated Nov 20, 2026</div>
 <button id="soundBtn" aria-label="Sound">🔊</button>
 
 <div id="titleScreen">
@@ -1005,7 +1005,7 @@ svg.flag { display: block; border-radius: 2px; }
     cur.say = clean ? '👌 Smart paying — no extra notes!' : 'Paid! (Tip: you gave a note you didn’t need.)';
     cur.sayCls = clean ? 'ok' : '';
     if (change > 0) { cur.step = 'change'; cur.tries = 0; cur.choices = changeChoices(change, trip.id); sfx.note(); }
-    else { cur.say += ' No change needed. ' + THANKS[trip.id]; sfx.till(); finishOrder(); }
+    else { cur.stars++; cur.say += ' No change needed. ' + THANKS[trip.id]; sfx.till(); finishOrder(); }   // ちょうど払えたら、おつりの ⭐ も付ける
     renderOrder();
   }
   function finishOrder() {

@@ -183,7 +183,7 @@ body.on-title #playScreen { display: none; }
 
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.1.0 · Updated Nov 19, 2026</div>
+<div id="buildInfo">v0.1.1 · Updated Nov 20, 2026</div>
 <button id="soundBtn" aria-label="Sound">🔊</button>
 
 <div id="titleScreen">
@@ -671,7 +671,7 @@ body.on-title #playScreen { display: none; }
     progress.nights++; progress.best = Math.max(progress.best, n); if (perfect) progress.perfect++;
     var lines = [['Animals found: ' + n + ' × 10', earn(n * 10)]];
     if (perfect) lines.push(['All 5 with battery left! 🔋', earn(20)]);
-    night.found.forEach(function (id) { if (progress.found[id] === 1) lines.push(['First ' + BY[id].name + '!', claimOnce('s:' + id, 20)]); });
+    night.found.forEach(function (id) { if (!progress.mointClaims['s:' + id]) lines.push(['First ' + BY[id].name + '!', claimOnce('s:' + id, 20)]); });
     if (foundCount() >= CRITTERS.length) lines.push(['Every critter found! 🎉', claimOnce('all', 200)]);
     save();
     sfx.morning();
