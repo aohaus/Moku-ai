@@ -95,6 +95,9 @@
   var mode = (script && script.getAttribute('data-mode')) || 'full';
 
   function resolveBase() {
+    // Preview mode (*.pages.dev, see moku-gate.js): no login and no cloud save,
+    // so trying a branch on a phone never touches the real accounts.
+    if (/\.pages\.dev$/.test(location.hostname)) return null;
     if (typeof global.MOKU_ACCOUNT_API === 'string') return global.MOKU_ACCOUNT_API.replace(/\/$/, '');
     if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) && location.port === '3000') return '';
     if (API_BASE_URL) return API_BASE_URL.replace(/\/$/, '');

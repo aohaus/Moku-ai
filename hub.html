@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<script src="shared/moku-errors.js?v=20261117c"></script>
-<script src="shared/moku-gate.js?v=20261117c"></script>
+<script src="shared/moku-errors.js?v=20261119e"></script>
+<script src="shared/moku-gate.js?v=20261119e"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Moku Series</title>
 <!-- Icons: made by scripts/make-icons.py. Bump ?v= when they change so browsers refetch. -->
@@ -2214,6 +2214,33 @@ html.me-open #ceoPeek { display: none; }
     return DROPPER_RACES.filter(function (r) { return dropperFirst(p, r); }).length;
   }
   // Moku Mall: 10 の店を全部開けたことのあるモールの数(progress.cleared、最大4)
+  // Where's Moku?: 見つけた国(found)/ 1枚目の手がかりで見つけた国(master)の数
+  function wmCount(field) {
+    var p = readJSON('moku:wheres-moku:progress'), o = p && p[field];
+    return o && typeof o === 'object' ? Object.keys(o).filter(function (k) { return o[k] > 0; }).length : 0;
+  }
+  // Moku Money Market: いちばん良い ⭐ が min 以上の市場の数(min 1 = 行ったことがある)
+  function mmmCount(min) {
+    var p = readJSON('moku:moku-money-market:progress'), m = p && p.markets;
+    return m && typeof m === 'object' ? Object.keys(m).filter(function (k) { return m[k] && (min <= 1 ? m[k].played > 0 : (m[k].best | 0) >= min); }).length : 0;
+  }
+  // Fact or Fib? Asia: 正解した話の数(ゲームの CLAIMS の数と合わせる)
+  var MFF_TOTAL = 100;
+  function mffKnown() {
+    var p = readJSON('moku:moku-fact-or-fib:progress'), k = p && p.known;
+    return k && typeof k === 'object' ? Math.min(MFF_TOTAL, Object.keys(k).length) : 0;
+  }
+  // Moku Night Jungle: 見つけた生き物の数(ゲームの CRITTERS の数と合わせる)
+  var MNJ_TOTAL = 18;
+  function mnjFound() {
+    var p = readJSON('moku:moku-night-jungle:progress'), f = p && p.found;
+    return f && typeof f === 'object' ? Math.min(MNJ_TOTAL, Object.keys(f).filter(function (k) { return f[k] > 0; }).length) : 0;
+  }
+  // Moku Festival Lights: 飾りごとのいちばん良い ⭐ の合計(6 つ × 3 = 18)
+  function mflStars() {
+    var p = readJSON('moku:moku-festival-lights:progress'), b = p && p.best;
+    return b && typeof b === 'object' ? Object.keys(b).reduce(function (a, k) { return a + Math.min(3, b[k] | 0); }, 0) : 0;
+  }
   function mallCleared() {
     var p = readJSON('moku:moku-mall:progress');
     return p && Array.isArray(p.cleared) ? p.cleared.filter(Boolean).length : 0;
@@ -2854,6 +2881,134 @@ html.me-open #ceoPeek { display: none; }
       }
     },
     {
+      name: "Where's Moku?",
+      card: 'wm',
+      gameId: 'wheres-moku',
+      // 完了 = 11か国すべてを、1枚目の手がかりで見つけたことがある(progress.master)
+      isCompleted: function () {
+        if (isExplicitlyMarked('completed', 'wm')) return true;
+        return wmCount('master') >= 11;
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'wm')) return true;
+        var p = readJSON('moku:wheres-moku:progress');
+        return Boolean(p && p.played > 0);
+      },
+      progress: function () {
+        if (this.isCompleted()) return 1;
+        // 見つけた国(11)を大きく、1枚目で当てた国(11)を少し
+        return Math.min(1, wmCount('found') / 11 * 0.7 + wmCount('master') / 11 * 0.3);
+      },
+      badge: function () {
+        var p = readJSON('moku:wheres-moku:progress');
+        if (!p || !this.isPlayed()) return null;
+        var line = '📕 ' + wmCount('found') + ' / 11 countries · 🔖 ' + num(p.totalStamps | 0);
+        var m = wmCount('master');
+        return m ? line + ' · ⭐ ' + m : line;
+      }
+    },
+    {
+      name: 'Moku Money Market',
+      card: 'mmm',
+      gameId: 'moku-money-market',
+      // 完了 = 8 か国すべての市場で ⭐15(1回の満点)を取った
+      isCompleted: function () {
+        if (isExplicitlyMarked('completed', 'mmm')) return true;
+        return mmmCount(15) >= 8;
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'mmm')) return true;
+        var p = readJSON('moku:moku-money-market:progress');
+        return Boolean(p && p.played > 0);
+      },
+      progress: function () {
+        if (this.isCompleted()) return 1;
+        // 行った市場(8)を半分、満点の市場(8)を半分
+        return Math.min(1, mmmCount(1) / 8 * 0.5 + mmmCount(15) / 8 * 0.5);
+      },
+      badge: function () {
+        var p = readJSON('moku:moku-money-market:progress');
+        if (!p || !this.isPlayed()) return null;
+        var line = '🛒 ' + mmmCount(1) + ' / 8 markets · ⭐ ' + num(p.totalStars | 0);
+        return p.checkBest ? line + ' · 💱 ' + p.checkBest + '/8' : line;
+      }
+    },
+    {
+      name: 'Fact or Fib? Asia',
+      card: 'mff',
+      gameId: 'moku-fact-or-fib',
+      // 完了 = 全部の話を一度は正解した(progress.known。今ある話の数は moku-fact-or-fib.html の CLAIMS = 100)
+      isCompleted: function () {
+        if (isExplicitlyMarked('completed', 'mff')) return true;
+        return mffKnown() >= MFF_TOTAL;
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'mff')) return true;
+        var p = readJSON('moku:moku-fact-or-fib:progress');
+        return Boolean(p && p.played > 0);
+      },
+      progress: function () {
+        if (this.isCompleted()) return 1;
+        return Math.min(1, mffKnown() / MFF_TOTAL);
+      },
+      badge: function () {
+        var p = readJSON('moku:moku-fact-or-fib:progress');
+        if (!p || !this.isPlayed()) return null;
+        var line = '📚 ' + mffKnown() + ' / ' + MFF_TOTAL + ' facts';
+        return p.best ? line + ' · 🎯 Best ' + p.best + '/10' : line;
+      }
+    },
+    {
+      name: 'Moku Night Jungle',
+      card: 'mnj',
+      gameId: 'moku-night-jungle',
+      // 完了 = 18 の生き物を全部見つけた(moku-night-jungle.html の CRITTERS)
+      isCompleted: function () {
+        if (isExplicitlyMarked('completed', 'mnj')) return true;
+        return mnjFound() >= MNJ_TOTAL;
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'mnj')) return true;
+        var p = readJSON('moku:moku-night-jungle:progress');
+        return Boolean(p && p.played > 0);
+      },
+      progress: function () {
+        if (this.isCompleted()) return 1;
+        return Math.min(1, mnjFound() / MNJ_TOTAL);
+      },
+      badge: function () {
+        var p = readJSON('moku:moku-night-jungle:progress');
+        if (!p || !this.isPlayed()) return null;
+        var line = '📗 ' + mnjFound() + ' / ' + MNJ_TOTAL + ' critters';
+        return p.nights ? line + ' · 🔦 ' + p.nights + (p.nights === 1 ? ' night' : ' nights') : line;
+      }
+    },
+    {
+      name: 'Moku Festival Lights',
+      card: 'mfl',
+      gameId: 'moku-festival-lights',
+      // 完了 = 12 の飾りを全部 ⭐3 で作った
+      isCompleted: function () {
+        if (isExplicitlyMarked('completed', 'mfl')) return true;
+        return mflStars() >= 36;
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'mfl')) return true;
+        var p = readJSON('moku:moku-festival-lights:progress');
+        return Boolean(p && p.played > 0);
+      },
+      progress: function () {
+        if (this.isCompleted()) return 1;
+        return Math.min(1, mflStars() / 36);
+      },
+      badge: function () {
+        var p = readJSON('moku:moku-festival-lights:progress');
+        if (!p || !this.isPlayed()) return null;
+        var made = p.made && typeof p.made === 'object' ? Object.keys(p.made).length : 0;
+        return '🏮 ' + made + ' / 12 crafts · ⭐ ' + mflStars() + ' / 36';
+      }
+    },
+    {
       name: 'Sir CEO Moku',
       card: 'ceo',
       gameId: 'ceo-moku',
@@ -2935,6 +3090,11 @@ html.me-open #ceoPeek { display: none; }
     mwr: { title: 'Riddles Solved', read: riddlesSolved, fmt: function (n) { return n + ' / ' + riddleTotal() + ' 🧩'; } },
     mdp: { title: 'Races Won', read: dropperWins, fmt: function (n) { return n + ' / ' + DROPPER_RACES.length + ' 🥇'; } },
     mml: { title: 'Most Coins', read: function () { var p = readJSON('moku:moku-mall:progress'); return p && p.bestCoins; }, fmt: function (n) { return '$' + num(n); } },
+    wm:  { title: 'Stamps Collected', read: function () { var p = readJSON('moku:wheres-moku:progress'); return p && p.totalStamps; }, fmt: function (n) { return num(n) + ' 🔖'; } },
+    mmm: { title: 'Market Stars', read: function () { var p = readJSON('moku:moku-money-market:progress'); return p && p.totalStars; }, fmt: function (n) { return num(n) + ' ⭐'; } },
+    mff: { title: 'Facts Found', read: mffKnown, fmt: function (n) { return n + ' / ' + MFF_TOTAL + ' 📚'; } },
+    mnj: { title: 'Critters Found', read: mnjFound, fmt: function (n) { return n + ' / ' + MNJ_TOTAL + ' 🔦'; } },
+    mfl: { title: 'Festival Stars', read: mflStars, fmt: function (n) { return n + ' / 36 ⭐'; } },
     ceo: { title: 'Pop Quizzes Solved', read: function () { var m = readJSON('moku:ceo-moku:memory'); return m && m.quiz && m.quiz.wins; }, fmt: function (n) { return n + ' 🧩'; } }
   };
   function myRecords() {
@@ -2961,6 +3121,10 @@ html.me-open #ceoPeek { display: none; }
   // `multi` marks games you can play with friends online (SPEC.md §14).
   // `moint` = the game hands out Moints (SPEC.md §13): a small coin on its
   // tile, and `how` (+ today's total when `cap` is set) in the detail sheet.
+  // `opensAt` (optional, an exact time with its zone) hides the title until then, so a set of
+  // games can be merged early and go live together. Preview (*.pages.dev), localhost and file:
+  // show them right away. Each game page has the same time in its own OPENS_AT — keep both in sync.
+  var RELEASE_ASIA = '2026-11-21T13:00:00+08:00'; // Live in ASIA の5本の一斉公開(マレーシア時間)
   var CATALOG = {
     am:  { name: 'Angry Mokumoku', gameId: 'angry-mokumoku', genre: 'Slingshot Action', cta: 'Play', hi: '#4CBE55', lo: '#1A5020',
            tag: 'Fling Moku. Topple the fort.',
@@ -3045,22 +3209,62 @@ html.me-open #ceoPeek { display: none; }
            tag: 'Build it. Guard it. Grow it!',
            desc: 'Open shops to earn coins, hire guards, and run around as Moku to stop robbers at the ATMs. Fill all 10 stores to unlock the next mall. Made by one of our young game designers!',
            moint: { cap: true, how: 'Catch a robber: +30. Catch a Super Robber: +50. Fill every store in a mall for the first time: +100 to +500.' } },
+    wm:  { name: "Where's Moku?", gameId: 'wheres-moku', genre: 'Map Quiz · Southeast Asia', cta: 'Travel', hi: '#E85C9A', lo: '#7A2050', newUntil: '2026-12-09', opensAt: RELEASE_ASIA,
+           tag: 'Moku is traveling. Find him!',
+           desc: 'Moku sends postcards from Southeast Asia. Read the clues — hello, food, money, flags — and find him on the map! Compare countries in Twin or Not?, then explain a secret country to your friends in Be the Guide.',
+           moint: { cap: true, how: 'Postcards: +5 for every stamp (up to +75 a trip), every postcard on clue 1: +25. Twin or Not?: +5 for each right answer, all 8 right: +20. First visit to each country: +30. All 11 countries: +300.' } },
+    mmm: { name: 'Moku Money Market', gameId: 'moku-money-market', genre: 'Market Math · Southeast Asia', cta: 'Shop', hi: '#E8A23A', lo: '#6E4510', newUntil: '2026-12-10', opensAt: RELEASE_ASIA,
+           tag: 'Shop with real money from 8 countries!',
+           desc: 'Buy street food at markets in Malaysia, Singapore, Brunei, Thailand, Cambodia, Vietnam, Indonesia and the Philippines. Add up the prices, pay with their notes and coins, and check your change. Then guess what things cost in your own money!',
+           moint: { cap: true, how: 'Market Trip: +5 for every star (up to +75), all 15 stars: +25. Price Check: +5 for each right answer, all 8 right: +20. First visit to each market: +30. All 8 markets: +200.' } },
+    mff: { name: 'Fact or Fib? Asia', gameId: 'moku-fact-or-fib', genre: 'True or False · Southeast Asia', cta: 'Play', hi: '#9A4FA6', lo: '#42204A', newUntil: '2026-12-10', opensAt: RELEASE_ASIA,
+           tag: 'Weird but true… or made up?',
+           desc: 'Chewing gum can’t be sold in Singapore. Thailand’s capital has the world’s longest name. True or made up? Spot the facts and the fibs from 11 Southeast Asian countries — alone, or as a party game on one phone!',
+           moint: { cap: true, how: 'Quiz: +5 for each right answer, all 10 right: +25. Party mode is just for fun (no Moints).' } },
+    mnj: { name: 'Moku Night Jungle', gameId: 'moku-night-jungle', genre: 'Flashlight Explore · Rainforest', cta: 'Explore', hi: '#3F8FA0', lo: '#173F47', newUntil: '2026-12-10', opensAt: RELEASE_ASIA,
+           tag: 'Shine your light. Who’s there?',
+           desc: 'It’s night in the Southeast Asian rainforest. Use your flashlight, follow the glowing eyes and listen for calls to find real animals — a tarsier with giant eyes, a bearcat that smells like popcorn, the world’s biggest flower and more. Collect them all in your Junglepedia!',
+           moint: { cap: true, how: 'Night Walk: +10 for each animal you find (up to +50), all 5 with battery left: +20. First time you find each one: +20. All 14: +200.' } },
+    mfl: { name: 'Moku Festival Lights', gameId: 'moku-festival-lights', genre: 'Trace & Craft · Festivals', cta: 'Make', hi: '#E0473B', lo: '#6E1C16', newUntil: '2026-12-10', opensAt: RELEASE_ASIA,
+           tag: 'Trace, color and light it up!',
+           desc: 'Make festival crafts from Southeast Asia with your finger: batik from Indonesia, a kolam, a Hội An silk lantern, a Thai krathong, a Filipino parol and a mooncake. Trace the glowing dots, pick a color, and watch them all light up on Festival Night!',
+           moint: { cap: true, how: 'Make a craft: +10 for each star (up to +30). First time you make each one: +30. All 6: +200.' } },
     ceo: { name: 'Sir CEO Moku', gameId: 'ceo-moku', genre: 'Chat & Quiz', cta: 'Visit', hi: '#D9925A', lo: '#6A3A1C', newUntil: '2026-12-08',
            tag: 'Meet the boss of Moku games!',
            desc: 'Visit Sir CEO Moku in his office. He picks a game for you every day, gives surprise quizzes, and listens to your game ideas. He is a little silly… and a little greedy.',
            moint: { how: 'His pick is Today\'s Pick at the top of the hub. Play it, then come back to his office for a bonus: 20% of the Moints you earned there (or +30 for games without Moints). Chat with him and a Pop Quiz may pop up: type the answer for +100 (once a day).' } }
   };
+  // 公開前のタイトルは CATALOG から外す(棚・詳細シート・My Games・Achievements に出ない)。
+  // 公開の時刻にハブが開いていたら、見えている時に読み直して出す。
+  (function () {
+    var dev = location.protocol === 'file:' || /\.pages\.dev$/.test(location.hostname) || /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+    var next = Infinity;
+    Object.keys(CATALOG).forEach(function (k) {
+      var at = CATALOG[k].opensAt ? Date.parse(CATALOG[k].opensAt) : NaN;
+      if (dev || !(at > Date.now())) return;
+      delete CATALOG[k];
+      next = Math.min(next, at);
+    });
+    if (next === Infinity) return;
+    function reloadWhenSeen() {
+      if (document.visibilityState === 'visible') location.reload();
+      else document.addEventListener('visibilitychange', reloadWhenSeen, { once: true });
+    }
+    setTimeout(reloadWhenSeen, Math.min(next - Date.now() + 1000, 2147483000));
+  })();
   // For "Get the latest games & updates" (shared/moku-account.js): the games
   // this hub lists, so it can say which ones the last update didn't know about.
   window.MOKU_GAME_PAGES = function () {
     return Object.keys(CATALOG).map(function (k) { return { page: CATALOG[k].gameId + '.html', name: CATALOG[k].name }; })
       .concat(liveEvents().map(function (ev) { return { page: ev.gameId + '.html', name: ev.name }; }));
   };
+  // Live in ASIA(2026-11-18〜): 東南アジアを事実で楽しく知るゲームの棚(5本)。2026-11-20 に一番下へ
   var SHELVES = [
     { title: 'Action & Sports', sub: 'Fling, kick, fight, race', cards: ['mdp', 'mfg', 'mfr', 'mkt', 'br', 'mk', 'am'] },
     { title: 'Puzzle & Brain',  sub: 'Think, match, merge',      cards: ['mwr', 'mch', 'md', 'so', 'mm'] },
     { title: 'Cozy & Create',   sub: 'Take it slow',             cards: ['ceo', 'mml', 'mw6', 'mrc', 'fm', 'mf', 'mb', 'mc'] },
-    { title: 'Party & Arcade',  sub: 'Play with friends',        cards: ['mbr', 'mw', 'mr'] }
+    { title: 'Party & Arcade',  sub: 'Play with friends',        cards: ['mbr', 'mw', 'mr'] },
+    { title: 'Live in ASIA',    sub: 'Explore Southeast Asia',   cards: ['wm', 'mmm', 'mff', 'mnj', 'mfl'] }
   ];
   // Today's Pick rotates daily through titles whose screenshot shows real gameplay.
   // Sir CEO Moku (ceo-moku.html PICKS) uses the same list and day formula as his CEO's Pick — change both together.
@@ -3314,6 +3518,7 @@ html.me-open #ceoPeek { display: none; }
         row.appendChild(tile);
         tileNodes[key] = tile;
       });
+      if (!row.children.length) return; // 公開前のタイトルだけの棚は出さない
       section.appendChild(row);
       host.appendChild(section);
     });
@@ -4411,9 +4616,9 @@ html.me-open #ceoPeek { display: none; }
   };
 })();
 </script>
-<script src="shared/moku-account.js?v=20261117c"></script>
-<script src="shared/moku-transfer.js?v=20261117c"></script>
-<script src="shared/moku-moint.js?v=20261117c"></script>
+<script src="shared/moku-account.js?v=20261119e"></script>
+<script src="shared/moku-transfer.js?v=20261119e"></script>
+<script src="shared/moku-moint.js?v=20261119e"></script>
 <script>
 // ---------- Invites (SPEC.md §7) ----------
 // Friends waiting for you in a multiplayer game, at the top of the hub:

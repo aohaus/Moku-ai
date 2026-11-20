@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script src="shared/moku-errors.js?v=20261119e"></script>
+<script src="shared/moku-gate.js?v=20261119e"></script>
+<script>
+// 一斉公開(2026-11-21 13:00 マレーシア時間)までは「Coming soon」だけを出す。hub.html の RELEASE_ASIA とそろえる。
+// プレビュー(*.pages.dev)・localhost・ファイルを直接開いた時は、すぐ遊べる。
+(function () {
+  var OPENS_AT = Date.parse('2026-11-21T13:00:00+08:00');
+  var dev = location.protocol === 'file:' || /\.pages\.dev$/.test(location.hostname) || /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+  if (dev || Date.now() >= OPENS_AT) return;
+  document.documentElement.className += ' moku-soon';
+  document.write('<style>html.moku-soon body > *:not(#mokuSoon) { display: none !important; }' +
+    '#mokuSoon { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 24px; text-align: center;' +
+    ' background: linear-gradient(#FFD9A8, #F7B98A); color: #4A2E1A; font: 700 16px/1.4 -apple-system, "Segoe UI", Roboto, sans-serif; }' +
+    '#mokuSoon .o { font-size: 64px; } #mokuSoon h1 { margin: 0; font-size: 28px; font-weight: 800; }' +
+    '#mokuSoon a { margin-top: 8px; padding: 10px 22px; border-radius: 999px; background: #4A2E1A; color: #FFF4DE; text-decoration: none; }</style>');
+  document.addEventListener('DOMContentLoaded', function () {
+    var when = new Date(OPENS_AT).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    var d = document.createElement('div');
+    d.id = 'mokuSoon';
+    d.innerHTML = '<div class="o">🦉</div><h1>Coming soon!</h1><p>This game opens on ' + when + '.</p><a href="hub.html">◀ Hub</a>';
+    document.body.appendChild(d);
+    setTimeout(function () { location.reload(); }, Math.min(OPENS_AT - Date.now() + 1000, 2147483000));
+  });
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Moku Festival Lights</title>
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<!--
+  Moku Festival Lights(v0.1.0、2026-11-19)— 棚「Live in ASIA」の第5弾。
+  東南アジアのお祭り・伝統の飾りを、光る点を指でなぞって作り、色を選んで仕上げる。
+  Live in ASIA の目標(CLAUDE.md §2)に合わせて: ①どの飾りにも国 ②「どの国の・いつの・何でできている」をくらべる
+  ③作り終えたら「Tell a friend」の一文。
+  - 🎨 Make: 12 の飾り(CRAFTS)から選ぶ → ①なぞる(点線の上を、光る点から順に指でなぞる。何本かある飾りもある)
+    → ②色を選ぶ(伝統の色にはしるし)→ ③できあがりの演出と本当の話。なぞりのうまさで ⭐1〜3。
+  - 🌙 Festival Night: 作った飾りが、夜のお祭りの景色に集まる(ランタンは吊るされ、クラトンは川に浮かぶ)。押すとその飾りの話。
+  宗教の行事は「何のお祭りか」を一言だけ、中立に書く(どの宗教が正しい、のような話はしない)。
+  Moint(SPEC.md §13): 作るたびに ⭐1つ +10(最大 30、1日 500 の上限の中)。1回きり = その飾りを初めて作った +30、6 つ全部 +200
+  (progress.mointClaims の c:<id> と all)。記録は moku:moku-festival-lights:progress、音は moku:moku-festival-lights:settings。
+-->
+<style>
+:root {
+  --hi: #E0473B; --lo: #6E1C16;               /* ちょうちんの赤 */
+  --ink: #3B2A20; --ink-soft: #8B6E57; --paper: #FFF7E8; --paper2: #F7E9D8; --line: #5A3A22;
+  --wood: #7A4A2C; --wood-dark: #4E2C17;
+  --round: "Fredoka", -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { background: #2A2340; color: var(--ink); font-family: -apple-system, "Segoe UI", Roboto, sans-serif; overflow: hidden;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; touch-action: manipulation; }
+#title-frame { position: fixed; inset: 14px; border: 3px solid var(--hi); border-radius: 10px; pointer-events: none; z-index: 40; }
+#title-frame::after { content: ''; position: absolute; inset: 5px; border: 1px solid var(--lo); border-radius: 8px; }
+#hub-link { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 16px); right: calc(env(safe-area-inset-right, 0px) + 16px); z-index: 41;
+  font-size: 14px; font-weight: 800; color: #FFD9A0; text-decoration: none; text-shadow: 0 1px 2px rgba(0,0,0,0.6); animation: hubLinkPulse 2.2s ease-in-out infinite; }
+@keyframes hubLinkPulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+#buildInfo { position: fixed; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); left: calc(env(safe-area-inset-left, 0px) + 18px); z-index: 41;
+  font-size: 10.5px; letter-spacing: 0.02em; color: rgba(255,255,255,0.28); pointer-events: none; }
+body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo,
+body:not(.on-title) #titleScreen, body:not(.on-title) #soundBtn { display: none; }
+body.on-title #playScreen { display: none; }
+#soundBtn { position: fixed; z-index: 41; top: calc(env(safe-area-inset-top, 0px) + 12px); left: calc(env(safe-area-inset-left, 0px) + 22px);
+  width: 36px; height: 36px; border-radius: 50%; background: rgba(255,247,232,0.85); border: 2px solid rgba(90,58,34,0.3); font-size: 17px; }
+
+/* title: 夕暮れのお祭り */
+#titleScreen { position: fixed; inset: 0; overflow: hidden; background: linear-gradient(#3A2E5E, #6A4A7A 45%, #C9786A 80%, #E8A070); }
+.string { position: absolute; left: -5%; right: -5%; top: 12%; height: 60px; border-top: 2px solid rgba(60,40,30,0.7); border-radius: 50%; }
+.lan { position: absolute; top: 15%; width: 30px; height: 38px; border-radius: 45% 45% 40% 40%; box-shadow: 0 0 18px 6px rgba(255,180,80,0.45); animation: swing 2.6s ease-in-out infinite; transform-origin: top center; }
+.lan::before { content: ''; position: absolute; left: 30%; right: 30%; top: -4px; height: 5px; background: #4E2C17; border-radius: 2px; }
+.lan::after { content: ''; position: absolute; left: 46%; width: 2px; bottom: -10px; height: 10px; background: #E8C060; }
+@keyframes swing { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
+#titleInner { position: absolute; inset: 0; display: flex; align-items: flex-start; justify-content: center; overflow-y: auto;
+  padding: calc(env(safe-area-inset-top, 0px) + 54px) 28px calc(env(safe-area-inset-bottom, 0px) + 36px); }
+#titleCard { margin: auto; position: relative; width: min(420px, 100%); background: var(--paper); border-radius: 18px; border: 3px solid var(--line);
+  box-shadow: 0 10px 0 rgba(0,0,0,0.3), 0 18px 40px rgba(0,0,0,0.35); padding: 16px 18px; text-align: center; }
+#titleHead { position: relative; }
+#titleHero { position: relative; width: 108px; height: 108px; margin: 0 auto; animation: heroFloat 3.2s ease-in-out infinite; }
+#titleHero img, #titleHero svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#titleHero img { object-fit: cover; object-position: center 30%; }
+@keyframes heroFloat { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-7px) rotate(2deg); } }
+#titleLogo { font: 700 34px/1.02 var(--round); color: var(--lo); margin-top: 6px; }
+#titleLogo span { color: var(--hi); display: block; }
+#titleSub { font: 600 12.5px var(--round); color: var(--ink-soft); letter-spacing: 0.14em; margin-top: 6px; text-transform: uppercase; }
+#titleMenu { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 10px; }
+.titleMenuItem { width: 100%; max-width: 300px; font-size: 19px; font-weight: 800; padding: 8px 18px; border-radius: 14px; background: #fff;
+  border: 2px solid rgba(90,58,34,0.25); color: var(--ink); display: flex; align-items: center; gap: 10px; text-align: left; transition: transform 0.12s; }
+.titleMenuItem .ic { font-size: 22px; width: 28px; text-align: center; }
+.titleMenuItem small { display: block; font-size: 11.5px; font-weight: 600; color: var(--ink-soft); margin-top: 1px; }
+.titleMenuItem.primary { background: var(--hi); border-color: var(--lo); color: #fff; box-shadow: 0 4px 0 var(--lo); }
+.titleMenuItem.primary small { color: rgba(255,255,255,0.88); }
+.titleMenuItem:active { transform: translateY(2px) scale(0.98); }
+#titleMoints { margin-top: 10px; font-size: 12.5px; font-weight: 700; color: var(--ink-soft); display: flex; align-items: center; justify-content: center; gap: 6px; }
+.mcoin { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #FFF2A8, #F2C230 55%, #C9901A); border: 1.5px solid #9A6A10; color: #7A4E00; font: 800 9.5px/1 var(--round); }
+@media (orientation: landscape) and (max-height: 560px) {
+  #titleInner { padding-top: calc(env(safe-area-inset-top, 0px) + 30px); padding-bottom: 20px; }
+  #titleCard { width: min(660px, 100%); display: grid; grid-template-columns: 210px 1fr; column-gap: 14px; align-items: center; padding: 12px 14px; }
+  #titleHead { grid-row: 1 / 3; }
+  #titleHero { width: 92px; height: 92px; }
+  #titleLogo { font-size: 28px; }
+  #titleMenu, #titleMoints { grid-column: 2; }
+  #titleMenu { margin-top: 0; }
+}
+
+/* play */
+#playScreen { position: fixed; inset: 0; display: flex; flex-direction: column; background: var(--paper2); }
+#topbar { flex: none; display: flex; align-items: center; gap: 8px;
+  padding: calc(env(safe-area-inset-top, 0px) + 6px) calc(env(safe-area-inset-right, 0px) + 12px) 6px calc(env(safe-area-inset-left, 0px) + 10px);
+  background: linear-gradient(#8A5634, var(--wood)); border-bottom: 3px solid var(--wood-dark); color: #FFF4E0; }
+#menuBtn { padding: 6px 12px; border-radius: 10px; background: rgba(255,255,255,0.14); font-weight: 800; font-size: 14px; }
+#modeTitle { flex: 1; font: 700 17px var(--round); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#topInfo { font-weight: 800; font-size: 14px; white-space: nowrap; }
+#main { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 12px calc(env(safe-area-inset-right, 0px) + 12px) calc(env(safe-area-inset-bottom, 0px) + 18px) calc(env(safe-area-inset-left, 0px) + 12px); }
+#inner { max-width: 640px; margin: 0 auto; }
+.card { background: var(--paper); border: 2.5px solid var(--line); border-radius: 16px; padding: 12px; box-shadow: 0 5px 0 rgba(90,58,34,0.18); }
+.enter { animation: cardIn 0.4s cubic-bezier(.2,1.3,.5,1) both; }
+@keyframes cardIn { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
+.h { font: 700 20px var(--round); color: var(--lo); }
+.sub { font-size: 13px; color: var(--ink-soft); font-weight: 700; margin-top: 2px; line-height: 1.35; }
+.picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; margin-top: 10px; }
+.pick { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 12px; background: #fff; border: 2.5px solid rgba(90,58,34,0.2); box-shadow: 0 3px 0 rgba(90,58,34,0.15); text-align: left; }
+.pick:active { transform: translateY(2px); box-shadow: none; }
+.pick canvas { width: 56px; height: 56px; border-radius: 10px; flex: none; }
+.pick b { display: block; font: 700 15px var(--round); }
+.pick small { display: flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 700; color: var(--ink-soft); }
+.pick small svg.flag { width: 16px; height: 11px; }
+.pick .st { font-size: 12px; color: #B4790E; font-weight: 800; }
+.work { display: grid; grid-template-columns: 1fr; gap: 10px; align-items: start; }
+@media (orientation: landscape) and (min-width: 600px) { .work { grid-template-columns: auto 1fr; } }
+.board { position: relative; margin: 0 auto; border-radius: 14px; overflow: hidden; border: 3px solid var(--line); background: #FFF4E2; touch-action: none; }
+.board canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.step { display: flex; gap: 6px; margin-bottom: 6px; }
+.step span { flex: 1; text-align: center; font: 700 12px var(--round); padding: 4px 0; border-radius: 999px; background: #EFE4D2; color: var(--ink-soft); }
+.step span.on { background: var(--hi); color: #fff; }
+.step span.done { background: #9BD770; color: #2A5A1A; }
+.where { display: flex; align-items: center; gap: 6px; font: 700 12.5px var(--round); color: var(--ink-soft); letter-spacing: 0.04em; text-transform: uppercase; margin-top: 2px; }
+.where svg.flag { width: 22px; height: 15px; }
+.say { margin-top: 8px; padding: 9px 12px; border-radius: 12px; font-weight: 700; font-size: 14.5px; line-height: 1.45; background: #FFF6DA; border: 2px solid rgba(224,184,90,0.6); color: #6A4A10; }
+.pal { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.sw { position: relative; width: 52px; height: 52px; border-radius: 50%; border: 3px solid rgba(0,0,0,0.25); box-shadow: 0 3px 0 rgba(0,0,0,0.15); }
+.sw.on { outline: 3px solid var(--hi); outline-offset: 2px; }
+.sw .tr { position: absolute; right: -6px; top: -6px; font-size: 14px; }
+.sw small { position: absolute; left: 50%; bottom: -16px; transform: translateX(-50%); font: 700 10px var(--round); color: var(--ink-soft); white-space: nowrap; }
+.row { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+.btn { flex: 1; min-width: 120px; padding: 11px 14px; border-radius: 12px; font-weight: 800; font-size: 15.5px; background: #fff; border: 2px solid rgba(90,58,34,0.3); box-shadow: 0 3px 0 rgba(90,58,34,0.2); }
+.btn.primary { background: var(--hi); color: #fff; border-color: var(--lo); box-shadow: 0 3px 0 var(--lo); }
+.btn:disabled { opacity: 0.45; }
+.btn:active:not(:disabled) { transform: translateY(2px); box-shadow: none; }
+.facts { list-style: none; display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.facts li { background: #F4EEF8; border-radius: 10px; padding: 8px 10px; font-size: 14px; line-height: 1.45; font-weight: 600; }
+.tell { margin-top: 8px; padding: 10px 12px; border-radius: 12px; background: #FFF6DA; border: 2px dashed #E0B85A; font-size: 14.5px; line-height: 1.5; font-weight: 600; }
+.tell .cn { display: block; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; color: #9A7420; text-transform: uppercase; margin-bottom: 2px; }
+.stars { font-size: 26px; text-align: center; letter-spacing: 3px; margin-top: 6px; }
+.moints { margin-top: 10px; background: #FFF6DA; border: 2px solid #E0B85A; border-radius: 12px; padding: 10px 12px; font-size: 14px; font-weight: 700; }
+.moints div { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; }
+.moints .tot { border-top: 1.5px dashed #E0B85A; margin-top: 4px; padding-top: 6px; font-size: 16px; font-weight: 800; color: #7A5200; }
+.tip { margin-top: 8px; font-size: 12.5px; color: var(--ink-soft); font-weight: 600; text-align: center; }
+svg.flag { display: block; border-radius: 2px; }
+#nightBox { position: relative; border-radius: 14px; overflow: hidden; border: 3px solid var(--line); }
+#nightBox canvas { display: block; width: 100%; }
+@media (prefers-reduced-motion: reduce) { #titleHero, .lan { animation: none; } }
+</style>
+</head>
+<body class="on-title">
+<script src="shared/moku-account.js?v=20261119e" data-mode="background"></script>
+<script src="shared/moku-moint.js?v=20261119e" data-mode="none"></script>
+
+<div id="title-frame"></div>
+<a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
+<div id="buildInfo">v0.2.0 · Updated Nov 20, 2026</div>
+<button id="soundBtn" aria-label="Sound">🔊</button>
+
+<div id="titleScreen">
+  <div class="string"></div>
+  <span class="lan" style="left:8%;background:#E0473B"></span><span class="lan" style="left:26%;top:18%;background:#F2C24A;animation-delay:-0.6s"></span>
+  <span class="lan" style="left:48%;top:19%;background:#E87AA0;animation-delay:-1.2s"></span><span class="lan" style="left:70%;top:18%;background:#5AA9E6;animation-delay:-1.8s"></span>
+  <span class="lan" style="left:88%;background:#9BD770;animation-delay:-0.3s"></span>
+  <div id="titleInner">
+    <div id="titleCard">
+      <div id="titleHead">
+        <div id="titleHero"><img src="brand/mokumoku-hero.png" alt="Moku"><span id="titleOutfit"></span></div>
+        <div id="titleLogo">Moku <span>Festival Lights</span></div>
+        <div id="titleSub">Live in Asia · make & celebrate</div>
+      </div>
+      <div id="titleMenu">
+        <button class="titleMenuItem primary" id="goMake"><span class="ic">🎨</span><span>Make<small>Trace and color 12 festival crafts</small></span></button>
+        <button class="titleMenuItem" id="goNight"><span class="ic">🌙</span><span>Festival Night<small id="nightCount">0 / 12 made</small></span></button>
+      </div>
+      <div id="titleMoints"><span class="mcoin">M</span><span id="titleBal">0</span><span id="titleToday"></span></div>
+    </div>
+  </div>
+</div>
+
+<div id="playScreen">
+  <div id="topbar"><button id="menuBtn">◀ Menu</button><div id="modeTitle"></div><div id="topInfo"></div></div>
+  <div id="main"><div id="inner"></div></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var GAME_ID = 'moku-festival-lights';
+  var SAVE_KEY = 'moku:' + GAME_ID + ':progress', SET_KEY = 'moku:' + GAME_ID + ':settings';
+  var $ = function (id) { return document.getElementById(id); };
+  function readJSON(k) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+  function writeJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  // ---------- なぞる線(0〜100 の座標)を作る ----------
+  function ellipse(cx, cy, rx, ry, rot, n, start) {
+    var out = [], r = (rot || 0) * Math.PI / 180, s0 = start || -Math.PI / 2;
+    for (var i = 0; i <= (n || 48); i++) {
+      var a = s0 + i / (n || 48) * Math.PI * 2, x = rx * Math.cos(a), y = ry * Math.sin(a);
+      out.push([cx + x * Math.cos(r) - y * Math.sin(r), cy + x * Math.sin(r) + y * Math.cos(r)]);
+    }
+    return out;
+  }
+  function star(cx, cy, R, r, n, k) {
+    var out = [];
+    for (var i = 0; i <= n * 2; i++) {
+      var a = -Math.PI / 2 + i * Math.PI / n, rr = i % 2 ? r : R;
+      out.push([cx + rr * Math.cos(a), cy + rr * Math.sin(a)]);
+    }
+    return densify(out, k || 3);
+  }
+  function rose(cx, cy, R, petals, n) {   // r = R cos(petals/2 · θ) の花(1本の線)
+    var out = [], m = petals / 2;
+    for (var i = 0; i <= n; i++) { var a = i / n * Math.PI * 2, rr = R * Math.cos(m * a); out.push([cx + rr * Math.cos(a), cy + rr * Math.sin(a)]); }
+    return out;
+  }
+  function wavy(cx, cy, R, amp, waves, n) {
+    var out = [];
+    for (var i = 0; i <= n; i++) { var a = -Math.PI / 2 + i / n * Math.PI * 2, rr = R + amp * Math.cos(waves * a); out.push([cx + rr * Math.cos(a), cy + rr * Math.sin(a)]); }
+    return out;
+  }
+  function densify(pts, step) {
+    var out = [pts[0]];
+    for (var i = 1; i < pts.length; i++) {
+      var a = pts[i - 1], b = pts[i], d = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.max(1, Math.round(d / step));
+      for (var k = 1; k <= n; k++) out.push([a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n]);
+    }
+    return out;
+  }
+
+  // =====================================================================
+  // 飾りのデータ(本当の話)。strokes: なぞる線 / colors: 選べる色(trad = 伝統の色)
+  // =====================================================================
+  var CRAFTS = [
+    { id: 'batik', name: 'Batik', where: 'ID', country: 'Indonesia', when: 'National Batik Day, October 2',
+      intro: 'Draw the pattern with hot wax, like a real batik artist!',
+      strokes: [ellipse(34, 34, 16, 9, 45, 40), ellipse(66, 34, 16, 9, -45, 40), ellipse(34, 66, 16, 9, -45, 40), ellipse(66, 66, 16, 9, 45, 40)],
+      ask: 'Now dip the cloth in dye. Pick a color:',
+      colors: [{ c: '#2E4A8A', n: 'Indigo', trad: true }, { c: '#8A5A2E', n: 'Soga brown', trad: true }, { c: '#C8443B', n: 'Red' }, { c: '#3E8C6A', n: 'Green' }],
+      facts: ['Batik artists draw with hot wax using a little pen called a canting.', 'The wax keeps the dye out, so your wax lines stay pale after dyeing.', 'UNESCO named Indonesian batik a world treasure in 2009. October 2 is National Batik Day.'],
+      tell: 'cloth decorated by drawing with hot wax and then dyeing it' },
+    { id: 'kolam', name: 'Kolam', where: 'MY', country: 'Malaysia & Singapore', when: 'Deepavali, the festival of lights',
+      intro: 'Draw a kolam around the dots, with one long line of rice flour!',
+      strokes: [rose(50, 50, 34, 4, 120)],
+      dots: [[50, 50], [31, 31], [69, 31], [31, 69], [69, 69], [50, 24], [50, 76], [24, 50], [76, 50]],
+      ask: 'Fill it with colored powder. Pick a color:',
+      colors: [{ c: '#E0473B', n: 'Red', trad: true }, { c: '#F2B530', n: 'Marigold', trad: true }, { c: '#8A4FB0', n: 'Purple' }, { c: '#3E9B5A', n: 'Green' }],
+      facts: ['Kolam patterns are drawn with rice flour in front of homes.', 'Ants and birds can eat the rice flour — a way of sharing food with small creatures.', 'For Deepavali, families in Malaysia and Singapore make big colorful kolams.'],
+      tell: 'a pattern drawn with rice flour in front of homes' },
+    { id: 'lantern', name: 'Hội An lantern', where: 'VN', country: 'Vietnam', when: 'full-moon nights in Hội An',
+      intro: 'Trace the bamboo frame of a silk lantern.',
+      strokes: [ellipse(50, 52, 26, 30, 0, 56), densify([[38, 22], [62, 22]], 3), densify([[38, 82], [62, 82]], 3)],
+      ask: 'Choose the silk color:',
+      colors: [{ c: '#E0473B', n: 'Red', trad: true }, { c: '#F2B530', n: 'Yellow', trad: true }, { c: '#E87AA0', n: 'Pink' }, { c: '#3E7FC0', n: 'Blue' }],
+      facts: ['In Hội An, Vietnam, the old town turns off its electric lights on full-moon nights and glows with lanterns.', 'The lanterns are made of silk stretched over a bamboo frame.', 'You can fold many of them flat to carry home.'],
+      tell: 'a silk lantern on a bamboo frame that lights up the old town' },
+    { id: 'krathong', name: 'Krathong', where: 'TH', country: 'Thailand', when: 'Loy Krathong, on the full moon (usually in November)',
+      intro: 'Trace the banana-leaf points around the float.',
+      strokes: [star(50, 54, 34, 24, 8, 2.5)],
+      ask: 'Add flowers. Pick a color:',
+      colors: [{ c: '#F2B530', n: 'Marigold', trad: true }, { c: '#E87AA0', n: 'Pink orchid', trad: true }, { c: '#FFFFFF', n: 'White' }, { c: '#8A4FB0', n: 'Purple' }],
+      facts: ['A krathong is a little float made from banana leaves and flowers, with a candle on top.', 'At Loy Krathong, people float them on rivers to say thank you to the water and let go of worries.', 'Many people now make krathongs from bread or leaves that fish can eat, instead of plastic or foam.'],
+      tell: 'a floating flower boat made of banana leaves' },
+    { id: 'parol', name: 'Parol', where: 'PH', country: 'Philippines', when: 'Christmas season',
+      intro: 'Trace the bamboo star of a parol lantern.',
+      strokes: [star(50, 48, 38, 16, 5, 3)],
+      ask: 'Choose the paper color:',
+      colors: [{ c: '#E0473B', n: 'Red', trad: true }, { c: '#F2B530', n: 'Gold', trad: true }, { c: '#3E9B5A', n: 'Green' }, { c: '#3E7FC0', n: 'Blue' }],
+      facts: ['A parol is a star-shaped Christmas lantern from the Philippines.', 'The simple ones are made of bamboo sticks and colored paper.', 'The city of San Fernando holds a Giant Lantern Festival with lanterns as big as houses!'],
+      tell: 'a star-shaped lantern made of bamboo and paper' },
+    { id: 'mooncake', name: 'Mooncake', where: 'SG', country: 'Malaysia, Singapore & Vietnam', when: 'Mid-Autumn Festival',
+      intro: 'Press the pattern into a mooncake — trace the edge, then the flower.',
+      strokes: [ellipse(50, 50, 34, 34, 0, 60), wavy(50, 50, 18, 5, 8, 96)],
+      ask: 'Pick a lantern to carry under the moon:',
+      colors: [{ c: '#E0473B', n: 'Red', trad: true }, { c: '#F2B530', n: 'Yellow', trad: true }, { c: '#E87AA0', n: 'Pink' }, { c: '#5AA9E6', n: 'Blue' }],
+      facts: ['At the Mid-Autumn Festival, families share mooncakes under the full moon.', 'Children carry glowing lanterns — in Vietnam, star-shaped ones are very popular.', 'Mooncakes are often filled with sweet lotus seed or red bean paste.'],
+      tell: 'a round cake shared under the full moon' },
+    { id: 'wau', name: 'Wau kite', where: 'MY', country: 'Malaysia', when: 'kite festivals, like the one in Kelantan',
+      intro: 'Trace the frame of a wau bulan — the “moon kite”.',
+      strokes: [densify([[50, 6], [58, 18], [86, 28], [64, 40], [58, 50], [78, 58], [90, 72], [66, 78], [50, 92], [34, 78], [10, 72], [22, 58], [42, 50], [36, 40], [14, 28], [42, 18], [50, 6]], 3)],
+      ask: 'Paint the kite. Pick a color:',
+      colors: [{ c: '#E0473B', n: 'Red', trad: true }, { c: '#3E7FC0', n: 'Blue', trad: true }, { c: '#F2B530', n: 'Gold' }, { c: '#3E9B5A', n: 'Green' }],
+      facts: ['“Wau bulan” means moon kite — its tail is shaped like a crescent moon.', 'Big waus can be more than 2 meters wide, and some have a bow that hums in the wind.', 'You can see a wau on Malaysia’s 50 sen coin!'],
+      tell: 'a big kite with a tail shaped like the moon' },
+    { id: 'ketupat', name: 'Ketupat', where: 'ID', country: 'Indonesia, Malaysia, Brunei & Singapore', when: 'Hari Raya, the celebration at the end of the fasting month',
+      intro: 'Trace the woven diamond of a ketupat — the outside, then the middle.',
+      strokes: [densify([[50, 12], [86, 50], [50, 88], [14, 50], [50, 12]], 3), densify([[50, 30], [68, 50], [50, 70], [32, 50], [50, 30]], 3)],
+      ask: 'Pick the leaf color:',
+      colors: [{ c: '#6FAE3E', n: 'Young leaf green', trad: true }, { c: '#D9C05A', n: 'Dry leaf yellow', trad: true }, { c: '#3E9B5A', n: 'Dark green' }, { c: '#E0473B', n: 'Red ribbon' }],
+      facts: ['A ketupat is a little pouch woven from young coconut leaves.', 'Rice is cooked inside it, so it comes out as a firm rice cake.', 'Families hang and share ketupat for Hari Raya in Indonesia, Malaysia, Brunei and Singapore.'],
+      tell: 'a diamond-shaped pouch of woven leaves with rice inside' },
+    { id: 'skylantern', name: 'Yi Peng sky lantern', where: 'TH', country: 'Thailand', when: 'Yi Peng, the lantern festival in Chiang Mai',
+      intro: 'Trace the paper lantern, then its round bamboo bottom.',
+      strokes: [densify([[30, 66], [24, 32], [32, 16], [50, 10], [68, 16], [76, 32], [70, 66]], 3), ellipse(50, 68, 21, 5, 0, 32)],
+      ask: 'Pick the paper color:',
+      colors: [{ c: '#FFF1D6', n: 'Cream', trad: true }, { c: '#F2B530', n: 'Yellow', trad: true }, { c: '#E0473B', n: 'Red' }, { c: '#E87AA0', n: 'Pink' }],
+      facts: ['At Yi Peng in Chiang Mai, thousands of paper lanterns float up into the night sky.', 'A small flame heats the air inside, so the lantern rises like a tiny hot-air balloon.', 'Now there are special places and times to let them go, to keep planes and forests safe.'],
+      tell: 'a paper lantern that floats up into the night sky' },
+    { id: 'padauk', name: 'Padauk flowers', where: 'MM', country: 'Myanmar', when: 'Thingyan, the water festival for the new year in April',
+      intro: 'Trace a golden padauk flower — the petals, then the middle.',
+      strokes: [wavy(50, 50, 26, 10, 5, 100), ellipse(50, 50, 7, 7, 0, 20)],
+      ask: 'Pick the flower color:',
+      colors: [{ c: '#F2B530', n: 'Golden yellow', trad: true }, { c: '#F7D04A', n: 'Bright yellow', trad: true }, { c: '#E87AA0', n: 'Pink' }, { c: '#FFFFFF', n: 'White' }],
+      facts: ['The padauk tree bursts into golden flowers around Myanmar’s new year in April.', 'People wear the flowers in their hair during Thingyan.', 'At Thingyan, people splash water on each other to wash away the old year.'],
+      tell: 'a golden flower people wear for the new year' },
+    { id: 'boat', name: 'Racing boat', where: 'KH', country: 'Cambodia', when: 'Bon Om Touk, the Water Festival in Phnom Penh',
+      intro: 'Trace the long, thin racing boat.',
+      strokes: [densify([[4, 46], [12, 58], [88, 58], [96, 44], [92, 62], [82, 70], [18, 70], [8, 62], [4, 46]], 3)],
+      ask: 'Paint the boat. Pick a color:',
+      colors: [{ c: '#E0473B', n: 'Red', trad: true }, { c: '#F2B530', n: 'Gold', trad: true }, { c: '#3E7FC0', n: 'Blue' }, { c: '#3E9B5A', n: 'Green' }],
+      facts: ['At the Water Festival, long racing boats with dozens of rowers race on the river.', 'It happens when the Tonlé Sap River turns around and flows the other way.', 'At night, boats covered in lights float on the river.'],
+      tell: 'a long boat with lots of rowers that races on the river' },
+    { id: 'tais', name: 'Tais cloth', where: 'TL', country: 'Timor-Leste', when: 'welcomes, weddings and special days',
+      intro: 'Weave a tais pattern — trace the zigzags and the diamond.',
+      strokes: [densify([[8, 30], [22, 16], [36, 30], [50, 16], [64, 30], [78, 16], [92, 30]], 3), densify([[50, 38], [66, 54], [50, 70], [34, 54], [50, 38]], 3), densify([[8, 78], [22, 92], [36, 78], [50, 92], [64, 78], [78, 92], [92, 78]], 3)],
+      ask: 'Pick the thread color:',
+      colors: [{ c: '#B8322E', n: 'Red', trad: true }, { c: '#2E2A3A', n: 'Black', trad: true }, { c: '#2E4A8A', n: 'Indigo' }, { c: '#C98A2E', n: 'Gold' }],
+      facts: ['Tais is cloth woven by hand in Timor-Leste, often on a loom tied around the weaver’s back.', 'Each area has its own patterns and colors.', 'Tais is given as a gift to welcome people, and UNESCO added it to its world treasures in 2021.'],
+      tell: 'a hand-woven cloth given as a welcome gift' }
+  ];
+  var BY = {}; CRAFTS.forEach(function (c) { BY[c.id] = c; });
+  function tellName(c) { return c.id === 'lantern' ? c.name : c.name.toLowerCase(); }   // 文の中では小文字(Hội An は地名なのでそのまま)
+  var CNAME = { ID: 'Indonesia', MY: 'Malaysia', VN: 'Vietnam', TH: 'Thailand', PH: 'Philippines', SG: 'Singapore', MM: 'Myanmar', KH: 'Cambodia', TL: 'Timor-Leste', BN: 'Brunei' };
+  // 明るい布の上に作る飾り(ほかは夜空の上)
+  function onCloth(c) { return c.id === 'batik' || c.id === 'kolam' || c.id === 'tais'; }
+
+  // ---------- 国旗(Where's Moku? と同じ絵。30×20) ----------
+  function starPts(cx, cy, r, n, inner, rot) {
+    n = n || 5; inner = inner || 0.4; rot = rot == null ? -90 : rot;
+    var pts = [];
+    for (var i = 0; i < n * 2; i++) {
+      var rr = i % 2 ? r * inner : r, a = (rot + i * 180 / n) * Math.PI / 180;
+      pts.push((cx + rr * Math.cos(a)).toFixed(2) + ',' + (cy + rr * Math.sin(a)).toFixed(2));
+    }
+    return pts.join(' ');
+  }
+  function flagInner(id) {
+    var s = '';
+    switch (id) {
+      case 'ID': s = '<rect width="30" height="10" fill="#E0262E"/><rect y="10" width="30" height="10" fill="#fff"/>'; break;
+      case 'SG':
+        s = '<rect width="30" height="10" fill="#E0262E"/><rect y="10" width="30" height="10" fill="#fff"/>' +
+            '<circle cx="6.6" cy="5" r="3.4" fill="#fff"/><circle cx="7.9" cy="5" r="3.1" fill="#E0262E"/>';
+        for (var i = 0; i < 5; i++) { var a = (-90 + i * 72) * Math.PI / 180; s += '<polygon fill="#fff" points="' + starPts(10.6 + 1.7 * Math.cos(a), 5 + 1.7 * Math.sin(a), 0.62) + '"/>'; }
+        break;
+      case 'MY':
+        for (var k = 0; k < 14; k++) s += '<rect y="' + (k * 20 / 14).toFixed(3) + '" width="30" height="' + (20 / 14 + 0.02).toFixed(3) + '" fill="' + (k % 2 ? '#fff' : '#D0222B') + '"/>';
+        s += '<rect width="15" height="11.43" fill="#0B2B7A"/><circle cx="5.4" cy="5.7" r="3.7" fill="#F8C619"/><circle cx="6.4" cy="5.7" r="3.1" fill="#0B2B7A"/>' +
+             '<polygon fill="#F8C619" points="' + starPts(10.6, 5.7, 2.7, 14, 0.45) + '"/>';
+        break;
+      case 'TH': s = '<rect width="30" height="20" fill="#D9262E"/><rect y="3.33" width="30" height="13.34" fill="#fff"/><rect y="6.67" width="30" height="6.66" fill="#2D2A6B"/>'; break;
+      case 'VN': s = '<rect width="30" height="20" fill="#DA251D"/><polygon fill="#FFDD00" points="' + starPts(15, 10.4, 6) + '"/>'; break;
+      case 'LA': s = '<rect width="30" height="20" fill="#CE1126"/><rect y="5" width="30" height="10" fill="#002868"/><circle cx="15" cy="10" r="4" fill="#fff"/>'; break;
+      case 'KH':
+        s = '<rect width="30" height="20" fill="#032EA1"/><rect y="5" width="30" height="10" fill="#E00025"/>' +
+            '<g fill="#fff"><rect x="9" y="12.2" width="12" height="1.6"/><rect x="13.7" y="8.2" width="2.6" height="4"/><polygon points="13.7,8.2 15,6.2 16.3,8.2"/>' +
+            '<rect x="10.4" y="9.6" width="2" height="2.6"/><polygon points="10.4,9.6 11.4,8 12.4,9.6"/><rect x="17.6" y="9.6" width="2" height="2.6"/><polygon points="17.6,9.6 18.6,8 19.6,9.6"/></g>';
+        break;
+      case 'MM': s = '<rect width="30" height="6.67" fill="#FECB00"/><rect y="6.67" width="30" height="6.67" fill="#34B233"/><rect y="13.33" width="30" height="6.67" fill="#EA2839"/><polygon fill="#fff" points="' + starPts(15, 11, 6.6) + '"/>'; break;
+      case 'PH':
+        s = '<rect width="30" height="10" fill="#0038A8"/><rect y="10" width="30" height="10" fill="#CE1126"/><polygon fill="#fff" points="0,0 17.3,10 0,20"/>' +
+            '<g stroke="#FCD116" stroke-width="0.7">';
+        for (var r = 0; r < 8; r++) { var b = r * Math.PI / 4; s += '<line x1="' + (6 + 2 * Math.cos(b)).toFixed(2) + '" y1="' + (10 + 2 * Math.sin(b)).toFixed(2) + '" x2="' + (6 + 3.4 * Math.cos(b)).toFixed(2) + '" y2="' + (10 + 3.4 * Math.sin(b)).toFixed(2) + '"/>'; }
+        s += '</g><circle cx="6" cy="10" r="1.7" fill="#FCD116"/>' +
+             '<polygon fill="#FCD116" points="' + starPts(1.8, 2.4, 0.95) + '"/><polygon fill="#FCD116" points="' + starPts(1.8, 17.6, 0.95) + '"/><polygon fill="#FCD116" points="' + starPts(14.5, 10, 0.95) + '"/>';
+        break;
+      case 'BN':
+        s = '<rect width="30" height="20" fill="#F7E017"/><polygon fill="#fff" points="0,3.2 30,13.2 30,15.8 0,5.8"/><polygon fill="#111" points="0,5.8 30,15.8 30,18.4 0,8.4"/>' +
+            '<circle cx="15" cy="11.2" r="3" fill="#CF1126"/><circle cx="15" cy="10.1" r="2.5" fill="#F7E017"/><rect x="14.6" y="6.5" width="0.8" height="4.6" fill="#CF1126"/><polygon fill="#CF1126" points="12.6,7.4 17.4,7.4 15,5.6"/>';
+        break;
+      case 'TL':
+        s = '<rect width="30" height="20" fill="#DC241F"/><polygon fill="#FFC72C" points="0,0 15,10 0,20"/><polygon fill="#000" points="0,0 10,10 0,20"/>' +
+            '<polygon fill="#fff" points="' + starPts(3.6, 10, 2.6, 5, 0.4, -60) + '"/>';
+        break;
+    }
+    return s;
+  }
+  function flagSVG(id) {
+    return '<svg class="flag" viewBox="0 0 30 20" aria-label="Flag"><clipPath id="fc' + id + '"><rect width="30" height="20" rx="1.6"/></clipPath><g clip-path="url(#fc' + id + ')">' + flagInner(id) +
+      '</g><rect x="0.3" y="0.3" width="29.4" height="19.4" rx="1.4" fill="none" stroke="rgba(60,40,20,0.45)" stroke-width="0.6"/></svg>';
+  }
+
+  // =====================================================================
+  // 地図(経度・緯度の点から作る、かんたんな絵本の地図。1度 = 20)
+  // =====================================================================
+
+  // ---------- save / settings / Moint / sound ----------
+  function loadProgress() {
+    var p = readJSON(SAVE_KEY);
+    if (!p || p.version !== 1) p = {};
+    return { version: 1, gameId: GAME_ID, made: p.made || {}, best: p.best || {}, color: p.color || {}, crafts: p.crafts | 0, played: p.played | 0,
+      mointClaims: p.mointClaims || {}, updatedAt: p.updatedAt || null };
+  }
+  var progress = loadProgress();
+  function save() { progress.updatedAt = new Date().toISOString(); writeJSON(SAVE_KEY, progress); }
+  function madeCount() { return CRAFTS.filter(function (c) { return progress.made[c.id]; }).length; }
+  var settings = readJSON(SET_KEY) || {};
+  if (settings.sound === undefined) settings.sound = true;
+  function saveSettings() { writeJSON(SET_KEY, settings); }
+  function balance() { if (window.MokuMoint) return MokuMoint.balance(); var w = readJSON('moku:moint:wallet'); return w && w.balance > 0 ? w.balance : 0; }
+  function earn(n, capped) {
+    if (!n) return 0;
+    if (window.MokuMoint) return MokuMoint.earn(GAME_ID, n, capped === false ? { capped: false } : undefined);
+    writeJSON('moku:moint:wallet', { version: 1, balance: Math.max(0, balance() + n), updatedAt: new Date().toISOString() });
+    return n;
+  }
+  function earnedToday() { return window.MokuMoint ? MokuMoint.earnedToday(GAME_ID) : 0; }
+  function dailyCap() { return window.MokuMoint ? MokuMoint.DAILY_GAME_CAP : 500; }
+  function claimOnce(key, n) { if (progress.mointClaims[key]) return 0; progress.mointClaims[key] = true; return earn(n, false); }
+  function mointBox(lines) {
+    var got = lines.filter(function (l) { return l[1] > 0; });
+    if (!got.length) return '';
+    var tot = got.reduce(function (a, l) { return a + l[1]; }, 0);
+    return '<div class="moints">' + got.map(function (l) { return '<div><span>' + esc(l[0]) + '</span><span>+' + l[1] + '</span></div>'; }).join('') +
+      '<div class="tot"><span><span class="mcoin">M</span> Moints</span><span>+' + tot + '</span></div>' +
+      '<div style="font-size:12px;color:#9A7420;justify-content:flex-start">Today: ' + earnedToday() + ' / ' + dailyCap() + '</div></div>';
+  }
+  var actx = null, gestured = false;
+  function audio() {
+    if (!settings.sound || !gestured) return null;
+    if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
+    if (actx.state === 'suspended') actx.resume();
+    return actx;
+  }
+  document.addEventListener('pointerdown', function () { gestured = true; if (settings.sound) audio(); }, { passive: true });
+  function tone(f, t0, dur, type, vol) {
+    var a = audio(); if (!a) return;
+    var o = a.createOscillator(), g = a.createGain(), t = a.currentTime + (t0 || 0);
+    o.type = type || 'sine'; o.frequency.setValueAtTime(f, t);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol || 0.15, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + dur + 0.05);
+  }
+  var SCALE = [523, 587, 659, 784, 880, 1047, 1175, 1319];
+  var sfx = {
+    tap: function () { tone(660, 0, 0.08, 'triangle', 0.08); },
+    tick: function (i) { tone(SCALE[i % SCALE.length], 0, 0.12, 'sine', 0.05); },
+    stroke: function () { tone(784, 0, 0.12, 'triangle', 0.1); tone(1047, 0.08, 0.18, 'triangle', 0.1); },
+    glow: function () { [523, 659, 784, 1047, 1319].forEach(function (f, i) { tone(f, i * 0.1, 0.4, 'sine', 0.09); }); }
+  };
+  function syncSoundBtn() { $('soundBtn').textContent = settings.sound ? '🔊' : '🔇'; }
+  $('soundBtn').addEventListener('click', function () { settings.sound = !settings.sound; saveSettings(); syncSoundBtn(); if (settings.sound) sfx.tap(); });
+
+  // =====================================================================
+  // できあがりの絵(canvas、0〜100 の座標を size に合わせる)
+  // =====================================================================
+  function path(ctx, pts, S) { ctx.beginPath(); pts.forEach(function (p, i) { if (i) ctx.lineTo(p[0] * S, p[1] * S); else ctx.moveTo(p[0] * S, p[1] * S); }); }
+  function shade(hex, k) {
+    var n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+    function f(v) { return Math.max(0, Math.min(255, Math.round(k < 0 ? v * (1 + k) : v + (255 - v) * k))); }
+    return 'rgb(' + f(r) + ',' + f(g) + ',' + f(b) + ')';
+  }
+  // 仕上がった飾りを描く。S = 1 単位のピクセル数(100 単位 = 絵の大きさ)
+  function drawCraft(ctx, c, color, S, t, bgOn) {
+    t = t || 0;
+    ctx.save();
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    var lw = 2.6 * S / 4;
+    if (c.id === 'batik') {
+      if (bgOn !== false) { ctx.fillStyle = color; ctx.fillRect(0, 0, 100 * S, 100 * S); }
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      for (var i = 0; i < 12; i++) { ctx.fillRect(0, i * 9 * S, 100 * S, 3 * S); }
+      ctx.strokeStyle = '#FFF4DE'; ctx.lineWidth = lw * 1.3;
+      c.strokes.forEach(function (s) { path(ctx, s, S); ctx.stroke(); });
+      ctx.fillStyle = '#FFF4DE'; ctx.beginPath(); ctx.arc(50 * S, 50 * S, 4 * S, 0, 7); ctx.fill();
+      [[50, 12], [50, 88], [12, 50], [88, 50]].forEach(function (p) { ctx.beginPath(); ctx.arc(p[0] * S, p[1] * S, 3 * S, 0, 7); ctx.fill(); });
+    } else if (c.id === 'kolam') {
+      if (bgOn !== false) { ctx.fillStyle = '#7A5236'; ctx.fillRect(0, 0, 100 * S, 100 * S); }
+      ctx.fillStyle = color; ctx.globalAlpha = 0.85; path(ctx, c.strokes[0], S); ctx.fill(); ctx.globalAlpha = 1;
+      ctx.strokeStyle = '#FFF8EC'; ctx.lineWidth = lw; path(ctx, c.strokes[0], S); ctx.stroke();
+      ctx.fillStyle = '#FFF8EC'; c.dots.forEach(function (d) { ctx.beginPath(); ctx.arc(d[0] * S, d[1] * S, 2.2 * S, 0, 7); ctx.fill(); });
+    } else if (c.id === 'lantern') {
+      var sw = Math.sin(t / 700) * 3;
+      ctx.translate(50 * S, 8 * S); ctx.rotate(sw * Math.PI / 180); ctx.translate(-50 * S, -8 * S);
+      ctx.strokeStyle = '#4E2C17'; ctx.lineWidth = lw * 0.7; ctx.beginPath(); ctx.moveTo(50 * S, 4 * S); ctx.lineTo(50 * S, 22 * S); ctx.stroke();
+      var g = ctx.createRadialGradient(50 * S, 52 * S, 4 * S, 50 * S, 52 * S, 32 * S); g.addColorStop(0, shade(color, 0.6)); g.addColorStop(1, color);
+      ctx.shadowColor = shade(color, 0.3); ctx.shadowBlur = 18 * S / 4;
+      ctx.fillStyle = g; path(ctx, c.strokes[0], S); ctx.fill(); ctx.shadowBlur = 0;
+      ctx.strokeStyle = '#4E2C17'; ctx.lineWidth = lw * 0.6; path(ctx, c.strokes[0], S); ctx.stroke();
+      ctx.strokeStyle = 'rgba(78,44,23,0.35)'; for (var k = -2; k <= 2; k++) { ctx.beginPath(); ctx.ellipse(50 * S, 52 * S, Math.abs(k) * 6 * S + 1, 30 * S, 0, 0, 7); ctx.stroke(); }
+      ctx.fillStyle = '#4E2C17'; ctx.fillRect(38 * S, 19 * S, 24 * S, 5 * S); ctx.fillRect(38 * S, 80 * S, 24 * S, 5 * S);
+      ctx.strokeStyle = '#E8C060'; ctx.lineWidth = lw * 0.5; for (var q = 0; q < 5; q++) { ctx.beginPath(); ctx.moveTo((44 + q * 3) * S, 85 * S); ctx.lineTo((44 + q * 3) * S, 96 * S); ctx.stroke(); }
+    } else if (c.id === 'krathong') {
+      var bob = Math.sin(t / 600) * 1.5;
+      ctx.translate(0, bob * S);
+      ctx.fillStyle = '#4E8A3A'; path(ctx, c.strokes[0], S); ctx.fill();
+      ctx.strokeStyle = '#2A5A1A'; ctx.lineWidth = lw * 0.7; path(ctx, c.strokes[0], S); ctx.stroke();
+      ctx.fillStyle = '#7ABF5A'; ctx.beginPath(); ctx.arc(50 * S, 54 * S, 22 * S, 0, 7); ctx.fill();
+      for (var f = 0; f < 7; f++) { var a = f / 7 * Math.PI * 2; ctx.fillStyle = color; ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc((50 + Math.cos(a) * 13) * S, (54 + Math.sin(a) * 13) * S, 6 * S, 0, 7); ctx.fill(); ctx.stroke(); }
+      ctx.fillStyle = '#FFF4DE'; ctx.fillRect(47.5 * S, 34 * S, 5 * S, 18 * S);
+      var fl = 1 + Math.sin(t / 120) * 0.15;
+      ctx.fillStyle = '#FFC24A'; ctx.beginPath(); ctx.ellipse(50 * S, 30 * S, 3 * S * fl, 6 * S * fl, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = 'rgba(255,200,80,0.25)'; ctx.beginPath(); ctx.arc(50 * S, 30 * S, 12 * S, 0, 7); ctx.fill();
+    } else if (c.id === 'parol') {
+      ctx.shadowColor = shade(color, 0.4); ctx.shadowBlur = 20 * S / 4;
+      ctx.fillStyle = color; path(ctx, c.strokes[0], S); ctx.fill(); ctx.shadowBlur = 0;
+      ctx.fillStyle = shade(color, 0.55); path(ctx, star(50, 48, 22, 9, 5, 3), S); ctx.fill();
+      ctx.strokeStyle = '#8A5A2E'; ctx.lineWidth = lw * 0.7; path(ctx, c.strokes[0], S); ctx.stroke();
+      ctx.fillStyle = '#FFF4DE'; ctx.beginPath(); ctx.arc(50 * S, 48 * S, 6 * S, 0, 7); ctx.fill();
+      ctx.strokeStyle = color; ctx.lineWidth = lw; [40, 50, 60].forEach(function (x, i) { ctx.beginPath(); ctx.moveTo(x * S, 74 * S); ctx.quadraticCurveTo((x + Math.sin(t / 500 + i) * 4) * S, 86 * S, x * S, 96 * S); ctx.stroke(); });
+    } else if (c.id === 'mooncake') {
+      ctx.fillStyle = '#C98A3E'; path(ctx, c.strokes[0], S); ctx.fill();
+      ctx.strokeStyle = '#7A4A1E'; ctx.lineWidth = lw * 0.8; path(ctx, c.strokes[0], S); ctx.stroke();
+      ctx.fillStyle = '#D9A050'; ctx.beginPath(); ctx.arc(50 * S, 50 * S, 28 * S, 0, 7); ctx.fill();
+      ctx.strokeStyle = '#8A5426'; ctx.lineWidth = lw * 0.9; path(ctx, c.strokes[1], S); ctx.stroke();
+      ctx.beginPath(); ctx.arc(50 * S, 50 * S, 6 * S, 0, 7); ctx.stroke();
+      // ちょうちん(右上)
+      ctx.save(); ctx.translate(82 * S, 16 * S); ctx.rotate(Math.sin(t / 700) * 0.08);
+      ctx.strokeStyle = '#4E2C17'; ctx.lineWidth = lw * 0.5; ctx.beginPath(); ctx.moveTo(0, -12 * S); ctx.lineTo(0, -4 * S); ctx.stroke();
+      ctx.shadowColor = color; ctx.shadowBlur = 12 * S / 4; ctx.fillStyle = color; ctx.beginPath(); ctx.ellipse(0, 4 * S, 9 * S, 10 * S, 0, 0, 7); ctx.fill(); ctx.shadowBlur = 0;
+      ctx.restore();
+    } else if (c.id === 'wau') {
+      var sw2 = Math.sin(t / 900) * 4;
+      ctx.translate(50 * S, 50 * S); ctx.rotate(sw2 * Math.PI / 180); ctx.translate(-50 * S, -50 * S);
+      ctx.fillStyle = color; path(ctx, c.strokes[0], S); ctx.fill();
+      ctx.strokeStyle = '#4E2C17'; ctx.lineWidth = lw * 0.7; path(ctx, c.strokes[0], S); ctx.stroke();
+      ctx.strokeStyle = '#FFF4DE'; ctx.lineWidth = lw * 0.6;
+      [[30, 30, 1], [70, 30, -1], [30, 70, 1], [70, 70, -1]].forEach(function (q) { ctx.beginPath(); ctx.arc(q[0] * S, q[1] * S, 6 * S, 0, 4.7, q[2] < 0); ctx.stroke(); });
+      ctx.fillStyle = '#FFF4DE'; ctx.beginPath(); ctx.arc(50 * S, 34 * S, 4 * S, 0, 7); ctx.fill();
+      ctx.strokeStyle = '#8A5A2E'; ctx.lineWidth = lw * 0.6; ctx.beginPath(); ctx.moveTo(50 * S, 6 * S); ctx.lineTo(50 * S, 92 * S); ctx.moveTo(14 * S, 28 * S); ctx.quadraticCurveTo(50 * S, 22 * S, 86 * S, 28 * S); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,244,222,0.6)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(50 * S, 60 * S); ctx.quadraticCurveTo(60 * S, 90 * S, 96 * S, 100 * S); ctx.stroke();
+    } else if (c.id === 'ketupat') {
+      ctx.strokeStyle = '#3E6A2A'; ctx.lineWidth = lw * 0.8; ctx.beginPath(); ctx.moveTo(50 * S, 12 * S); ctx.quadraticCurveTo(44 * S, 4 * S, 36 * S, 2 * S); ctx.moveTo(50 * S, 12 * S); ctx.quadraticCurveTo(58 * S, 4 * S, 64 * S, 0); ctx.stroke();
+      ctx.fillStyle = color; path(ctx, c.strokes[0], S); ctx.fill();
+      ctx.save(); path(ctx, c.strokes[0], S); ctx.clip();
+      ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = 3 * S;
+      for (var w = -60; w <= 60; w += 10) { ctx.beginPath(); ctx.moveTo((50 + w - 40) * S, 10 * S); ctx.lineTo((50 + w + 40) * S, 90 * S); ctx.stroke(); ctx.beginPath(); ctx.moveTo((50 + w + 40) * S, 10 * S); ctx.lineTo((50 + w - 40) * S, 90 * S); ctx.stroke(); }
+      ctx.restore();
+      ctx.strokeStyle = '#3E5A1E'; ctx.lineWidth = lw * 0.8; path(ctx, c.strokes[0], S); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = lw * 0.6; path(ctx, c.strokes[1], S); ctx.stroke();
+    } else if (c.id === 'skylantern') {
+      var up = (t / 60) % 6;
+      ctx.translate(0, -Math.sin(t / 900) * 2 * S);
+      var g2 = ctx.createRadialGradient(50 * S, 50 * S, 4 * S, 50 * S, 46 * S, 36 * S); g2.addColorStop(0, '#FFF6D0'); g2.addColorStop(1, color);
+      ctx.shadowColor = 'rgba(255,200,90,0.9)'; ctx.shadowBlur = 22 * S / 4;
+      ctx.fillStyle = g2; path(ctx, c.strokes[0], S); ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0;
+      ctx.strokeStyle = 'rgba(122,74,30,0.6)'; ctx.lineWidth = lw * 0.5; path(ctx, c.strokes[0], S); ctx.stroke();
+      [38, 50, 62].forEach(function (x) { ctx.beginPath(); ctx.moveTo(x * S, 13 * S); ctx.quadraticCurveTo((x + (x - 50) * 0.3) * S, 40 * S, (x + (x - 50) * 0.5) * S, 66 * S); ctx.stroke(); });
+      ctx.strokeStyle = '#8A5A2E'; ctx.lineWidth = lw * 0.6; path(ctx, c.strokes[1], S); ctx.stroke();
+      var fl2 = 1 + Math.sin(t / 110 + up) * 0.18;
+      ctx.fillStyle = '#FFC24A'; ctx.beginPath(); ctx.ellipse(50 * S, 74 * S, 3.5 * S * fl2, 6 * S * fl2, 0, 0, 7); ctx.fill();
+    } else if (c.id === 'padauk') {
+      ctx.fillStyle = '#4E8A3A';
+      [[18, 80, -0.6], [82, 78, 0.6], [30, 22, -2.4]].forEach(function (q) { ctx.save(); ctx.translate(q[0] * S, q[1] * S); ctx.rotate(q[2]); ctx.beginPath(); ctx.ellipse(0, 0, 13 * S, 5 * S, 0, 0, 7); ctx.fill(); ctx.restore(); });
+      [[78, 22, 0.35], [20, 52, 0.3]].forEach(function (q) { ctx.save(); ctx.translate(q[0] * S, q[1] * S); ctx.scale(q[2], q[2]); ctx.translate(-50 * S, -50 * S);
+        ctx.fillStyle = color; path(ctx, c.strokes[0], S); ctx.fill(); ctx.restore(); });
+      ctx.shadowColor = shade(color, 0.4); ctx.shadowBlur = 14 * S / 4;
+      ctx.fillStyle = color; path(ctx, c.strokes[0], S); ctx.fill(); ctx.shadowBlur = 0;
+      ctx.strokeStyle = '#8A5A10'; ctx.lineWidth = lw * 0.6; path(ctx, c.strokes[0], S); ctx.stroke();
+      ctx.fillStyle = '#C97A1A'; path(ctx, c.strokes[1], S); ctx.fill();
+      ctx.fillStyle = '#FFF4DE'; for (var d2 = 0; d2 < 5; d2++) { var a2 = -Math.PI / 2 + d2 * Math.PI * 2 / 5; ctx.beginPath(); ctx.arc((50 + Math.cos(a2) * 12) * S, (50 + Math.sin(a2) * 12) * S, 1.6 * S, 0, 7); ctx.fill(); }
+    } else if (c.id === 'boat') {
+      var rock = Math.sin(t / 500) * 1.2;
+      ctx.translate(0, rock * S);
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = lw * 0.5;
+      for (var wv = 0; wv < 4; wv++) { ctx.beginPath(); ctx.moveTo((8 + wv * 24) * S, 80 * S); ctx.quadraticCurveTo((14 + wv * 24) * S, 76 * S, (20 + wv * 24) * S, 80 * S); ctx.stroke(); }
+      ctx.strokeStyle = '#4E2C17'; ctx.lineWidth = lw * 0.5;
+      for (var r2 = 0; r2 < 8; r2++) { var rx = 20 + r2 * 8.5, sw3 = Math.sin(t / 250 + r2 * 0.4) * 3;
+        ctx.beginPath(); ctx.moveTo(rx * S, 52 * S); ctx.lineTo((rx - 4 + sw3) * S, 76 * S); ctx.stroke();
+        ctx.fillStyle = '#F4E4D0'; ctx.beginPath(); ctx.arc(rx * S, 48 * S, 3 * S, 0, 7); ctx.fill(); ctx.fillStyle = '#E0473B'; ctx.fillRect((rx - 2.5) * S, 50 * S, 5 * S, 7 * S); }
+      ctx.fillStyle = color; path(ctx, c.strokes[0], S); ctx.fill();
+      ctx.strokeStyle = '#4E2C17'; ctx.lineWidth = lw * 0.7; path(ctx, c.strokes[0], S); ctx.stroke();
+      ctx.fillStyle = '#F2B530'; ctx.beginPath(); ctx.moveTo(96 * S, 44 * S); ctx.lineTo(100 * S, 38 * S); ctx.lineTo(94 * S, 40 * S); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,244,222,0.7)'; ctx.lineWidth = lw * 0.5; ctx.beginPath(); ctx.moveTo(14 * S, 63 * S); ctx.lineTo(86 * S, 63 * S); ctx.stroke();
+    } else if (c.id === 'tais') {
+      if (bgOn !== false) { ctx.fillStyle = color; ctx.fillRect(0, 0, 100 * S, 100 * S); }
+      ctx.fillStyle = 'rgba(255,255,255,0.12)'; for (var st2 = 0; st2 < 100; st2 += 8) ctx.fillRect(0, st2 * S, 100 * S, 2 * S);
+      ctx.fillStyle = '#F2C24A'; ctx.fillRect(0, 40 * S, 100 * S, 2 * S); ctx.fillRect(0, 68 * S, 100 * S, 2 * S);
+      ctx.strokeStyle = '#FFF4DE'; ctx.lineWidth = lw * 1.1; c.strokes.forEach(function (st3) { path(ctx, st3, S); ctx.stroke(); });
+      ctx.fillStyle = '#F2C24A'; ctx.beginPath(); ctx.arc(50 * S, 54 * S, 4 * S, 0, 7); ctx.fill();
+    }
+    ctx.restore();
+  }
+  function thumb(c, size) {
+    var cvs = document.createElement('canvas'), d = Math.min(2, window.devicePixelRatio || 1);
+    cvs.width = cvs.height = size * d; var x = cvs.getContext('2d'); x.scale(d, d);
+    var made = progress.made[c.id];
+    x.fillStyle = onCloth(c) ? '#FFF4E2' : '#2E2A4A'; x.fillRect(0, 0, size, size);
+    if (made) drawCraft(x, c, progress.color[c.id] || c.colors[0].c, size / 100, 0);
+    else { x.globalAlpha = 0.4; x.strokeStyle = onCloth(c) ? '#B9A27F' : '#BCAFD8'; x.setLineDash([3, 3]); x.lineWidth = 2; c.strokes.forEach(function (s) { path(x, s, size / 100); x.stroke(); }); }
+    return cvs;
+  }
+
+  // =====================================================================
+  // 🎨 Make
+  // =====================================================================
+  var inner = $('inner'), fresh = false, work = null, raf = 0;
+  function setInner(h) { inner.innerHTML = h; if (fresh) { var c = inner.querySelector('.card'); if (c) c.classList.add('enter'); $('main').scrollTop = 0; } fresh = false; }
+  function showPlay(title) { document.body.classList.remove('on-title'); $('modeTitle').textContent = title; $('topInfo').textContent = ''; fresh = true; cancelAnimationFrame(raf); }
+  function openPicker() {
+    showPlay('🎨 Make');
+    $('topInfo').textContent = madeCount() + '/' + CRAFTS.length;
+    setInner('<div class="card"><div class="h">Choose a craft</div><div class="sub">Trace the glowing dots, pick a color, and celebrate!</div><div class="picks">' +
+      CRAFTS.map(function (c) {
+        var b = progress.best[c.id] | 0;
+        return '<button class="pick" data-c="' + c.id + '"><span class="th"></span><span><b>' + esc(c.name) + '</b><small>' + flagSVG(c.where) + esc(c.country) + '</small>' +
+          '<span class="st">' + (b ? '⭐'.repeat(b) : 'New!') + '</span></span></button>';
+      }).join('') + '</div></div>');
+    inner.querySelectorAll('.pick').forEach(function (b) {
+      b.querySelector('.th').appendChild(thumb(BY[b.getAttribute('data-c')], 56));
+      b.addEventListener('click', function () { sfx.tap(); startCraft(b.getAttribute('data-c')); });
+    });
+  }
+  function startCraft(id) {
+    progress.played++; save();
+    var c = BY[id];
+    showPlay('🎨 ' + c.name);
+    work = { c: c, stroke: 0, idx: 0, trail: [], good: 0, total: 0, phase: 'trace', color: null, drawing: false, t0: performance.now() };
+    var size = boardSize();
+    setInner('<div class="card"><div class="step"><span class="on" id="s1">1 Trace</span><span id="s2">2 Color</span><span id="s3">3 Celebrate</span></div>' +
+      '<div class="work"><div class="board" id="board" style="width:' + size + 'px;height:' + size + 'px"><canvas id="cv"></canvas></div>' +
+      '<div id="side"></div></div></div>');
+    var cvs = $('cv'), d = Math.min(2, window.devicePixelRatio || 1);
+    cvs.width = cvs.height = size * d; work.ctx = cvs.getContext('2d'); work.d = d; work.size = size;
+    bindTrace(cvs);
+    renderSide();
+    raf = requestAnimationFrame(frame);
+  }
+  function boardSize() {
+    var m = $('main').getBoundingClientRect();
+    var land = window.matchMedia('(orientation: landscape) and (min-width: 600px)').matches;
+    var w = land ? Math.min(m.width * 0.55, m.height - 60) : Math.min(m.width - 50, m.height * 0.55);
+    return Math.max(200, Math.min(460, Math.floor(w)));
+  }
+  function renderSide() {
+    var c = work.c, h = '<div class="h">' + esc(c.name) + '</div><div class="where">' + flagSVG(c.where) + esc(c.country) + '</div>';
+    if (work.phase === 'trace') {
+      h += '<div class="say">✏️ ' + esc(c.intro) + '<br><small>Start at the glowing dot and follow the dotted line. Line ' + (work.stroke + 1) + ' of ' + c.strokes.length + '.</small></div>';
+    } else if (work.phase === 'color') {
+      h += '<div class="say">🎨 ' + esc(c.ask) + '</div><div class="pal">' + c.colors.map(function (k, i) {
+        return '<button class="sw' + (work.color === k.c ? ' on' : '') + '" style="background:' + k.c + '" data-i="' + i + '">' + (k.trad ? '<span class="tr">⭐</span>' : '') + '<small>' + esc(k.n) + '</small></button>';
+      }).join('') + '</div><div class="tip" style="margin-top:22px">⭐ = a traditional color</div>' +
+        '<div class="row"><button class="btn primary" id="done"' + (work.color ? '' : ' disabled') + '>✨ Light it up!</button></div>';
+    } else {
+      var lines = work.lines || [];
+      h += '<div class="stars">' + '⭐'.repeat(work.stars) + '<span style="opacity:.25">' + '⭐'.repeat(3 - work.stars) + '</span></div>' +
+        '<div class="sub" style="text-align:center">Tracing: ' + Math.round(work.acc * 100) + '% on the line</div>' +
+        '<ul class="facts">' + c.facts.map(function (f) { return '<li>✨ ' + esc(f) + '</li>'; }).join('') + '</ul>' +
+        '<div class="tell"><span class="cn">🗣️ Tell a friend</span>A <b>' + esc(tellName(c)) + '</b> is ' + esc(c.tell) + ', from ' + esc(c.country) + ' — made for ' + esc(c.when) + '.</div>' +
+        mointBox(lines) +
+        '<div class="row"><button class="btn primary" id="again">🎨 Make another</button><button class="btn" id="night">🌙 Festival Night</button></div>';
+    }
+    $('side').innerHTML = h;
+    $('side').querySelectorAll('[data-i]').forEach(function (b) { b.addEventListener('click', function () { work.color = c.colors[+b.getAttribute('data-i')].c; sfx.tap(); renderSide(); }); });
+    if ($('done')) $('done').addEventListener('click', finish);
+    if ($('again')) $('again').addEventListener('click', function () { sfx.tap(); openPicker(); });
+    if ($('night')) $('night').addEventListener('click', function () { sfx.tap(); openNight(); });
+  }
+  var TOL = 7;
+  function bindTrace(cvs) {
+    function pt(e) { var r = cvs.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * 100, (e.clientY - r.top) / r.height * 100]; }
+    cvs.addEventListener('pointerdown', function (e) {
+      if (work.phase !== 'trace') return;
+      work.drawing = true; work.trail.push([]); try { cvs.setPointerCapture(e.pointerId); } catch (er) {}
+      move(pt(e));
+    });
+    cvs.addEventListener('pointermove', function (e) { if (work.drawing) move(pt(e)); });
+    var up = function () { work.drawing = false; };
+    cvs.addEventListener('pointerup', up); cvs.addEventListener('pointercancel', up);
+  }
+  function move(p) {
+    var c = work.c, s = c.strokes[work.stroke];
+    work.trail[work.trail.length - 1].push(p);
+    // うまさ: 今の線のどこかに近いか
+    var near = 1e9; for (var i = 0; i < s.length; i++) { var d = Math.hypot(s[i][0] - p[0], s[i][1] - p[1]); if (d < near) near = d; }
+    work.total++; if (near < TOL * 1.4) work.good++;
+    // 進む: 次の点(少し先まで)に近ければ進める
+    for (var k = 0; k < 5 && work.idx < s.length; k++) {
+      var j = Math.min(s.length - 1, work.idx + k);
+      if (Math.hypot(s[j][0] - p[0], s[j][1] - p[1]) < TOL) { work.idx = j + 1; if (work.idx % 6 === 0) sfx.tick(work.idx / 6); break; }
+    }
+    if (work.idx >= s.length) {
+      sfx.stroke();
+      work.stroke++; work.idx = 0; work.drawing = false;
+      if (work.stroke >= c.strokes.length) { work.phase = 'color'; $('s1').className = 'done'; $('s2').className = 'on'; }
+      renderSide();
+    }
+  }
+  function finish() {
+    var c = work.c;
+    work.phase = 'done'; $('s2').className = 'done'; $('s3').className = 'on';
+    work.acc = work.total ? work.good / work.total : 1;
+    work.stars = work.acc >= 0.85 ? 3 : work.acc >= 0.65 ? 2 : 1;
+    work.doneAt = performance.now();
+    var first = !progress.made[c.id];
+    progress.made[c.id] = (progress.made[c.id] | 0) + 1; progress.crafts++;
+    progress.best[c.id] = Math.max(progress.best[c.id] | 0, work.stars);
+    progress.color[c.id] = work.color;
+    var lines = [['Stars: ' + work.stars + ' × 10', earn(work.stars * 10)]];
+    if (first) lines.push(['First ' + c.name + '!', claimOnce('c:' + c.id, 30)]);
+    if (madeCount() >= CRAFTS.length) lines.push(['All ' + CRAFTS.length + ' crafts made! 🎉', claimOnce('all', 200)]);
+    work.lines = lines;
+    save(); sfx.glow();
+    $('topInfo').textContent = madeCount() + '/' + CRAFTS.length;
+    renderSide();
+  }
+  function frame(t) {
+    raf = requestAnimationFrame(frame);
+    if (!work || !work.ctx) return;
+    var x = work.ctx, S = work.size / 100, c = work.c;
+    x.setTransform(work.d, 0, 0, work.d, 0, 0);
+    var darkBg = !onCloth(c);
+    if (work.phase === 'done') {
+      var k = Math.min(1, (t - work.doneAt) / 900);
+      x.fillStyle = darkBg ? '#2E2A4A' : '#FFF4E2'; x.fillRect(0, 0, work.size, work.size);
+      if (c.id === 'krathong' || c.id === 'boat') { x.fillStyle = '#2C4A6A'; x.fillRect(0, 70 * S, work.size, 30 * S); }
+      x.globalAlpha = k; drawCraft(x, c, work.color, S, t); x.globalAlpha = 1;
+      // きらきら
+      for (var i = 0; i < 14; i++) { var a = i * 2.4 + t / 900, r = 40 + 8 * Math.sin(t / 400 + i); x.fillStyle = 'rgba(255,236,160,' + (0.4 + 0.4 * Math.sin(t / 200 + i)) + ')';
+        x.beginPath(); x.arc((50 + Math.cos(a) * r) * S, (50 + Math.sin(a) * r) * S, 1.6 * S, 0, 7); x.fill(); }
+      return;
+    }
+    x.fillStyle = c.id === 'kolam' ? '#7A5236' : (c.id === 'batik' || c.id === 'tais') ? '#FFF4E2' : '#3A3458';
+    x.fillRect(0, 0, work.size, work.size);
+    var guide = (c.id === 'batik' || c.id === 'tais') ? 'rgba(122,82,54,0.35)' : 'rgba(255,244,222,0.35)', ink = (c.id === 'batik' || c.id === 'tais') ? '#C9883A' : '#FFF4DE';
+    if (c.dots) { x.fillStyle = '#FFF8EC'; c.dots.forEach(function (d) { x.beginPath(); x.arc(d[0] * S, d[1] * S, 2.2 * S, 0, 7); x.fill(); }); }
+    // 点線(まだの線)と、なぞり終えた線
+    c.strokes.forEach(function (s, si) {
+      x.lineJoin = 'round'; x.lineCap = 'round';
+      if (si < work.stroke) { x.strokeStyle = ink; x.lineWidth = 2.6 * S / 4 * 1.3; x.setLineDash([]); path(x, s, S); x.stroke(); return; }
+      x.strokeStyle = guide; x.lineWidth = 2 * S / 4 * 1.3; x.setLineDash([2 * S, 2.5 * S]); path(x, s, S); x.stroke(); x.setLineDash([]);
+      if (si === work.stroke && work.phase === 'trace') {
+        x.strokeStyle = ink; x.lineWidth = 2.6 * S / 4 * 1.3; path(x, s.slice(0, Math.max(1, work.idx)), S); x.stroke();
+        var nx = s[Math.min(s.length - 1, work.idx)], pulse = 1 + 0.3 * Math.sin(t / 180);
+        x.fillStyle = 'rgba(255,214,90,0.35)'; x.beginPath(); x.arc(nx[0] * S, nx[1] * S, 5 * S * pulse, 0, 7); x.fill();
+        x.fillStyle = '#FFD65A'; x.beginPath(); x.arc(nx[0] * S, nx[1] * S, 2.4 * S, 0, 7); x.fill();
+      }
+    });
+    // 指のあと
+    x.strokeStyle = 'rgba(224,71,59,0.35)'; x.lineWidth = 1.2 * S / 4 * 1.3;
+    work.trail.forEach(function (tr) { if (tr.length > 1) { path(x, tr, S); x.stroke(); } });
+    if (work.phase === 'color' && work.color) { x.globalAlpha = 0.85; drawCraft(x, c, work.color, S, t, false); x.globalAlpha = 1; }
+  }
+
+  // =====================================================================
+  // 🌙 Festival Night(作った飾りが集まる景色)
+  // =====================================================================
+  var SPOTS = { lantern: [0.1, 0.18, 0.15], parol: [0.3, 0.16, 0.16], skylantern: [0.5, 0.26, 0.12], wau: [0.88, 0.2, 0.16],
+    batik: [0.1, 0.44, 0.14], tais: [0.27, 0.44, 0.14], ketupat: [0.5, 0.47, 0.13], padauk: [0.72, 0.44, 0.14],
+    kolam: [0.15, 0.66, 0.15], mooncake: [0.86, 0.64, 0.15], krathong: [0.36, 0.87, 0.14], boat: [0.66, 0.88, 0.24] };
+  function openNight(sel) {
+    showPlay('🌙 Festival Night');
+    $('topInfo').textContent = madeCount() + '/' + CRAFTS.length;
+    var W = Math.min(640, $('main').getBoundingClientRect().width - 28), H = Math.round(W * 0.7);
+    setInner('<div class="card"><div class="h">Festival Night</div><div class="sub">' + (madeCount() ? 'Everything you made, together under the moon. Tap a craft to read about it.' : 'Nothing here yet — go and make your first craft!') + '</div>' +
+      '<div id="nightBox" style="margin-top:10px"><canvas id="ncv" style="height:' + H + 'px"></canvas></div><div id="nInfo"></div>' +
+      '<div class="row"><button class="btn primary" id="goM">🎨 Make</button></div></div>');
+    var cvs = $('ncv'), d = Math.min(2, window.devicePixelRatio || 1);
+    cvs.width = W * d; cvs.height = H * d; var x = cvs.getContext('2d');
+    cvs.addEventListener('click', function (e) {
+      var r = cvs.getBoundingClientRect(), px = (e.clientX - r.left) / r.width, py = (e.clientY - r.top) / r.height;
+      CRAFTS.forEach(function (c) { var s = SPOTS[c.id]; if (progress.made[c.id] && Math.abs(px - s[0]) < s[2] * 0.6 && Math.abs(py - s[1]) < s[2] * 0.6 * W / H) { sfx.tap(); showInfo(c); } });
+    });
+    function showInfo(c) {
+      $('nInfo').innerHTML = '<div class="say" style="margin-top:10px"><b>' + esc(c.name) + '</b> · ' + esc(c.country) + '<br>' + esc(c.facts[0]) + '</div>' +
+        '<div class="tell"><span class="cn">🗣️ Tell a friend</span>A <b>' + esc(tellName(c)) + '</b> is ' + esc(c.tell) + ', made for ' + esc(c.when) + '.</div>';
+    }
+    $('goM').addEventListener('click', function () { sfx.tap(); openPicker(); });
+    function loop(t) {
+      raf = requestAnimationFrame(loop);
+      x.setTransform(d, 0, 0, d, 0, 0);
+      var g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#1E1A3A'); g.addColorStop(0.7, '#3A2E5E'); g.addColorStop(1, '#5A3A4A');
+      x.fillStyle = g; x.fillRect(0, 0, W, H);
+      x.fillStyle = '#FFF4C8'; x.beginPath(); x.arc(W * 0.66, H * 0.12, H * 0.07, 0, 7); x.fill();
+      for (var i = 0; i < 30; i++) { x.fillStyle = 'rgba(255,255,255,' + (0.3 + 0.3 * Math.sin(t / 500 + i)) + ')'; x.fillRect((i * 97 % W), (i * 53 % (H * 0.45)), 2, 2); }
+      // ひも
+      x.strokeStyle = 'rgba(30,20,10,0.8)'; x.lineWidth = 2; x.beginPath(); x.moveTo(0, H * 0.06); x.quadraticCurveTo(W / 2, H * 0.14, W, H * 0.06); x.stroke();
+      // 地面と川
+      x.fillStyle = '#4A3A3A'; x.fillRect(0, H * 0.5, W, H * 0.5);
+      x.fillStyle = '#2C4A6A'; x.beginPath(); x.moveTo(0, H * 0.74); x.quadraticCurveTo(W / 2, H * 0.7, W, H * 0.76); x.lineTo(W, H); x.lineTo(0, H); x.closePath(); x.fill();
+      CRAFTS.forEach(function (c) {
+        var s = SPOTS[c.id], sz = s[2] * W, cx = s[0] * W - sz / 2, cy = s[1] * H - sz / 2;
+        x.save(); x.translate(cx, cy);
+        if (progress.made[c.id]) drawCraft(x, c, progress.color[c.id] || c.colors[0].c, sz / 100, t);
+        else { x.strokeStyle = 'rgba(255,244,222,0.25)'; x.setLineDash([3, 4]); x.lineWidth = 1.5; c.strokes.forEach(function (st) { path(x, st, sz / 100); x.stroke(); }); x.setLineDash([]); }
+        x.restore();
+      });
+    }
+    cancelAnimationFrame(raf); raf = requestAnimationFrame(loop);
+    if (sel) showInfo(BY[sel]);
+  }
+
+  // ---------- title ----------
+  function showTitle() {
+    document.body.classList.add('on-title'); cancelAnimationFrame(raf); work = null;
+    $('nightCount').textContent = madeCount() + ' / ' + CRAFTS.length + ' made';
+    $('titleBal').textContent = Math.round(balance()).toLocaleString('en-US');
+    $('titleToday').textContent = '· Today ' + earnedToday() + ' / ' + dailyCap();
+    try { if (window.MokuMoint) $('titleOutfit').innerHTML = MokuMoint.outfitSVG(MokuMoint.closet().equipped); } catch (e) {}
+  }
+  $('menuBtn').addEventListener('click', function () { sfx.tap(); showTitle(); });
+  syncSoundBtn();
+  $('goMake').addEventListener('click', function () { sfx.tap(); openPicker(); });
+  $('goNight').addEventListener('click', function () { sfx.tap(); openNight(); });
+  window.addEventListener('moku:moint', function () { if (document.body.classList.contains('on-title')) showTitle(); });
+  showTitle();
+  try {
+    var q = new URLSearchParams(location.search), scr = q.get('screen');
+    if (scr === 'make') { if (BY[q.get('craft')]) startCraft(q.get('craft')); else openPicker(); } else if (scr === 'night') openNight();
+    if (location.protocol === 'file:') window.__mfl = { stroke: function () { return work && work.phase === 'trace' ? work.c.strokes[work.stroke] : null; }, phase: function () { return work && work.phase; } };
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>

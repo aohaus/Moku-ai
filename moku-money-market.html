@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script src="shared/moku-errors.js?v=20261119e"></script>
+<script src="shared/moku-gate.js?v=20261119e"></script>
+<script>
+// 一斉公開(2026-11-21 13:00 マレーシア時間)までは「Coming soon」だけを出す。hub.html の RELEASE_ASIA とそろえる。
+// プレビュー(*.pages.dev)・localhost・ファイルを直接開いた時は、すぐ遊べる。
+(function () {
+  var OPENS_AT = Date.parse('2026-11-21T13:00:00+08:00');
+  var dev = location.protocol === 'file:' || /\.pages\.dev$/.test(location.hostname) || /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+  if (dev || Date.now() >= OPENS_AT) return;
+  document.documentElement.className += ' moku-soon';
+  document.write('<style>html.moku-soon body > *:not(#mokuSoon) { display: none !important; }' +
+    '#mokuSoon { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 24px; text-align: center;' +
+    ' background: linear-gradient(#FFD9A8, #F7B98A); color: #4A2E1A; font: 700 16px/1.4 -apple-system, "Segoe UI", Roboto, sans-serif; }' +
+    '#mokuSoon .o { font-size: 64px; } #mokuSoon h1 { margin: 0; font-size: 28px; font-weight: 800; }' +
+    '#mokuSoon a { margin-top: 8px; padding: 10px 22px; border-radius: 999px; background: #4A2E1A; color: #FFF4DE; text-decoration: none; }</style>');
+  document.addEventListener('DOMContentLoaded', function () {
+    var when = new Date(OPENS_AT).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    var d = document.createElement('div');
+    d.id = 'mokuSoon';
+    d.innerHTML = '<div class="o">🦉</div><h1>Coming soon!</h1><p>This game opens on ' + when + '.</p><a href="hub.html">◀ Hub</a>';
+    document.body.appendChild(d);
+    setTimeout(function () { location.reload(); }, Math.min(OPENS_AT - Date.now() + 1000, 2147483000));
+  });
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Moku Money Market</title>
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<!--
+  Moku Money Market(v0.1.0、2026-11-19)— 棚「Live in ASIA」の第2弾。
+  東南アジア 8 か国の屋台で(v0.2.0 でブルネイとカンボジアを足した)、その国のお金で買い物をする。ねらい(Live in ASIA の目標、CLAUDE.md §2 に合わせて):
+  ①国とお金の名前・記号・書き方を覚える(RM5 / S$5 / ฿60 / 50.000₫ / Rp20.000 / ₱100)
+  ②同じ物でも国によって数字がまるで違う(フォー1杯 50.000₫ ≈ RM8)ことを、自分のお金に直してくらべる
+  ③「10.000₫ ≈ RM1.6 だから…」という目安を自分のことばで説明できる。
+  - 🛒 Market Trip(①): 国を選んで屋台へ。5人分の注文。2品以上は合計を選ぶ → お札・硬貨を台に出して払う
+    (よけいなお札を出さなければ ⭐)→ おつりを選ぶ。1注文 ⭐3、1回 ⭐15。
+  - 💱 Price Check(②③): 8問。「この値段は My money でだいたいいくら?」と「どっちが高い?」。答えのあとに目安の式。
+  - 📒 Money Book: 国ごとのお金のページ(記号・書き方・お札と硬貨・目安・本当の話)。その国の市場に行くと開く。
+  - My money: RM / ¥ / US$ をタイトル画面で選ぶ(家族はマレーシア住まいなので RM が初期値)。
+  - 値段切り(Haggle)は文化の説明がむずかしいので、v0.1 では入れない(次の候補)。
+
+  事実のデータは下の MARKETS。値段は 2025 年ごろの屋台・ホーカーのだいたいの値段、為替は 2025 年ごろの
+  だいたいの値(1 US$ あたり)。画面にも「about」と「本当のレートは毎日かわる」を出す。お札の絵は本物をまねず、
+  色の系統と数字だけ(本物そっくりのお札は描かない)。宗教・政治・王室の話は入れない。
+
+  Moint(SPEC.md §13): 毎回(1日 500 まで)= ⭐1つ +5(1回で最大 75)、⭐15 そろえた +25、Price Check 1問 +5・8問全部 +20。
+  1回きり = その国の市場に初めて行った +30、8 か国全部 +200(受け取り済みは progress.mointClaims の m:<国> と all)。
+  記録は moku:moku-money-market:progress、音と My money は moku:moku-money-market:settings。
+-->
+<style>
+:root {
+  --hi: #E8A23A; --lo: #6E4510;               /* 金貨の金色 */
+  --ink: #3B2A20; --ink-soft: #8B6E57;
+  --paper: #FFF7E8; --paper2: #FBEBD0;
+  --wood: #7A4A2C; --wood-dark: #4E2C17;
+  --line: #5A3A22;
+  --ok: #3E9B5A; --bad: #D0533F;
+  --round: "Fredoka", -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  background: #F6D7AE; color: var(--ink);
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  overflow: hidden;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; touch-action: manipulation; }
+
+/* ---------- shared frame / hub link ---------- */
+#title-frame { position: fixed; inset: 14px; border: 3px solid var(--hi); border-radius: 10px; pointer-events: none; z-index: 40; }
+#title-frame::after { content: ''; position: absolute; inset: 5px; border: 1px solid var(--lo); border-radius: 8px; }
+#hub-link {
+  position: fixed; top: calc(env(safe-area-inset-top, 0px) + 16px); right: calc(env(safe-area-inset-right, 0px) + 16px);
+  z-index: 41; font-size: 14px; font-weight: 800; color: var(--lo); text-decoration: none;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.6); animation: hubLinkPulse 2.2s ease-in-out infinite;
+}
+@keyframes hubLinkPulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+#buildInfo {
+  position: fixed; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); left: calc(env(safe-area-inset-left, 0px) + 18px);
+  z-index: 41; font-size: 10.5px; letter-spacing: 0.02em; color: rgba(255,255,255,0.28);
+  text-shadow: 0 0 1px rgba(90,58,34,0.5); pointer-events: none;
+}
+body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo,
+body:not(.on-title) #titleScreen, body:not(.on-title) #soundBtn { display: none; }
+body.on-title #playScreen { display: none; }
+#soundBtn {
+  position: fixed; z-index: 41; top: calc(env(safe-area-inset-top, 0px) + 12px); left: calc(env(safe-area-inset-left, 0px) + 22px);
+  width: 36px; height: 36px; border-radius: 50%; background: rgba(255,247,232,0.85); border: 2px solid rgba(90,58,34,0.3); font-size: 17px;
+}
+
+/* ---------- title ---------- */
+#titleScreen { position: fixed; inset: 0; overflow: hidden; background: linear-gradient(#FFE3B5, #F7B98A 70%, #EFA27C); }
+#titleScreen::before {   /* 屋台のひさし */
+  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 64px;
+  background: repeating-linear-gradient(90deg, #E8A23A 0 40px, #FFF4DE 40px 80px);
+  border-bottom: 4px solid var(--wood-dark);
+  -webkit-mask: radial-gradient(circle at 20px 64px, transparent 18px, #000 19px) 0 0 / 40px 100%;
+          mask: radial-gradient(circle at 20px 64px, transparent 18px, #000 19px) 0 0 / 40px 100%;
+  opacity: 0.85;
+}
+#titleInner {
+  position: absolute; inset: 0; display: flex; align-items: flex-start; justify-content: center; overflow-y: auto;
+  padding: calc(env(safe-area-inset-top, 0px) + 54px) 28px calc(env(safe-area-inset-bottom, 0px) + 36px);
+}
+#titleCard {
+  margin: auto; position: relative; width: min(420px, 100%);
+  background: var(--paper); border-radius: 18px; border: 3px solid var(--line);
+  box-shadow: 0 10px 0 rgba(90,58,34,0.25), 0 18px 40px rgba(90,58,34,0.25);
+  padding: 16px 18px 16px; text-align: center;
+}
+#titleHead { position: relative; }
+#titleHero { position: relative; width: 104px; height: 104px; margin: 0 auto; animation: heroFloat 3.2s ease-in-out infinite; }
+#titleHero img, #titleHero svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#titleHero img { object-fit: cover; object-position: center 30%; filter: drop-shadow(0 4px 8px rgba(110,69,16,0.35)); }
+@keyframes heroFloat { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-7px) rotate(2deg); } }
+.floatCoin { position: absolute; font: 800 13px var(--round); color: #7A4E00; width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; border: 2px solid #9A6A10;
+  background: radial-gradient(circle at 35% 30%, #FFF2A8, #F2C230 55%, #C9901A); animation: coinBob 2.6s ease-in-out infinite; }
+@keyframes coinBob { 0%, 100% { transform: translateY(0) rotate(-8deg); } 50% { transform: translateY(-8px) rotate(8deg); } }
+#titleLogo { font: 700 34px/1.02 var(--round); color: var(--lo); margin-top: 6px; }
+#titleLogo span { color: var(--hi); display: block; }
+#titleSub { font: 600 12.5px var(--round); color: var(--ink-soft); letter-spacing: 0.14em; margin-top: 6px; text-transform: uppercase; }
+#titleMenu { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 10px; }
+.titleMenuItem {
+  width: 100%; max-width: 300px; font-size: 19px; font-weight: 800; padding: 8px 18px; border-radius: 14px;
+  background: #fff; border: 2px solid rgba(90,58,34,0.25); color: var(--ink);
+  display: flex; align-items: center; gap: 10px; text-align: left; transition: transform 0.12s;
+}
+.titleMenuItem .ic { font-size: 22px; width: 28px; text-align: center; }
+.titleMenuItem small { display: block; font-size: 11.5px; font-weight: 600; color: var(--ink-soft); margin-top: 1px; }
+.titleMenuItem.primary { background: var(--hi); border-color: var(--lo); color: #fff; box-shadow: 0 4px 0 var(--lo); }
+.titleMenuItem.primary small { color: rgba(255,255,255,0.88); }
+.titleMenuItem:active { transform: translateY(2px) scale(0.98); }
+#homeRow { margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12.5px; font-weight: 800; color: var(--ink-soft); }
+.seg { display: inline-flex; gap: 4px; }
+.seg button { padding: 4px 10px; border-radius: 999px; background: #fff; border: 2px solid rgba(90,58,34,0.25); font-weight: 800; font-size: 13px; }
+.seg button.on { background: var(--hi); color: #fff; border-color: var(--lo); }
+#titleMoints { margin-top: 8px; font-size: 12.5px; font-weight: 700; color: var(--ink-soft); display: flex; align-items: center; justify-content: center; gap: 6px; }
+.mcoin {
+  display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #FFF2A8, #F2C230 55%, #C9901A);
+  border: 1.5px solid #9A6A10; color: #7A4E00; font: 800 9.5px/1 var(--round);
+}
+@media (orientation: landscape) and (max-height: 560px) {
+  #titleInner { padding-top: calc(env(safe-area-inset-top, 0px) + 40px); padding-bottom: 20px; }
+  #titleCard { width: min(660px, 100%); display: grid; grid-template-columns: 200px 1fr; column-gap: 14px; align-items: center; padding: 12px 14px; }
+  #titleHead { grid-row: 1 / 4; }
+  #titleHero { width: 90px; height: 90px; }
+  #titleLogo { font-size: 28px; }
+  #titleMenu, #homeRow, #titleMoints { grid-column: 2; }
+  #titleMenu { margin-top: 0; }
+}
+
+/* ---------- play ---------- */
+#playScreen { position: fixed; inset: 0; display: flex; flex-direction: column; background: var(--paper2); }
+#topbar {
+  flex: none; display: flex; align-items: center; gap: 8px;
+  padding: calc(env(safe-area-inset-top, 0px) + 6px) calc(env(safe-area-inset-right, 0px) + 12px) 6px calc(env(safe-area-inset-left, 0px) + 10px);
+  background: linear-gradient(#8A5634, var(--wood)); border-bottom: 3px solid var(--wood-dark); color: #FFF4E0;
+}
+#menuBtn { padding: 6px 12px; border-radius: 10px; background: rgba(255,255,255,0.14); font-weight: 800; font-size: 14px; }
+#modeTitle { flex: 1; font: 700 17px var(--round); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#topInfo { font-weight: 800; font-size: 14px; white-space: nowrap; }
+#stage { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+#scene { flex: none; position: relative; overflow: hidden; height: 42%; min-height: 200px; background: linear-gradient(#FFE6BC, #F9C99A); }
+#panel {
+  flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  border-top: 3px solid var(--wood-dark);
+  padding: 12px calc(env(safe-area-inset-right, 0px) + 12px) calc(env(safe-area-inset-bottom, 0px) + 14px) calc(env(safe-area-inset-left, 0px) + 12px);
+}
+#panelInner { max-width: 560px; margin: 0 auto; }
+@media (orientation: landscape) {
+  #stage { flex-direction: row; }
+  #scene { height: auto; flex: 1; min-height: 0; }
+  #panel { flex: none; width: clamp(320px, 44vw, 480px); border-top: 0; border-left: 3px solid var(--wood-dark); }
+}
+
+/* scene: the stall */
+.canopy { position: absolute; left: 0; right: 0; top: 0; height: 22%; min-height: 44px; border-bottom: 4px solid var(--wood-dark); }
+.canopy::after { content: ''; position: absolute; left: 0; right: 0; bottom: -14px; height: 14px;
+  background: radial-gradient(circle at 14px 0, var(--c1) 13px, transparent 14px) 0 0 / 28px 14px repeat-x; }
+.signBoard { position: absolute; left: 50%; top: calc(22% - 6px); transform: translate(-50%, 0); z-index: 2;
+  background: #FFF4DE; border: 3px solid var(--wood-dark); border-radius: 10px; padding: 3px 12px;
+  font: 700 15px var(--round); white-space: nowrap; display: flex; align-items: center; gap: 6px; box-shadow: 0 3px 0 rgba(78,44,23,0.3); }
+.signBoard svg.flag { width: 24px; height: 16px; }
+.vendor { position: absolute; right: 9%; bottom: 30%; display: flex; flex-direction: column; align-items: center; }
+.vendor .face { font-size: clamp(44px, 9vh, 72px); line-height: 1; animation: bob 2.4s ease-in-out infinite; }
+.vendor .tag { font: 700 11px var(--round); background: rgba(255,255,255,0.85); border-radius: 999px; padding: 1px 8px; margin-top: 2px; color: var(--ink-soft); }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+.customer { position: absolute; left: 6%; bottom: 26%; width: clamp(64px, 14vh, 96px); height: clamp(64px, 14vh, 96px); }
+.customer img, .customer svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.customer img { object-fit: cover; object-position: center 30%; }
+.bubble { position: absolute; left: calc(6% + clamp(64px, 14vh, 96px) - 6px); bottom: calc(26% + clamp(48px, 11vh, 76px));
+  max-width: 46%; background: #fff; border: 2.5px solid var(--line); border-radius: 14px; padding: 6px 10px;
+  font: 600 13.5px/1.3 var(--round); animation: pop 0.35s cubic-bezier(.2,1.5,.5,1) both; }
+@keyframes pop { from { transform: scale(0.6); opacity: 0; } to { transform: none; opacity: 1; } }
+.counter { position: absolute; left: 0; right: 0; bottom: 0; height: 30%; background: linear-gradient(#B07A4C, #8A5634); border-top: 5px solid var(--wood-dark);
+  display: flex; align-items: center; justify-content: center; gap: 12px; padding: 0 12px; }
+.counter::before { content: ''; position: absolute; inset: 6px 0 auto 0; height: 2px; background: rgba(255,255,255,0.15); }
+.food { position: relative; display: flex; flex-direction: column; align-items: center; animation: pop 0.4s both; }
+.food .fd { width: clamp(56px, 11vh, 84px); height: clamp(56px, 11vh, 84px); filter: drop-shadow(0 3px 0 rgba(0,0,0,0.18)); }
+.fd.sm { width: 28px; height: 28px; flex: none; }
+.li .lin { display: flex; align-items: center; gap: 6px; }
+.food .qty { position: absolute; top: -6px; right: -12px; background: var(--hi); color: #fff; font: 800 12px var(--round); border-radius: 999px; padding: 1px 6px; border: 2px solid #fff; }
+.pricetag { margin-top: 3px; background: #FFF9EC; border: 2px solid var(--line); border-radius: 6px; padding: 0 6px; font: 700 13px var(--round); white-space: nowrap; transform: rotate(-3deg); }
+
+/* panel pieces */
+.card { background: var(--paper); border: 2.5px solid var(--line); border-radius: 14px; padding: 12px; box-shadow: 0 5px 0 rgba(90,58,34,0.18); }
+.enter { animation: cardIn 0.4s cubic-bezier(.2,1.3,.5,1) both; }
+@keyframes cardIn { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
+.h { font: 700 19px/1.2 var(--round); color: var(--lo); }
+.sub { font-size: 12.5px; color: var(--ink-soft); font-weight: 700; margin-top: 2px; }
+.list { margin-top: 10px; display: flex; flex-direction: column; gap: 5px; }
+.li { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: #fff; border-radius: 10px; padding: 7px 10px; font-weight: 700; font-size: 15px; border: 1.5px solid rgba(90,58,34,0.15); }
+.li .m { font-family: var(--round); font-weight: 700; white-space: nowrap; }
+.li.tot { background: #FFF6DA; border-color: #E0B85A; }
+.q { font: 700 18px/1.3 var(--round); margin: 12px 2px 8px; text-align: center; }
+.choices { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ch { padding: 12px 8px; border-radius: 12px; background: #fff; border: 2.5px solid rgba(90,58,34,0.25); font: 700 17px var(--round); box-shadow: 0 3px 0 rgba(90,58,34,0.18); }
+.ch:active { transform: translateY(2px); box-shadow: none; }
+.ch.right { border-color: var(--ok); background: #EAF7E6; }
+.ch.miss { border-color: var(--bad); background: #FDEDEA; }
+.ch:disabled { opacity: 1; }
+.padShow { margin: 4px auto 8px; max-width: 280px; text-align: center; font: 700 26px var(--round); padding: 8px 12px; border-radius: 12px; background: #fff; border: 2.5px solid rgba(90,58,34,0.25); min-height: 50px; }
+.padShow span { font-size: 15px; color: #B9A88E; }
+.pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; max-width: 280px; margin: 0 auto; }
+.pk { padding: 10px 0; border-radius: 12px; background: #fff; border: 2px solid rgba(90,58,34,0.22); font: 700 20px var(--round); box-shadow: 0 3px 0 rgba(90,58,34,0.15); }
+.pk:active { transform: translateY(2px); box-shadow: none; }
+.pk.ok { background: var(--hi); color: #fff; border-color: var(--lo); }
+.li .qn { color: var(--lo); }
+.li .m small { font-size: 12px; color: #8B6E57; font-weight: 700; }
+.row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.btn { flex: 1; min-width: 120px; padding: 11px 14px; border-radius: 12px; font-weight: 800; font-size: 15.5px;
+  background: #fff; border: 2px solid rgba(90,58,34,0.3); box-shadow: 0 3px 0 rgba(90,58,34,0.2); }
+.btn.primary { background: var(--hi); color: #fff; border-color: var(--lo); box-shadow: 0 3px 0 var(--lo); }
+.btn:disabled { opacity: 0.45; }
+.btn:active:not(:disabled) { transform: translateY(2px); box-shadow: none; }
+.say { margin-top: 10px; padding: 9px 12px; border-radius: 12px; font-weight: 700; font-size: 14.5px; line-height: 1.45;
+  background: #FFF6DA; border: 2px solid rgba(224,184,90,0.6); color: #6A4A10; animation: cardIn 0.3s ease-out both; }
+.say.ok { background: #EAF7E6; border-color: rgba(62,155,90,0.4); color: #275E37; }
+.say.bad { background: #FDEDEA; border-color: rgba(208,83,63,0.35); color: #8A2F20; }
+.tip { margin-top: 8px; font-size: 12.5px; color: var(--ink-soft); font-weight: 600; text-align: center; }
+.stars { font-size: 20px; letter-spacing: 2px; text-align: center; margin-top: 4px; }
+
+/* money: notes and coins */
+.tray { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 8px; }
+.money { position: relative; display: inline-flex; align-items: center; justify-content: center; font-family: var(--round); font-weight: 700; color: #fff;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.35); transition: transform 0.12s; }
+.money:active { transform: scale(0.94); }
+.note { width: 88px; height: 44px; border-radius: 6px; box-shadow: 0 2px 0 rgba(0,0,0,0.22); font-size: 15px; overflow: hidden; border: 0; padding: 0; background: none; }
+.money .nart { position: absolute; inset: 0; width: 100%; height: 100%; }
+.note span { position: absolute; right: 7px; top: 3px; z-index: 1; text-shadow: 0 1px 0 rgba(0,0,0,0.45), 0 0 3px rgba(0,0,0,0.35); }
+.coin { width: 50px; height: 50px; border-radius: 50%; border: 0; padding: 0; background: none; font-size: 11.5px; color: #3A2A18; text-shadow: 0 1px 0 rgba(255,255,255,0.6); filter: drop-shadow(0 2px 0 rgba(0,0,0,0.22)); }
+.coin span { position: absolute; left: 0; right: 0; bottom: 8px; z-index: 1; text-align: center; line-height: 1; }
+.coinBook { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px 8px; margin-top: 8px; }
+.cb { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; font-size: 12px; line-height: 1.25; }
+.cb .cbArt { width: 72px; height: 72px; position: relative; filter: drop-shadow(0 2px 0 rgba(0,0,0,0.2)); }
+.cb .cbArt svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.cb b { font-family: var(--round); font-size: 14px; }
+.cb span { color: var(--ink-soft); font-weight: 700; }
+.paid { min-height: 56px; margin-top: 8px; padding: 8px; border-radius: 12px; border: 2.5px dashed #C9A87D; background: #FFFDF6;
+  display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; align-items: center; }
+.paid:empty::before { content: 'Tap money to put it here'; color: #C5AE88; font-weight: 700; font-size: 13px; }
+.paid .money { transform: scale(0.85); animation: pop 0.25s both; }
+.payline { display: flex; justify-content: space-between; margin-top: 8px; font-weight: 800; font-size: 15px; }
+.payline .m { font-family: var(--round); }
+.payline .short { color: var(--bad); }
+.payline .over { color: var(--ok); }
+
+/* country picker */
+.picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 10px; }
+.pick { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 10px; border-radius: 12px; background: #fff;
+  border: 2.5px solid rgba(90,58,34,0.2); box-shadow: 0 3px 0 rgba(90,58,34,0.15); text-align: left; }
+.pick:active { transform: translateY(2px); box-shadow: none; }
+.pick .top { display: flex; align-items: center; gap: 8px; font: 700 16px var(--round); }
+.pick svg.flag { width: 30px; height: 20px; }
+.pick small { font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+.pick .best { font-size: 12px; font-weight: 800; color: #9A6A10; }
+svg.flag { display: block; border-radius: 2px; }
+
+/* money book */
+.bookHead { display: flex; align-items: center; gap: 10px; }
+.bookHead svg.flag { width: 54px; height: 36px; }
+.bookHead .sym { margin-left: auto; font: 700 30px var(--round); color: var(--lo); }
+.facts { display: grid; grid-template-columns: auto 1fr; gap: 5px 10px; margin-top: 10px; font-size: 14px; line-height: 1.4; }
+.facts dt { font-weight: 800; color: var(--ink-soft); white-space: nowrap; }
+.facts dd { font-weight: 600; }
+.fun { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.fun div { background: #EEF3FB; border-radius: 10px; padding: 8px 10px; font-size: 14px; line-height: 1.4; font-weight: 600; }
+.tell { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: #FFF6DA; border: 2px dashed #E0B85A; font-size: 14.5px; line-height: 1.5; font-weight: 600; }
+.tell .cn { display: block; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; color: #9A7420; text-transform: uppercase; margin-bottom: 2px; }
+.sec { font: 700 13px var(--round); color: var(--ink-soft); letter-spacing: 0.06em; text-transform: uppercase; margin: 12px 2px 0; }
+.locked { opacity: 0.55; }
+.moints { margin-top: 10px; background: #FFF6DA; border: 2px solid #E0B85A; border-radius: 12px; padding: 10px 12px; font-size: 14px; font-weight: 700; }
+.moints div { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; }
+.moints .tot { border-top: 1.5px dashed #E0B85A; margin-top: 4px; padding-top: 6px; font-size: 16px; font-weight: 800; color: #7A5200; }
+.big { font: 700 26px var(--round); color: var(--lo); text-align: center; margin-top: 4px; }
+.dots { display: flex; justify-content: center; gap: 5px; margin-bottom: 6px; }
+.dots i { width: 10px; height: 10px; border-radius: 50%; background: #E3D3B8; }
+.dots i.ok { background: var(--ok); } .dots i.no { background: var(--bad); } .dots i.now { background: var(--hi); }
+.vs { display: flex; gap: 8px; align-items: stretch; }
+.vs .ch { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 15px; }
+.vs .ch .fd { width: 56px; height: 56px; }
+.vs .ch .m { font-size: 16px; }
+.vs .ch small { font-size: 11.5px; color: var(--ink-soft); font-weight: 700; display: flex; align-items: center; gap: 4px; }
+.vs .ch svg.flag { width: 18px; height: 12px; }
+@media (prefers-reduced-motion: reduce) { #titleHero, .vendor .face, .floatCoin { animation: none; } }
+</style>
+</head>
+<body class="on-title">
+<script src="shared/moku-account.js?v=20261119e" data-mode="background"></script>
+<script src="shared/moku-moint.js?v=20261119e" data-mode="none"></script>
+
+<div id="title-frame"></div>
+<a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
+<div id="buildInfo">v0.5.0 · Updated Nov 20, 2026</div>
+<button id="soundBtn" aria-label="Sound">🔊</button>
+
+<div id="titleScreen">
+  <div id="titleInner">
+    <div id="titleCard">
+      <div id="titleHead">
+        <div id="titleHero"><img src="brand/mokumoku-hero.png" alt="Moku"><span id="titleOutfit"></span></div>
+        <span class="floatCoin" style="left:12%;top:18px">RM</span>
+        <span class="floatCoin" style="right:12%;top:8px;animation-delay:-1.2s">฿</span>
+        <span class="floatCoin" style="right:18%;top:66px;animation-delay:-0.6s">₫</span>
+        <div id="titleLogo">Moku <span>Money Market</span></div>
+        <div id="titleSub">Live in Asia · 8 markets</div>
+      </div>
+      <div id="titleMenu">
+        <button class="titleMenuItem primary" id="goTrip"><span class="ic">🛒</span><span>Market Trip<small>Shop with real money from 8 countries</small></span></button>
+        <button class="titleMenuItem" id="goCheck"><span class="ic">💱</span><span>Price Check<small>How much is it in your money?</small></span></button>
+        <button class="titleMenuItem" id="goBook"><span class="ic">📒</span><span>Money Book<small id="bookCount">0 / 8 currencies</small></span></button>
+      </div>
+      <div id="homeRow">My money: <span class="seg" id="homeSeg"></span></div>
+      <div id="titleMoints"><span class="mcoin">M</span><span id="titleBal">0</span><span id="titleToday"></span></div>
+    </div>
+  </div>
+</div>
+
+<div id="playScreen">
+  <div id="topbar">
+    <button id="menuBtn">◀ Menu</button>
+    <div id="modeTitle"></div>
+    <div id="topInfo"></div>
+  </div>
+  <div id="stage">
+    <div id="scene"></div>
+    <div id="panel"><div id="panelInner"></div></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var GAME_ID = 'moku-money-market';
+  var SAVE_KEY = 'moku:' + GAME_ID + ':progress';
+  var SET_KEY = 'moku:' + GAME_ID + ':settings';
+  var $ = function (id) { return document.getElementById(id); };
+  function readJSON(k) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+  function writeJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+  function group(n, sep) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, sep); }
+
+  // =====================================================================
+  // 市場のデータ(事実)。値段は 2025 年ごろの屋台・ホーカーのだいたいの値段。
+  //   perUSD: 1 US$ でだいたいいくら(2025 年ごろ)。本当のレートは毎日かわる。
+  //   money: 使うお札(note)と硬貨(coin)。色は本物の色の系統だけ(本物のデザインはまねない)
+  //   anchor: 目安の式に使う「きりのいい金額」(10.000₫ ≈ RM1.6 など)
+  //   vendor: 屋台の店主(その国の動物)
+  // =====================================================================
+  var MARKETS = {
+    MY: { country: 'Malaysia', cur: 'ringgit', perUSD: 4.2, anchor: 1, place: 'Pasar malam (night market)',
+          fmt: function (n) { return 'RM' + group(n, ','); }, write: 'RM5 — “RM” comes first',
+          vendor: { em: '🐯', name: 'Malayan tiger' },
+          money: [{ v: 1, c: '#3F72C4', c2: '#1F3F7A', mo: 'kite' }, { v: 5, c: '#4E9E4A', c2: '#22562A', mo: 'hornbill', poly: true }, { v: 10, c: '#D04A3E', c2: '#7A1E1A', mo: 'flower' }, { v: 20, c: '#E7902E', c2: '#7A4310', mo: 'turtle' }, { v: 50, c: '#3A9A9A', c2: '#165252', mo: 'palm' }, { v: 100, c: '#8456B0', c2: '#3E2066', mo: 'mountain' }],
+          items: [
+            { name: 'Teh tarik', em: 'tehtarik', p: 3, what: 'pulled milk tea' },
+            { name: 'Nasi lemak', em: 'nasilemak', p: 5, what: 'coconut rice with sambal' },
+            { name: 'Roti canai', em: 'roticanai', p: 2, what: 'flaky flatbread with curry' },
+            { name: 'Satay (10 sticks)', em: 'satay', p: 10, what: 'grilled skewers with peanut sauce' },
+            { name: 'Cendol', em: 'cendol', p: 4, what: 'shaved ice with palm sugar' }
+          ],
+          facts: ['“Ringgit” means “jagged” in Malay — old silver coins had jagged edges.', '100 sen = RM1. Small prices can be like RM2.50.', 'People also say “dollar” for ringgit in daily talk.'] },
+    SG: { country: 'Singapore', cur: 'Singapore dollar', perUSD: 1.3, anchor: 1, place: 'Hawker centre',
+          fmt: function (n) { return 'S$' + group(n, ','); }, write: 'S$5 — or just $5 in Singapore',
+          vendor: { em: '🦁', name: 'Lion (the “Lion City”)' },
+          money: [{ v: 1, coin: true, metal: 'silver', ring: 'gold', mo: 'merlion' }, { v: 2, c: '#8C5DB8', c2: '#43206E', mo: 'cap', poly: true }, { v: 5, c: '#4C9E58', c2: '#1F5228', mo: 'tree', poly: true }, { v: 10, c: '#D04A55', c2: '#741C26', mo: 'ball', poly: true }, { v: 50, c: '#3F7CC4', c2: '#1A3C70', mo: 'palette', poly: true }],
+          items: [
+            { name: 'Kopi', em: 'kopi', p: 2, what: 'local coffee' },
+            { name: 'Chicken rice', em: 'chickenrice', p: 5, what: 'chicken with fragrant rice' },
+            { name: 'Kaya toast set', em: 'kayatoast', p: 5, what: 'toast with coconut jam and eggs' },
+            { name: 'Ice kacang', em: 'icekacang', p: 3, what: 'rainbow shaved ice' },
+            { name: 'Char kway teow', em: 'ckt', p: 6, what: 'fried flat noodles' }
+          ],
+          facts: ['S$1 is a coin, not a note.', 'Singapore and Brunei dollars are worth exactly the same — shops in both countries take both!', 'At hawker centres the price is fixed — no bargaining.'] },
+    BN: { country: 'Brunei', cur: 'Brunei dollar', perUSD: 1.3, anchor: 1, place: 'Gadong night market',
+          fmt: function (n) { return 'B$' + group(n, ','); }, write: 'B$2 — “B$” for Brunei dollar',
+          vendor: { em: '🐒', name: 'Proboscis monkey' },
+          money: [{ v: 1, c: '#3F7CC4', c2: '#1A3C70', mo: 'house', poly: true }, { v: 5, c: '#4C9E58', c2: '#1F5228', mo: 'leaf', poly: true }, { v: 10, c: '#D04A3E', c2: '#7A1E1A', mo: 'flower', poly: true }, { v: 50, c: '#A6743E', c2: '#55361A', mo: 'bird', poly: true }, { v: 100, c: '#8456B0', c2: '#3E2066', mo: 'wave', poly: true }],
+          items: [
+            { name: 'Nasi katok', em: 'nasikatok', p: 2, what: 'rice with fried chicken and sambal' },
+            { name: 'Teh tarik', em: 'tehtarik', p: 2, what: 'pulled milk tea' },
+            { name: 'Satay (10 sticks)', em: 'satay', p: 5, what: 'grilled skewers with peanut sauce' },
+            { name: 'Kuih (3 pieces)', em: 'kuih', p: 1, what: 'little colorful sweet cakes' },
+            { name: 'Ambuyat set', em: 'ambuyat', p: 15, what: 'sticky sago with dips, to share' }
+          ],
+          facts: ['Brunei and Singapore dollars are worth exactly the same — shops in both countries take both!', 'Nasi katok is famous for being cheap — only about B$1 to B$2.', 'Brunei notes are made of plastic (polymer).'] },
+    TH: { country: 'Thailand', cur: 'baht', perUSD: 33, anchor: 100, place: 'Street food market',
+          fmt: function (n) { return '฿' + group(n, ','); }, write: '฿60 — or “60 baht”',
+          vendor: { em: '🐘', name: 'Elephant' },
+          money: [{ v: 1, coin: true, metal: 'silver', mo: 'roofs' }, { v: 5, coin: true, metal: 'silver', mo: 'marble' }, { v: 10, coin: true, metal: 'gold', ring: 'silver', mo: 'prang' }, { v: 20, c: '#4E9E5A', c2: '#1F5228', mo: 'star', poly: true }, { v: 50, c: '#3F7CC4', c2: '#1A3C70', mo: 'star' }, { v: 100, c: '#D04A3E', c2: '#7A1E1A', mo: 'star' }, { v: 500, c: '#8456B0', c2: '#3E2066', mo: 'star' }],
+          items: [
+            { name: 'Thai iced tea', em: 'thaitea', p: 30, what: 'sweet orange milk tea' },
+            { name: 'Pad thai', em: 'padthai', p: 60, what: 'fried rice noodles' },
+            { name: 'Mango sticky rice', em: 'mangorice', p: 100, what: 'mango with coconut sticky rice' },
+            { name: 'Moo ping (5 sticks)', em: 'mooping', p: 50, what: 'grilled pork skewers' },
+            { name: 'Coconut', em: 'coconut', p: 40, what: 'fresh coconut water' }
+          ],
+          facts: ['฿ is the baht sign. 100 satang = 1 baht.', 'Small amounts are coins: 1, 2, 5 and 10 baht.', 'Many street stalls now take QR code payments too.'] },
+    KH: { country: 'Cambodia', cur: 'riel', perUSD: 4000, anchor: 1000, place: 'Riverside night market',
+          fmt: function (n) { return group(n, ',') + '៛'; }, write: '5,000៛ — the riel sign ៛ comes after the number',
+          vendor: { em: '🐂', name: 'Kouprey (wild ox)' },
+          money: [{ v: 500, c: '#C0604A', c2: '#6A2A1E', mo: 'temple' }, { v: 1000, c: '#4E9E7A', c2: '#1F5240', mo: 'temple' }, { v: 2000, c: '#C0504A', c2: '#6A221E', mo: 'temple' }, { v: 5000, c: '#7E5AA8', c2: '#3E2066', mo: 'temple' }, { v: 10000, c: '#3F7CC4', c2: '#1A3C70', mo: 'temple' }, { v: 20000, c: '#C85A8E', c2: '#6A1E44', mo: 'temple' }],
+          items: [
+            { name: 'Nom banh chok', em: 'nombanhchok', p: 5000, what: 'rice noodles with green fish curry' },
+            { name: 'Bai sach chrouk', em: 'baisach', p: 8000, what: 'grilled pork with rice, for breakfast' },
+            { name: 'Iced coffee', em: 'icedcoffee', p: 4000, what: 'strong coffee with sweet milk' },
+            { name: 'Sugarcane juice', em: 'sugarcane', p: 2000, what: 'fresh-pressed sugarcane' },
+            { name: 'Fish amok', em: 'amok', p: 16000, what: 'fish curry steamed in a banana leaf' }
+          ],
+          facts: ['People often pay in US dollars and get the change in riel. US$1 is about 4,000៛.', 'Coins are almost never used — even small change is paper riel.', '៛ is the riel sign.'] },
+    VN: { country: 'Vietnam', cur: 'đồng', perUSD: 26000, anchor: 10000, place: 'Street food corner',
+          fmt: function (n) { return group(n, '.') + '₫'; }, write: '50.000₫ — dots, not commas, and ₫ comes last',
+          vendor: { em: '🐃', name: 'Water buffalo' },
+          money: [{ v: 5000, c: '#5A70B8', c2: '#26346A', mo: 'wave' }, { v: 10000, c: '#C09A3E', c2: '#5E4614', mo: 'rig', poly: true }, { v: 20000, c: '#4A80C8', c2: '#1A3C70', mo: 'bridge', poly: true }, { v: 50000, c: '#D05A8E', c2: '#6A1E44', mo: 'gate', poly: true }, { v: 100000, c: '#4E9E5A', c2: '#1F5228', mo: 'pavilion', poly: true }, { v: 200000, c: '#D0703E', c2: '#6E3010', mo: 'islet', poly: true }],
+          items: [
+            { name: 'Phở', em: 'pho', p: 50000, what: 'beef noodle soup' },
+            { name: 'Bánh mì', em: 'banhmi', p: 25000, what: 'crispy sandwich' },
+            { name: 'Iced milk coffee', em: 'icedcoffee', p: 25000, what: 'cà phê sữa đá' },
+            { name: 'Sugarcane juice', em: 'sugarcane', p: 15000, what: 'fresh-pressed sugarcane' },
+            { name: 'Spring rolls (3)', em: 'goicuon', p: 30000, what: 'fresh rolls with herbs' }
+          ],
+          facts: ['No coins in daily use — even 1.000₫ is a note.', 'Most notes from 10.000₫ up are plastic, so they don’t tear in the rain.', 'People often say “50k” for 50.000₫.'] },
+    ID: { country: 'Indonesia', cur: 'rupiah', perUSD: 16400, anchor: 10000, place: 'Warung (food stall)',
+          fmt: function (n) { return 'Rp' + group(n, '.'); }, write: 'Rp20.000 — “Rp” first, dots between the zeros',
+          vendor: { em: '🦎', name: 'Komodo dragon' },
+          money: [{ v: 2000, c: '#8E9298', c2: '#3E4248', mo: 'mountain' }, { v: 5000, c: '#A4823E', c2: '#55401A', mo: 'leaf' }, { v: 10000, c: '#8456B0', c2: '#3E2066', mo: 'island' }, { v: 20000, c: '#4E9E5A', c2: '#1F5228', mo: 'flower' }, { v: 50000, c: '#3F7CC4', c2: '#1A3C70', mo: 'island' }, { v: 100000, c: '#D04A3E', c2: '#7A1E1A', mo: 'island' }],
+          items: [
+            { name: 'Nasi goreng', em: 'nasigoreng', p: 20000, what: 'fried rice' },
+            { name: 'Sate (10 sticks)', em: 'satay', p: 25000, what: 'skewers with peanut sauce' },
+            { name: 'Es teh', em: 'esteh', p: 5000, what: 'sweet iced tea' },
+            { name: 'Bakso', em: 'bakso', p: 20000, what: 'meatball soup' },
+            { name: 'Martabak manis', em: 'martabak', p: 40000, what: 'thick sweet pancake' }
+          ],
+          facts: ['The biggest note is Rp100.000.', 'Prices use dots: Rp20.000 means twenty thousand.', 'Shops often round prices to the nearest Rp500 or Rp1.000.'] },
+    PH: { country: 'Philippines', cur: 'peso', perUSD: 57, anchor: 100, place: 'Street food stall',
+          fmt: function (n) { return '₱' + group(n, ','); }, write: '₱100 — the peso sign has two lines',
+          vendor: { em: '🦅', name: 'Philippine eagle' },
+          money: [{ v: 1, coin: true, metal: 'silver', mo: 'orchid' }, { v: 5, coin: true, metal: 'gold', shape: 'nonagon', mo: 'jadevine' }, { v: 10, coin: true, metal: 'silver', mo: 'flower' }, { v: 20, coin: true, metal: 'silver', ring: 'gold', mo: 'nara' }, { v: 50, c: '#D04A3E', c2: '#7A1E1A', mo: 'cat', poly: true }, { v: 100, c: '#8456B0', c2: '#3E2066', mo: 'bird', poly: true }, { v: 500, c: '#E0A63A', c2: '#7A5210', mo: 'deer', poly: true }],
+          items: [
+            { name: 'Taho', em: 'taho', p: 20, what: 'warm soft tofu with syrup' },
+            { name: 'Turon', em: 'turon', p: 15, what: 'fried banana roll' },
+            { name: 'Halo-halo', em: 'halohalo', p: 80, what: 'mixed shaved ice dessert' },
+            { name: 'Silog meal', em: 'silog', p: 90, what: 'garlic rice with egg' },
+            { name: 'Buko juice', em: 'coconut', p: 30, what: 'young coconut juice' }
+          ],
+          facts: ['₱ is the peso sign. 100 centavos = ₱1.', '₱1, ₱5, ₱10 and ₱20 are coins.', 'Jeepney rides cost only a few pesos.'] }
+  };
+  var ORDER = ['MY', 'SG', 'BN', 'TH', 'KH', 'VN', 'ID', 'PH'];
+  // My money(自分のお金に直す用)
+  var HOME = {
+    RM:  { label: 'RM',  perUSD: 4.2, fmt: function (v) { return 'RM' + nice(v); } },
+    JPY: { label: '¥',   perUSD: 150, fmt: function (v) { return '¥' + nice(v); } },
+    USD: { label: 'US$', perUSD: 1,   fmt: function (v) { return 'US$' + nice(v); } }
+  };
+  // 子どもが言いやすい「だいたい」の数: 1けた(頭が 1 の時だけ 2けた。例 9.7 → 10、7.6 → 8、15 → 15、273 → 300)。1 より小さい時は小数1けた
+  function niceNum(v) {
+    if (v <= 0) return 0;
+    if (v < 1) return Math.max(0.1, Math.round(v * 10) / 10);
+    var mag = Math.pow(10, Math.floor(Math.log10(v)));
+    if (Math.round(v / mag) === 1 || v / mag < 2) mag /= 10;
+    var r = Math.round(v / mag) * mag;
+    return r >= 10 ? Math.round(r) : Math.round(r * 10) / 10;
+  }
+  function nice(v) { var r = niceNum(v); return r >= 1000 ? group(r, ',') : (r < 10 && r % 1 ? r.toFixed(1) : String(r)); }
+  function toHome(id, amount) { var h = HOME[settings.home] || HOME.RM; return amount / MARKETS[id].perUSD * h.perUSD; }
+  function homeFmt(v) { return (HOME[settings.home] || HOME.RM).fmt(v); }
+  function rule(id) { var m = MARKETS[id]; return m.fmt(m.anchor) + ' ≈ ' + homeFmt(toHome(id, m.anchor)); }
+
+  // ---------- 国旗(Where's Moku? と同じ絵。30×20) ----------
+  function starPts(cx, cy, r, n, inner, rot) {
+    n = n || 5; inner = inner || 0.4; rot = rot == null ? -90 : rot;
+    var pts = [];
+    for (var i = 0; i < n * 2; i++) {
+      var rr = i % 2 ? r * inner : r, a = (rot + i * 180 / n) * Math.PI / 180;
+      pts.push((cx + rr * Math.cos(a)).toFixed(2) + ',' + (cy + rr * Math.sin(a)).toFixed(2));
+    }
+    return pts.join(' ');
+  }
+  function flagInner(id) {
+    var s = '';
+    switch (id) {
+      case 'ID': s = '<rect width="30" height="10" fill="#E0262E"/><rect y="10" width="30" height="10" fill="#fff"/>'; break;
+      case 'SG':
+        s = '<rect width="30" height="10" fill="#E0262E"/><rect y="10" width="30" height="10" fill="#fff"/>' +
+            '<circle cx="6.6" cy="5" r="3.4" fill="#fff"/><circle cx="7.9" cy="5" r="3.1" fill="#E0262E"/>';
+        for (var i = 0; i < 5; i++) { var a = (-90 + i * 72) * Math.PI / 180; s += '<polygon fill="#fff" points="' + starPts(10.6 + 1.7 * Math.cos(a), 5 + 1.7 * Math.sin(a), 0.62) + '"/>'; }
+        break;
+      case 'MY':
+        for (var k = 0; k < 14; k++) s += '<rect y="' + (k * 20 / 14).toFixed(3) + '" width="30" height="' + (20 / 14 + 0.02).toFixed(3) + '" fill="' + (k % 2 ? '#fff' : '#D0222B') + '"/>';
+        s += '<rect width="15" height="11.43" fill="#0B2B7A"/><circle cx="5.4" cy="5.7" r="3.7" fill="#F8C619"/><circle cx="6.4" cy="5.7" r="3.1" fill="#0B2B7A"/>' +
+             '<polygon fill="#F8C619" points="' + starPts(10.6, 5.7, 2.7, 14, 0.45) + '"/>';
+        break;
+      case 'TH': s = '<rect width="30" height="20" fill="#D9262E"/><rect y="3.33" width="30" height="13.34" fill="#fff"/><rect y="6.67" width="30" height="6.66" fill="#2D2A6B"/>'; break;
+      case 'VN': s = '<rect width="30" height="20" fill="#DA251D"/><polygon fill="#FFDD00" points="' + starPts(15, 10.4, 6) + '"/>'; break;
+      case 'LA': s = '<rect width="30" height="20" fill="#CE1126"/><rect y="5" width="30" height="10" fill="#002868"/><circle cx="15" cy="10" r="4" fill="#fff"/>'; break;
+      case 'KH':
+        s = '<rect width="30" height="20" fill="#032EA1"/><rect y="5" width="30" height="10" fill="#E00025"/>' +
+            '<g fill="#fff"><rect x="9" y="12.2" width="12" height="1.6"/><rect x="13.7" y="8.2" width="2.6" height="4"/><polygon points="13.7,8.2 15,6.2 16.3,8.2"/>' +
+            '<rect x="10.4" y="9.6" width="2" height="2.6"/><polygon points="10.4,9.6 11.4,8 12.4,9.6"/><rect x="17.6" y="9.6" width="2" height="2.6"/><polygon points="17.6,9.6 18.6,8 19.6,9.6"/></g>';
+        break;
+      case 'MM': s = '<rect width="30" height="6.67" fill="#FECB00"/><rect y="6.67" width="30" height="6.67" fill="#34B233"/><rect y="13.33" width="30" height="6.67" fill="#EA2839"/><polygon fill="#fff" points="' + starPts(15, 11, 6.6) + '"/>'; break;
+      case 'PH':
+        s = '<rect width="30" height="10" fill="#0038A8"/><rect y="10" width="30" height="10" fill="#CE1126"/><polygon fill="#fff" points="0,0 17.3,10 0,20"/>' +
+            '<g stroke="#FCD116" stroke-width="0.7">';
+        for (var r = 0; r < 8; r++) { var b = r * Math.PI / 4; s += '<line x1="' + (6 + 2 * Math.cos(b)).toFixed(2) + '" y1="' + (10 + 2 * Math.sin(b)).toFixed(2) + '" x2="' + (6 + 3.4 * Math.cos(b)).toFixed(2) + '" y2="' + (10 + 3.4 * Math.sin(b)).toFixed(2) + '"/>'; }
+        s += '</g><circle cx="6" cy="10" r="1.7" fill="#FCD116"/>' +
+             '<polygon fill="#FCD116" points="' + starPts(1.8, 2.4, 0.95) + '"/><polygon fill="#FCD116" points="' + starPts(1.8, 17.6, 0.95) + '"/><polygon fill="#FCD116" points="' + starPts(14.5, 10, 0.95) + '"/>';
+        break;
+      case 'BN':
+        s = '<rect width="30" height="20" fill="#F7E017"/><polygon fill="#fff" points="0,3.2 30,13.2 30,15.8 0,5.8"/><polygon fill="#111" points="0,5.8 30,15.8 30,18.4 0,8.4"/>' +
+            '<circle cx="15" cy="11.2" r="3" fill="#CF1126"/><circle cx="15" cy="10.1" r="2.5" fill="#F7E017"/><rect x="14.6" y="6.5" width="0.8" height="4.6" fill="#CF1126"/><polygon fill="#CF1126" points="12.6,7.4 17.4,7.4 15,5.6"/>';
+        break;
+      case 'TL':
+        s = '<rect width="30" height="20" fill="#DC241F"/><polygon fill="#FFC72C" points="0,0 15,10 0,20"/><polygon fill="#000" points="0,0 10,10 0,20"/>' +
+            '<polygon fill="#fff" points="' + starPts(3.6, 10, 2.6, 5, 0.4, -60) + '"/>';
+        break;
+    }
+    return s;
+  }
+  function flagSVG(id) {
+    return '<svg class="flag" viewBox="0 0 30 20" aria-label="Flag"><clipPath id="fc' + id + '"><rect width="30" height="20" rx="1.6"/></clipPath><g clip-path="url(#fc' + id + ')">' + flagInner(id) +
+      '</g><rect x="0.3" y="0.3" width="29.4" height="19.4" rx="1.4" fill="none" stroke="rgba(60,40,20,0.45)" stroke-width="0.6"/></svg>';
+  }
+
+  // =====================================================================
+  // 地図(経度・緯度の点から作る、かんたんな絵本の地図。1度 = 20)
+  // =====================================================================
+
+  // =====================================================================
+  // 屋台の料理の絵(こげ茶の輪郭・少ない色の絵本タッチ。100×100 の SVG)
+  //   FOOD[id] が中身を返す。foodSVG(id, cls) で <svg> にする。品の em はこの id。
+  // =====================================================================
+  var OL = 'stroke="#4A2E1A" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"';
+  var THIN = 'stroke="#4A2E1A" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"';
+  function plate(fill) { return '<ellipse cx="50" cy="72" rx="45" ry="15" fill="#E9E2D6" ' + OL + '/><ellipse cx="50" cy="69" rx="36" ry="10.5" fill="' + (fill || '#FFFFFF') + '" stroke="#D8CCB8" stroke-width="1.5"/>'; }
+  function leaf() { return '<path d="M4 72 Q50 50 96 70 Q50 92 4 72Z" fill="#5FA046" ' + OL + '/><path d="M8 72 Q50 66 92 70" fill="none" stroke="#3E7A2E" stroke-width="1.6"/>'; }
+  function bowl(body, inside) { return '<path d="M10 50 Q12 90 50 90 Q88 90 90 50Z" fill="' + body + '" ' + OL + '/><ellipse cx="50" cy="50" rx="40" ry="10" fill="' + inside + '" ' + OL + '/>'; }
+  // 背の高いコップ(上 x28〜72・下 x34〜66、y18〜90)。layers = [[y0, y1, 色], …]
+  function gx(y, side) { var k = (y - 18) / 72 * 6; return side < 0 ? 28 + k : 72 - k; }
+  function glass(layers, extra) {
+    var s = layers.map(function (L) { return '<path d="M' + gx(L[0], -1) + ' ' + L[0] + 'L' + gx(L[0], 1) + ' ' + L[0] + 'L' + gx(L[1], 1) + ' ' + L[1] + 'L' + gx(L[1], -1) + ' ' + L[1] + 'Z" fill="' + L[2] + '"/>'; }).join('');
+    return s + (extra || '') + '<path d="M28 18 L72 18 L66 90 L34 90Z" fill="rgba(255,255,255,0.18)" ' + OL + '/><path d="M33 26 L37 82" stroke="rgba(255,255,255,0.7)" stroke-width="3" stroke-linecap="round"/>';
+  }
+  function ice(n) { var s = ''; for (var i = 0; i < (n || 3); i++) s += '<rect x="' + (36 + i * 9) + '" y="' + (30 + (i % 2) * 9) + '" width="10" height="10" rx="2.5" fill="rgba(255,255,255,0.55)" stroke="rgba(255,255,255,0.9)" stroke-width="1.2"/>'; return s; }
+  function straw(c) { return '<path d="M58 4 L52 60" stroke="' + (c || '#E0607E') + '" stroke-width="5" stroke-linecap="round"/><path d="M58 4 L52 60" stroke="#4A2E1A" stroke-width="1" stroke-linecap="round" opacity="0.4"/>'; }
+  function rice(cx, cy, r, col) { return '<path d="M' + (cx - r) + ' ' + cy + ' Q' + (cx - r) + ' ' + (cy - r * 1.1) + ' ' + cx + ' ' + (cy - r * 1.1) + ' Q' + (cx + r) + ' ' + (cy - r * 1.1) + ' ' + (cx + r) + ' ' + cy + 'Z" fill="' + (col || '#FFFDF6') + '" ' + OL + '/>' +
+    '<g fill="#E6DCC6">' + [[-0.4, -0.5], [0.1, -0.8], [0.5, -0.4], [-0.1, -0.3], [0.3, -0.7]].map(function (p) { return '<ellipse cx="' + (cx + p[0] * r) + '" cy="' + (cy + p[1] * r) + '" rx="2" ry="1.1"/>'; }).join('') + '</g>'; }
+  function egg(cx, cy, s) { s = s || 1; return '<path d="M' + (cx - 14 * s) + ' ' + cy + ' q2 -10 12 -9 q10 -6 16 2 q6 10 -4 13 q-10 6 -20 1 q-6 -2 -4 -7Z" fill="#FFFFFF" ' + OL + '/><circle cx="' + (cx + 1 * s) + '" cy="' + (cy - 1) + '" r="' + 6 * s + '" fill="#F6B42E" ' + THIN + '/>'; }
+  function skewers(col, n, chunk) {
+    var s = '';
+    for (var i = 0; i < n; i++) {
+      var y = 34 + i * 12;
+      s += '<path d="M8 ' + (y + 16) + ' L90 ' + (y - 6) + '" stroke="#C9A06A" stroke-width="3" stroke-linecap="round"/>';
+      for (var k = 0; k < 4; k++) { var x = 24 + k * 14, yy = y + 12 - k * 3.8; s += chunk ? chunk(x, yy) : '<rect x="' + (x - 6) + '" y="' + (yy - 6) + '" width="12" height="11" rx="4" fill="' + col + '" ' + THIN + '/>'; }
+    }
+    return s;
+  }
+  var FOOD = {
+    tehtarik: function () { return glass([[22, 30, '#F4E4C8'], [30, 90, '#B87A3E']], '<path d="M72 34 q14 2 12 18 q-2 12 -14 12" fill="none" ' + OL + '/>'); },
+    kopi: function () { return '<ellipse cx="50" cy="82" rx="38" ry="9" fill="#FFFFFF" ' + OL + '/><path d="M24 44 Q26 82 50 82 Q74 82 76 44Z" fill="#FFFFFF" ' + OL + '/><ellipse cx="50" cy="44" rx="26" ry="7" fill="#5A3418" ' + OL + '/><path d="M76 52 q12 0 10 10 q-2 8 -12 8" fill="none" ' + OL + '/><path d="M44 30 q-4 -8 2 -14 M54 30 q-4 -8 2 -14" fill="none" stroke="#C9B9A0" stroke-width="2.4" stroke-linecap="round"/>'; },
+    nasilemak: function () { return leaf() + rice(40, 66, 20) + '<path d="M58 58 q8 -6 16 0 q4 6 -2 10 q-8 4 -14 -2Z" fill="#D8402E" ' + OL + '/>' +
+      '<ellipse cx="72" cy="72" rx="9" ry="6" fill="#FFFFFF" ' + OL + '/><circle cx="72" cy="72" r="3.6" fill="#F6B42E"/>' +
+      '<circle cx="24" cy="76" r="5" fill="#9BD770" ' + THIN + '/><circle cx="24" cy="76" r="2.4" fill="#E8F4D0"/><circle cx="33" cy="80" r="5" fill="#9BD770" ' + THIN + '/><circle cx="33" cy="80" r="2.4" fill="#E8F4D0"/>' +
+      '<g fill="#C9935A" ' + THIN + '><ellipse cx="54" cy="78" rx="3" ry="2"/><ellipse cx="60" cy="80" rx="3" ry="2"/><ellipse cx="57" cy="74" rx="3" ry="2"/></g>' +
+      '<g stroke="#8A5A2E" stroke-width="2.2" stroke-linecap="round"><path d="M44 80 l4 -2"/><path d="M47 84 l4 -1"/></g>'; },
+    roticanai: function () { return plate() + '<ellipse cx="42" cy="66" rx="26" ry="10" fill="#E8B860" ' + OL + '/><path d="M24 66 q18 -8 36 0 M28 70 q14 -5 28 0" fill="none" stroke="#B5803A" stroke-width="2"/>' +
+      '<path d="M64 56 Q66 74 76 74 Q86 74 88 56Z" fill="#FFFFFF" ' + OL + '/><ellipse cx="76" cy="56" rx="12" ry="4.5" fill="#E07A2E" ' + OL + '/>'; },
+    satay: function () { return plate() + skewers('#8A4E22', 3) + '<path d="M66 60 Q68 76 78 76 Q88 76 90 60Z" fill="#FFFFFF" ' + OL + '/><ellipse cx="78" cy="60" rx="12" ry="4.5" fill="#C9792E" ' + OL + '/>' +
+      '<g fill="#9BD770" ' + THIN + '><rect x="14" y="74" width="7" height="6" rx="1.5"/><rect x="22" y="77" width="7" height="6" rx="1.5"/></g>'; },
+    cendol: function () { return bowl('#F4F0E8', '#F4EEE0') + '<path d="M18 50 Q50 18 82 50Z" fill="#F7F3EA" ' + OL + '/>' +
+      '<g fill="none" stroke="#6CB84A" stroke-width="3.5" stroke-linecap="round"><path d="M30 44 q4 -4 8 0"/><path d="M44 36 q4 -4 8 0"/><path d="M56 42 q4 -4 8 0"/><path d="M38 48 q4 -4 8 0"/></g>' +
+      '<path d="M32 30 q6 6 2 14 M50 24 q4 8 -2 16 M66 32 q-2 8 4 12" fill="none" stroke="#7A4A22" stroke-width="4" stroke-linecap="round"/>' +
+      '<g fill="#8A2A24"><circle cx="46" cy="44" r="2.2"/><circle cx="62" cy="47" r="2.2"/></g>'; },
+    chickenrice: function () { return plate() + rice(36, 70, 18, '#F6E8B8') +
+      '<g ' + THIN + '>' + [0, 1, 2, 3].map(function (i) { return '<path d="M' + (54 + i * 7) + ' 58 q4 -4 8 0 l-2 14 q-4 3 -8 0Z" fill="#F4DEB4"/><path d="M' + (54 + i * 7) + ' 58 q4 -4 8 0" fill="none" stroke="#E0B060" stroke-width="3"/>'; }).join('') + '</g>' +
+      '<g fill="#9BD770" ' + THIN + '><ellipse cx="62" cy="76" rx="5" ry="3"/><ellipse cx="72" cy="76" rx="5" ry="3"/></g>' +
+      '<circle cx="84" cy="62" r="6" fill="#FFFFFF" ' + OL + '/><circle cx="84" cy="62" r="3.6" fill="#E0402E"/>'; },
+    kayatoast: function () { return plate() + '<path d="M16 72 L34 46 L52 72Z" fill="#E8C080" ' + OL + '/><path d="M22 68 L34 50 L46 68Z" fill="#A89A4A"/><rect x="27" y="58" width="12" height="5" rx="1.5" fill="#FFE68A" ' + THIN + '/>' +
+      '<path d="M40 74 L58 48 L76 74Z" fill="#E8C080" ' + OL + '/><path d="M46 70 L58 52 L70 70Z" fill="#A89A4A"/>' +
+      '<path d="M70 50 Q72 64 82 64 Q92 64 94 50Z" fill="#FFFFFF" ' + OL + '/><ellipse cx="82" cy="50" rx="12" ry="4" fill="#F7F3EA" ' + OL + '/><circle cx="79" cy="50" r="2.6" fill="#F6B42E"/><circle cx="86" cy="51" r="2.6" fill="#F6B42E"/>'; },
+    icekacang: function () { return plate() + '<path d="M20 68 Q50 6 80 68Z" fill="#F7F3EA" ' + OL + '/>' +
+      '<path d="M36 40 q10 -6 14 6 q4 14 -10 20Z" fill="#E86A8A" opacity="0.85"/><path d="M52 30 q12 4 12 20 q-2 12 -10 16Z" fill="#7AC86A" opacity="0.85"/><path d="M30 58 q14 -4 26 10 l-28 0Z" fill="#F6C83A" opacity="0.85"/>' +
+      '<g fill="#F6D24A" ' + THIN + '><circle cx="46" cy="22" r="2.6"/><circle cx="52" cy="20" r="2.6"/><circle cx="49" cy="25" r="2.6"/></g>'; },
+    ckt: function () { return plate() + '<g fill="none" stroke="#8A5226" stroke-width="5.5" stroke-linecap="round"><path d="M22 66 q10 -8 20 0 t20 0"/><path d="M26 60 q10 -8 20 0 t20 0"/><path d="M30 72 q10 -6 20 0 t16 0"/></g>' +
+      '<g fill="none" stroke="#3E7A2E" stroke-width="2.6" stroke-linecap="round"><path d="M30 56 l10 -4"/><path d="M58 70 l10 -3"/></g>' +
+      '<path d="M66 54 q8 -6 12 2 q-2 6 -8 6" fill="#F28C7A" ' + THIN + '/><path d="M36 74 q8 -6 12 2 q-2 6 -8 6" fill="#F28C7A" ' + THIN + '/>'; },
+    nasikatok: function () { return '<path d="M8 72 L28 46 L92 52 L76 84Z" fill="#D9B884" ' + OL + '/>' + rice(42, 70, 18) +
+      '<path d="M56 66 q4 -16 18 -16 q12 2 12 12 q0 10 -14 10 q-8 0 -10 4 q-4 4 -7 1 q-2 -4 1 -6Z" fill="#C9792E" ' + OL + '/><path d="M54 76 l-6 4" stroke="#F4E4C8" stroke-width="4" stroke-linecap="round"/>' +
+      '<path d="M26 74 q6 -4 12 0 q2 5 -4 6 q-6 1 -8 -6Z" fill="#D8402E" ' + THIN + '/>'; },
+    kuih: function () { return plate() + '<g ' + THIN + '><rect x="16" y="50" width="22" height="20" rx="2" fill="#F4E4C8"/><rect x="16" y="54" width="22" height="4" fill="#E86A8A"/><rect x="16" y="62" width="22" height="4" fill="#E86A8A"/></g>' +
+      '<g ' + THIN + '><rect x="42" y="50" width="20" height="20" rx="2" fill="#FFFDF6"/><rect x="42" y="50" width="20" height="9" rx="2" fill="#7AC86A"/></g>' +
+      '<g fill="#5FA046" ' + THIN + '><circle cx="74" cy="60" r="8"/><circle cx="82" cy="68" r="8"/></g><g fill="#FFFDF6"><circle cx="72" cy="57" r="1.4"/><circle cx="76" cy="61" r="1.4"/><circle cx="80" cy="66" r="1.4"/><circle cx="84" cy="70" r="1.4"/></g>'; },
+    ambuyat: function () { return bowl('#C9A06A', '#E9E4D0') + '<path d="M26 50 q10 -16 24 -10 q14 -8 22 8" fill="#EEE9D8" ' + OL + '/><path d="M36 44 q6 -6 12 0" fill="none" stroke="#FFFFFF" stroke-width="2.4"/>' +
+      '<path d="M66 8 L50 44 M72 10 L56 46" stroke="#C9A06A" stroke-width="4" stroke-linecap="round"/><path d="M66 8 L50 44 M72 10 L56 46" stroke="#4A2E1A" stroke-width="1" opacity="0.5"/>' +
+      '<path d="M48 40 q8 -6 12 2 q-4 6 -12 -2Z" fill="#EEE9D8" ' + THIN + '/>' +
+      '<path d="M78 74 Q80 88 88 88 Q96 88 98 74Z" fill="#FFFFFF" ' + OL + '/><ellipse cx="88" cy="74" rx="10" ry="3.6" fill="#E8C040" ' + THIN + '/>'; },
+    thaitea: function () { return glass([[24, 34, '#F7F0E2'], [34, 90, '#E8873A']], ice(3) + '<path d="M40 30 q8 8 18 2" fill="none" stroke="#F7F0E2" stroke-width="4"/>') + straw('#5AA9E6'); },
+    padthai: function () { return plate() + '<g fill="none" stroke="#D9A060" stroke-width="4.5" stroke-linecap="round"><path d="M20 68 q10 -10 20 0 t20 0 t16 -2"/><path d="M24 62 q10 -10 20 0 t20 0"/><path d="M28 74 q10 -6 20 0 t18 0"/></g>' +
+      '<path d="M40 54 q8 -8 14 0 q-2 6 -8 6" fill="#F28C7A" ' + THIN + '/><path d="M56 58 q8 -8 14 0 q-2 6 -8 6" fill="#F28C7A" ' + THIN + '/>' +
+      '<path d="M74 58 L88 66 L76 72Z" fill="#9BD770" ' + OL + '/><g fill="#C9935A"><circle cx="34" cy="60" r="1.8"/><circle cx="62" cy="68" r="1.8"/><circle cx="48" cy="72" r="1.8"/></g>' +
+      '<g stroke="#F4F0E0" stroke-width="2.4" stroke-linecap="round"><path d="M26 76 l8 -2"/><path d="M60 76 l8 -1"/></g>'; },
+    mangorice: function () { return plate() + rice(34, 70, 16) + '<path d="M40 62 q8 -4 14 2" fill="none" stroke="#FFFFFF" stroke-width="3"/>' +
+      [0, 1, 2, 3].map(function (i) { return '<path d="M' + (52 + i * 8) + ' 72 q-2 -16 6 -20 q6 6 4 20Z" fill="#F6C02E" ' + THIN + '/>'; }).join('') +
+      '<g fill="#F6E28A"><circle cx="30" cy="56" r="1.6"/><circle cx="36" cy="54" r="1.6"/><circle cx="33" cy="60" r="1.6"/></g>'; },
+    mooping: function () { return plate() + skewers('#7A3E1A', 3, function (x, y) { return '<path d="M' + (x - 7) + ' ' + (y - 4) + ' q7 -5 14 0 l0 8 q-7 5 -14 0Z" fill="#8A4A22" ' + THIN + '/><path d="M' + (x - 4) + ' ' + (y - 3) + ' l6 0" stroke="#C98A4A" stroke-width="1.6"/>'; }); },
+    coconut: function () { return '<ellipse cx="50" cy="62" rx="32" ry="30" fill="#7AB84A" ' + OL + '/><path d="M28 50 Q50 34 72 50 L66 40 Q50 30 34 40Z" fill="#F4F0E0" ' + OL + '/><ellipse cx="50" cy="42" rx="14" ry="5" fill="#E8F4F0" ' + THIN + '/>' +
+      '<path d="M36 70 q14 8 28 0" fill="none" stroke="#5A8A34" stroke-width="2.4"/><path d="M56 6 L50 44" stroke="#E0607E" stroke-width="5" stroke-linecap="round"/>'; },
+    nombanhchok: function () { return bowl('#F4F0E8', '#D8D070') + '<g fill="none" stroke="#FFFDF6" stroke-width="3.2" stroke-linecap="round"><path d="M24 50 q8 -6 16 0 t16 0 t16 0"/><path d="M28 54 q8 -5 16 0 t16 0 t12 0"/></g>' +
+      '<g fill="#7AC86A" ' + THIN + '><path d="M60 40 q8 -10 16 0 q-8 6 -16 0Z"/><path d="M30 42 q6 -8 12 0 q-6 5 -12 0Z"/></g><g stroke="#F4F0E0" stroke-width="2.4" stroke-linecap="round"><path d="M48 40 l6 -6"/><path d="M52 42 l8 -4"/></g>'; },
+    baisach: function () { return plate() + rice(34, 70, 17) + [0, 1, 2].map(function (i) { return '<rect x="' + (52 + i * 2) + '" y="' + (50 + i * 7) + '" width="28" height="7" rx="3" fill="#B8642E" ' + THIN + '/><path d="M' + (56 + i * 2) + ' ' + (53 + i * 7) + ' l20 0" stroke="#7A3E1A" stroke-width="1.6" stroke-dasharray="3 3"/>'; }).join('') +
+      '<g ' + THIN + '><rect x="18" y="76" width="10" height="4" rx="1.5" fill="#F28C3A"/><rect x="30" y="78" width="10" height="4" rx="1.5" fill="#9BD770"/></g>'; },
+    icedcoffee: function () { return glass([[24, 76, '#5A3418'], [76, 90, '#F4E8D0']], ice(3)) + straw('#3E9B5A'); },
+    sugarcane: function () { return glass([[22, 30, '#F4F0C8'], [30, 90, '#D8E08A']], ice(2)) + '<rect x="74" y="10" width="8" height="80" rx="3" fill="#9BC85A" ' + OL + '/><path d="M74 30 h8 M74 52 h8 M74 72 h8" stroke="#4A2E1A" stroke-width="2"/>'; },
+    amok: function () { return '<path d="M14 52 Q18 88 50 88 Q82 88 86 52Z" fill="#5FA046" ' + OL + '/><path d="M24 58 l4 26 M40 60 l2 28 M60 60 l-2 28 M76 58 l-4 26" stroke="#3E7A2E" stroke-width="1.8"/>' +
+      '<ellipse cx="50" cy="52" rx="36" ry="10" fill="#E8B040" ' + OL + '/><path d="M32 52 q10 -6 18 0 q8 6 18 0" fill="none" stroke="#FFF6DA" stroke-width="4" stroke-linecap="round"/>' +
+      '<g stroke="#D8402E" stroke-width="2.6" stroke-linecap="round"><path d="M40 48 l6 -2"/><path d="M58 50 l6 2"/></g><g stroke="#3E7A2E" stroke-width="2.4" stroke-linecap="round"><path d="M48 46 l8 0"/></g>'; },
+    pho: function () { return bowl('#FFFFFF', '#EAC88A') + '<path d="M14 62 Q50 76 86 62" fill="none" stroke="#5AA9E6" stroke-width="3"/>' +
+      '<g fill="none" stroke="#FFFDF6" stroke-width="3" stroke-linecap="round"><path d="M26 50 q8 -6 16 0 t16 0 t16 0"/></g>' +
+      '<g ' + THIN + '><path d="M34 44 q8 -6 14 0 q-6 6 -14 0Z" fill="#B8645A"/><path d="M50 46 q8 -6 14 0 q-6 6 -14 0Z" fill="#B8645A"/></g>' +
+      '<g fill="#5FA046"><circle cx="66" cy="44" r="3"/><circle cx="30" cy="52" r="2.4"/><circle cx="60" cy="54" r="2.4"/></g><path d="M72 44 L82 50 L72 54Z" fill="#9BD770" ' + THIN + '/>' +
+      '<path d="M60 6 L76 46 M66 4 L80 44" stroke="#C9A06A" stroke-width="3.5" stroke-linecap="round"/>'; },
+    banhmi: function () { return '<path d="M8 58 Q10 40 50 38 Q90 40 92 58 Q88 74 50 74 Q12 74 8 58Z" fill="#E8B060" ' + OL + '/>' +
+      '<path d="M14 56 Q50 48 86 56 Q50 62 14 56Z" fill="#FFF6DA" ' + THIN + '/><path d="M18 56 q10 -4 18 0 t18 0 t18 0" fill="none" stroke="#E86A6A" stroke-width="4"/>' +
+      '<g stroke="#F28C3A" stroke-width="2.4" stroke-linecap="round"><path d="M28 52 l8 -4"/><path d="M50 52 l8 -4"/></g><g fill="#5FA046"><circle cx="42" cy="50" r="3"/><circle cx="66" cy="50" r="3"/></g>' +
+      '<g stroke="#D8A050" stroke-width="2" stroke-linecap="round"><path d="M26 44 l6 -2"/><path d="M48 42 l6 -1"/><path d="M70 44 l6 1"/></g>'; },
+    goicuon: function () { return plate() + [0, 1, 2].map(function (i) { var x = 18 + i * 20; return '<rect x="' + x + '" y="50" width="18" height="24" rx="8" fill="rgba(255,255,255,0.75)" ' + OL + '/><path d="M' + (x + 4) + ' 58 q5 -4 10 0" fill="none" stroke="#F28C7A" stroke-width="3"/><path d="M' + (x + 4) + ' 66 l10 0" stroke="#7AC86A" stroke-width="3"/>'; }).join('') +
+      '<path d="M76 58 Q78 72 84 72 Q92 72 94 58Z" fill="#FFFFFF" ' + OL + '/><ellipse cx="85" cy="58" rx="9" ry="3.4" fill="#7A3E1A" ' + THIN + '/>'; },
+    nasigoreng: function () { return plate() + '<path d="M18 70 Q20 48 50 46 Q80 48 82 70Z" fill="#B57A3A" ' + OL + '/>' +
+      '<g fill="#E8A060"><circle cx="30" cy="62" r="1.8"/><circle cx="64" cy="60" r="1.8"/><circle cx="46" cy="66" r="1.8"/></g><g fill="#7AC86A"><circle cx="38" cy="58" r="1.8"/><circle cx="58" cy="66" r="1.8"/></g>' +
+      egg(44, 52, 0.9) + '<path d="M70 60 q6 -10 16 -6 q2 8 -4 12 q-8 2 -12 -6Z" fill="#F4E4C8" ' + THIN + '/><circle cx="16" cy="74" r="5" fill="#E86A5A" ' + THIN + '/>'; },
+    esteh: function () { return glass([[24, 90, '#C8803A']], ice(3)) + '<circle cx="66" cy="22" r="8" fill="#F6E04A" ' + OL + '/>' + straw('#E0607E'); },
+    bakso: function () { return bowl('#FFFFFF', '#E8D4A0') + '<g fill="none" stroke="#F2D24A" stroke-width="3" stroke-linecap="round"><path d="M26 52 q8 -5 16 0 t16 0"/></g>' +
+      '<g fill="#8A7A6A" ' + THIN + '><circle cx="38" cy="46" r="7"/><circle cx="56" cy="44" r="7"/><circle cx="66" cy="50" r="6"/></g>' +
+      '<path d="M22 46 q6 -10 14 -4 q-6 6 -14 4Z" fill="#5FA046" ' + THIN + '/><g fill="#C9792E"><circle cx="48" cy="52" r="1.6"/><circle cx="52" cy="50" r="1.6"/></g>'; },
+    martabak: function () { return plate() + [0, 1].map(function (i) { var y = 46 + i * 12, x = 22 + i * 6; return '<rect x="' + x + '" y="' + y + '" width="50" height="14" rx="3" fill="#C98A3E" ' + OL + '/><rect x="' + (x + 2) + '" y="' + (y + 5) + '" width="46" height="4" fill="#5A3418"/><rect x="' + (x + 2) + '" y="' + (y + 9) + '" width="46" height="2.4" fill="#F6D24A"/>'; }).join('') +
+      '<g fill="#C9935A"><circle cx="34" cy="46" r="1.8"/><circle cx="50" cy="45" r="1.8"/><circle cx="62" cy="47" r="1.8"/></g>'; },
+    taho: function () { return glass([[30, 90, '#FFFDF6']], '<path d="M36 40 q14 10 28 0 M38 60 q12 10 24 0" fill="none" stroke="#B8702E" stroke-width="4.5" stroke-linecap="round"/>' +
+      '<g fill="rgba(240,230,200,0.95)" ' + THIN + '><circle cx="44" cy="34" r="3"/><circle cx="54" cy="36" r="3"/><circle cx="48" cy="52" r="3"/><circle cx="58" cy="54" r="3"/></g>'); },
+    turon: function () { return plate() + '<rect x="16" y="50" width="46" height="16" rx="8" fill="#D9A050" ' + OL + '/><path d="M24 54 l6 8 M36 54 l6 8 M48 54 l6 8" stroke="#A86A2A" stroke-width="2"/>' +
+      '<rect x="40" y="60" width="44" height="16" rx="8" fill="#D9A050" ' + OL + '/><ellipse cx="84" cy="68" rx="6" ry="8" fill="#F6E28A" ' + THIN + '/><path d="M48 62 q10 4 20 0" fill="none" stroke="#8A4A1A" stroke-width="2.6"/>'; },
+    halohalo: function () { return glass([[22, 34, '#F7F3EA'], [34, 56, '#F7F3EA'], [56, 72, '#E86A8A'], [72, 90, '#8A3A2E']],
+      '<g ' + THIN + '><rect x="38" y="60" width="6" height="6" fill="#7AC86A"/><rect x="50" y="62" width="6" height="6" fill="#F6D24A"/><rect x="58" y="76" width="6" height="6" fill="#F28C3A"/></g>') +
+      '<path d="M32 22 Q50 2 68 22Z" fill="#8A5BB5" ' + OL + '/><rect x="56" y="10" width="14" height="10" rx="2" fill="#F6C83A" ' + THIN + '/><circle cx="40" cy="12" r="6" fill="#F7F3EA" ' + THIN + '/>'; },
+    silog: function () { return plate() + rice(32, 70, 16, '#FBF2D8') + '<g fill="#D9A050"><circle cx="26" cy="60" r="1.6"/><circle cx="34" cy="56" r="1.6"/><circle cx="38" cy="62" r="1.6"/></g>' +
+      egg(60, 58, 0.9) + '<path d="M50 74 q10 -8 30 -4 q4 6 -4 8 q-14 4 -26 -4Z" fill="#8A3A2E" ' + OL + '/><circle cx="86" cy="62" r="5" fill="#E86A5A" ' + THIN + '/>'; }
+  };
+  function foodSVG(id, cls) {
+    var f = FOOD[id];
+    return '<svg class="' + (cls || 'fd') + '" viewBox="0 0 100 100" aria-hidden="true">' + (f ? f() : '') + '</svg>';
+  }
+
+  // ---------- money pieces ----------
+  // お札と硬貨は、今のシリーズの色・素材(ポリマーの透明な窓・2色の硬貨・9角形)と、裏の絵の題材に近づけた。
+  // 人の顔・中央銀行の紋章・王室・宗教の絵は描かない(題材の小さな絵だけ)。
+  var MOTIF = {
+    kite: 'M15 3 L25 13 L15 27 L5 13Z M5 13 L25 13 M15 3 L15 27 M15 27 q-4 3 -2 6',
+    hornbill: 'M6 18 q2 -10 12 -10 q6 0 8 4 l-6 2 q-2 -2 -4 0 q4 4 -2 10 q-6 2 -8 -6Z M18 8 q2 -5 8 -3 q-2 3 -8 3',
+    flower: 'M15 8 q5 -6 9 0 q6 4 0 9 q2 7 -5 7 q-4 6 -8 0 q-7 0 -5 -7 q-6 -5 0 -9 q4 -6 9 0Z M15 12 a4 4 0 1 0 0.1 0',
+    turtle: 'M6 16 q0 -9 9 -9 q9 0 9 9Z M24 13 q4 -1 5 2 q-2 2 -5 1 M8 16 l-3 4 M21 16 l3 4 M10 10 l10 0 M15 7 l0 9',
+    palm: 'M15 28 q1 -10 0 -16 M15 12 q-6 -6 -12 -2 M15 12 q6 -6 12 -2 M15 12 q-3 -8 -9 -9 M15 12 q3 -8 9 -9 M15 12 q0 -6 0 -9',
+    mountain: 'M2 26 L12 8 L17 16 L21 11 L28 26Z M12 8 l-3 6 l3 -2 l2 3',
+    cap: 'M3 13 L15 7 L27 13 L15 19Z M9 16 v6 q6 4 12 0 v-6 M27 13 v8',
+    tree: 'M15 28 v-8 M15 20 q-12 0 -10 -8 q-2 -8 10 -8 q12 0 10 8 q2 8 -10 8Z',
+    ball: 'M15 4 a11 11 0 1 0 0.1 0 M15 10 l5 4 l-2 6 h-6 l-2 -6Z M15 4 v6 M25 12 l-5 2 M22 24 l-4 -4 M8 24 l4 -4 M5 12 l5 2',
+    palette: 'M15 4 q12 0 12 10 q0 6 -6 5 q-4 0 -3 4 q1 5 -5 4 q-10 -2 -10 -12 q0 -11 12 -11Z M10 10 a2 2 0 1 0 .1 0 M17 8 a2 2 0 1 0 .1 0 M21 13 a2 2 0 1 0 .1 0',
+    house: 'M4 16 L15 7 L26 16 M7 15 v7 h16 v-7 M7 22 v5 M12 22 v5 M18 22 v5 M23 22 v5 M2 27 h26',
+    leaf: 'M5 25 q0 -20 20 -20 q0 20 -20 20Z M5 25 L20 10 M10 20 h5 M14 16 h4',
+    star: 'M15 3 l3 8 l9 0 l-7 5 l3 9 l-8 -6 l-8 6 l3 -9 l-7 -5 l9 0Z',
+    temple: 'M3 27 h24 M6 27 v-6 h18 v6 M10 21 v-6 h10 v6 M13 15 v-5 h4 v5 M15 10 v-6 M7 21 l2 -4 M23 21 l-2 -4',
+    bridge: 'M2 22 q13 -16 26 0 M2 22 h26 M6 16 h18 M8 22 v-6 M15 22 v-10 M22 22 v-6 M6 16 l2 -4 h14 l2 4',
+    gate: 'M3 27 h24 M5 27 v-9 h20 v9 M12 27 v-5 a3 3 0 0 1 6 0 v5 M4 18 l2 -4 h18 l2 4 M9 14 l1 -4 h10 l1 4',
+    pavilion: 'M3 27 h24 M7 27 v-9 M23 27 v-9 M3 18 q12 -3 24 0 l-3 -4 h-18Z M9 14 q6 -2 12 0 l-2 -4 h-8Z M12 27 v-6 h6 v6',
+    islet: 'M2 26 q6 -2 13 0 t13 0 M6 25 q0 -14 5 -14 q4 2 3 14 M18 25 q0 -10 4 -10 q3 2 3 10',
+    rig: 'M2 26 q6 -2 13 0 t13 0 M8 24 v-10 h14 v10 M10 14 l5 -10 l5 10 M15 4 v-2 M12 9 h6',
+    island: 'M2 24 q6 -3 13 0 t13 0 M8 22 q7 -6 14 0 M15 20 q0 -8 2 -12 M17 8 q-6 -1 -9 2 M17 8 q6 -2 9 2 M17 8 q0 -4 -3 -5',
+    wave: 'M2 12 q4 -4 8 0 t8 0 t8 0 M2 19 q4 -4 8 0 t8 0 t8 0 M2 26 q4 -4 8 0 t8 0 t8 0',
+    eagle: 'M3 14 q6 -6 12 0 q6 -6 12 0 q-6 0 -8 4 q-2 6 -4 8 q-2 -2 -4 -8 q-2 -4 -8 -4Z M15 9 a2.5 2.5 0 1 0 .1 0',
+    deer: 'M10 16 q6 -2 12 0 q2 4 0 8 M12 24 v4 M20 24 v4 M22 16 q3 -4 4 -8 M22 10 l-3 -4 M24 10 l3 -5 M10 16 q-4 0 -5 3',
+    cat: 'M8 26 q-2 -10 7 -12 q9 2 7 12Z M9 15 l1 -6 l4 4 M21 15 l-1 -6 l-4 4 M12 18 a1 1 0 1 0 .1 0 M18 18 a1 1 0 1 0 .1 0 M22 24 q6 0 6 -6',
+    bird: 'M5 18 q4 -10 14 -8 l6 -2 l-3 4 q2 6 -4 10 q-8 4 -13 -4Z M19 10 l2 -5 M14 22 l-2 5 M17 22 l2 5'
+  };
+  // 硬貨の裏の絵(本物の硬貨の題材。人の顔のある面は描かない)。0〜30 の座標の線
+  var COIN_MOTIF = {
+    merlion: 'M7 12 q0 -8 8 -8 q7 0 7 7 q0 5 -5 7 q5 2 4 7 q4 0 5 3 q-6 2 -10 -2 q-3 -4 -1 -8 q-7 -1 -8 -6Z M12 10 a1 1 0 1 0 .1 0 M19 6 q4 4 1 9 M9 6 q-3 3 -2 7 M14 15 h3',
+    esplanade: 'M3 24 q4 -14 11 -14 q7 0 9 14 M15 24 q2 -10 7 -10 q5 0 6 10 M7 17 l2 -1 M10 14 l2 -1 M18 19 l2 -1 M2 24 h27',
+    flats: 'M4 26 v-16 h7 v16 M12 26 v-20 h7 v20 M20 26 v-13 h7 v13 M6 13 h3 M6 17 h3 M6 21 h3 M14 9 h3 M14 13 h3 M14 17 h3 M14 21 h3 M22 16 h3 M22 20 h3 M2 26 h27',
+    airport: 'M8 27 v-15 h-3 v-3 h10 v3 h-3 v15 M4 27 h12 M17 12 l12 -3 l-2 3 l-6 2 l3 4 l-2 0 l-4 -3 l-3 1Z',
+    port: 'M2 22 h20 l-3 5 h-15Z M5 22 v-5 h12 v5 M7 17 v-3 h6 v3 M23 26 v-20 M23 6 h-10 M15 6 v5 M27 26 h-8',
+    prang: 'M15 2 v3 M13 6 q2 -2 4 0 l1 4 h-6Z M11 10 h8 l2 6 h-12Z M8 16 h14 l2 10 h-18Z M3 27 h24 M15 18 v8',
+    roofs: 'M15 3 v3 M9 11 l6 -5 l6 5 M6 16 l9 -6 l9 6 M4 21 l11 -7 l11 7 M7 21 v6 M23 21 v6 M12 27 v-4 h6 v4 M3 27 h24',
+    marble: 'M15 4 l-6 6 h12Z M6 14 l9 -6 l9 6 M5 14 h20 v4 h-20Z M7 18 v8 M11 18 v8 M19 18 v8 M23 18 v8 M4 27 h22',
+    destar: 'M4 22 l11 -15 l11 15 q-11 5 -22 0Z M15 7 v13 M9 16 l6 -3 l6 3 M8 21 q7 3 14 0',
+    congkak: 'M2 18 q13 -10 26 0 q-13 8 -26 0Z M7 16 a1.4 1.4 0 1 0 .1 0 M11 15 a1.4 1.4 0 1 0 .1 0 M15 15 a1.4 1.4 0 1 0 .1 0 M19 15 a1.4 1.4 0 1 0 .1 0 M23 16 a1.4 1.4 0 1 0 .1 0 M7 20 a1.4 1.4 0 1 0 .1 0 M11 21 a1.4 1.4 0 1 0 .1 0 M15 21 a1.4 1.4 0 1 0 .1 0 M19 21 a1.4 1.4 0 1 0 .1 0 M23 20 a1.4 1.4 0 1 0 .1 0',
+    tepak: 'M5 14 h20 v11 h-20Z M4 10 h22 l-1 4 h-20Z M11 10 q4 -4 8 0 M8 18 l3 3 l3 -3 l3 3 l3 -3 l3 3',
+    wau: 'M15 3 q8 3 11 9 q-6 2 -9 0 q4 6 -2 15 q-6 -9 -2 -15 q-3 2 -9 0 q3 -6 11 -9Z M15 3 v24 M7 17 q8 -3 16 0',
+    cockatoo: 'M10 26 q-4 -10 4 -16 q-2 -6 -6 -7 q6 0 9 5 q6 2 6 8 l3 2 l-3 1 q-2 8 -13 7Z M18 14 a1 1 0 1 0 .1 0',
+    myna: 'M6 20 q2 -10 12 -10 q5 0 6 4 l4 1 l-4 2 q0 8 -10 9 q-6 0 -8 -6Z M19 13 a1.2 1.2 0 1 0 .1 0 M10 26 l-1 3 M15 26 l1 3',
+    jasmine: 'M15 6 q4 4 0 8 q-4 -4 0 -8Z M23 13 q-3 5 -8 2 q3 -5 8 -2Z M20 23 q-6 1 -5 -7 q5 2 5 7Z M10 23 q-1 -6 5 -7 q1 8 -5 7Z M7 13 q5 -3 8 2 q-5 3 -8 -2Z M15 15 a1.5 1.5 0 1 0 .1 0',
+    orchid: 'M15 15 l-9 -8 q-2 6 6 9 M15 15 l9 -8 q2 6 -6 9 M15 15 l-8 7 q4 3 7 -3 M15 15 l8 7 q-4 3 -7 -3 M15 15 l0 -11 q-4 5 0 11 q4 -6 0 -11 M15 15 a2 2 0 1 0 .1 0',
+    jadevine: 'M4 4 q11 2 22 0 M9 5 q-2 5 2 7 M15 5 q-2 6 2 8 q-3 4 1 7 M21 5 q-2 5 2 7 M11 12 q-2 4 2 6 M23 12 q-2 4 1 6 M17 20 q-2 4 1 6',
+    flower: 'M15 4 q4 5 0 9 q-4 -4 0 -9Z M26 15 q-5 4 -9 0 q4 -4 9 0Z M15 26 q-4 -5 0 -9 q4 4 0 9Z M4 15 q5 -4 9 0 q-4 4 -9 0Z M15 15 a2 2 0 1 0 .1 0',
+    nara: 'M15 27 v-10 M15 20 l-4 -3 M15 18 l4 -3 M15 17 q-12 0 -10 -7 q-1 -7 10 -7 q11 0 10 7 q2 7 -10 7Z M5 27 h20',
+    rosette: 'M15 3 l2 6 l6 -2 l-2 6 l6 2 l-6 2 l2 6 l-6 -2 l-2 6 l-2 -6 l-6 2 l2 -6 l-6 -2 l6 -2 l-2 -6 l6 2Z M15 15 a3 3 0 1 0 .1 0'
+  };
+  // 硬貨の色
+  var METAL = { silver: '#C9CED4', gold: '#D9B24E', copper: '#C27A4A' };
+  function noteSVG(m, mk) {
+    var c = m.c, d = m.c2 || 'rgba(0,0,0,0.35)', s = '';
+    s += '<rect x="1" y="1" width="118" height="58" rx="5" fill="' + c + '"/>';
+    s += '<rect x="1" y="1" width="60" height="58" rx="5" fill="rgba(255,255,255,0.16)"/>';
+    // 細かい地紋(ギョーシェ)
+    for (var i = 0; i < 5; i++) s += '<path d="M0 ' + (10 + i * 10) + ' q15 -7 30 0 t30 0 t30 0 t30 0" fill="none" stroke="rgba(255,255,255,' + (0.14 + (i % 2) * 0.06) + ')" stroke-width="1"/>';
+    s += '<path d="M0 58 q30 -16 60 -6 t60 -10 V60 H0Z" fill="' + d + '" opacity="0.35"/>';
+    // 題材の楕円
+    s += '<ellipse cx="25" cy="30" rx="19" ry="22" fill="rgba(255,255,255,0.55)" stroke="rgba(255,255,255,0.8)" stroke-width="1.5"/>';
+    s += '<g transform="translate(10 15)"><path d="' + (MOTIF[m.mo] || MOTIF.star) + '" fill="none" stroke="' + d + '" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></g>';
+    // ポリマーの透明な窓
+    if (m.poly) s += '<rect x="96" y="34" width="16" height="20" rx="4" fill="rgba(236,248,255,0.85)" stroke="rgba(255,255,255,0.95)" stroke-width="1.2"/><path d="M100 40 l6 8" stroke="rgba(140,180,200,0.6)" stroke-width="1.5"/>';
+    else s += '<rect x="100" y="4" width="3" height="52" fill="rgba(255,255,255,0.35)"/>';
+    s += '<rect x="2" y="2" width="116" height="56" rx="4.5" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="2"/>';
+    s += '<text x="' + (m.poly ? 92 : 96) + '" y="55" text-anchor="end" font-size="7.5" font-weight="700" fill="rgba(255,255,255,0.85)" font-family="sans-serif" letter-spacing="0.5">' + MARKETS[mk].country.toUpperCase() + '</text>';
+    return '<svg class="nart" viewBox="0 0 120 60" aria-hidden="true">' + s + '</svg>';
+  }
+  function coinSVG(m, big) {
+    var body = METAL[m.metal] || METAL.silver, ring = m.ring ? METAL[m.ring] : null, s = '';
+    var shape = function (r, fill, extra) {
+      if (m.shape === 'nonagon') {
+        var p = [];
+        for (var i = 0; i < 9; i++) { var a = -Math.PI / 2 + i * 2 * Math.PI / 9; p.push((30 + r * Math.cos(a)).toFixed(1) + ',' + (30 + r * Math.sin(a)).toFixed(1)); }
+        return '<polygon points="' + p.join(' ') + '" fill="' + fill + '" ' + (extra || '') + '/>';
+      }
+      return '<circle cx="30" cy="30" r="' + r + '" fill="' + fill + '" ' + (extra || '') + '/>';
+    };
+    s += shape(28, ring || body, 'stroke="rgba(60,40,20,0.45)" stroke-width="1.5"');
+    if (ring) s += shape(19, body, 'stroke="rgba(60,40,20,0.3)" stroke-width="1"');
+    else s += shape(24, 'none', 'stroke="rgba(255,255,255,0.55)" stroke-width="1.5"');
+    // 浮き彫りの絵(白い光+こい影)。お金を払う小さい硬貨は、数字の上に小さく
+    var mo = COIN_MOTIF[m.mo];
+    if (mo) {
+      var sc = big ? 1.15 : (ring ? 0.62 : 0.72), y0 = big ? 13 : 9;
+      var tf = 'translate(' + (30 - 15 * sc).toFixed(1) + ' ' + y0 + ') scale(' + sc + ')';
+      var dark = m.metal === 'gold' ? '#7A5410' : '#5E6670';
+      s += '<g transform="' + tf + '" fill="none" stroke-linecap="round" stroke-linejoin="round">' +
+        '<path d="' + mo + '" stroke="rgba(255,255,255,0.75)" stroke-width="2.2" transform="translate(-0.6 -0.6)"/>' +
+        '<path d="' + mo + '" stroke="' + dark + '" stroke-width="1.6"/></g>';
+    }
+    if (!big) s += '<path d="M14 16 q8 -10 20 -8" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="3" stroke-linecap="round"/>';
+    return '<svg class="nart" viewBox="0 0 60 60" aria-hidden="true">' + s + '</svg>';
+  }
+  // Money Book に並べる硬貨(本物の硬貨の裏の題材)。払う時に使う硬貨は MARKETS の money と同じ形と絵
+  var COIN_BOOK = {
+    MY: { list: [
+      { name: '5 sen', metal: 'silver', mo: 'destar', what: 'Destar — a woven cloth headdress' },
+      { name: '10 sen', metal: 'silver', mo: 'congkak', what: 'Congkak — a board game played with shells' },
+      { name: '20 sen', metal: 'gold', mo: 'tepak', what: 'Tepak sirih — a box of betel leaves for guests' },
+      { name: '50 sen', metal: 'silver', mo: 'wau', what: 'Wau bulan — the moon kite' } ] },
+    SG: { list: [
+      { name: '5¢', metal: 'gold', mo: 'esplanade', what: 'The Esplanade — the “durian” theatre' },
+      { name: '10¢', metal: 'silver', mo: 'flats', what: 'HDB flats — homes for most people' },
+      { name: '20¢', metal: 'silver', mo: 'airport', what: 'Changi Airport' },
+      { name: '50¢', metal: 'silver', mo: 'port', what: 'The Port of Singapore' },
+      { name: 'S$1', metal: 'silver', ring: 'gold', mo: 'merlion', what: 'The Merlion' } ] },
+    BN: { list: [ { name: '1–50 sen', metal: 'silver', mo: 'rosette', what: 'Brunei has 1, 5, 10, 20 and 50 sen coins with flower patterns.' } ] },
+    TH: { list: [
+      { name: '฿1', metal: 'silver', mo: 'roofs', what: 'A temple with layered roofs (Wat Phra Kaew)' },
+      { name: '฿5', metal: 'silver', mo: 'marble', what: 'The Marble Temple (Wat Benchamabophit)' },
+      { name: '฿10', metal: 'gold', ring: 'silver', mo: 'prang', what: 'The Temple of Dawn (Wat Arun)' } ] },
+    KH: { note: 'Cambodia has riel coins, but people almost never use them — even small money is a note.' },
+    VN: { note: 'Vietnam stopped using coins. All money is notes now.' },
+    ID: { list: [
+      { name: 'Rp100', metal: 'silver', mo: 'cockatoo', what: 'Palm cockatoo' },
+      { name: 'Rp200', metal: 'silver', mo: 'myna', what: 'Bali myna — a rare white bird' },
+      { name: 'Rp500', metal: 'silver', mo: 'jasmine', what: 'Jasmine — a national flower' } ], note: 'These older coins are still used. Newer coins show heroes of Indonesia.' },
+    PH: { list: [
+      { name: '₱1', metal: 'silver', mo: 'orchid', what: 'Waling-waling orchid' },
+      { name: '₱5', metal: 'gold', shape: 'nonagon', mo: 'jadevine', what: 'Jade vine (tayabak)' },
+      { name: '₱10', metal: 'silver', mo: 'flower', what: 'Kapa-kapa — a pink forest flower' },
+      { name: '₱20', metal: 'silver', ring: 'gold', mo: 'nara', what: 'Narra — the national tree' } ] }
+  };
+  function coinBookHTML(id) {
+    var b = COIN_BOOK[id]; if (!b) return '';
+    var h = '<div class="sec">Coins — look at the back!</div>';
+    if (b.list) h += '<div class="coinBook">' + b.list.map(function (c) {
+      return '<div class="cb"><div class="cbArt">' + coinSVG(c, true) + '</div><b>' + esc(c.name) + '</b><span>' + esc(c.what) + '</span></div>'; }).join('') + '</div>';
+    if (b.note) h += '<div class="tip" style="margin-top:6px">' + esc(b.note) + '</div>';
+    return h;
+  }
+  function moneyHTML(m, mk, attr) {
+    var label = MARKETS[mk].fmt(m.v).replace(/^(RM|S\$|Rp)/, '<small style="font-size:0.72em;opacity:0.9">$1</small>');
+    if (mk === 'VN' || mk === 'ID') label = shortK(m.v, mk);
+    if (mk === 'KH') label = group(m.v, ',') + '<small style="font-size:0.72em">៛</small>';
+    if (mk === 'BN') label = '<small style="font-size:0.72em;opacity:0.9">B$</small>' + m.v;
+    return '<button class="money ' + (m.coin ? 'coin' : 'note') + '" ' + (attr || '') + '>' + (m.coin ? coinSVG(m) : noteSVG(m, mk)) + '<span>' + label + '</span></button>';
+  }
+  function shortK(v, mk) { return (mk === 'ID' ? '<small style="font-size:0.72em">Rp</small>' : '') + group(v, '.') + (mk === 'VN' ? '<small style="font-size:0.72em">₫</small>' : ''); }
+
+  // =====================================================================
+  // セーブ / 設定 / Moint / 音
+  // =====================================================================
+  function loadProgress() {
+    var p = readJSON(SAVE_KEY);
+    if (!p || p.version !== 1) p = {};
+    return {
+      version: 1, gameId: GAME_ID, markets: p.markets || {}, totalStars: p.totalStars | 0, orders: p.orders | 0,
+      checkRounds: p.checkRounds | 0, checkBest: p.checkBest | 0, checkCorrect: p.checkCorrect | 0,
+      played: p.played | 0, mointClaims: p.mointClaims || {}, updatedAt: p.updatedAt || null
+    };
+  }
+  var progress = loadProgress();
+  function save() { progress.updatedAt = new Date().toISOString(); writeJSON(SAVE_KEY, progress); }
+  var settings = readJSON(SET_KEY) || {};
+  if (settings.sound === undefined) settings.sound = true;
+  if (!HOME[settings.home]) settings.home = 'RM';
+  function saveSettings() { writeJSON(SET_KEY, settings); }
+  function visited(id) { return progress.markets[id] && progress.markets[id].played > 0; }
+
+  function balance() { if (window.MokuMoint) return MokuMoint.balance(); var w = readJSON('moku:moint:wallet'); return w && w.balance > 0 ? w.balance : 0; }
+  function earn(n, capped) {
+    if (!n) return 0;
+    if (window.MokuMoint) return MokuMoint.earn(GAME_ID, n, capped === false ? { capped: false } : undefined);
+    writeJSON('moku:moint:wallet', { version: 1, balance: Math.max(0, balance() + n), updatedAt: new Date().toISOString() });
+    return n;
+  }
+  function earnedToday() { return window.MokuMoint ? MokuMoint.earnedToday(GAME_ID) : 0; }
+  function dailyCap() { return window.MokuMoint ? MokuMoint.DAILY_GAME_CAP : 500; }
+  function claimOnce(key, n) { if (progress.mointClaims[key]) return 0; progress.mointClaims[key] = true; return earn(n, false); }
+  function mointBox(lines) {
+    var got = lines.filter(function (l) { return l[1] > 0; });
+    if (!got.length) return '';
+    var tot = got.reduce(function (a, l) { return a + l[1]; }, 0);
+    return '<div class="moints">' + got.map(function (l) { return '<div><span>' + esc(l[0]) + '</span><span>+' + l[1] + '</span></div>'; }).join('') +
+      '<div class="tot"><span><span class="mcoin">M</span> Moints</span><span>+' + tot + '</span></div>' +
+      '<div style="font-size:12px;color:#9A7420;justify-content:flex-start">Today: ' + earnedToday() + ' / ' + dailyCap() + '</div></div>';
+  }
+
+  var actx = null, gestured = false;
+  function audio() {
+    if (!settings.sound || !gestured) return null;
+    if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
+    if (actx.state === 'suspended') actx.resume();
+    return actx;
+  }
+  document.addEventListener('pointerdown', function () { gestured = true; if (settings.sound) audio(); }, { passive: true });
+  function tone(f, t0, dur, type, vol) {
+    var a = audio(); if (!a) return;
+    var o = a.createOscillator(), g = a.createGain(), t = a.currentTime + (t0 || 0);
+    o.type = type || 'sine'; o.frequency.setValueAtTime(f, t);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol || 0.15, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + dur + 0.05);
+  }
+  var sfx = {
+    tap: function () { tone(660, 0, 0.08, 'triangle', 0.08); },
+    coin: function () { tone(1320, 0, 0.08, 'square', 0.05); tone(1760, 0.05, 0.12, 'square', 0.05); },
+    note: function () { tone(400, 0, 0.06, 'triangle', 0.07); },
+    good: function () { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, i * 0.08, 0.22, 'triangle', 0.13); }); },
+    bad: function () { tone(330, 0, 0.16, 'sine', 0.12); tone(262, 0.12, 0.22, 'sine', 0.12); },
+    till: function () { tone(1568, 0, 0.1, 'triangle', 0.1); tone(2093, 0.08, 0.25, 'triangle', 0.1); },
+    fanfare: function () { [392, 523, 659, 784, 659, 784, 1047].forEach(function (f, i) { tone(f, i * 0.11, 0.25, 'triangle', 0.12); }); }
+  };
+  function syncSoundBtn() { $('soundBtn').textContent = settings.sound ? '🔊' : '🔇'; }
+  $('soundBtn').addEventListener('click', function () { settings.sound = !settings.sound; saveSettings(); syncSoundBtn(); if (settings.sound) sfx.tap(); });
+
+  // =====================================================================
+  // 画面
+  // =====================================================================
+  var panel = $('panelInner'), scene = $('scene');
+  var fresh = false;
+  function setPanel(h) {
+    panel.innerHTML = h;
+    if (fresh) { var c = panel.querySelector('.card'); if (c) c.classList.add('enter'); $('panel').scrollTop = 0; }
+    fresh = false;
+  }
+  function avatar() {
+    var o = '';
+    if (window.MokuMoint) { try { o = MokuMoint.outfitSVG(MokuMoint.closet().equipped); } catch (e) {} }
+    return '<img src="brand/mokumoku-hero.png" alt="Moku">' + o;
+  }
+  function showTitle() {
+    document.body.classList.add('on-title');
+    var n = ORDER.filter(visited).length;
+    $('bookCount').textContent = n + ' / ' + ORDER.length + ' currencies · ⭐ ' + progress.totalStars;
+    $('titleBal').textContent = Math.round(balance()).toLocaleString('en-US');
+    $('titleToday').textContent = '· Today ' + earnedToday() + ' / ' + dailyCap();
+    $('homeSeg').innerHTML = Object.keys(HOME).map(function (k) { return '<button data-h="' + k + '" class="' + (settings.home === k ? 'on' : '') + '">' + HOME[k].label + '</button>'; }).join('');
+    $('homeSeg').querySelectorAll('button').forEach(function (b) { b.addEventListener('click', function () { settings.home = b.getAttribute('data-h'); saveSettings(); sfx.tap(); showTitle(); }); });
+    try { if (window.MokuMoint) $('titleOutfit').innerHTML = MokuMoint.outfitSVG(MokuMoint.closet().equipped); } catch (e) {}
+  }
+  function showPlay(title) {
+    document.body.classList.remove('on-title');
+    $('modeTitle').textContent = title;
+    $('topInfo').textContent = '';
+    fresh = true;
+  }
+  $('menuBtn').addEventListener('click', function () { sfx.tap(); showTitle(); });
+
+  // 屋台の絵(国ごと)
+  function drawScene(id, items, said) {
+    var m = id ? MARKETS[id] : null;
+    var c1 = m ? COLORS[id][0] : '#E8A23A', c2 = m ? COLORS[id][1] : '#FFF4DE';
+    var h = '<div class="canopy" style="--c1:' + c1 + ';background:repeating-linear-gradient(90deg,' + c1 + ' 0 28px,' + c2 + ' 28px 56px)"></div>';
+    if (m) h += '<div class="signBoard">' + flagSVG(id) + esc(m.place) + '</div>' +
+      '<div class="vendor"><div class="face">' + m.vendor.em + '</div><div class="tag">' + esc(m.vendor.name) + '</div></div>';
+    h += '<div class="customer">' + avatar() + '</div>';
+    if (said) h += '<div class="bubble">' + said + '</div>';
+    h += '<div class="counter">' + (items || []).map(function (it) {
+      return '<div class="food">' + foodSVG(it.em) + (it.q > 1 ? '<span class="qty">×' + it.q + '</span>' : '') + '<span class="pricetag">' + esc(m.fmt(it.p)) + '</span></div>';
+    }).join('') + '</div>';
+    scene.innerHTML = h;
+  }
+  // 国の色(ひさしの縞)。国旗の色から
+  var COLORS = { MY: ['#C8443B', '#FFF4DE'], SG: ['#E0262E', '#FFF4DE'], BN: ['#E3B80F', '#FFF4DE'], KH: ['#032EA1', '#FFF4DE'], TH: ['#2D2A6B', '#FFF4DE'], VN: ['#DA251D', '#FFDD66'], ID: ['#E0262E', '#FFF4DE'], PH: ['#0038A8', '#FFF4DE'] };
+
+  function countryPicker(onPick, note) {
+    return '<div class="picks">' + ORDER.map(function (id) {
+      var m = MARKETS[id], best = progress.markets[id] && progress.markets[id].best;
+      return '<button class="pick" data-c="' + id + '"><span class="top">' + flagSVG(id) + esc(m.country) + '</span><small>' + esc(m.cur) + ' · ' + esc(m.fmt(m.items[0].p)) + ' ' + esc(m.items[0].name) + '</small>' +
+        (note === 'best' ? '<span class="best">' + (best ? '⭐ ' + best + ' / 15' : 'New!') + '</span>' : '') + '</button>';
+    }).join('') + '</div>';
+  }
+
+  // =====================================================================
+  // 🛒 Market Trip
+  // =====================================================================
+  // 9〜12 才向け(v0.5.0〜): 2〜4 品、それぞれ 1〜3 こ。合計とおつりは数字を打って答える
+  var ORDER_SIZES = [2, 2, 3, 3, 4];
+  var trip = null;
+  function openTripPicker() {
+    showPlay('🛒 Market Trip');
+    drawScene(null, [], 'Where shall we go shopping today?');
+    setPanel('<div class="card"><div class="h">Choose a market</div><div class="sub">Pay with that country’s real money. 5 customers, up to ⭐ 15.</div>' + countryPicker(null, 'best') + '</div>');
+    panel.querySelectorAll('.pick').forEach(function (b) { b.addEventListener('click', function () { sfx.tap(); startTrip(b.getAttribute('data-c')); }); });
+  }
+  function makeOrder(id, size) {
+    var m = MARKETS[id], picks = shuffle(m.items).slice(0, size);
+    return picks.map(function (it) { var r = Math.random(); return { name: it.name, em: it.em, p: it.p, q: r < 0.4 ? 1 : r < 0.75 ? 2 : 3 }; });
+  }
+  function startTrip(id) {
+    progress.played++; save();
+    trip = { id: id, i: 0, stars: 0, res: [] };
+    showPlay('🛒 Market Trip');
+    nextOrder();
+  }
+  function orderTotal(o) { return o.reduce(function (a, it) { return a + it.p * it.q; }, 0); }
+  function nextOrder() {
+    if (trip.i >= ORDER_SIZES.length) return endTrip();
+    var o = makeOrder(trip.id, ORDER_SIZES[trip.i]);
+    trip.cur = { items: o, total: orderTotal(o), step: 'add', paid: [], stars: 0, tries: 0, say: '', typed: '' };
+    $('topInfo').textContent = '🧺 ' + (trip.i + 1) + '/5 · ⭐ ' + trip.stars;
+    var m = MARKETS[trip.id];
+    drawScene(trip.id, o, 'I’d like ' + o.map(function (it) { return (it.q > 1 ? it.q + ' × ' : '') + esc(it.name); }).join(', ') + ', please!');
+    fresh = true;
+    renderOrder();
+  }
+  function paidSum() { return trip.cur.paid.reduce(function (a, v) { return a + v; }, 0); }
+  // よけいなお札がない = どれを1枚引いても足りなくなる
+  function noExtra() {
+    var s = paidSum(), t = trip.cur.total;
+    return trip.cur.paid.every(function (v) { return s - v < t; });
+  }
+  function renderOrder() {
+    var cur = trip.cur, m = MARKETS[trip.id];
+    var dots = '<div class="dots">' + ORDER_SIZES.map(function (x, i) { return '<i class="' + (i < trip.i ? (trip.res[i] >= 2 ? 'ok' : 'no') : i === trip.i ? 'now' : '') + '"></i>'; }).join('') + '</div>';
+    var h = '<div class="card">' + dots + '<div class="h">Customer ' + (trip.i + 1) + ' of 5</div>' +
+      '<div class="list">' + cur.items.map(function (it) {
+        return '<div class="li"><span class="lin">' + foodSVG(it.em, 'fd sm') + ' <b class="qn">' + it.q + ' ×</b> ' + esc(it.name) + '</span><span class="m">' + esc(m.fmt(it.p)) + (cur.step === 'add' ? ' <small>each</small>' : '<small> → ' + esc(m.fmt(it.p * it.q)) + '</small>') + '</span></div>';
+      }).join('') +
+      '<div class="li tot"><span>Total</span><span class="m">' + (cur.step === 'add' ? '?' : esc(m.fmt(cur.total))) + '</span></div></div>';
+    if (cur.step === 'add') {
+      h += '<div class="q">How much is it all together?</div>' + padHTML(m, cur.typed);
+    } else if (cur.step === 'pay') {
+      var sum = paidSum(), diff = sum - cur.total;
+      h += '<div class="q">Pay ' + esc(m.fmt(cur.total)) + '</div>' +
+        '<div class="tray">' + m.money.map(function (x, i) { return moneyHTML(x, trip.id, 'data-add="' + i + '"'); }).join('') + '</div>' +
+        '<div class="paid" id="paidBox">' + cur.paid.map(function (v, i) { var x = m.money.filter(function (y) { return y.v === v; })[0]; return moneyHTML(x, trip.id, 'data-rm="' + i + '"'); }).join('') + '</div>' +
+        '<div class="payline"><span>You put down</span><span class="m">' + esc(m.fmt(sum)) + '</span></div>' +
+        '<div class="payline"><span></span><span class="' + (diff < 0 ? 'short' : 'over') + '">' + (diff < 0 ? 'Need ' + esc(m.fmt(-diff)) + ' more' : diff === 0 ? 'Exact! 👌' : 'Enough ✓') + '</span></div>' +
+        '<div class="row"><button class="btn primary" id="payBtn"' + (diff < 0 ? ' disabled' : '') + '>💵 Pay</button></div>' +
+        '<div class="tip">⭐ Don’t give extra notes you don’t need. Tap money on the counter to take it back.</div>';
+    } else if (cur.step === 'change') {
+      h += '<div class="q">You paid ' + esc(m.fmt(paidSum())) + '. How much change?</div>' + padHTML(m, cur.typed);
+    } else if (cur.step === 'done') {
+      h += '<div class="stars">' + '⭐'.repeat(cur.stars) + '<span style="opacity:.25">' + '⭐'.repeat(3 - cur.stars) + '</span></div>' +
+        '<div class="row"><button class="btn primary" id="nextBtn">' + (trip.i + 1 >= ORDER_SIZES.length ? 'Close the market ▶' : 'Next customer ▶') + '</button></div>';
+    }
+    if (cur.say) h += '<div class="say ' + (cur.sayCls || '') + '">' + cur.say + '</div>';
+    h += '</div>';
+    var st = $('panel').scrollTop;
+    setPanel(h);
+    if (cur.step === 'pay') $('panel').scrollTop = st;
+    // events
+    if (cur.step === 'add' || cur.step === 'change') {
+      panel.querySelectorAll('[data-k]').forEach(function (b) { b.addEventListener('click', function () {
+        var k = b.getAttribute('data-k');
+        if (k === 'ok') { if (cur.typed) answer(+cur.typed); return; }
+        if (k === 'del') cur.typed = cur.typed.slice(0, -1);
+        else if ((cur.typed + k).replace(/^0+/, '').length <= 7) cur.typed = (cur.typed + k).replace(/^0+(?=\d)/, '');
+        sfx.tap(); updatePad(m, cur.typed);
+      }); });
+    }
+    panel.querySelectorAll('[data-add]').forEach(function (b) { b.addEventListener('click', function () {
+      var x = m.money[+b.getAttribute('data-add')];
+      if (cur.paid.length >= 12) return;
+      cur.paid.push(x.v); cur.paid.sort(function (a, c) { return c - a; });
+      if (x.coin) sfx.coin(); else sfx.note();
+      renderOrder();
+    }); });
+    panel.querySelectorAll('[data-rm]').forEach(function (b) { b.addEventListener('click', function () { cur.paid.splice(+b.getAttribute('data-rm'), 1); sfx.tap(); renderOrder(); }); });
+    if ($('payBtn')) $('payBtn').addEventListener('click', pay);
+    if ($('nextBtn')) $('nextBtn').addEventListener('click', function () { sfx.tap(); trip.i++; nextOrder(); });
+  }
+  // 3回まちがえたら答えを見せて先へ(⭐ はなし)
+  function answer(v) {
+    var cur = trip.cur, m = MARKETS[trip.id], steps = cur.items.map(function (it) { return it.q + ' × ' + m.fmt(it.p) + ' = ' + m.fmt(it.p * it.q); }).join(', ');
+    if (cur.step === 'add') {
+      if (v === cur.total || cur.tries >= 2) {
+        var got = v === cur.total;
+        if (got && cur.tries === 0) cur.stars++;
+        cur.say = (got ? 'Yes! ' : 'The total is <b>' + esc(m.fmt(cur.total)) + '</b>: ') + esc(steps) + (cur.items.length > 1 ? ' → ' + cur.items.map(function (it) { return m.fmt(it.p * it.q); }).join(' + ') : '') + ' = <b>' + esc(m.fmt(cur.total)) + '</b>';
+        cur.sayCls = got ? 'ok' : ''; if (got) sfx.good(); else sfx.bad();
+        cur.step = 'pay'; cur.tries = 0; cur.typed = '';
+      } else {
+        cur.tries++; cur.typed = ''; sfx.bad(); cur.sayCls = 'bad';
+        cur.say = cur.tries === 1 ? 'Not quite. Multiply first: how much is ' + esc(cur.items[0].q + ' × ' + m.fmt(cur.items[0].p)) + '?' : 'Close? Work out each line: ' + esc(steps) + '. Now add them up!';
+      }
+    } else if (cur.step === 'change') {
+      var change = paidSum() - cur.total;
+      if (v === change || cur.tries >= 2) {
+        var ok2 = v === change;
+        if (ok2 && cur.tries === 0) cur.stars++;
+        cur.say = (ok2 ? '✓ ' : 'The change is: ') + esc(m.fmt(paidSum())) + ' − ' + esc(m.fmt(cur.total)) + ' = <b>' + esc(m.fmt(change)) + '</b>. ' + THANKS[trip.id];
+        cur.sayCls = ok2 ? 'ok' : ''; sfx.till();
+        finishOrder();
+      } else {
+        cur.tries++; cur.typed = ''; sfx.bad(); cur.sayCls = 'bad';
+        cur.say = cur.tries === 1 ? 'Hmm, count again: what you paid − the total.' : 'Tip: count up from ' + esc(m.fmt(cur.total)) + ' to ' + esc(m.fmt(paidSum())) + '.';
+      }
+    }
+    renderOrder();
+  }
+  // 数字のキー(VN・ID・KH は 000 のキーつき)
+  function padHTML(m, typed) {
+    var big = m === MARKETS.VN || m === MARKETS.ID || m === MARKETS.KH;
+    var keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', big ? '000' : 'del', '0', big ? 'del' : 'ok'];
+    return '<div class="padShow" id="padShow">' + (typed ? esc(m.fmt(+typed)) : '<span>type the amount</span>') + '</div><div class="pad">' +
+      keys.map(function (k) { return '<button class="pk' + (k === 'ok' ? ' ok' : '') + '" data-k="' + k + '">' + (k === 'del' ? '⌫' : k === 'ok' ? 'OK' : k) + '</button>'; }).join('') +
+      '</div>' + (big ? '<div class="row"><button class="btn primary" data-k="ok">✓ OK</button></div>' : '');
+  }
+  function updatePad(m, typed) { var el = $('padShow'); if (el) el.innerHTML = typed ? esc(m.fmt(+typed)) : '<span>type the amount</span>'; }
+  var THANKS = { MY: 'Terima kasih!', SG: 'Thank you!', BN: 'Terima kasih!', TH: 'Khop khun!', KH: 'Orkun!', VN: 'Cảm ơn!', ID: 'Terima kasih!', PH: 'Salamat!' };
+  function pay() {
+    var cur = trip.cur, m = MARKETS[trip.id];
+    var clean = noExtra();
+    if (clean) cur.stars++;
+    var change = paidSum() - cur.total;
+    cur.say = clean ? '👌 Smart paying — no extra notes!' : 'Paid! (Tip: you gave a note you didn’t need.)';
+    cur.sayCls = clean ? 'ok' : '';
+    if (change > 0) { cur.step = 'change'; cur.tries = 0; cur.typed = ''; sfx.note(); }
+    else { cur.stars++; cur.say += ' No change needed. ' + THANKS[trip.id]; sfx.till(); finishOrder(); }   // ちょうど払えたら、おつりの ⭐ も付ける
+    renderOrder();
+  }
+  function finishOrder() {
+    var cur = trip.cur;
+    cur.step = 'done';
+    trip.stars += cur.stars; trip.res.push(cur.stars);
+    progress.orders++;
+    $('topInfo').textContent = '🧺 ' + (trip.i + 1) + '/5 · ⭐ ' + trip.stars;
+    drawScene(trip.id, cur.items, THANKS[trip.id] + ' 😊');
+  }
+  function endTrip() {
+    var id = trip.id, m = MARKETS[id];
+    var rec = progress.markets[id] || { played: 0, best: 0 };
+    var first = !rec.played;
+    rec.played++; rec.best = Math.max(rec.best | 0, trip.stars);
+    progress.markets[id] = rec;
+    progress.totalStars += trip.stars;
+    var lines = [['Stars: ' + trip.stars + ' × 5', earn(trip.stars * 5)]];
+    if (trip.stars >= 15) lines.push(['All 15 stars! ⭐', earn(25)]);
+    if (first) lines.push(['First visit to ' + m.country + '!', claimOnce('m:' + id, 30)]);
+    if (ORDER.every(visited)) lines.push(['All ' + ORDER.length + ' markets visited! 🎉', claimOnce('all', 200)]);
+    save();
+    sfx.fanfare();
+    drawScene(id, [], 'That was fun! See you next time!');
+    $('topInfo').textContent = '⭐ ' + trip.stars + ' / 15';
+    fresh = true;
+    setPanel('<div class="card"><div class="h">Market closed!</div><div class="sub">' + esc(m.country) + ' · ' + esc(m.place) + '</div>' +
+      '<div class="big">⭐ ' + trip.stars + ' / 15</div>' + mointBox(lines) +
+      (first ? '<div class="say ok">📒 New page in your Money Book: <b>' + esc(m.cur) + '</b>!</div>' : '') +
+      '<div class="row"><button class="btn primary" id="again">🛒 Same market</button><button class="btn" id="other">Other market</button></div>' +
+      '<div class="row"><button class="btn" id="book">📒 ' + esc(m.cur) + ' page</button></div></div>');
+    $('again').addEventListener('click', function () { sfx.tap(); startTrip(id); });
+    $('other').addEventListener('click', function () { sfx.tap(); openTripPicker(); });
+    $('book').addEventListener('click', function () { sfx.tap(); openBook(id); });
+  }
+
+  // =====================================================================
+  // 💱 Price Check
+  // =====================================================================
+  var CHECK_LEN = 8;
+  var check = null;
+  function startCheck() {
+    progress.played++; save();
+    var qs = [];
+    // 9〜12 才向け: 見当 3・くらべる 2・のこり 2・いくつ買える 1
+    [qEstimate, qEstimate, qEstimate, qCompare, qCompare, qLeft, qLeft, qHowMany].forEach(function (f) { qs.push(f()); });
+    check = { qs: shuffle(qs), i: 0, res: [], answered: false };
+    showPlay('💱 Price Check');
+    renderCheck();
+  }
+  // My money が RM の時、マレーシアの値段を RM に直す問題は出さない(そのままなので)
+  function abroad() { return ORDER.filter(function (id) { return !(settings.home === 'RM' && id === 'MY'); }); }
+  function qEstimate() {
+    var id = pick(abroad()), m = MARKETS[id], it = pick(m.items);
+    var v = toHome(id, it.p), r = niceNum(v);
+    var opts = [r, niceNum(v * 2), niceNum(v / 2), niceNum(v * 4)];
+    var out = []; opts.forEach(function (x) { if (x > 0 && out.indexOf(x) < 0) out.push(x); });
+    while (out.length < 4) out.push(niceNum(v * (out.length + 2)));
+    return { kind: 'est', id: id, it: it, ans: r, opts: shuffle(out.slice(0, 4)) };
+  }
+  function qCompare() {
+    var a = pick(ORDER), b = pick(ORDER.filter(function (x) { return x !== a; }));
+    for (var n = 0; n < 30; n++) {
+      var ia = pick(MARKETS[a].items), ib = pick(MARKETS[b].items);
+      var va = toHome(a, ia.p), vb = toHome(b, ib.p);
+      var ratio = Math.max(va, vb) / Math.min(va, vb);
+      if (ratio > 1.12 && ratio < 1.9) return { kind: 'cmp', A: { id: a, it: ia, v: va }, B: { id: b, it: ib, v: vb }, ans: va > vb ? 'A' : 'B' };
+    }
+    return qEstimate();
+  }
+  // おさいふのお札(合計より大きい一番小さいお札)
+  function walletNote(id, need) {
+    var notes = MARKETS[id].money.filter(function (x) { return !x.coin && x.v > need; }).map(function (x) { return x.v; });
+    return notes.length ? notes[0] : null;
+  }
+  function closeOpts(ans, step) {
+    var out = [ans], c = [ans + step, ans - step, ans + 2 * step, ans - 2 * step, ans + 3 * step];
+    c.forEach(function (v) { if (out.length < 4 && v >= 0 && out.indexOf(v) < 0) out.push(v); });
+    return shuffle(out);
+  }
+  // おつりはいくら? 2つの品を何こか買って、お札1枚で払う
+  function qLeft() {
+    for (var n = 0; n < 40; n++) {
+      var id = pick(ORDER), m = MARKETS[id], two = shuffle(m.items).slice(0, 2);
+      var qa = 1 + Math.floor(Math.random() * 3), qb = 1 + Math.floor(Math.random() * 2), tot = two[0].p * qa + two[1].p * qb;
+      var note = walletNote(id, tot);
+      if (!note) continue;
+      var step = Math.min(two[0].p, two[1].p);
+      return { kind: 'left', id: id, a: two[0], b: two[1], qa: qa, qb: qb, note: note, tot: tot, ans: note - tot, opts: closeOpts(note - tot, step) };
+    }
+    return qEstimate();
+  }
+  // いくつ買える? お札1枚で、1つの品をいくつ買えるか(わり算のあまりは使えない)
+  function qHowMany() {
+    for (var n = 0; n < 40; n++) {
+      var id = pick(ORDER), m = MARKETS[id], it = pick(m.items);
+      var notes = m.money.filter(function (x) { return !x.coin && x.v >= it.p * 3 && x.v <= it.p * 12 && x.v % it.p !== 0; });
+      if (!notes.length) continue;
+      var note = pick(notes).v, ans = Math.floor(note / it.p);
+      return { kind: 'many', id: id, it: it, note: note, ans: ans, opts: closeOpts(ans, 1) };
+    }
+    return qEstimate();
+  }
+  function renderCheck() {
+    var q = check.qs[check.i];
+    $('topInfo').textContent = '💱 ' + (check.i + 1) + '/' + check.qs.length;
+    var dots = '<div class="dots">' + check.qs.map(function (x, i) { return '<i class="' + (i < check.res.length ? (check.res[i] ? 'ok' : 'no') : i === check.i ? 'now' : '') + '"></i>'; }).join('') + '</div>';
+    var h = '<div class="card">' + dots;
+    if (q.kind === 'est') {
+      var m = MARKETS[q.id];
+      drawScene(q.id, [{ em: q.it.em, p: q.it.p, q: 1 }], esc(q.it.name) + ' — ' + esc(q.it.what) + '.');
+      h += '<div class="q">' + esc(q.it.name) + ' costs <b>' + esc(m.fmt(q.it.p)) + '</b>.<br>About how much is that in ' + (HOME[settings.home].label) + '?</div><div class="choices">' +
+        q.opts.map(function (v) { return '<button class="ch' + (check.answered ? (v === q.ans ? ' right' : v === check.chosen ? ' miss' : '') : '') + '" data-v="' + v + '"' + (check.answered ? ' disabled' : '') + '>about ' + esc(homeFmt(v)) + '</button>'; }).join('') + '</div>';
+      if (check.answered) h += '<div class="say ' + (check.res[check.i] ? 'ok' : 'bad') + '">' + (check.res[check.i] ? '⭕ Right! ' : '❌ Not quite. ') +
+        'Rule of thumb: <b>' + esc(rule(q.id)) + '</b>, so ' + esc(m.fmt(q.it.p)) + ' ≈ <b>' + esc(homeFmt(toHome(q.id, q.it.p))) + '</b>.</div>';
+    } else if (q.kind === 'left') {
+      var ml = MARKETS[q.id];
+      drawScene(q.id, [{ em: q.a.em, p: q.a.p, q: q.qa }, { em: q.b.em, p: q.b.p, q: q.qb }], 'You have one ' + esc(ml.fmt(q.note)) + ' note.');
+      h += '<div class="q">You have <b>' + esc(ml.fmt(q.note)) + '</b>. You buy <b>' + q.qa + ' × ' + esc(q.a.name) + '</b> (' + esc(ml.fmt(q.a.p)) + ' each) and <b>' + q.qb + ' × ' + esc(q.b.name) + '</b> (' + esc(ml.fmt(q.b.p)) + ' each).<br>How much money is left?</div><div class="choices">' +
+        q.opts.map(function (v) { return '<button class="ch' + (check.answered ? (v === q.ans ? ' right' : v === check.chosen ? ' miss' : '') : '') + '" data-v="' + v + '"' + (check.answered ? ' disabled' : '') + '>' + esc(ml.fmt(v)) + '</button>'; }).join('') + '</div>';
+      if (check.answered) h += '<div class="say ' + (check.res[check.i] ? 'ok' : 'bad') + '">' + (check.res[check.i] ? '⭕ Right! ' : '❌ Not quite. ') +
+        esc(q.qa + ' × ' + ml.fmt(q.a.p) + ' + ' + q.qb + ' × ' + ml.fmt(q.b.p) + ' = ' + ml.fmt(q.tot)) + ', and ' + esc(ml.fmt(q.note) + ' − ' + ml.fmt(q.tot)) + ' = <b>' + esc(ml.fmt(q.ans)) + '</b>.</div>';
+    } else if (q.kind === 'many') {
+      var mh = MARKETS[q.id];
+      drawScene(q.id, [{ em: q.it.em, p: q.it.p, q: 1 }], esc(q.it.name) + ' — ' + esc(q.it.what) + '.');
+      h += '<div class="q">You have <b>' + esc(mh.fmt(q.note)) + '</b>. ' + esc(q.it.name) + ' costs <b>' + esc(mh.fmt(q.it.p)) + '</b>.<br>How many can you buy?</div><div class="choices">' +
+        q.opts.map(function (v) { return '<button class="ch' + (check.answered ? (v === q.ans ? ' right' : v === check.chosen ? ' miss' : '') : '') + '" data-v="' + v + '"' + (check.answered ? ' disabled' : '') + '>' + v + '</button>'; }).join('') + '</div>';
+      if (check.answered) h += '<div class="say ' + (check.res[check.i] ? 'ok' : 'bad') + '">' + (check.res[check.i] ? '⭕ Right! ' : '❌ Not quite. ') +
+        esc(q.ans + ' × ' + mh.fmt(q.it.p) + ' = ' + mh.fmt(q.ans * q.it.p)) + ', with ' + esc(mh.fmt(q.note - q.ans * q.it.p)) + ' left — not enough for one more.</div>';
+    } else {
+      drawScene(null, [], 'Which one costs more?');
+      var card = function (side) {
+        var s = q[side], mm = MARKETS[s.id];
+        var cls = check.answered ? (q.ans === side ? ' right' : check.chosen === side ? ' miss' : '') : '';
+        return '<button class="ch' + cls + '" data-s="' + side + '"' + (check.answered ? ' disabled' : '') + '>' + foodSVG(s.it.em) + '<span>' + esc(s.it.name) + '</span><span class="m">' + esc(mm.fmt(s.it.p)) + '</span><small>' + flagSVG(s.id) + esc(mm.country) + '</small>' +
+          (check.answered ? '<small>≈ ' + esc(homeFmt(s.v)) + '</small>' : '') + '</button>';
+      };
+      h += '<div class="q">Which one costs more?</div><div class="vs">' + card('A') + card('B') + '</div>';
+      if (check.answered) h += '<div class="say ' + (check.res[check.i] ? 'ok' : 'bad') + '">' + (check.res[check.i] ? '⭕ Right! ' : '❌ Not quite. ') +
+        'Bigger numbers don’t always mean more money! <b>' + esc(rule(q.A.id)) + '</b> and <b>' + esc(rule(q.B.id)) + '</b>.</div>';
+    }
+    if (check.answered) h += '<div class="row"><button class="btn primary" id="cNext">' + (check.i + 1 >= check.qs.length ? 'See results ▶' : 'Next ▶') + '</button></div>';
+    h += '<div class="tip">Rates are about right for 2025. Real rates change every day.</div></div>';
+    setPanel(h);
+    if (!check.answered) {
+      panel.querySelectorAll('[data-v]').forEach(function (b) { b.addEventListener('click', function () { answerCheck(+b.getAttribute('data-v')); }); });
+      panel.querySelectorAll('[data-s]').forEach(function (b) { b.addEventListener('click', function () { answerCheck(b.getAttribute('data-s')); }); });
+    } else {
+      $('cNext').addEventListener('click', function () { sfx.tap(); check.i++; check.answered = false; fresh = true; if (check.i >= check.qs.length) endCheck(); else renderCheck(); });
+    }
+  }
+  function answerCheck(v) {
+    var q = check.qs[check.i], ok = v === q.ans;
+    check.answered = true; check.chosen = v; check.res.push(ok);
+    if (ok) sfx.good(); else sfx.bad();
+    renderCheck();
+  }
+  function endCheck() {
+    var n = check.res.filter(Boolean).length;
+    progress.checkRounds++; progress.checkCorrect += n; progress.checkBest = Math.max(progress.checkBest, n);
+    var lines = [['Right answers: ' + n + ' × 5', earn(n * 5)]];
+    if (n === check.qs.length) lines.push(['All ' + n + ' right! ⭐', earn(20)]);
+    save();
+    sfx.fanfare();
+    drawScene(null, [], n >= 6 ? 'You’re a money expert!' : 'Good try! Let’s go again!');
+    $('topInfo').textContent = '💱 ' + n + '/' + check.qs.length;
+    fresh = true;
+    setPanel('<div class="card"><div class="h">' + (n === check.qs.length ? 'Perfect!' : n >= 6 ? 'Great job!' : 'Good try!') + '</div>' +
+      '<div class="big">' + n + ' / ' + check.qs.length + '</div>' + mointBox(lines) +
+      '<div class="tell"><span class="cn">🗣️ Tell a friend</span>To guess a price in ' + esc(HOME[settings.home].label) + ', remember one easy rule for each country — like <b>' + esc(rule('VN')) + '</b> or <b>' + esc(rule('TH')) + '</b>.</div>' +
+      '<div class="row"><button class="btn primary" id="cAgain">💱 Play again</button><button class="btn" id="cMenu">Menu</button></div></div>');
+    $('cAgain').addEventListener('click', function () { sfx.tap(); startCheck(); });
+    $('cMenu').addEventListener('click', function () { sfx.tap(); showTitle(); });
+  }
+
+  // =====================================================================
+  // 📒 Money Book
+  // =====================================================================
+  function openBook(sel) {
+    showPlay('📒 Money Book');
+    $('topInfo').textContent = ORDER.filter(visited).length + '/' + ORDER.length;
+    function draw(open) {
+      drawScene(open || null, [], open ? 'This is the ' + esc(MARKETS[open].cur) + '!' : 'Visit a market to fill your Money Book.');
+      var h = '<div class="card"><div class="h">Money Book</div><div class="sub">A page opens when you visit that market.</div><div class="picks">' +
+        ORDER.map(function (id) {
+          var m = MARKETS[id], ok = visited(id);
+          return '<button class="pick' + (ok ? '' : ' locked') + '" data-c="' + id + '"' + (ok ? '' : ' disabled') + '><span class="top">' + flagSVG(id) + esc(m.country) + '</span><small>' + (ok ? esc(m.cur) : '🔒 not visited yet') + '</small></button>';
+        }).join('') + '</div></div>';
+      if (open) {
+        var m = MARKETS[open];
+        h += '<div class="card" style="margin-top:12px"><div class="bookHead">' + flagSVG(open) + '<div><div class="h">' + esc(m.cur.charAt(0).toUpperCase() + m.cur.slice(1)) + '</div><div class="sub">' + esc(m.country) + '</div></div><span class="sym">' + esc(m.fmt(0).replace(/[0.,]/g, '')) + '</span></div>' +
+          '<dl class="facts"><dt>✏️ Written</dt><dd>' + esc(m.write) + '</dd><dt>💱 About</dt><dd>' + esc(rule(open)) + '</dd><dt>🍜 Street food</dt><dd>' +
+          m.items.slice(0, 3).map(function (it) { return esc(it.name) + ' ' + esc(m.fmt(it.p)); }).join(' · ') + '</dd></dl>' +
+          '<div class="sec">Notes & coins</div><div class="tray">' + m.money.map(function (x) { return moneyHTML(x, open, 'tabindex="-1"'); }).join('') + '</div>' +
+          coinBookHTML(open) +
+          '<div class="fun">' + m.facts.map(function (f) { return '<div>✨ ' + esc(f) + '</div>'; }).join('') + '</div>' +
+          '<div class="tell"><span class="cn">🗣️ Tell a friend</span>In ' + esc(m.country) + ', money is the <b>' + esc(m.cur) + '</b>. ' + esc(m.items[0].name) + ' costs about ' + esc(m.fmt(m.items[0].p)) + ', and ' + esc(rule(open)) + '.</div>' +
+          '<div class="tip">Notes show the real colors, not the real pictures. Coins show what is on their back. Rates change every day.</div></div>';
+      }
+      setPanel(h);
+      panel.querySelectorAll('.pick[data-c]:not([disabled])').forEach(function (b) { b.addEventListener('click', function () { sfx.tap(); draw(b.getAttribute('data-c')); var c = panel.querySelectorAll('.card')[1]; if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); }); });
+    }
+    draw(sel && visited(sel) ? sel : null);
+  }
+
+  // ---------- start ----------
+  syncSoundBtn();
+  $('goTrip').addEventListener('click', function () { sfx.tap(); openTripPicker(); });
+  $('goCheck').addEventListener('click', function () { sfx.tap(); startCheck(); });
+  $('goBook').addEventListener('click', function () { sfx.tap(); openBook(); });
+  window.addEventListener('moku:moint', function () { if (document.body.classList.contains('on-title')) showTitle(); });
+  showTitle();
+  // 開発用: ?screen=trip|check|book、?market=VN で直接
+  try {
+    var qp = new URLSearchParams(location.search), scr = qp.get('screen'), mk = qp.get('market');
+    if (scr === 'trip') { if (MARKETS[mk]) startTrip(mk); else openTripPicker(); }
+    else if (scr === 'check') startCheck(); else if (scr === 'book') openBook(mk);
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>

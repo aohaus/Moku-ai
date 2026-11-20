@@ -16,9 +16,16 @@
  * straight from disk, or a local server other than `npm run dev`, is left
  * open for development. GitHub Pages is a static host, so this keeps casual
  * visitors out but cannot stop someone who reads the page source.
+ *
+ * Preview mode (*.pages.dev, Cloudflare Pages — one address per branch, for
+ * trying a change on a phone before it is merged): no login, and
+ * moku-account.js turns the cloud save off, so nothing reaches the real
+ * accounts. A small "PREVIEW" badge shows it is not the real site.
  */
 (function () {
   'use strict';
+
+  if (/\.pages\.dev$/.test(location.hostname)) return showPreviewBadge();
 
   var isLocal = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
   if (location.protocol === 'file:' || (isLocal && location.port !== '3000')) return;
@@ -40,6 +47,20 @@
   function toLogin() {
     var page = location.pathname.split('/').pop() || 'index.html';
     location.replace('index.html?next=' + encodeURIComponent(page + location.search + location.hash));
+  }
+
+  function showPreviewBadge() {
+    function add() {
+      if (document.getElementById('moku-preview-badge')) return;
+      var b = document.createElement('div');
+      b.id = 'moku-preview-badge';
+      b.textContent = 'PREVIEW';
+      b.style.cssText = 'position:fixed;left:50%;top:calc(env(safe-area-inset-top, 0px) + 2px);transform:translateX(-50%);' +
+        'z-index:2147483647;pointer-events:none;padding:2px 10px;border-radius:999px;background:rgba(232,92,154,0.88);' +
+        'color:#fff;font:800 10px/1.4 -apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:0.12em;box-shadow:0 1px 4px rgba(0,0,0,0.25)';
+      document.body.appendChild(b);
+    }
+    if (document.body) add(); else document.addEventListener('DOMContentLoaded', add);
   }
 
   if (!hasSession()) return toLogin();

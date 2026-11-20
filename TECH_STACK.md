@@ -109,6 +109,7 @@ cd backend && npm test   # バックエンドのテスト
 | 対象 | 方法 |
 | --- | --- |
 | フロント | GitHub Pages(`https://aohaus.github.io/Moku-ai/`)+ Cloudflare でマスクした `https://dechatgpt.com/Moku-ai/`。`main` にマージで反映 |
+| プレビュー | Cloudflare Pages(プロジェクト `moku-ai`、ビルドなし)。ブランチごとに `<ブランチ>.moku-ai.pages.dev`。`*.pages.dev` はログインなし・クラウドセーブなしのプレビューモード(`shared/moku-gate.js` / `moku-account.js`) |
 | バックエンド | GitHub Actions `.github/workflows/deploy-backend.yml`: `main` の `backend/**` 変更で `npm test` → `sam validate` → `sam deploy`(OIDC で AWS ロールを引き受ける、キー保存なし)→ ヘルスチェック。**新しい SAM パラメータには必ず `Default`** |
 | API URL | `https://d6hl1cxi0i.execute-api.ap-southeast-5.amazonaws.com`(`shared/moku-account.js`) |
 | キャッシュ | `shared/*.js` は `?v=` で、アイコンも `?v=` で更新。HTML はハブの「↻ Get the latest games & updates」で取り直せる |

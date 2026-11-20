@@ -1,0 +1,1689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script src="shared/moku-errors.js?v=20261119e"></script>
+<script src="shared/moku-gate.js?v=20261119e"></script>
+<script>
+// 一斉公開(2026-11-21 13:00 マレーシア時間)までは「Coming soon」だけを出す。hub.html の RELEASE_ASIA とそろえる。
+// プレビュー(*.pages.dev)・localhost・ファイルを直接開いた時は、すぐ遊べる。
+(function () {
+  var OPENS_AT = Date.parse('2026-11-21T13:00:00+08:00');
+  var dev = location.protocol === 'file:' || /\.pages\.dev$/.test(location.hostname) || /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+  if (dev || Date.now() >= OPENS_AT) return;
+  document.documentElement.className += ' moku-soon';
+  document.write('<style>html.moku-soon body > *:not(#mokuSoon) { display: none !important; }' +
+    '#mokuSoon { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 24px; text-align: center;' +
+    ' background: linear-gradient(#FFD9A8, #F7B98A); color: #4A2E1A; font: 700 16px/1.4 -apple-system, "Segoe UI", Roboto, sans-serif; }' +
+    '#mokuSoon .o { font-size: 64px; } #mokuSoon h1 { margin: 0; font-size: 28px; font-weight: 800; }' +
+    '#mokuSoon a { margin-top: 8px; padding: 10px 22px; border-radius: 999px; background: #4A2E1A; color: #FFF4DE; text-decoration: none; }</style>');
+  document.addEventListener('DOMContentLoaded', function () {
+    var when = new Date(OPENS_AT).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    var d = document.createElement('div');
+    d.id = 'mokuSoon';
+    d.innerHTML = '<div class="o">🦉</div><h1>Coming soon!</h1><p>This game opens on ' + when + '.</p><a href="hub.html">◀ Hub</a>';
+    document.body.appendChild(d);
+    setTimeout(function () { location.reload(); }, Math.min(OPENS_AT - Date.now() + 1000, 2147483000));
+  });
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Where's Moku?</title>
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<!--
+  Where's Moku?(v0.1.0、2026-11-18)— 新しい棚「Live in ASIA」の第1弾。
+  旅に出た Moku から絵はがきが届き、手がかり(あいさつ・食べ物・名所・お金・国旗…)から
+  東南アジア 11 か国(ASEAN。2025年に東ティモールが11番目に加わった)のどこにいるかを地図で当てる。
+
+  ねらい(保護者と決めた目標): ①国を覚える ②外から見える情報(場所・大きさ・人の数・ことば・お金・
+  車の走る側・島か大陸か・国旗・食べ物・名所)から、国どうしの「ちがい」と「似ているところ」をつかむ
+  ③それを友達に説明できるようになる。モードはこの3つに対応している。
+  - ✉️ Postcards(①): 1回の旅で5枚。手がかりが少ないほど切手(🔖)が多い(1枚目 3 / 2枚目 2 / 3〜4枚目 1)。
+    まちがえると、押した国の名前とあいさつが出て、次の手がかりが開く。当てたら Passport のページ
+    (国の情報+いちばん似ている国「Like …」+ちがい「Unlike …」+友達に話す一文「Tell a friend」)。
+    地図の国名は、見つけた国だけ出る(覚えるほど地図がうまっていく)。
+  - ⚖️ Twin or Not?(②): 2つの国を比べる8問(どっちが大きい・人が多い・同じ側を走る・同じあいさつ・
+    となり同士・島の国・海がない・ドル・メコン川)。答えのあとに数字つきの説明。地図で2つの国を光らせる。
+  - 🗣 Be the Guide(③、1台を回して遊ぶ 2〜4人): ガイドが秘密の国の手がかりカードから3枚を選んで、
+    ほかの人に当ててもらう。カードには「その手がかりを持つ国がいくつあるか」(⭐ Only here / 👥 n countries)
+    が出るので、「その国だけの特徴」で説明するほど早く当たる=説明がうまくなる。Moint はなし(Moku Wolf と同じ)。
+  - 📕 Passport: 見つけた国のページをいつでも読める。
+
+  事実のデータはこのファイルの COUNTRIES(数字は 2024〜2025 年ごろのおおよその値。画面にも「about」)。
+  手がかりの文に、その国の名前を入れないこと(起動時に checkCards() がコンソールで知らせる)。
+  南シナ海などの名前に争いがある海の名前は地図に書かない。宗教・政治の話は手がかりにしない。
+
+  Moint(SPEC.md §13): 切手1枚 +5、5枚とも1枚目の手がかりで当てた旅 +25(毎回、1日 500 の上限の中)。
+  Twin or Not? 1問正解 +5、8問全部 +20(同じ上限の中)。1回きり: その国を初めて見つけた +30、11か国そろった +300
+  (受け取り済みは progress.mointClaims の c:<国> と all)。
+  記録は moku:wheres-moku:progress(下の loadProgress)、音のオン/オフは moku:wheres-moku:settings。
+-->
+<style>
+:root {
+  --hi: #E85C9A; --lo: #7A2050;               /* ハイビスカスのピンク */
+  --ink: #3B2A20; --ink-soft: #8B6E57;
+  --paper: #FFF7E8; --paper2: #FBEBD0;
+  --wood: #7A4A2C; --wood-dark: #4E2C17;
+  --line: #5A3A22;
+  --sea1: #BFE6EE; --sea2: #94D0E0;
+  --ok: #3E9B5A; --bad: #D0533F;
+  --round: "Fredoka", -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  background: #F6D7AE;
+  color: var(--ink);
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  overflow: hidden;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; touch-action: manipulation; }
+input { font: inherit; -webkit-user-select: text; user-select: text; }
+
+/* ---------- shared frame / hub link (Moku series design system) ---------- */
+#title-frame {
+  position: fixed; inset: 14px;
+  border: 3px solid var(--hi);
+  border-radius: 10px;
+  pointer-events: none;
+  z-index: 40;
+}
+#title-frame::after {
+  content: '';
+  position: absolute; inset: 5px;
+  border: 1px solid var(--lo);
+  border-radius: 8px;
+}
+#hub-link {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 16px);
+  right: calc(env(safe-area-inset-right, 0px) + 16px);
+  z-index: 41;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--lo);
+  text-decoration: none;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.6);
+  animation: hubLinkPulse 2.2s ease-in-out infinite;
+}
+@keyframes hubLinkPulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+#buildInfo {
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+  left: calc(env(safe-area-inset-left, 0px) + 18px);
+  z-index: 41;
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+  color: rgba(255,255,255,0.28);
+  text-shadow: 0 0 1px rgba(90,58,34,0.5);
+  pointer-events: none;
+}
+body:not(.on-title) #title-frame,
+body:not(.on-title) #hub-link,
+body:not(.on-title) #buildInfo,
+body:not(.on-title) #titleScreen { display: none; }
+body.on-title #playScreen { display: none; }
+
+/* ---------- map (shared by title and play) ---------- */
+.mapSvg { display: block; width: 100%; height: 100%; touch-action: manipulation; }
+.sea { fill: url(#seaGrad); }
+.wave { fill: none; stroke: rgba(255,255,255,0.55); stroke-width: 2; stroke-linecap: round; }
+.ghost { fill: #EADFC8; stroke: #B9A27F; stroke-width: 1.3; stroke-linejoin: round; }
+.ghostLab { font: 600 15px var(--round); fill: #A68E6A; letter-spacing: 0.08em; }
+.seaLab { font: 600 16px var(--round); fill: rgba(35,95,120,0.55); letter-spacing: 0.12em; font-style: italic; }
+.ctry > * { fill: var(--c); stroke: var(--line); stroke-width: 1.7; stroke-linejoin: round; transition: fill 0.25s, opacity 0.25s; }
+.ctry.tap { cursor: pointer; }
+.ctry.dim > * { opacity: 0.4; }
+.ctry.hl, .ctry.good { filter: drop-shadow(0 0 5px rgba(255,255,255,0.95)) drop-shadow(0 0 2px rgba(255,255,255,0.9)); }
+.ctry.hl > *, .ctry.good > * { stroke: var(--hi); stroke-width: 5; }
+.ctry.wrong > * { animation: wrongFlash 0.9s ease-out; }
+@keyframes wrongFlash { 0%, 45% { fill: #CFC6B8; stroke: #8A2F20; } 100% { fill: var(--c); } }
+.hit { fill: transparent; stroke: none; }
+.lab {
+  font: 600 var(--lf, 17px) var(--round); fill: var(--ink); text-anchor: middle;
+  paint-order: stroke; stroke: rgba(255,250,240,0.92); stroke-width: var(--ls, 4.5px); stroke-linejoin: round;
+  pointer-events: none; opacity: 0; transition: opacity 0.3s;
+}
+.lab.show { opacity: 1; }
+.lab.q { fill: var(--ink-soft); }
+.pin { pointer-events: none; transform-box: fill-box; transform-origin: 50% 100%; animation: pinPop 0.6s cubic-bezier(.3,1.6,.5,1) both; }
+@keyframes pinPop { from { transform: scale(0) translateY(20px); } to { transform: scale(1) translateY(0); } }
+.pinBob { animation: pinBob 2.4s ease-in-out 0.6s infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes pinBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+
+/* ---------- title screen ---------- */
+#titleScreen { position: fixed; inset: 0; overflow: hidden; background: linear-gradient(#FFE6BE, #F8C394 70%, #F2AE84); }
+#titleMap { position: absolute; inset: -4%; opacity: 0.42; filter: saturate(0.85); }
+#titleMap .lab { opacity: 0; }
+#titleInner {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding: calc(env(safe-area-inset-top, 0px) + 44px) 28px calc(env(safe-area-inset-bottom, 0px) + 36px);
+  overflow-y: auto;
+  align-items: flex-start;
+}
+#titleInner > #titleCard { margin: auto; }
+#titleCard {
+  position: relative;
+  width: min(420px, 100%);
+  background: var(--paper);
+  border-radius: 18px;
+  border: 3px solid var(--line);
+  box-shadow: 0 10px 0 rgba(90,58,34,0.25), 0 18px 40px rgba(90,58,34,0.25);
+  padding: 18px 18px 16px;
+  text-align: center;
+  transform: rotate(-1.2deg);
+}
+#titleCard::before {   /* airmail stripes along the edge */
+  content: ''; position: absolute; inset: 6px; border-radius: 12px; pointer-events: none;
+  border: 5px solid transparent;
+  border-image: repeating-linear-gradient(45deg, #E85C9A 0 10px, transparent 10px 20px, #5AA9E6 20px 30px, transparent 30px 40px) 8;
+  opacity: 0.55;
+}
+#titleStamp {
+  position: absolute; top: 14px; right: 16px; width: 62px; height: 72px;
+  background: #fff; border: 2px dashed #C9A87D; border-radius: 4px; transform: rotate(6deg);
+  display: flex; align-items: center; justify-content: center; font-size: 34px;
+}
+#titleHero { position: relative; width: 112px; height: 112px; margin: 2px auto 0; animation: heroFloat 3.2s ease-in-out infinite; }
+#titleHero img, #titleHero svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#titleHero img { object-fit: cover; object-position: center 30%; filter: drop-shadow(0 4px 8px rgba(122,32,80,0.35)); }
+@keyframes heroFloat { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-7px) rotate(2deg); } }
+#titleLogo { font: 700 38px/1 var(--round); color: var(--lo); letter-spacing: 0.01em; margin-top: 6px; }
+#titleLogo span { color: var(--hi); }
+#titleSub { font: 600 13px var(--round); color: var(--ink-soft); letter-spacing: 0.14em; margin-top: 6px; text-transform: uppercase; }
+#titleMenu { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 10px; }
+.titleMenuItem {
+  width: 100%; max-width: 300px;
+  font-size: 19px; font-weight: 800;
+  padding: 8px 18px;
+  border-radius: 14px;
+  background: #fff; border: 2px solid rgba(90,58,34,0.25);
+  color: var(--ink);
+  display: flex; align-items: center; gap: 10px; text-align: left;
+  transition: transform 0.12s;
+}
+.titleMenuItem .ic { font-size: 22px; width: 28px; text-align: center; }
+.titleMenuItem small { display: block; font-size: 11.5px; font-weight: 600; color: var(--ink-soft); margin-top: 1px; }
+.titleMenuItem.primary { background: var(--hi); border-color: var(--lo); color: #fff; box-shadow: 0 4px 0 var(--lo); }
+.titleMenuItem.primary small { color: rgba(255,255,255,0.85); }
+.titleMenuItem:active { transform: translateY(2px) scale(0.98); }
+#titleMoints { margin-top: 10px; font-size: 12.5px; font-weight: 700; color: var(--ink-soft); display: flex; align-items: center; justify-content: center; gap: 6px; }
+.mcoin {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 17px; height: 17px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #FFF2A8, #F2C230 55%, #C9901A);
+  border: 1.5px solid #9A6A10; color: #7A4E00; font: 800 9.5px/1 var(--round);
+}
+#soundBtn {
+  position: fixed; z-index: 41;
+  top: calc(env(safe-area-inset-top, 0px) + 12px); left: calc(env(safe-area-inset-left, 0px) + 22px);
+  width: 36px; height: 36px; border-radius: 50%; background: rgba(255,247,232,0.85); border: 2px solid rgba(90,58,34,0.3); font-size: 17px;
+}
+body:not(.on-title) #soundBtn { display: none; }
+
+/* ---------- play screen ---------- */
+#playScreen { position: fixed; inset: 0; display: flex; flex-direction: column; background: var(--paper2); }
+#topbar {
+  flex: none; display: flex; align-items: center; gap: 8px;
+  padding: calc(env(safe-area-inset-top, 0px) + 6px) calc(env(safe-area-inset-right, 0px) + 12px) 6px calc(env(safe-area-inset-left, 0px) + 10px);
+  background: linear-gradient(#8A5634, var(--wood));
+  border-bottom: 3px solid var(--wood-dark);
+  color: #FFF4E0;
+}
+#menuBtn { padding: 6px 12px; border-radius: 10px; background: rgba(255,255,255,0.14); font-weight: 800; font-size: 14px; }
+#modeTitle { flex: 1; font: 700 17px var(--round); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#topInfo { font-weight: 800; font-size: 14px; white-space: nowrap; }
+#stage { flex: 1; min-height: 0; display: flex; flex-direction: row; }
+#mapBox { position: relative; flex: 1; min-width: 0; background: var(--sea1); overflow: hidden; }
+#mapBox .mapSvg { position: absolute; inset: 0; }
+#mapHint {
+  position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%);
+  background: rgba(255,247,232,0.92); border: 2px solid rgba(90,58,34,0.25); border-radius: 999px;
+  padding: 5px 14px; font-weight: 800; font-size: 13px; color: var(--ink); white-space: nowrap; pointer-events: none;
+  transition: opacity 0.3s;
+}
+#mapHint:empty { opacity: 0; }
+#mapNote { position: absolute; right: 8px; top: 6px; font-size: 10px; color: rgba(35,95,120,0.6); pointer-events: none; }
+#panel {
+  flex: none; width: clamp(300px, 38vw, 430px);
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+  background: var(--paper2);
+  border-left: 3px solid var(--wood-dark);
+  padding: 12px 12px calc(env(safe-area-inset-bottom, 0px) + 14px);
+  padding-right: calc(env(safe-area-inset-right, 0px) + 12px);
+}
+@media (orientation: portrait) {
+  #stage { flex-direction: column; }
+  #mapBox { flex: none; height: 46%; }
+  #panel { width: auto; flex: 1; border-left: 0; border-top: 3px solid var(--wood-dark); padding-left: calc(env(safe-area-inset-left, 0px) + 12px); }
+}
+
+/* ---------- panel pieces ---------- */
+.postcard {
+  position: relative;
+  background: var(--paper);
+  border: 2.5px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 14px 12px;
+  box-shadow: 0 5px 0 rgba(90,58,34,0.18);
+}
+.enter { animation: cardIn 0.45s cubic-bezier(.2,1.3,.5,1) both; }
+@keyframes cardIn { from { transform: translateY(18px) rotate(-3deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.pcHead { display: flex; align-items: center; gap: 10px; padding-right: 64px; min-height: 56px; }
+.pcHead .av { position: relative; width: 48px; height: 48px; flex: none; }
+.av img, .av svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.av img { object-fit: cover; object-position: center 30%; }
+.pcHead h2 { font: 700 19px/1.15 var(--round); color: var(--lo); }
+.pcHead p { font-size: 12.5px; color: var(--ink-soft); font-weight: 600; margin-top: 2px; }
+.pcStamp {
+  position: absolute; top: 10px; right: 12px; width: 56px; height: 64px;
+  border: 2px dashed #C9A87D; border-radius: 4px; background: #fff;
+  display: flex; align-items: center; justify-content: center; transform: rotate(5deg);
+  font: 700 26px var(--round); color: #D8C3A2; overflow: hidden;
+}
+.pcStamp.got { border-style: solid; border-color: var(--hi); animation: stampIn 0.5s cubic-bezier(.2,1.6,.4,1) both; }
+.pcStamp.got svg { width: 46px; height: auto; border-radius: 2px; }
+@keyframes stampIn { from { transform: rotate(-20deg) scale(2.2); opacity: 0; } to { transform: rotate(5deg) scale(1); opacity: 1; } }
+.clues { list-style: none; margin-top: 10px; display: flex; flex-direction: column; gap: 7px; }
+.clue {
+  display: flex; gap: 9px; align-items: flex-start;
+  background: #fff; border-radius: 10px; border: 1.5px solid rgba(90,58,34,0.18);
+  padding: 8px 10px; font-size: 15px; line-height: 1.35; font-weight: 600;
+}
+.clue.new { animation: clueIn 0.4s ease-out both; }
+.clue .ci { font-size: 19px; line-height: 1.1; flex: none; width: 24px; text-align: center; }
+.clue .cn { font-size: 10.5px; font-weight: 800; color: var(--ink-soft); letter-spacing: 0.08em; text-transform: uppercase; display: block; }
+.clue svg.flag { width: 54px; height: 36px; display: block; margin-top: 3px; }
+.clue.locked { background: repeating-linear-gradient(-45deg, #F6EBD8 0 8px, #FBF3E5 8px 16px); color: var(--ink-soft); font-weight: 700; animation: none; }
+@keyframes clueIn { from { transform: translateX(-10px); opacity: 0; } to { transform: none; opacity: 1; } }
+.row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.btn {
+  flex: 1; min-width: 120px;
+  padding: 11px 14px; border-radius: 12px;
+  font-weight: 800; font-size: 15.5px;
+  background: #fff; border: 2px solid rgba(90,58,34,0.3);
+  box-shadow: 0 3px 0 rgba(90,58,34,0.2);
+}
+.btn.primary { background: var(--hi); color: #fff; border-color: var(--lo); box-shadow: 0 3px 0 var(--lo); }
+.btn:disabled { opacity: 0.45; }
+.btn:active:not(:disabled) { transform: translateY(2px); box-shadow: none; }
+.say {
+  margin-top: 10px; padding: 9px 12px; border-radius: 12px; font-weight: 700; font-size: 14.5px; line-height: 1.4;
+  background: #FFF0F6; border: 2px solid rgba(232,92,154,0.35); color: var(--lo);
+  animation: clueIn 0.3s ease-out both;
+}
+.say.ok { background: #EAF7E6; border-color: rgba(62,155,90,0.4); color: #275E37; }
+.say.bad { background: #FDEDEA; border-color: rgba(208,83,63,0.35); color: #8A2F20; }
+.tip { margin-top: 8px; font-size: 12.5px; color: var(--ink-soft); font-weight: 600; text-align: center; }
+
+/* passport page */
+.pp { background: #FFFDF7; border: 2.5px solid var(--line); border-radius: 14px; padding: 14px; margin-top: 12px; }
+.ppHead { display: flex; align-items: center; gap: 12px; }
+.ppHead svg.flag { width: 66px; height: 44px; flex: none; }
+.ppHead h3 { font: 700 23px/1.1 var(--round); color: var(--ink); }
+.ppHead p { font-size: 12.5px; font-weight: 700; color: var(--ink-soft); margin-top: 2px; }
+.facts { display: grid; grid-template-columns: auto 1fr; gap: 5px 10px; margin-top: 12px; font-size: 14px; line-height: 1.35; }
+.facts dt { font-weight: 800; color: var(--ink-soft); white-space: nowrap; }
+.facts dd { font-weight: 600; }
+.compare { margin-top: 12px; display: flex; flex-direction: column; gap: 7px; }
+.compare div { padding: 8px 10px; border-radius: 10px; font-size: 14px; line-height: 1.4; font-weight: 600; }
+.compare .like { background: #EAF7E6; }
+.compare .unlike { background: #EEF3FB; }
+.compare b { font-weight: 800; }
+.tell { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: #FFF6DA; border: 2px dashed #E0B85A; font-size: 14.5px; line-height: 1.5; font-weight: 600; }
+.tell .cn { display: block; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; color: #9A7420; text-transform: uppercase; margin-bottom: 2px; }
+
+/* twin */
+.qText { font: 700 21px/1.25 var(--round); color: var(--ink); text-align: center; margin: 6px 4px 12px; }
+.pair { display: flex; gap: 10px; }
+.cc {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  background: #fff; border-radius: 14px; border: 2.5px solid rgba(90,58,34,0.25); padding: 12px 8px;
+  font: 700 17px var(--round); box-shadow: 0 4px 0 rgba(90,58,34,0.18);
+}
+.cc svg.flag { width: 72px; height: 48px; }
+.cc.pick:active { transform: translateY(2px); box-shadow: none; }
+.cc.right { border-color: var(--ok); background: #EAF7E6; }
+.cc.miss { border-color: var(--bad); background: #FDEDEA; }
+.dots { display: flex; justify-content: center; gap: 5px; margin-bottom: 4px; }
+.dots i { width: 10px; height: 10px; border-radius: 50%; background: #E3D3B8; }
+.dots i.ok { background: var(--ok); } .dots i.no { background: var(--bad); } .dots i.now { background: var(--hi); }
+
+/* guide */
+.gcards { display: flex; flex-direction: column; gap: 7px; margin-top: 10px; }
+.gcard { position: relative; text-align: left; width: 100%; padding-right: 92px; }
+.gcard .tag { position: absolute; right: 8px; top: 8px; font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 999px; background: #EEE3D0; color: var(--ink-soft); white-space: nowrap; }
+.gcard .tag.only { background: #FFE48A; color: #7A5200; }
+.gcard.sel { border-color: var(--hi); background: #FFF0F6; box-shadow: 0 0 0 2px rgba(232,92,154,0.3); }
+.gcard .num { position: absolute; left: -6px; top: -6px; width: 22px; height: 22px; border-radius: 50%; background: var(--hi); color: #fff; font: 800 12px/22px var(--round); text-align: center; }
+.players { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.players input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 2px solid rgba(90,58,34,0.25); background: #fff; font-weight: 700; font-size: 16px; }
+.seg { display: flex; gap: 6px; }
+.seg button { flex: 1; padding: 9px 0; border-radius: 10px; background: #fff; border: 2px solid rgba(90,58,34,0.25); font-weight: 800; font-size: 16px; }
+.seg button.on { background: var(--hi); color: #fff; border-color: var(--lo); }
+.score { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+.score div { display: flex; justify-content: space-between; background: #fff; border-radius: 10px; padding: 7px 12px; font-weight: 800; font-size: 15px; border: 1.5px solid rgba(90,58,34,0.15); }
+.score div.lead { background: #FFF6DA; border-color: #E0B85A; }
+
+
+/* Moku passport (日本のパスポートの Moku 版) */
+.book { margin: 12px auto 0; width: min(100%, 340px); aspect-ratio: 0.71; perspective: 900px; }
+.pg { position: relative; width: 100%; height: 100%; border-radius: 6px 12px 12px 6px; overflow: hidden; box-shadow: 0 6px 0 rgba(90,58,34,0.25), 0 10px 22px rgba(0,0,0,0.18); animation: pgIn 0.35s ease-out; }
+@keyframes pgIn { from { transform: rotateY(-25deg); opacity: 0.4; } to { transform: none; opacity: 1; } }
+.cover { background: radial-gradient(circle at 30% 20%, #9A2A36, #6E1622 70%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; color: #D9B65A; border-left: 8px solid #561019; }
+.cover .emb { width: 46%; }
+.cvTop { font: 700 15px var(--round); letter-spacing: 0.35em; }
+.cvBot { font: 700 26px var(--round); letter-spacing: 0.3em; }
+.cvSmall { position: absolute; bottom: 14px; font-size: 11px; letter-spacing: 0.1em; opacity: 0.75; }
+.idp { background: repeating-linear-gradient(45deg, rgba(232,92,154,0.06) 0 2px, transparent 2px 8px), linear-gradient(#FDF3F1, #F3E6F0); padding: 14px 12px; display: flex; flex-direction: column; }
+.idHead { display: flex; justify-content: space-between; font: 700 11px var(--round); letter-spacing: 0.12em; color: #7A2050; border-bottom: 1.5px solid rgba(122,32,80,0.3); padding-bottom: 6px; }
+.idBody { display: flex; gap: 10px; margin-top: 12px; }
+.photo { width: 38%; aspect-ratio: 0.78; background: #E8EEF4; border: 1.5px solid rgba(0,0,0,0.2); display: flex; align-items: flex-end; justify-content: center; overflow: hidden; flex: none; }
+.photo { position: relative; }
+.photo .av { position: absolute; left: 4%; right: 4%; bottom: 0; height: 88%; }
+.photo .av img { object-fit: contain; object-position: center bottom; }
+.idp dl { display: grid; grid-template-columns: 1fr; gap: 1px; font-size: 10px; }
+.idp dt { color: #8A6A7A; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.idp dd { font: 700 13px 'Courier New', monospace; color: #2A1A22; margin-bottom: 4px; }
+.mrz { margin-top: auto; font: 700 11px/1.5 'Courier New', monospace; color: #2A1A22; letter-spacing: 0.04em; word-break: break-all; background: rgba(255,255,255,0.6); padding: 6px; border-radius: 4px; }
+.visa { background: repeating-radial-gradient(circle at 50% 50%, rgba(62,140,120,0.07) 0 2px, transparent 2px 9px), linear-gradient(#F4F7EC, #EAF1F2); padding: 12px; }
+.vHead { font: 700 11px var(--round); letter-spacing: 0.2em; color: rgba(46,90,80,0.55); text-align: center; }
+.stamps { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 6px; height: calc(100% - 40px); margin-top: 6px; }
+.st { background: none; border: 0; padding: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.st svg.stmp { width: 100%; height: auto; opacity: 0.95; mix-blend-mode: multiply; }
+.st.rb svg.stmp { opacity: 1; filter: drop-shadow(0 0 4px rgba(255,214,90,0.8)); animation: rbGlow 2.4s ease-in-out infinite; }
+@keyframes rbGlow { 50% { filter: drop-shadow(0 0 9px rgba(255,180,220,0.95)); } }
+.visa .empty { grid-column: 1 / -1; grid-row: 1 / -1; align-self: center; text-align: center; color: rgba(46,90,80,0.6); font-weight: 700; font-size: 13px; padding: 20px; }
+.pgNo { position: absolute; bottom: 8px; right: 12px; font: 700 11px var(--round); color: rgba(46,90,80,0.5); }
+.bookNav { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 10px; font-weight: 800; font-size: 13px; color: var(--ink-soft); }
+.bookNav .btn { padding: 6px 16px; min-width: 0; }
+/* passport grid */
+.stampGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; margin-top: 10px; }
+.sg {
+  position: relative; background: #fff; border: 2px dashed #D7C2A0; border-radius: 8px; padding: 8px 4px 6px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px; font: 700 12.5px var(--round); text-align: center; min-height: 92px;
+}
+.sg svg.flag { width: 52px; height: 35px; }
+.sg.got { border-style: solid; border-color: rgba(90,58,34,0.3); }
+.sg .q { width: 52px; height: 35px; border-radius: 4px; background: #F1E6D3; display: flex; align-items: center; justify-content: center; color: #C5AE88; font-size: 20px; }
+.sg small { font-size: 10.5px; color: var(--ink-soft); font-weight: 700; }
+.sg .star { position: absolute; top: 3px; right: 5px; font-size: 13px; }
+.sec { font: 700 14px var(--round); color: var(--ink-soft); letter-spacing: 0.06em; text-transform: uppercase; margin: 14px 2px 0; }
+.moints { margin-top: 10px; background: #FFF6DA; border: 2px solid #E0B85A; border-radius: 12px; padding: 10px 12px; font-size: 14px; font-weight: 700; }
+.moints div { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; }
+.moints .tot { border-top: 1.5px dashed #E0B85A; margin-top: 4px; padding-top: 6px; font-size: 16px; font-weight: 800; color: #7A5200; }
+.big { font: 700 26px var(--round); color: var(--lo); text-align: center; margin-top: 4px; }
+.mid { text-align: center; font-weight: 700; color: var(--ink-soft); margin-top: 4px; font-size: 14px; }
+
+/* cover (pass the phone) */
+#cover {
+  position: fixed; inset: 0; z-index: 60; display: none;
+  align-items: center; justify-content: center; flex-direction: column; gap: 16px;
+  background: linear-gradient(#FFE6BE, #F2AE84); text-align: center; padding: 24px;
+}
+#cover.show { display: flex; }
+#cover h2 { font: 700 28px var(--round); color: var(--lo); }
+#cover p { font-weight: 700; color: var(--ink-soft); max-width: 340px; line-height: 1.45; }
+#cover .btn { flex: none; min-width: 220px; }
+#cover .emo { font-size: 60px; }
+
+/* 背の低い横画面(スマホの横持ち): Moku とロゴを左、メニューを右に */
+@media (orientation: landscape) and (max-height: 560px) {
+  #titleInner { padding-top: calc(env(safe-area-inset-top, 0px) + 30px); padding-bottom: 22px; }
+  #titleCard { width: min(660px, 100%); display: grid; grid-template-columns: 210px 1fr; column-gap: 14px; align-items: center; padding: 12px 14px; }
+  #titleHead { grid-row: 1 / 3; }
+  #titleHero { width: 96px; height: 96px; }
+  #titleLogo { font-size: 30px; }
+  #titleMenu { margin-top: 0; grid-column: 2; }
+  #titleMoints { grid-column: 2; }
+  #titleMoints { margin-top: 6px; }
+  #titleStamp { width: 46px; height: 54px; font-size: 26px; top: 10px; right: auto; left: 12px; transform: rotate(-6deg); }
+}
+@media (orientation: portrait) {
+  #mapBox { height: min(46%, calc(100vw * 0.86)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #titleHero, .pinBob { animation: none; }
+}
+</style>
+</head>
+<body class="on-title">
+<script src="shared/moku-account.js?v=20261119e" data-mode="background"></script>
+<script src="shared/moku-moint.js?v=20261119e" data-mode="none"></script>
+
+<div id="title-frame"></div>
+<a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
+<div id="buildInfo">v0.3.0 · Updated Nov 20, 2026</div>
+<button id="soundBtn" aria-label="Sound">🔊</button>
+
+<div id="titleScreen">
+  <div id="titleMap"></div>
+  <div id="titleInner">
+    <div id="titleCard">
+      <div id="titleStamp">🌏</div>
+      <div id="titleHead">
+        <div id="titleHero"><img src="brand/mokumoku-hero.png" alt="Moku"><span id="titleOutfit"></span></div>
+        <div id="titleLogo">Where's <span>Moku?</span></div>
+        <div id="titleSub">Live in Asia · 11 countries</div>
+      </div>
+      <div id="titleMenu">
+        <button class="titleMenuItem primary" id="goPost"><span class="ic">✉️</span><span>Postcards<small>Moku is traveling. Find him!</small></span></button>
+        <button class="titleMenuItem" id="goTwin"><span class="ic">⚖️</span><span>Twin or Not?<small>Same or different? Compare 2 countries</small></span></button>
+        <button class="titleMenuItem" id="goGuide"><span class="ic">🗣️</span><span>Be the Guide<small>2–4 players · explain a country</small></span></button>
+        <button class="titleMenuItem" id="goPass"><span class="ic">📕</span><span>My Passport<small id="passCount">0 / 11 countries</small></span></button>
+      </div>
+      <div id="titleMoints"><span class="mcoin">M</span><span id="titleBal">0</span><span id="titleToday"></span></div>
+    </div>
+  </div>
+</div>
+
+<div id="playScreen">
+  <div id="topbar">
+    <button id="menuBtn">◀ Menu</button>
+    <div id="modeTitle"></div>
+    <div id="topInfo"></div>
+  </div>
+  <div id="stage">
+    <div id="mapBox"><div id="mapHint"></div><div id="mapNote">Simple map · not to scale for tiny islands</div></div>
+    <div id="panel"></div>
+  </div>
+</div>
+
+<div id="cover"></div>
+
+<script>
+(function () {
+  'use strict';
+  var GAME_ID = 'wheres-moku';
+  var SAVE_KEY = 'moku:' + GAME_ID + ':progress';
+  var SET_KEY = 'moku:' + GAME_ID + ':settings';
+  var $ = function (id) { return document.getElementById(id); };
+
+  function readJSON(k) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+  function writeJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+  function num(n) { return Math.round(n).toLocaleString('en-US'); }
+
+  // =====================================================================
+  // 国のデータ(事実)。数字はおおよそ(2024〜2025年ごろ)。
+  //   area: km² / pop: 百万人 / drive: 車の走る側 / shape: mainland(大陸)・islands(島)・both
+  //   islands: ほかの国と分け合う島 / hello: あいさつ(helloGroup が同じ = 同じことば、helloFamily = 似ていることば)
+  //   moneyGroup: 'dollar' はドルを使う国 / mekong: メコン川が流れる・国境になる / english: 英語が公用語
+  //   cards: 手がかり(t = 種類。その国の名前を書かない)。k を付けると、同じ k の国の数を Be the Guide で見せる
+  //   tell: Passport の「Tell a friend」の一文の材料
+  // =====================================================================
+  var COUNTRIES = {
+    MM: { name: 'Myanmar', capital: 'Naypyidaw', hello: 'Mingalaba!', helloGroup: 'burmese', money: 'kyat', moneyGroup: 'kyat',
+          drive: 'right', shape: 'mainland', islands: [], sea: true, mekong: false, english: false,
+          area: 676578, pop: 54.5, color: '#F2C46D', label: [96.1, 21.2],
+          tell: { where: 'on the mainland — the biggest country there', food: 'mohinga fish noodles', special: 'the golden Shwedagon Pagoda' },
+          cards: [
+            { t: 'hello', x: 'People say “Mingalaba!”' },
+            { t: 'food', x: 'Breakfast is mohinga: fish noodle soup.' },
+            { t: 'place', x: 'Shwedagon Pagoda shines with real gold.' },
+            { t: 'money', x: 'Its money is the kyat (say “chat”).' },
+            { t: 'fun', x: 'People paint thanaka, a yellow paste made from tree bark, on their cheeks.' },
+            { t: 'size', x: 'It is the biggest country on the mainland of Southeast Asia.' },
+            { t: 'fun', x: 'Cars drive on the right — but most steering wheels are on the right too!' },
+            { t: 'city', x: 'Its capital is Naypyidaw.' }
+          ] },
+    TH: { name: 'Thailand', capital: 'Bangkok', hello: 'Sawasdee!', helloGroup: 'thai', helloFamily: 'tai', money: 'baht', moneyGroup: 'baht',
+          drive: 'left', shape: 'mainland', islands: [], sea: true, mekong: true, english: false,
+          area: 513120, pop: 71, color: '#F2A0A6', label: [100.9, 15.6],
+          tell: { where: 'on the mainland, right in the middle of the region', food: 'pad thai noodles', special: 'it was never ruled by a European country' },
+          cards: [
+            { t: 'hello', x: 'People say “Sawasdee!” with their hands pressed together.' },
+            { t: 'food', x: 'Pad thai noodles and spicy tom yum soup.' },
+            { t: 'place', x: 'Wat Arun: a temple by the river, covered in bits of colorful china.' },
+            { t: 'money', x: 'Its money is the baht.' },
+            { t: 'fun', x: 'It is the only country here that was never ruled by a European country.' },
+            { t: 'fun', x: 'Its capital\'s full name is the longest city name in the world!' },
+            { t: 'fun', x: 'At Songkran, the New Year in April, everyone has a giant water fight!' },
+            { t: 'city', x: 'Its capital is Bangkok.' }
+          ] },
+    LA: { name: 'Laos', capital: 'Vientiane', hello: 'Sabaidee!', helloGroup: 'lao', helloFamily: 'tai', money: 'kip', moneyGroup: 'kip',
+          drive: 'right', shape: 'mainland', islands: [], sea: false, mekong: true, english: false,
+          area: 236800, pop: 7.7, color: '#B7D98A', label: [102.6, 19.6],
+          tell: { where: 'on the mainland, between Thailand and Vietnam', food: 'sticky rice', special: 'it is the only one of the 11 with no sea' },
+          cards: [
+            { t: 'hello', x: 'People say “Sabaidee!”' },
+            { t: 'food', x: 'Sticky rice, squeezed into a little ball with your fingers.' },
+            { t: 'place', x: 'Pha That Luang: a big golden stupa.' },
+            { t: 'money', x: 'Its money is the kip.' },
+            { t: 'land', x: 'It has no sea at all — the only one of the 11 countries!', k: 'sea:no' },
+            { t: 'fun', x: 'Every morning in Luang Prabang, monks in orange robes walk the streets to collect rice.' },
+            { t: 'city', x: 'Its capital is Vientiane.' }
+          ] },
+    KH: { name: 'Cambodia', capital: 'Phnom Penh', hello: 'Suostei!', helloGroup: 'khmer', money: 'riel', moneyGroup: 'riel',
+          drive: 'right', shape: 'mainland', islands: [], sea: true, mekong: true, english: false,
+          area: 181035, pop: 17.6, color: '#C9B4E8', label: [104.9, 12.7],
+          tell: { where: 'on the mainland, between Thailand and Vietnam, south of Laos', food: 'fish amok', special: 'Angkor Wat, the biggest temple in the world' },
+          cards: [
+            { t: 'hello', x: 'People say “Suostei!”' },
+            { t: 'food', x: 'Fish amok: curry steamed in a banana-leaf cup.' },
+            { t: 'place', x: 'Angkor Wat: the biggest temple in the world.' },
+            { t: 'money', x: 'Its money is the riel — but people often pay with US dollars too.' },
+            { t: 'nature', x: 'Tonlé Sap: a lake whose river flows backward every rainy season.' },
+            { t: 'fun', x: 'Its flag has a temple on it!' },
+            { t: 'city', x: 'Its capital is Phnom Penh.' }
+          ] },
+    VN: { name: 'Vietnam', capital: 'Hanoi', hello: 'Xin chào!', helloGroup: 'viet', money: 'đồng', moneyGroup: 'dong',
+          drive: 'right', shape: 'mainland', islands: [], sea: true, mekong: true, english: false,
+          area: 331345, pop: 101, color: '#E9A8CF', label: [108.2, 14.2],
+          tell: { where: 'a long S-shaped country on the mainland', food: 'phở noodle soup', special: 'Hạ Long Bay, with almost 2,000 rock islands' },
+          cards: [
+            { t: 'hello', x: 'People say “Xin chào!”' },
+            { t: 'food', x: 'Phở noodle soup and bánh mì sandwiches.' },
+            { t: 'place', x: 'Hạ Long Bay: almost 2,000 rock islands rising out of green water.' },
+            { t: 'money', x: 'Its money is the đồng — a bowl of noodles costs about 50,000!' },
+            { t: 'land', x: 'It is long and thin, shaped like the letter S.' },
+            { t: 'fun', x: 'The streets are full of motorbikes — millions of them!' },
+            { t: 'city', x: 'Its capital is Hanoi.' }
+          ] },
+    MY: { name: 'Malaysia', capital: 'Kuala Lumpur', hello: 'Selamat pagi!', helloGroup: 'malay', helloFamily: 'malay', money: 'ringgit', moneyGroup: 'ringgit',
+          drive: 'left', shape: 'both', islands: ['borneo'], sea: true, mekong: false, english: false,
+          area: 330803, pop: 34, color: '#8FD3C1', label: [102.1, 4.1],
+          tell: { where: 'in two parts: a peninsula and the north of Borneo', food: 'nasi lemak', special: 'the Petronas Twin Towers' },
+          cards: [
+            { t: 'hello', x: 'People say “Selamat pagi!”' },
+            { t: 'food', x: 'Nasi lemak: coconut rice with spicy sambal.' },
+            { t: 'place', x: 'Twin towers, 88 floors tall, joined by a sky bridge.' },
+            { t: 'money', x: 'Its money is the ringgit.' },
+            { t: 'land', x: 'It has two parts with sea in between: one on a peninsula, one on a big island.' },
+            { t: 'nature', x: 'Near its capital, thousands of fireflies blink together along a river.' },
+            { t: 'city', x: 'Its capital is Kuala Lumpur.' }
+          ] },
+    SG: { name: 'Singapore', capital: 'Singapore', hello: 'Hello!', helloGroup: 'four', money: 'Singapore dollar', moneyGroup: 'dollar',
+          drive: 'left', shape: 'islands', islands: [], sea: true, mekong: false, english: true,
+          area: 735, pop: 6, color: '#E5677A', label: [105.6, 0.9],
+          tell: { where: 'a tiny island country at the tip of the Malay Peninsula', food: 'chicken rice', special: 'the whole country is one city' },
+          cards: [
+            { t: 'hello', x: 'People say “Hello!”, “Nǐ hǎo!”, “Selamat pagi!” and “Vanakkam!” — 4 official languages.' },
+            { t: 'food', x: 'Hawker centres with chicken rice and chili crab.' },
+            { t: 'place', x: 'The Merlion: half lion, half fish, spouting water.' },
+            { t: 'money', x: 'Its money is a dollar — worth exactly the same as Brunei\'s dollar!', k: 'money:dollar' },
+            { t: 'size', x: 'The smallest of the 11 — you can drive across it in under an hour.' },
+            { t: 'fun', x: 'Selling chewing gum is not allowed!' },
+            { t: 'land', x: 'One main island and about 60 tiny ones.' },
+            { t: 'city', x: 'The whole country is one city!' }
+          ] },
+    BN: { name: 'Brunei', capital: 'Bandar Seri Begawan', hello: 'Selamat pagi!', helloGroup: 'malay', helloFamily: 'malay', money: 'Brunei dollar', moneyGroup: 'dollar',
+          drive: 'left', shape: 'islands', islands: ['borneo'], sea: true, mekong: false, english: false,
+          area: 5765, pop: 0.46, color: '#D7A6E0', label: [114.9, 5.9],
+          tell: { where: 'a small country on the island of Borneo', food: 'ambuyat', special: 'Kampong Ayer, a whole village on stilts over the water' },
+          cards: [
+            { t: 'hello', x: 'People say “Selamat pagi!”' },
+            { t: 'food', x: 'Ambuyat: sticky sago that you twirl on a bamboo fork.' },
+            { t: 'place', x: 'Kampong Ayer: a whole village on stilts over the water.' },
+            { t: 'money', x: 'Its money is a dollar — worth exactly the same as Singapore\'s dollar!', k: 'money:dollar' },
+            { t: 'land', x: 'It is split into two pieces, with Malaysia in between.' },
+            { t: 'nature', x: 'More than 70% of the land is rainforest.' },
+            { t: 'size', x: 'It has the fewest people of the 11 — under half a million.' },
+            { t: 'city', x: 'Its capital is Bandar Seri Begawan.' }
+          ] },
+    ID: { name: 'Indonesia', capital: 'Jakarta', hello: 'Selamat pagi!', helloGroup: 'malay', helloFamily: 'malay', money: 'rupiah', moneyGroup: 'rupiah',
+          drive: 'left', shape: 'islands', islands: ['borneo', 'timor'], sea: true, mekong: false, english: false,
+          area: 1904569, pop: 281, color: '#F6C08C', label: [113.6, -1.6],
+          tell: { where: 'a country of more than 17,000 islands', food: 'nasi goreng', special: 'the Komodo dragon, the biggest lizard on Earth' },
+          cards: [
+            { t: 'hello', x: 'People say “Selamat pagi!”' },
+            { t: 'food', x: 'Nasi goreng (fried rice) and rendang (slow-cooked beef curry).' },
+            { t: 'place', x: 'Borobudur: the biggest Buddhist temple in the world.' },
+            { t: 'money', x: 'Its money is the rupiah — the biggest note says 100,000!' },
+            { t: 'land', x: 'More than 17,000 islands!' },
+            { t: 'nature', x: 'Home of the Komodo dragon, the biggest lizard on Earth.' },
+            { t: 'size', x: 'The biggest of the 11, with the most people — over 280 million.' },
+            { t: 'city', x: 'Its capital is Jakarta — and a new capital, Nusantara, is being built.' }
+          ] },
+    PH: { name: 'Philippines', capital: 'Manila', hello: 'Kumusta!', helloGroup: 'filipino', money: 'peso', moneyGroup: 'peso',
+          drive: 'right', shape: 'islands', islands: [], sea: true, mekong: false, english: true,
+          area: 300000, pop: 114, color: '#F7DE7A', label: [122.6, 11.6],
+          tell: { where: 'a country of 7,641 islands next to the Pacific Ocean', food: 'adobo', special: 'the Chocolate Hills' },
+          cards: [
+            { t: 'hello', x: 'People say “Kumusta!”' },
+            { t: 'food', x: 'Adobo: meat cooked in vinegar, soy sauce and garlic.' },
+            { t: 'place', x: 'The Chocolate Hills: over 1,000 round hills that turn brown in the dry season.' },
+            { t: 'money', x: 'Its money is the peso.' },
+            { t: 'land', x: '7,641 islands!' },
+            { t: 'fun', x: 'Jeepneys: long, colorful buses that started as old army jeeps.' },
+            { t: 'fun', x: 'In wartime, its flag is flipped upside down — red on top!' },
+            { t: 'city', x: 'Its capital is Manila.' }
+          ] },
+    TL: { name: 'Timor-Leste', capital: 'Dili', hello: 'Bondia!', helloGroup: 'tetum', money: 'US dollar', moneyGroup: 'dollar',
+          drive: 'left', shape: 'islands', islands: ['timor'], sea: true, mekong: false, english: false,
+          area: 14874, pop: 1.4, color: '#F08C7A', label: [126.2, -9.9],
+          tell: { where: 'on the eastern half of the island of Timor', food: 'batar da\'an (corn, pumpkin and beans)', special: 'it is the newest member of ASEAN' },
+          cards: [
+            { t: 'hello', x: 'People say “Bondia!” in Tetum — it comes from Portuguese.' },
+            { t: 'food', x: 'Batar da\'an: corn, pumpkin and beans cooked together.' },
+            { t: 'place', x: 'Cristo Rei: a giant statue on a hill by the sea.' },
+            { t: 'money', x: 'Its money is the US dollar, with its own coins.', k: 'money:dollar' },
+            { t: 'fun', x: 'The newest member of ASEAN — it joined in 2025!' },
+            { t: 'fun', x: 'One of the youngest countries in the world — born in 2002.' },
+            { t: 'city', x: 'Its capital is Dili.' }
+          ] }
+  };
+  var ORDER = ['MM', 'TH', 'LA', 'KH', 'VN', 'MY', 'SG', 'BN', 'ID', 'PH', 'TL'];
+  // 陸の国境(ASEAN の中だけ)。マレーシアとシンガポールは橋でつながっていて、陸の国境はない
+  var BORDERS = [['MM', 'TH'], ['MM', 'LA'], ['TH', 'LA'], ['TH', 'KH'], ['TH', 'MY'], ['LA', 'KH'], ['LA', 'VN'], ['KH', 'VN'], ['MY', 'BN'], ['MY', 'ID'], ['ID', 'TL']];
+  function neighbors(a, b) { return BORDERS.some(function (p) { return (p[0] === a && p[1] === b) || (p[0] === b && p[1] === a); }); }
+  var ISLAND_NAME = { borneo: 'Borneo', timor: 'Timor' };
+
+  var ICON = { hello: '👋', food: '🍜', place: '🏛️', money: '💰', land: '🗺️', nature: '🌿', fun: '✨', size: '📏', city: '🏙️', road: '🚗', river: '🌊', lang: '🗣️', flag: '🚩', island: '🏝️' };
+  var CARD_NAME = { hello: 'Hello', food: 'Food', place: 'Famous place', money: 'Money', land: 'Land', nature: 'Nature', fun: 'Fun fact', size: 'Size', city: 'Capital', road: 'Roads', river: 'River', lang: 'Language', flag: 'Flag', island: 'Island' };
+
+  // 手がかりカードを全部そろえる(データの cards + 共通の特徴から作るカード)。k は「同じ特徴を持つ国」を数えるため
+  var CARDS = {};
+  ORDER.forEach(function (id) {
+    var c = COUNTRIES[id], list = [];
+    c.cards.forEach(function (cd) {
+      var k = cd.k || (cd.t === 'hello' ? 'hello:' + c.helloGroup : cd.t === 'money' ? 'money:' + c.moneyGroup : cd.t + ':' + id + ':' + list.length);
+      list.push({ t: cd.t, x: cd.x, k: k });
+    });
+    list.push({ t: 'road', x: 'Cars drive on the ' + c.drive + ' side of the road.', k: 'drive:' + c.drive });
+    if (c.shape === 'mainland') list.push({ t: 'land', x: 'It is on the mainland — no big islands.', k: 'shape:mainland' });
+    c.islands.forEach(function (is) {
+      var others = ORDER.filter(function (o) { return o !== id && COUNTRIES[o].islands.indexOf(is) >= 0; }).length;
+      list.push({ t: 'island', x: 'It shares the island of ' + ISLAND_NAME[is] + ' with ' + (others === 1 ? 'a neighbor' : others === 2 ? 'two other countries' : others + ' other countries') + '.', k: 'island:' + is });
+    });
+    if (c.mekong) list.push({ t: 'river', x: 'The Mekong River flows through it or along its border.', k: 'river:mekong' });
+    if (c.english) list.push({ t: 'lang', x: 'English is one of its official languages.', k: 'lang:english' });
+    list.push({ t: 'flag', x: '', k: 'flag:' + id });
+    CARDS[id] = list;
+  });
+  var KEY_COUNT = {};
+  ORDER.forEach(function (id) {
+    var seen = {};
+    CARDS[id].forEach(function (cd) { if (!seen[cd.k]) { seen[cd.k] = 1; KEY_COUNT[cd.k] = (KEY_COUNT[cd.k] || 0) + 1; } });
+  });
+  function share(cd) { return KEY_COUNT[cd.k] || 1; }
+  // 手がかりの文に、その国の名前が入っていないか(開発用。コンソールで知らせるだけ)
+  (function checkCards() {
+    ORDER.forEach(function (id) {
+      var n = COUNTRIES[id].name.toLowerCase();
+      CARDS[id].forEach(function (cd) { if (cd.x.toLowerCase().indexOf(n) >= 0) console.warn('[wheres-moku] clue names its own country:', id, cd.x); });
+    });
+  })();
+
+  // =====================================================================
+  // 国旗(30×20 の SVG。かんたんにした絵)
+  // =====================================================================
+  function starPts(cx, cy, r, n, inner, rot) {
+    n = n || 5; inner = inner || 0.4; rot = rot == null ? -90 : rot;
+    var pts = [];
+    for (var i = 0; i < n * 2; i++) {
+      var rr = i % 2 ? r * inner : r, a = (rot + i * 180 / n) * Math.PI / 180;
+      pts.push((cx + rr * Math.cos(a)).toFixed(2) + ',' + (cy + rr * Math.sin(a)).toFixed(2));
+    }
+    return pts.join(' ');
+  }
+  function flagInner(id) {
+    var s = '';
+    switch (id) {
+      case 'ID': s = '<rect width="30" height="10" fill="#E0262E"/><rect y="10" width="30" height="10" fill="#fff"/>'; break;
+      case 'SG':
+        s = '<rect width="30" height="10" fill="#E0262E"/><rect y="10" width="30" height="10" fill="#fff"/>' +
+            '<circle cx="6.6" cy="5" r="3.4" fill="#fff"/><circle cx="7.9" cy="5" r="3.1" fill="#E0262E"/>';
+        for (var i = 0; i < 5; i++) { var a = (-90 + i * 72) * Math.PI / 180; s += '<polygon fill="#fff" points="' + starPts(10.6 + 1.7 * Math.cos(a), 5 + 1.7 * Math.sin(a), 0.62) + '"/>'; }
+        break;
+      case 'MY':
+        for (var k = 0; k < 14; k++) s += '<rect y="' + (k * 20 / 14).toFixed(3) + '" width="30" height="' + (20 / 14 + 0.02).toFixed(3) + '" fill="' + (k % 2 ? '#fff' : '#D0222B') + '"/>';
+        s += '<rect width="15" height="11.43" fill="#0B2B7A"/><circle cx="5.4" cy="5.7" r="3.7" fill="#F8C619"/><circle cx="6.4" cy="5.7" r="3.1" fill="#0B2B7A"/>' +
+             '<polygon fill="#F8C619" points="' + starPts(10.6, 5.7, 2.7, 14, 0.45) + '"/>';
+        break;
+      case 'TH': s = '<rect width="30" height="20" fill="#D9262E"/><rect y="3.33" width="30" height="13.34" fill="#fff"/><rect y="6.67" width="30" height="6.66" fill="#2D2A6B"/>'; break;
+      case 'VN': s = '<rect width="30" height="20" fill="#DA251D"/><polygon fill="#FFDD00" points="' + starPts(15, 10.4, 6) + '"/>'; break;
+      case 'LA': s = '<rect width="30" height="20" fill="#CE1126"/><rect y="5" width="30" height="10" fill="#002868"/><circle cx="15" cy="10" r="4" fill="#fff"/>'; break;
+      case 'KH':
+        s = '<rect width="30" height="20" fill="#032EA1"/><rect y="5" width="30" height="10" fill="#E00025"/>' +
+            '<g fill="#fff"><rect x="9" y="12.2" width="12" height="1.6"/><rect x="13.7" y="8.2" width="2.6" height="4"/><polygon points="13.7,8.2 15,6.2 16.3,8.2"/>' +
+            '<rect x="10.4" y="9.6" width="2" height="2.6"/><polygon points="10.4,9.6 11.4,8 12.4,9.6"/><rect x="17.6" y="9.6" width="2" height="2.6"/><polygon points="17.6,9.6 18.6,8 19.6,9.6"/></g>';
+        break;
+      case 'MM': s = '<rect width="30" height="6.67" fill="#FECB00"/><rect y="6.67" width="30" height="6.67" fill="#34B233"/><rect y="13.33" width="30" height="6.67" fill="#EA2839"/><polygon fill="#fff" points="' + starPts(15, 11, 6.6) + '"/>'; break;
+      case 'PH':
+        s = '<rect width="30" height="10" fill="#0038A8"/><rect y="10" width="30" height="10" fill="#CE1126"/><polygon fill="#fff" points="0,0 17.3,10 0,20"/>' +
+            '<g stroke="#FCD116" stroke-width="0.7">';
+        for (var r = 0; r < 8; r++) { var b = r * Math.PI / 4; s += '<line x1="' + (6 + 2 * Math.cos(b)).toFixed(2) + '" y1="' + (10 + 2 * Math.sin(b)).toFixed(2) + '" x2="' + (6 + 3.4 * Math.cos(b)).toFixed(2) + '" y2="' + (10 + 3.4 * Math.sin(b)).toFixed(2) + '"/>'; }
+        s += '</g><circle cx="6" cy="10" r="1.7" fill="#FCD116"/>' +
+             '<polygon fill="#FCD116" points="' + starPts(1.8, 2.4, 0.95) + '"/><polygon fill="#FCD116" points="' + starPts(1.8, 17.6, 0.95) + '"/><polygon fill="#FCD116" points="' + starPts(14.5, 10, 0.95) + '"/>';
+        break;
+      case 'BN':
+        s = '<rect width="30" height="20" fill="#F7E017"/><polygon fill="#fff" points="0,3.2 30,13.2 30,15.8 0,5.8"/><polygon fill="#111" points="0,5.8 30,15.8 30,18.4 0,8.4"/>' +
+            '<circle cx="15" cy="11.2" r="3" fill="#CF1126"/><circle cx="15" cy="10.1" r="2.5" fill="#F7E017"/><rect x="14.6" y="6.5" width="0.8" height="4.6" fill="#CF1126"/><polygon fill="#CF1126" points="12.6,7.4 17.4,7.4 15,5.6"/>';
+        break;
+      case 'TL':
+        s = '<rect width="30" height="20" fill="#DC241F"/><polygon fill="#FFC72C" points="0,0 15,10 0,20"/><polygon fill="#000" points="0,0 10,10 0,20"/>' +
+            '<polygon fill="#fff" points="' + starPts(3.6, 10, 2.6, 5, 0.4, -60) + '"/>';
+        break;
+    }
+    return s;
+  }
+  function flagSVG(id) {
+    return '<svg class="flag" viewBox="0 0 30 20" aria-label="Flag"><clipPath id="fc' + id + '"><rect width="30" height="20" rx="1.6"/></clipPath><g clip-path="url(#fc' + id + ')">' + flagInner(id) +
+      '</g><rect x="0.3" y="0.3" width="29.4" height="19.4" rx="1.4" fill="none" stroke="rgba(60,40,20,0.45)" stroke-width="0.6"/></svg>';
+  }
+
+  // =====================================================================
+  // 地図(経度・緯度の点から作る、かんたんな絵本の地図。1度 = 20)
+  // =====================================================================
+  var LON0 = 92, LAT0 = 29, K = 20;
+  function P(lon, lat) { return [(lon - LON0) * K, (LAT0 - lat) * K]; }
+  // 国の形は Natural Earth(1:10m、パブリックドメイン)の海岸線と国境を topojson-simplify で間引いて、この地図の座標(1度 = 20)に直したもの
+  var SHAPES = {"MM":"M11.5 140.5L13.7 136.9L19.6 140.1L20.5 136.0L22.4 136.4L23.3 132.3L22.0 129.7L21.6 124.5L23.6 122.0L22.8 119.4L26.0 119.6L27.5 117.4L28.7 107.1L26.2 100.5L26.9 98.2L29.1 100.8L32.3 99.8L40.0 101.6L42.0 103.1L43.8 100.1L45.9 93.3L50.3 85.9L51.4 85.7L54.3 78.7L51.0 75.1L52.1 72.1L55.3 70.2L60.2 65.2L60.0 61.6L62.8 59.4L61.8 57.9L60.8 50.5L64.5 46.6L67.8 46.2L75.5 40.1L77.8 39.5L80.3 36.2L82.9 34.8L95.2 33.2L96.9 36.2L102.4 38.3L102.0 36.3L98.1 31.8L97.2 28.0L104.5 22.0L106.8 22.0L106.5 15.7L109.0 14.0L110.9 9.2L114.0 10.2L114.8 12.4L117.2 12.6L122.6 17.5L122.1 20.5L125.9 29.3L128.2 26.3L133.5 28.3L134.7 38.6L134.3 42.8L135.1 47.5L132.9 55.1L132.9 58.0L131.0 57.6L131.6 60.3L133.9 62.4L129.3 64.1L127.2 68.1L122.8 67.8L122.2 72.2L117.8 75.9L116.4 74.8L114.1 78.5L115.4 82.9L110.8 85.1L110.4 91.4L112.8 91.2L114.4 94.5L114.1 97.5L110.3 101.1L112.5 103.1L117.8 99.6L123.6 97.6L130.0 97.6L131.7 98.5L137.3 97.1L133.1 100.8L133.3 104.0L135.9 104.8L137.2 107.9L135.7 109.0L138.2 114.0L137.2 116.4L140.6 116.8L144.5 118.9L146.2 117.5L149.6 118.7L150.8 121.5L148.6 121.3L146.2 125.1L147.2 130.1L144.9 132.1L142.9 136.9L158.8 139.1L159.0 145.6L163.0 147.0L161.7 148.7L163.7 151.4L166.6 149.5L169.1 150.9L172.5 150.6L176.7 146.8L181.7 144.7L183.2 149.0L180.1 151.9L174.5 153.8L172.7 158.6L170.9 159.5L170.3 163.9L167.7 163.3L164.2 166.1L162.0 173.6L158.8 171.1L153.0 173.9L148.4 172.5L150.5 176.1L145.9 178.7L143.6 177.6L140.7 178.5L139.8 184.0L136.2 183.9L130.6 186.5L126.2 186.2L120.9 183.8L120.2 187.2L116.8 188.9L115.4 192.1L116.2 197.8L113.1 201.5L114.5 203.0L114.9 208.6L110.2 210.2L107.6 209.6L109.0 213.3L111.2 213.4L115.1 220.4L113.5 223.4L115.4 226.4L119.7 229.9L121.8 233.8L128.4 239.4L130.4 243.7L129.1 245.5L131.3 248.2L133.6 254.5L136.4 250.9L138.0 252.4L136.7 257.1L131.1 258.9L130.8 265.3L131.3 270.9L130.7 273.5L128.0 272.9L123.3 277.5L124.9 283.9L128.4 287.9L131.0 292.5L138.9 298.6L143.1 305.7L143.7 315.8L141.9 319.2L144.5 325.7L147.9 328.2L149.5 336.3L150.9 337.2L151.1 342.1L152.6 343.5L144.2 357.8L139.6 361.4L139.5 363.5L135.3 366.2L134.9 373.0L130.8 380.3L129.8 376.0L130.6 372.7L129.2 365.7L131.3 365.4L134.2 361.8L135.2 354.6L133.9 352.2L135.4 344.8L133.7 346.4L132.1 344.8L134.4 340.7L132.7 338.2L133.9 335.2L131.3 334.2L134.0 332.7L132.1 331.6L133.9 325.5L131.8 321.6L131.6 316.3L129.5 314.1L128.5 310.2L124.9 305.7L123.9 298.7L123.9 306.6L122.1 306.0L121.3 299.8L122.2 297.4L119.9 293.4L117.5 285.7L115.9 282.4L116.4 275.8L114.5 273.2L115.9 271.9L114.3 262.2L111.6 259.8L113.0 254.3L112.6 251.3L114.3 248.4L107.4 250.3L106.6 246.4L104.8 245.3L101.4 235.0L98.1 232.5L97.0 235.8L98.2 238.7L96.0 245.2L92.3 249.6L88.7 250.4L85.8 248.7L85.1 243.7L83.4 244.6L86.7 251.2L85.7 252.7L77.8 255.1L74.7 257.5L73.3 261.0L68.3 265.5L65.8 265.2L66.0 261.9L64.2 264.3L62.3 262.9L62.6 257.0L61.1 263.1L57.2 264.4L56.7 261.0L53.2 262.9L51.3 260.7L53.3 258.4L54.4 252.4L51.5 254.6L47.0 259.9L44.2 259.1L45.4 249.2L46.6 249.4L49.3 241.0L49.3 236.2L51.7 233.9L51.1 229.1L52.3 229.1L49.0 220.5L49.8 218.6L48.3 213.7L44.9 209.2L45.1 207.5L41.1 203.2L40.6 198.1L38.6 202.8L33.6 199.6L30.0 193.7L29.8 191.9L35.9 195.3L39.0 193.6L38.5 190.7L34.8 187.7L32.1 184.1L34.1 181.7L30.9 182.0L27.5 178.2L22.7 178.4L22.7 183.0L19.4 177.4L21.2 172.8L17.9 177.3L15.4 176.0L17.9 173.4L15.0 170.0L14.6 174.8L10.2 167.8L7.6 166.0L5.3 158.8L3.5 156.5L4.7 151.7L6.4 150.8L10.5 152.8L12.0 151.6ZM125.6 344.0L125.7 349.8L123.8 349.3ZM130.7 343.9L130.7 349.4L128.7 348.7L127.9 344.1ZM132.1 340.6L129.5 342.2L128.8 337.7ZM129.3 328.3L127.0 333.5L126.3 326.3ZM53.2 255.6L52.6 258.5L48.3 262.6L47.8 260.0ZM111.8 251.7L111.4 255.5L109.2 254.0L110.4 249.8ZM34.9 204.0L32.7 206.3L29.7 202.5L32.4 201.8ZM39.4 191.6L36.1 194.5L32.8 190.2L33.8 188.8Z",
+    "TH":"M218.2 347.1L215.4 339.8L212.6 337.0L210.6 337.7L205.8 336.1L205.4 331.2L204.6 333.5L201.5 330.2L199.0 329.4L195.4 325.9L189.3 327.3L181.7 326.4L179.6 327.2L176.8 325.9L178.4 323.8L177.4 321.9L178.6 319.5L179.3 310.6L171.1 309.8L164.8 310.5L161.1 311.7L159.4 314.8L162.1 318.9L159.3 325.8L159.6 334.6L160.4 336.2L157.1 340.6L156.3 345.2L153.4 348.5L151.4 353.3L151.7 355.7L149.8 357.7L150.2 362.7L148.8 362.8L146.0 367.4L145.5 372.9L143.0 372.9L144.0 375.8L143.0 377.9L142.9 384.2L144.4 389.1L146.5 392.2L145.1 395.4L149.5 396.0L150.4 394.6L156.0 393.5L157.7 395.3L159.2 407.2L161.9 411.5L164.2 410.6L165.4 413.7L168.8 430.4L171.4 435.4L168.5 434.6L168.1 429.4L165.4 424.1L163.1 425.3L163.7 429.7L167.4 433.4L168.7 436.8L171.7 435.5L175.3 440.3L179.9 442.9L187.0 442.5L186.4 441.0L191.3 443.3L195.4 450.0L201.5 454.9L201.4 457.5L199.2 459.8L196.0 465.2L193.0 464.4L190.7 461.9L185.0 464.3L182.1 467.3L179.3 464.2L181.5 461.6L181.4 455.0L176.4 454.8L176.1 451.7L167.0 449.2L165.6 446.2L163.5 445.9L162.5 451.2L156.0 443.6L153.7 442.4L153.9 438.8L150.1 432.3L147.5 433.6L145.9 427.6L142.7 425.1L140.6 425.6L140.6 421.9L138.3 419.0L134.9 418.3L133.1 412.4L128.9 413.5L127.8 417.3L125.9 415.7L124.0 409.3L125.9 401.5L127.8 399.3L126.4 396.2L129.3 387.9L131.3 385.2L130.3 383.3L134.4 375.4L134.9 373.0L135.3 366.2L139.5 363.5L139.6 361.4L144.2 357.8L152.6 343.5L151.1 342.1L150.9 337.2L149.5 336.3L147.9 328.2L144.5 325.7L141.9 319.2L143.7 315.8L143.1 305.7L138.9 298.6L131.0 292.5L128.4 287.9L124.9 283.9L123.3 277.5L128.0 272.9L130.7 273.5L131.3 270.9L130.8 265.3L131.1 258.9L136.7 257.1L138.0 252.4L136.4 250.9L133.6 254.5L131.3 248.2L129.1 245.5L130.4 243.7L128.4 239.4L121.8 233.8L119.7 229.9L115.4 226.4L113.5 223.4L115.1 220.4L111.2 213.4L109.0 213.3L107.6 209.6L110.2 210.2L114.9 208.6L114.5 203.0L113.1 201.5L116.2 197.8L115.4 192.1L116.8 188.9L120.2 187.2L120.9 183.8L126.2 186.2L130.6 186.5L136.2 183.9L139.8 184.0L140.7 178.5L143.6 177.6L145.9 178.7L150.5 176.1L148.4 172.5L153.0 173.9L158.8 171.1L162.0 173.6L162.3 175.0L166.1 172.0L169.1 176.1L170.9 176.7L169.5 182.7L167.6 185.1L169.2 189.3L175.0 190.4L177.2 187.9L184.2 188.2L185.1 190.1L183.5 193.1L184.6 197.1L186.5 199.6L184.5 202.5L184.7 206.8L180.6 211.4L183.1 213.5L183.3 218.9L180.2 222.1L177.7 228.1L182.6 230.8L188.0 225.3L194.6 221.7L195.8 218.5L198.1 219.2L201.5 215.7L203.1 215.8L206.7 219.3L211.3 220.6L211.9 223.0L218.8 219.8L220.4 220.3L223.7 214.9L226.0 214.1L226.2 211.5L231.0 211.7L237.2 214.3L240.0 213.6L245.5 222.7L249.6 227.2L254.3 229.7L256.4 233.0L254.9 239.5L255.3 249.8L260.5 254.8L261.6 257.9L268.1 259.6L267.4 262.4L268.9 264.7L271.4 265.0L273.0 267.3L272.1 271.2L269.7 272.5L271.3 274.6L268.9 277.8L271.9 280.2L269.8 284.7L270.2 288.7L268.4 291.3L263.7 293.1L260.9 295.7L259.5 292.4L255.4 291.2L249.2 292.9L245.0 292.0L238.0 293.2L232.9 291.1L221.7 294.1L218.7 296.0L217.4 299.6L214.0 304.8L210.3 308.7L206.7 308.7L206.6 314.5L209.3 320.6L209.5 325.6L215.3 331.7L214.0 337.2L218.2 344.7ZM128.4 421.9L126.2 424.6L125.1 421.4L125.7 416.2L128.8 418.7ZM161.4 388.3L161.2 390.7L158.9 391.6L158.6 388.7Z",
+    "LA":"M202.4 132.0L204.5 135.4L211.8 142.0L213.0 146.8L219.0 145.2L219.5 148.5L217.3 155.1L222.6 162.9L227.2 164.3L228.5 163.6L233.3 166.8L235.7 163.1L241.1 160.8L245.4 162.1L247.8 164.6L252.0 166.8L250.9 169.3L247.2 171.2L251.5 171.7L253.6 173.2L253.0 175.5L258.1 176.5L259.1 179.8L255.2 182.8L256.1 184.2L252.3 187.9L247.6 186.3L240.0 186.4L241.8 190.3L237.0 194.0L240.7 195.4L249.6 200.4L254.2 204.1L262.2 206.0L263.4 207.4L261.6 210.9L263.1 213.6L267.4 217.0L269.5 217.4L274.7 226.7L276.9 228.1L283.7 234.8L285.7 234.3L288.4 240.2L290.7 240.6L290.7 246.3L294.6 251.7L296.4 249.4L299.3 254.0L302.2 254.6L305.9 258.7L308.7 258.6L307.2 261.8L303.5 263.0L303.2 264.8L307.4 270.1L309.0 269.8L313.3 274.6L311.8 278.8L308.9 279.5L311.1 282.5L310.4 285.9L308.3 289.1L305.7 288.0L301.6 292.0L296.7 293.8L290.9 289.8L284.7 290.3L283.0 292.7L279.4 292.7L280.2 295.5L282.9 298.5L281.4 301.7L278.0 301.5L274.9 298.3L270.7 296.7L267.0 297.9L263.7 293.1L268.4 291.3L270.2 288.7L269.8 284.7L271.9 280.2L268.9 277.8L271.3 274.6L269.7 272.5L272.1 271.2L273.0 267.3L271.4 265.0L268.9 264.7L267.4 262.4L268.1 259.6L261.6 257.9L260.5 254.8L255.3 249.8L254.9 239.5L256.4 233.0L254.3 229.7L249.6 227.2L245.5 222.7L240.0 213.6L237.2 214.3L231.0 211.7L226.2 211.5L226.0 214.1L223.7 214.9L220.4 220.3L218.8 219.8L211.9 223.0L211.3 220.6L206.7 219.3L203.1 215.8L201.5 215.7L198.1 219.2L195.8 218.5L194.6 221.7L188.0 225.3L182.6 230.8L177.7 228.1L180.2 222.1L183.3 218.9L183.1 213.5L180.6 211.4L184.7 206.8L184.5 202.5L186.5 199.6L184.6 197.1L183.5 193.1L185.1 190.1L184.2 188.2L177.2 187.9L175.0 190.4L169.2 189.3L167.6 185.1L169.5 182.7L170.9 176.7L169.1 176.1L166.1 172.0L162.3 175.0L162.0 173.6L164.2 166.1L167.7 163.3L170.3 163.9L170.9 159.5L172.7 158.6L174.5 153.8L180.1 151.9L183.2 149.0L185.2 156.4L189.9 155.1L194.1 157.3L196.4 155.0L194.3 153.6L194.7 148.6L196.1 147.5L195.1 143.9L192.1 140.7L190.3 135.1L195.1 130.1L197.4 132.4L200.3 131.1Z",
+    "KH":"M310.4 285.9L310.1 289.2L307.0 293.2L306.4 297.6L308.6 300.3L308.9 304.3L311.9 309.3L312.1 312.6L309.2 319.6L311.3 327.9L310.3 333.1L308.3 334.9L306.4 333.4L303.1 334.5L299.5 338.0L295.4 338.7L294.1 340.6L287.9 340.6L288.7 346.4L285.7 346.5L280.3 344.6L278.7 347.1L275.8 348.2L277.5 351.4L276.9 354.2L281.8 358.9L283.6 364.7L278.7 362.1L276.9 362.9L275.1 359.7L269.4 361.2L266.6 363.0L262.0 361.7L260.2 362.3L261.3 365.1L256.4 369.7L251.1 369.6L249.0 371.6L245.0 368.6L241.4 368.9L237.5 366.8L236.2 369.3L232.5 370.0L230.1 367.3L233.8 365.2L234.4 362.1L233.5 358.7L229.5 357.3L227.0 362.6L223.6 362.7L221.9 361.3L222.4 357.0L221.7 351.4L222.9 350.3L219.1 348.9L218.2 347.1L218.2 344.7L214.0 337.2L215.3 331.7L209.5 325.6L209.3 320.6L206.6 314.5L206.7 308.7L210.3 308.7L214.0 304.8L217.4 299.6L218.7 296.0L221.7 294.1L232.9 291.1L238.0 293.2L245.0 292.0L249.2 292.9L255.4 291.2L259.5 292.4L260.9 295.7L263.7 293.1L267.0 297.9L270.7 296.7L274.9 298.3L278.0 301.5L281.4 301.7L282.9 298.5L280.2 295.5L279.4 292.7L283.0 292.7L284.7 290.3L290.9 289.8L296.7 293.8L301.6 292.0L305.7 288.0L308.3 289.1Z",
+    "VN":"M310.4 285.9L311.1 282.5L308.9 279.5L311.8 278.8L313.3 274.6L309.0 269.8L307.4 270.1L303.2 264.8L303.5 263.0L307.2 261.8L308.7 258.6L305.9 258.7L302.2 254.6L299.3 254.0L296.4 249.4L294.6 251.7L290.7 246.3L290.7 240.6L288.4 240.2L285.7 234.3L283.7 234.8L276.9 228.1L274.7 226.7L269.5 217.4L267.4 217.0L263.1 213.6L261.6 210.9L263.4 207.4L262.2 206.0L254.2 204.1L249.6 200.4L240.7 195.4L237.0 194.0L241.8 190.3L240.0 186.4L247.6 186.3L252.3 187.9L256.1 184.2L255.2 182.8L259.1 179.8L258.1 176.5L253.0 175.5L253.6 173.2L251.5 171.7L247.2 171.2L250.9 169.3L252.0 166.8L247.8 164.6L245.4 162.1L241.1 160.8L235.7 163.1L233.3 166.8L228.5 163.6L227.2 164.3L222.6 162.9L217.3 155.1L219.5 148.5L219.0 145.2L213.0 146.8L211.8 142.0L204.5 135.4L202.4 132.0L204.4 131.8L209.3 124.6L216.7 128.0L218.0 130.5L220.9 131.2L226.2 124.2L229.7 128.3L232.9 124.0L239.2 129.8L241.4 124.3L244.8 123.5L246.8 126.3L251.1 123.3L253.7 123.8L256.5 121.5L256.0 118.3L257.4 116.7L264.3 114.7L265.8 112.7L268.6 114.7L271.3 118.9L273.8 119.1L277.1 121.9L280.0 120.5L284.1 121.1L286.3 122.9L289.7 121.5L295.8 124.1L293.6 128.4L292.1 127.8L290.5 131.4L292.7 133.8L294.4 139.8L300.4 141.7L299.8 143.1L303.4 145.7L305.4 145.6L307.0 148.0L316.7 147.2L319.8 150.3L315.7 149.5L312.9 153.2L307.3 154.5L307.5 159.4L303.0 161.4L293.2 159.5L295.8 165.4L290.4 169.2L291.3 169.5L291.4 175.4L287.9 175.9L283.6 180.2L280.5 180.0L277.4 184.5L275.6 192.1L276.1 194.6L274.8 197.8L272.2 200.3L276.5 208.1L282.0 214.2L288.4 217.4L290.5 221.1L288.7 222.3L289.8 226.0L295.3 233.3L302.2 238.2L304.1 241.6L313.3 249.0L317.9 254.4L320.8 253.2L321.9 255.3L325.3 256.8L326.1 260.9L332.4 269.4L336.0 271.4L339.1 275.0L338.4 278.8L341.6 285.4L341.5 288.4L345.3 301.6L344.5 305.6L346.7 310.5L344.6 310.8L346.2 313.9L346.1 317.3L349.3 321.7L347.3 323.5L348.8 328.7L346.8 326.8L347.3 324.1L344.1 327.1L344.1 329.0L346.9 332.1L344.3 331.2L344.2 338.6L345.8 340.6L344.0 342.6L344.8 345.3L342.7 348.6L340.9 347.2L340.4 352.6L336.4 353.5L334.7 356.2L331.6 356.4L327.4 359.5L326.0 361.8L322.1 361.6L320.0 366.0L318.4 365.6L311.6 368.6L305.4 372.4L303.5 370.4L299.2 370.7L298.9 368.0L295.4 366.3L294.6 369.6L295.5 374.5L288.4 373.6L296.0 377.0L292.9 380.5L287.4 376.9L289.7 379.7L293.9 382.1L292.2 383.7L287.9 380.5L282.9 375.4L283.5 377.1L289.5 382.8L291.6 385.6L290.0 389.0L285.0 387.4L278.1 380.5L276.4 379.8L281.5 385.0L283.9 389.2L283.8 392.6L270.8 397.4L268.1 400.0L266.7 403.2L262.0 407.3L257.1 408.7L254.5 408.0L258.6 405.1L255.5 403.6L256.3 401.3L256.6 389.7L257.8 383.0L262.2 380.9L260.9 378.9L257.3 377.7L254.8 375.4L252.3 377.1L249.0 371.6L251.1 369.6L256.4 369.7L261.3 365.1L260.2 362.3L262.0 361.7L266.6 363.0L269.4 361.2L275.1 359.7L276.9 362.9L278.7 362.1L283.6 364.7L281.8 358.9L276.9 354.2L277.5 351.4L275.8 348.2L278.7 347.1L280.3 344.6L285.7 346.5L288.7 346.4L287.9 340.6L294.1 340.6L295.4 338.7L299.5 338.0L303.1 334.5L306.4 333.4L308.3 334.9L310.3 333.1L311.3 327.9L309.2 319.6L312.1 312.6L311.9 309.3L308.9 304.3L308.6 300.3L306.4 297.6L307.0 293.2L310.1 289.2ZM241.6 372.6L240.2 379.4L238.8 374.7L236.9 372.6L240.1 371.0ZM311.6 155.8L307.5 158.8L309.4 154.5Z",
+    "MY":"M201.5 454.9L207.6 457.3L210.0 462.1L222.4 472.4L229.0 483.9L229.0 490.2L229.9 494.1L227.9 497.7L228.8 500.5L226.7 504.8L229.6 509.8L228.5 512.6L228.7 520.8L232.8 526.6L235.0 526.9L239.0 533.2L239.6 536.2L242.4 540.9L245.1 547.2L245.5 552.7L242.3 552.6L239.8 547.4L240.2 551.0L233.7 551.1L230.3 554.6L227.9 549.9L216.1 542.8L214.0 542.8L209.8 538.1L203.8 535.7L199.7 532.1L197.3 532.1L195.6 528.5L190.0 526.2L185.7 523.0L187.4 519.9L185.9 514.5L182.0 510.4L180.8 507.5L174.0 502.0L175.6 498.3L172.7 496.9L171.3 493.6L172.9 488.8L171.4 482.9L169.1 481.8L167.3 478.3L168.6 474.4L167.0 468.3L167.0 459.8L162.5 451.2L163.5 445.9L165.6 446.2L167.0 449.2L176.1 451.7L176.4 454.8L181.4 455.0L181.5 461.6L179.3 464.2L182.1 467.3L185.0 464.3L190.7 461.9L193.0 464.4L196.0 465.2L199.2 459.8L201.4 457.5ZM462.9 481.8L467.4 481.8L471.0 478.9L472.1 475.8L467.3 473.8L468.1 471.5L471.7 467.7L473.5 469.4L476.4 469.3L478.4 465.1L481.1 463.1L482.9 458.5L482.1 457.5L490.1 450.1L492.9 445.6L493.4 442.5L495.3 439.5L497.2 443.7L496.5 448.4L501.1 443.4L501.6 440.1L505.0 441.0L505.9 447.3L508.8 449.0L510.5 447.6L514.9 452.2L514.5 454.9L512.1 456.4L513.5 460.2L509.9 462.1L515.6 461.6L520.4 458.8L522.5 462.7L518.2 464.1L519.3 466.3L523.0 465.9L523.5 463.9L528.2 464.1L532.0 467.6L538.4 470.9L544.1 471.1L545.3 476.0L543.1 477.9L533.6 481.1L530.2 481.4L527.1 479.2L522.7 482.4L524.9 485.5L532.9 491.1L530.9 492.8L517.8 494.9L513.5 491.5L511.4 496.8L508.7 496.3L504.3 492.9L496.1 493.4L494.2 492.7L487.8 494.1L486.2 492.3L482.5 492.4L480.7 494.4L476.6 492.5L476.4 494.4L472.9 496.6L471.0 507.9L472.1 511.4L470.3 512.9L469.3 519.4L464.9 519.2L461.3 523.4L461.1 527.8L463.6 528.5L458.3 534.3L455.6 535.1L456.6 542.0L453.4 543.6L453.4 546.1L450.0 551.3L447.9 549.9L443.2 551.5L438.2 551.1L433.0 555.3L430.5 553.7L428.0 554.1L421.8 551.4L419.1 551.7L420.5 549.3L409.4 548.6L403.6 551.0L402.0 556.9L398.2 557.7L396.5 559.8L387.0 559.7L383.9 558.5L377.6 559.8L371.1 563.0L365.3 560.1L363.4 556.5L361.0 555.7L352.8 547.3L352.8 544.4L350.7 541.7L352.9 538.3L353.2 541.7L358.9 546.2L367.8 546.0L374.8 549.5L376.8 548.7L383.1 552.7L380.1 548.9L384.2 538.5L383.6 536.4L384.9 531.3L387.3 533.2L388.8 526.4L393.4 523.2L400.3 522.3L414.5 518.7L420.1 516.8L421.4 514.4L425.5 510.3L429.1 504.6L434.8 500.0L438.9 494.5L440.0 488.0L444.9 490.4L445.6 494.7L448.7 495.1L451.7 499.6L455.3 497.3L456.9 491.5L455.6 490.1L454.8 485.4L459.7 482.2L460.6 483.6L461.8 491.9L466.5 493.7L465.6 487.7ZM388.2 532.2L386.2 531.4L386.3 524.3L387.6 526.1ZM166.2 471.0L165.8 474.8L163.9 474.6L163.8 470.7ZM158.0 452.7L154.6 454.8L152.9 451.3L157.0 450.7ZM503.4 433.2L505.7 433.8L504.6 436.2L501.4 437.9L501.3 434.6Z",
+    "BN":"M462.9 481.8L465.6 487.7L466.5 493.7L461.8 491.9L460.6 483.6ZM459.7 482.2L454.8 485.4L455.6 490.1L456.9 491.5L455.3 497.3L451.7 499.6L448.7 495.1L445.6 494.7L444.9 490.4L440.0 488.0L445.1 488.1L450.6 486.1L454.5 482.5L461.2 478.9Z",
+    "ID":"M649.0 763.6L652.1 763.1L658.4 759.2L659.0 761.6L661.7 759.7L662.9 763.8L659.5 763.8L661.2 769.7L659.4 773.3L654.7 778.0L648.4 783.3L642.2 783.7L640.7 785.5L636.5 787.3L629.4 787.1L631.0 783.7L635.0 781.9L631.5 780.7L633.2 777.4L633.8 772.2L640.6 766.8L643.9 767.5L645.1 770.0L648.7 765.8ZM511.4 496.8L507.5 496.6L516.6 505.6L515.0 507.2L510.9 506.7L504.0 507.7L504.5 509.9L508.9 511.3L506.9 515.4L509.6 518.0L512.4 518.3L510.9 521.4L514.7 522.0L512.7 523.8L515.7 524.8L516.1 527.2L519.8 530.9L522.0 534.4L518.9 536.7L517.1 542.1L520.9 544.3L522.5 546.9L528.5 550.3L535.6 556.0L537.1 558.8L540.0 559.1L540.1 560.7L536.0 563.9L531.3 563.9L522.6 562.1L519.8 558.4L517.8 558.1L520.5 562.5L515.8 564.2L510.4 574.2L509.5 578.8L510.6 580.8L508.7 585.3L509.8 587.8L508.8 590.5L511.9 588.5L510.8 593.9L512.3 595.7L505.6 596.2L499.7 604.6L495.7 604.8L495.2 607.3L490.8 609.6L491.1 612.1L484.4 615.8L488.5 615.3L489.2 620.9L487.9 623.8L492.1 623.9L490.8 630.2L486.5 630.2L487.9 631.5L487.3 637.2L484.9 640.2L483.0 636.3L482.2 640.1L485.3 642.7L483.3 643.4L480.2 649.0L479.3 652.2L476.7 652.7L471.7 655.6L461.2 659.7L454.3 663.4L452.5 663.4L452.3 653.7L449.7 649.8L442.5 647.4L442.5 644.3L440.9 647.1L436.3 649.1L432.7 649.1L432.4 643.7L429.7 643.5L427.1 645.4L420.7 638.4L418.8 642.1L420.4 643.2L413.4 647.8L410.5 648.7L406.0 646.3L402.4 647.6L398.1 651.4L396.5 650.9L396.7 641.2L394.7 636.3L394.1 638.9L390.7 640.2L389.0 638.6L385.9 638.7L381.2 641.2L378.2 641.7L375.1 640.5L373.3 641.6L371.8 637.5L365.3 640.1L364.9 635.7L363.1 632.4L364.4 630.6L361.9 624.0L362.6 621.4L361.5 618.5L358.1 616.5L360.7 612.9L361.4 608.7L360.6 605.7L354.7 599.1L348.8 596.9L345.5 597.1L345.3 593.4L349.6 594.7L342.6 590.3L341.0 585.2L343.7 583.5L343.3 577.8L342.0 575.1L338.4 573.2L338.6 567.2L337.1 563.3L339.6 560.1L338.6 557.2L341.9 548.8L347.0 543.8L346.8 541.3L351.2 540.2L352.9 538.3L350.7 541.7L352.8 544.4L352.8 547.3L361.0 555.7L363.4 556.5L365.3 560.1L371.1 563.0L377.6 559.8L383.9 558.5L387.0 559.7L396.5 559.8L398.2 557.7L402.0 556.9L403.6 551.0L409.4 548.6L420.5 549.3L419.1 551.7L421.8 551.4L428.0 554.1L430.5 553.7L433.0 555.3L438.2 551.1L443.2 551.5L447.9 549.9L450.0 551.3L453.4 546.1L453.4 543.6L456.6 542.0L455.6 535.1L458.3 534.3L463.6 528.5L461.1 527.8L461.3 523.4L464.9 519.2L469.3 519.4L470.3 512.9L472.1 511.4L471.0 507.9L472.9 496.6L476.4 494.4L476.6 492.5L480.7 494.4L482.5 492.4L486.2 492.3L487.8 494.1L494.2 492.7L496.1 493.4L504.3 492.9L508.7 496.3ZM979.5 632.0L979.5 706.7L979.1 709.6L977.0 712.5L978.3 717.3L979.5 717.9L979.5 762.1L977.1 761.0L970.2 752.8L960.6 744.9L958.6 742.2L952.6 742.5L947.1 744.0L944.5 741.5L938.3 745.8L936.7 742.8L938.2 738.4L939.9 737.3L941.8 731.9L938.9 729.9L936.8 726.3L933.8 723.9L943.2 724.9L935.2 722.3L931.2 718.4L938.8 716.9L933.4 713.9L934.2 712.6L929.3 708.1L927.3 701.8L925.2 698.3L926.4 697.0L923.1 695.5L927.2 693.6L921.7 694.8L921.4 688.2L920.5 689.7L916.4 687.2L916.2 685.1L908.1 681.9L905.6 678.8L904.4 680.3L902.0 677.8L896.6 678.6L887.1 673.5L880.7 671.7L879.4 670.4L868.6 668.6L863.7 669.0L856.5 665.2L853.2 662.7L854.4 658.7L850.5 660.5L848.6 658.2L845.4 659.4L842.9 657.5L843.2 655.4L839.2 656.8L836.8 652.0L835.6 653.4L832.8 649.2L833.6 644.7L837.4 641.1L837.2 638.4L833.4 642.4L833.3 647.2L831.2 648.7L831.6 651.6L828.2 654.5L828.4 657.6L825.4 661.0L818.0 661.6L814.6 653.6L818.7 651.1L816.6 649.2L816.2 645.6L813.4 646.6L811.0 642.1L806.9 639.2L799.6 638.3L799.3 635.8L804.0 633.5L811.7 634.4L814.3 636.3L816.7 634.7L820.7 629.6L823.5 628.5L828.7 630.1L829.3 632.7L832.7 630.8L833.6 634.4L834.7 630.3L836.2 633.1L836.4 629.5L839.8 628.1L838.0 625.2L838.8 622.1L832.9 624.7L825.9 624.1L814.0 626.1L811.2 623.7L806.9 625.4L801.5 622.1L799.4 619.3L797.9 612.0L796.1 612.1L787.5 607.9L784.1 610.5L779.2 608.9L780.6 605.5L783.6 604.3L785.8 598.3L784.9 596.4L797.7 593.6L802.0 589.4L808.7 586.9L814.2 587.2L823.1 590.6L827.8 594.5L834.9 595.0L839.5 594.5L843.4 597.3L840.7 599.2L845.7 607.0L844.4 610.9L841.8 613.4L842.9 618.8L842.4 622.3L844.1 627.9L846.6 630.4L849.3 637.1L850.6 636.7L849.6 632.7L851.1 629.3L853.2 631.3L854.0 639.2L857.0 638.0L856.4 642.7L859.7 646.6L866.5 647.7L869.4 647.3L875.1 641.1L878.2 639.7L879.3 635.5L885.6 630.8L888.6 624.2L895.0 625.0L900.5 622.4L904.6 621.5L902.0 617.8L902.8 615.8L907.0 614.2L915.9 609.7L918.5 609.7L921.5 612.2L933.3 615.8L937.2 619.1L942.1 620.2L945.7 622.4L957.3 627.4L963.3 626.5L966.6 629.1L967.8 627.9L974.9 630.0L974.0 632.2ZM513.3 743.0L511.4 747.3L509.7 746.9L509.9 743.5ZM852.1 708.4L850.2 710.3L847.2 707.6L848.8 705.7ZM847.5 705.1L846.7 706.6L842.9 703.2L844.7 702.6ZM358.1 736.8L348.5 735.5L347.3 734.3L341.9 733.8L340.3 734.7L337.5 732.2L333.4 734.4L330.8 733.9L329.1 736.4L326.5 736.4L313.7 733.2L308.2 729.9L290.5 728.2L287.5 726.2L290.8 721.1L289.0 719.1L286.4 719.9L279.2 716.4L269.7 717.3L265.2 715.3L267.3 713.3L269.1 716.2L276.5 708.7L276.6 704.6L280.4 697.9L283.6 700.3L285.1 698.8L289.4 700.7L293.3 700.1L295.9 702.1L299.8 701.6L300.9 698.3L307.1 699.5L309.4 702.9L313.6 704.8L316.2 703.8L321.9 706.5L327.2 704.9L327.5 706.8L330.8 709.7L332.1 715.2L340.0 715.8L347.1 717.5L350.7 716.7L359.7 718.5L364.0 717.8L367.1 719.5L369.5 718.9L372.9 713.8L373.4 710.0L378.5 708.1L381.0 709.1L382.8 713.7L388.6 714.0L389.9 712.5L394.8 715.6L399.5 715.7L401.3 717.9L407.3 717.4L412.1 718.5L411.7 720.0L414.0 725.1L416.5 725.8L415.2 730.6L426.5 735.7L430.6 734.0L435.7 734.5L440.3 732.4L445.5 734.1L449.4 736.6L447.1 748.2L449.2 752.4L451.7 753.3L452.0 755.5L447.4 754.8L446.1 752.2L444.0 752.9L434.5 750.6L426.5 746.2L420.5 746.0L418.1 748.1L413.4 748.9L406.8 746.7L398.5 746.0L395.9 745.1L394.1 747.4L385.5 745.0L383.3 745.6L369.5 742.2ZM556.9 597.5L557.4 595.8L555.1 589.4L555.9 582.2L554.0 582.3L553.5 579.4L556.5 581.8L557.7 578.6L555.9 576.1L558.2 570.5L560.6 569.7L560.9 565.3L564.7 563.4L565.6 560.1L566.8 562.6L571.1 564.4L573.8 560.1L576.1 558.6L576.7 553.5L583.1 554.0L585.3 555.4L589.1 554.1L589.0 556.7L592.7 558.7L598.6 558.0L604.5 559.8L608.9 559.6L612.5 560.7L617.0 563.6L619.4 560.7L631.2 562.7L638.6 563.4L646.3 559.3L647.4 556.5L652.3 554.9L650.7 554.2L652.4 551.7L657.0 550.2L656.7 548.2L659.5 546.4L663.5 546.4L665.0 550.3L662.9 551.6L658.0 560.5L653.3 563.9L649.3 571.0L646.4 572.0L632.7 574.7L624.7 573.4L621.5 569.7L619.6 570.3L606.5 570.1L596.0 571.5L593.8 569.5L577.8 571.5L573.6 569.4L567.5 570.4L563.1 575.4L559.9 584.2L561.8 593.2L564.9 597.8L568.2 598.1L571.6 602.1L571.3 604.3L573.5 607.9L576.7 606.9L582.1 608.1L583.9 604.1L590.0 597.2L593.2 596.3L594.3 598.7L602.1 598.5L604.2 595.3L612.5 595.0L614.3 595.9L619.2 594.6L614.7 593.2L616.5 592.2L624.8 591.4L628.4 593.1L629.1 595.2L627.8 599.7L626.2 601.0L621.2 597.6L616.3 598.5L607.4 609.8L603.7 612.3L600.4 612.4L596.0 614.4L594.8 617.2L590.8 618.5L586.2 615.7L586.8 619.8L588.0 618.2L591.1 622.7L596.5 625.7L600.4 632.3L600.3 633.9L606.3 638.5L605.6 640.8L609.4 643.2L607.1 644.4L605.8 649.4L604.0 651.1L606.7 654.4L608.9 654.6L610.6 657.3L613.0 657.7L611.0 659.4L613.1 660.1L614.1 662.9L617.9 662.7L618.1 667.4L616.8 668.8L613.4 666.3L615.4 669.6L611.9 667.9L602.2 670.4L600.9 674.1L602.2 675.9L599.9 677.1L594.1 676.7L589.7 673.1L590.7 664.6L592.6 661.7L587.1 659.4L577.9 650.8L577.4 648.9L581.3 643.9L581.6 635.2L580.1 633.2L575.5 632.3L564.1 639.2L568.2 645.2L568.0 650.0L569.0 654.6L567.2 657.9L567.2 667.7L568.9 672.5L567.7 676.6L566.2 677.4L565.3 683.0L567.6 686.7L569.2 692.5L566.4 690.2L562.0 691.9L558.3 691.4L555.4 694.0L551.4 693.1L547.1 687.1L547.6 683.8L550.5 677.7L549.8 675.1L551.8 671.3L552.5 666.1L551.9 660.5L549.1 654.0L550.0 649.9L545.9 648.5L538.5 651.3L535.3 641.8L537.1 641.1L537.6 637.2L535.4 637.2L536.1 632.6L538.3 633.0L542.8 628.9L542.5 625.1L544.7 619.6L546.7 619.4L547.4 616.7L546.1 613.9L546.6 604.3L549.1 601.9L550.7 597.0L554.5 592.8ZM178.9 543.5L176.0 535.8L177.7 534.0L181.3 535.6L186.0 539.1L187.6 544.5L191.3 546.9L195.6 547.1L202.3 552.3L204.8 560.4L209.2 564.5L218.4 565.8L221.1 568.8L221.5 571.1L214.3 574.9L217.7 574.8L227.8 569.4L230.8 571.3L232.1 573.8L234.9 574.5L235.8 580.3L232.0 580.3L228.3 584.3L228.8 586.7L232.0 588.7L228.3 590.4L226.9 593.9L236.6 601.5L239.1 599.5L244.2 601.5L247.6 600.6L248.9 606.1L249.1 610.6L250.7 617.1L253.8 620.9L257.0 620.8L257.2 624.0L254.2 627.4L255.3 628.6L257.6 625.7L262.7 627.5L264.5 626.9L272.7 628.3L272.5 632.3L275.6 633.8L275.8 637.2L281.1 640.9L281.2 645.3L278.6 647.3L276.4 653.4L279.1 657.4L277.4 660.1L276.4 666.0L278.2 669.4L276.6 687.7L276.6 693.1L275.6 696.6L272.0 696.2L266.2 689.3L263.6 691.6L264.3 695.2L262.6 695.8L252.4 689.8L250.6 691.2L254.3 698.4L251.2 698.6L250.9 696.8L246.0 692.9L238.0 684.4L238.3 682.6L233.9 679.0L227.9 676.3L223.4 672.4L218.4 669.9L214.0 665.4L206.2 659.8L204.7 653.2L192.8 645.0L188.4 638.5L186.6 634.8L182.1 631.7L178.4 626.7L176.6 622.8L177.6 619.9L171.4 608.9L171.4 606.6L168.1 605.3L168.3 601.5L166.0 596.3L160.7 589.7L156.3 585.9L155.0 580.6L152.2 578.0L146.3 575.2L142.8 574.8L142.6 570.3L140.8 567.0L138.3 557.7L135.1 549.3L136.4 546.4L133.1 544.7L130.7 541.3L127.1 539.9L119.1 534.6L114.9 534.4L113.3 532.2L111.8 522.5L108.4 521.4L105.4 515.7L103.6 515.1L100.4 509.5L95.2 505.0L91.2 505.1L88.6 503.5L83.8 497.5L82.5 497.3L70.5 486.1L68.7 483.7L66.0 476.5L64.0 474.1L65.1 471.8L64.0 469.1L68.3 467.0L71.5 467.4L77.8 469.8L81.1 473.7L87.2 475.5L93.0 475.7L99.4 474.5L105.4 476.9L110.0 475.0L113.3 478.5L118.2 482.2L121.2 488.9L125.6 491.7L125.3 496.4L133.5 501.7L136.0 505.5L143.6 509.1L149.8 513.3L151.1 515.1L155.0 516.4L159.6 521.0L159.9 524.3L162.2 529.1L164.2 525.9L167.6 532.9L170.2 536.0L177.1 540.0ZM575.9 779.2L576.8 781.0L574.2 784.1L569.0 786.2L563.1 784.4L559.2 779.5L549.2 775.0L548.2 775.8L541.7 774.2L538.8 771.4L540.5 768.7L543.4 767.7L552.6 766.8L556.4 767.6L558.9 765.8L562.2 769.4L564.9 770.2L565.1 772.6L569.5 772.8L572.9 777.0ZM551.2 750.4L548.0 754.5L548.3 748.9ZM627.0 745.4L626.4 747.7L620.8 748.2L620.7 746.7L624.1 744.7ZM492.6 745.5L494.9 747.8L493.7 751.1L490.0 756.0L491.8 757.3L488.7 758.2L480.2 758.1L476.6 755.8L481.2 754.3L480.5 748.9L487.5 744.1ZM544.1 752.2L543.6 754.4L539.8 755.1L538.0 753.8L535.1 756.0L529.3 757.3L526.8 753.8L523.2 757.4L517.8 758.7L514.7 758.2L510.4 760.4L504.5 760.5L500.2 762.2L494.6 759.2L496.5 755.7L494.9 753.3L496.7 750.2L499.7 749.9L503.9 747.2L508.7 749.6L511.1 748.1L511.9 750.3L514.6 751.3L515.8 754.2L519.4 755.0L521.4 753.1L525.3 753.0L525.7 751.8L516.5 747.1L514.4 743.5L519.1 741.7L523.0 742.7L525.0 746.8L528.9 745.2L533.0 745.8L534.3 747.6L537.2 745.8L539.9 746.4L540.8 752.6ZM620.5 745.8L616.3 748.5L617.0 751.7L608.1 754.8L602.3 754.7L595.9 757.7L587.9 755.9L586.8 758.4L578.5 758.5L571.8 755.9L564.9 756.5L562.6 755.4L558.4 757.4L556.2 755.3L556.1 751.9L557.4 749.9L562.2 747.8L564.3 745.8L571.6 745.7L579.5 746.8L590.2 752.1L593.6 750.2L600.5 750.0L605.8 752.7L609.6 751.9L611.9 747.9L615.2 747.2L619.0 744.1L614.8 744.6L617.3 741.4L619.3 742.6ZM472.4 745.8L474.3 747.5L472.1 750.0L466.4 752.5L464.3 754.6L464.7 756.4L461.9 756.4L463.7 754.5L459.1 749.7L452.8 748.0L449.4 744.4L449.1 741.9L457.1 743.8L460.5 743.4L464.3 741.2L470.0 743.4ZM471.4 718.1L467.7 718.2L465.3 719.7L465.5 716.7ZM208.1 688.1L205.9 689.4L202.0 686.7L203.4 685.6ZM486.1 654.4L486.2 658.1L481.8 661.3L481.6 656.5L480.4 654.5L480.9 650.0L482.5 646.4L485.4 644.4ZM168.0 643.7L164.2 640.1L163.6 636.0L165.1 635.8L169.4 640.3ZM164.1 633.9L162.7 636.4L160.3 636.7L159.4 632.3L160.1 629.8ZM156.5 625.9L157.2 627.1L152.1 625.3L150.6 623.1L151.3 620.6L153.9 621.4ZM355.2 602.1L355.6 602.8L349.6 606.0L348.5 605.4L349.1 600.1L354.5 599.7ZM145.5 612.7L145.1 615.1L142.0 616.0L137.7 613.6L131.8 604.0L133.0 599.6L137.7 598.3ZM130.0 589.2L130.1 591.0L126.3 590.7L129.0 585.2ZM129.6 583.2L130.8 587.6L126.1 580.0L128.9 581.0ZM225.9 567.5L225.6 569.2L222.7 568.5L224.2 565.8ZM229.8 564.5L229.2 566.9L226.9 564.7L228.0 562.4ZM221.0 564.0L220.1 566.1L217.0 564.0L210.3 564.2L208.1 562.5L210.0 560.5L209.3 557.9L211.1 557.5L212.9 560.1L215.3 559.8ZM222.5 561.4L221.7 563.2L215.8 559.4L212.5 559.6L216.0 556.7L220.8 559.1ZM242.9 556.8L241.9 560.2L238.3 558.0ZM253.1 558.1L252.0 563.3L249.6 562.8L248.8 558.8L246.3 559.9L244.7 558.1L248.0 555.9L251.4 555.8ZM209.5 555.2L209.3 560.7L206.7 560.7L204.6 558.0L204.4 551.8ZM209.9 552.7L208.7 554.0L206.6 551.7L202.7 550.9L200.2 547.7L206.7 548.8L209.8 550.2ZM194.4 538.8L195.4 540.3L194.3 544.4L189.8 545.3L187.9 541.4L188.8 538.7L193.0 537.4ZM89.6 531.7L88.2 533.1L81.3 528.4L78.6 528.1L74.0 524.4L75.8 521.2L78.2 521.9ZM327.9 502.5L326.3 506.3L321.9 506.1L324.7 503.7L321.1 502.7L319.7 499.7L324.5 495.1L327.8 500.1ZM627.8 791.8L628.1 793.6L624.2 796.3L616.8 798.4L616.3 795.6L620.9 794.2L627.7 788.7ZM598.8 788.6L599.9 790.4L597.2 792.1L593.8 791.3ZM638.6 744.6L635.8 745.9L633.5 748.8L628.4 751.8L624.8 751.0L629.4 747.3L628.3 745.3L636.1 743.6ZM646.1 744.4L643.3 750.6L641.0 750.8L640.4 748.6L638.2 749.1L641.2 746.1L642.2 747.7L645.1 743.6ZM938.0 746.8L937.9 748.1L931.6 747.5L933.8 743.6L936.6 743.7ZM662.7 744.4L662.5 747.1L647.4 749.2L649.2 742.8L653.8 743.3L661.8 743.2ZM721.8 742.6L720.5 745.2L716.9 744.1L715.5 742.1ZM756.8 737.6L755.5 741.1L751.7 738.0L752.0 736.1ZM696.8 734.5L691.2 736.4L689.3 739.3L681.5 737.7L675.5 740.2L676.2 737.3L679.1 733.3L686.5 733.9L692.7 731.3ZM938.8 730.8L941.5 731.5L939.6 736.6L937.7 738.6L938.1 741.5L933.2 743.4L928.9 747.6L917.0 747.6L912.8 748.5L914.5 742.9L920.5 732.2L924.9 729.1L932.4 727.3L936.1 727.5ZM794.0 724.5L792.9 732.0L787.8 736.9L786.3 740.4L782.3 740.0L781.8 737.0L784.8 729.8L789.1 726.7L791.4 722.6L794.1 722.6ZM799.7 723.8L799.3 725.1L795.1 722.2L798.4 722.1ZM440.9 718.3L442.5 719.6L438.2 721.0L436.6 722.6L433.3 722.2L431.0 724.7L422.6 724.6L414.5 723.2L413.9 720.8L417.5 717.9L438.5 717.3ZM849.7 711.5L846.2 717.2L843.7 718.4L841.1 715.3L842.7 709.0L841.9 703.8L849.0 708.8ZM570.9 698.8L571.2 701.3L569.6 709.5L569.0 703.1L569.4 695.4ZM816.1 695.8L814.8 699.0L813.3 697.8L813.3 693.6ZM855.2 703.2L854.0 706.4L852.1 707.4L846.7 704.4L845.5 701.7L847.0 694.3L849.8 688.8L852.6 688.9L852.9 691.7L855.2 693.4L854.1 696.7L854.7 699.4L852.5 698.7L855.5 701.8ZM823.7 686.2L822.3 691.9L819.2 695.2L819.2 697.2L816.8 699.7L818.6 694.0L820.1 693.0L822.4 685.9ZM601.4 684.3L601.1 688.6L599.3 689.4L596.1 685.2L597.0 682.0L599.4 681.3ZM615.6 678.3L612.9 681.6L611.9 684.6L613.0 686.9L610.9 688.6L607.8 686.6L605.8 687.6L606.6 682.5L608.1 681.2L606.5 676.7L613.8 672.2ZM623.0 684.5L624.3 686.0L620.9 688.5L617.5 689.2L618.4 690.6L616.6 693.5L612.7 693.3L611.4 690.2L614.6 685.1L616.7 678.6L617.0 673.0L618.4 669.2L620.4 667.8L624.1 672.2L624.4 676.3L621.0 674.8L619.0 683.8ZM624.1 659.9L625.1 661.0L623.4 664.4L620.2 663.4L619.0 660.9L620.6 659.5ZM726.6 650.2L726.7 652.5L719.7 655.4L718.2 654.0L721.0 651.7ZM704.8 649.4L704.9 652.1L694.0 657.3L683.4 652.1L680.1 647.2L680.3 643.4L684.0 643.6L688.4 641.4L696.8 641.5L701.9 644.0L700.8 645.7L705.4 647.7ZM777.5 651.5L776.3 657.4L772.3 655.7L768.4 652.7L759.5 649.0L757.8 646.7L750.9 645.9L749.7 649.3L741.7 646.8L739.2 647.1L737.5 644.1L733.8 647.0L733.6 648.6L729.7 649.3L725.6 644.4L722.2 642.0L721.2 645.9L718.5 651.1L718.6 646.5L716.9 643.3L722.1 641.4L723.5 637.1L730.0 636.7L737.3 637.2L741.0 636.1L742.4 639.2L750.8 635.6L760.9 639.8L767.8 639.9L771.8 642.6L773.3 648.1L776.6 649.2ZM325.9 637.0L324.2 642.7L319.9 644.9L317.4 641.0L316.8 642.9L312.1 644.6L311.8 635.7L313.1 631.7L316.7 630.5L323.9 633.6ZM681.4 627.7L679.7 628.6L677.4 620.7L680.0 620.3L679.6 623.6ZM686.6 616.4L685.5 617.3L672.4 618.3L668.6 619.0L668.0 615.5L674.1 616.4L679.8 615.7ZM767.8 617.8L765.1 620.9L758.3 620.0L754.3 617.6L761.1 614.8L767.0 613.6ZM666.3 615.6L666.5 617.3L657.1 617.9L648.6 620.2L646.6 617.4L647.7 613.4L652.6 612.6ZM897.0 615.3L897.4 616.4L885.3 618.2L874.4 614.1L869.7 613.5L868.4 612.2L883.8 613.1L887.8 614.5ZM295.4 631.2L292.0 638.2L294.8 640.1L294.1 641.9L290.3 641.9L289.0 639.6L279.7 636.4L278.0 632.6L278.9 630.0L276.6 627.9L275.9 623.5L271.3 621.3L266.1 622.7L263.0 621.6L263.1 618.7L268.1 615.7L267.0 613.0L271.9 610.5L274.0 613.1L273.0 614.4L276.3 615.9L274.4 610.5L277.5 609.8L280.8 611.7L280.7 613.3L283.5 617.6L283.3 620.1L285.3 627.0L287.1 629.3ZM722.9 611.9L721.0 614.3L714.0 613.8L710.7 614.6L707.6 612.6L708.7 608.3L712.5 606.6L717.7 608.4ZM713.8 604.3L712.9 605.4L709.2 604.7L710.9 603.4ZM630.1 605.3L630.6 608.7L627.2 610.2L625.9 608.4L625.1 612.0L623.5 610.3L623.3 606.4L617.5 611.7L616.3 608.9L618.3 603.5L623.7 602.9L624.6 607.9L627.3 604.5ZM860.0 600.4L859.1 602.6L856.0 600.6L857.5 598.7ZM781.2 600.0L779.6 607.0L775.0 604.5L773.0 599.8L777.8 597.8ZM778.3 595.6L776.4 597.4L768.8 597.9L769.0 596.4L774.7 596.5ZM887.5 601.9L882.9 604.5L876.9 603.0L875.6 597.4L873.2 597.8L867.8 594.5L867.4 592.7L877.8 594.4L880.9 597.1L883.9 601.3ZM250.9 588.0L250.4 591.9L246.9 591.6L245.1 589.5L246.6 586.9ZM717.8 595.3L715.0 597.7L712.5 595.1L709.1 596.3L709.4 592.8L705.8 589.2L707.2 586.5L709.2 588.1L710.3 586.0L713.7 589.2L712.1 592.6ZM704.7 589.8L702.4 590.5L702.2 585.8L704.7 585.0ZM234.2 585.4L235.1 586.9L232.2 587.8L229.2 586.7L231.1 584.5ZM786.0 584.8L784.8 587.8L782.0 586.5L779.1 586.9L776.0 584.8L773.9 581.6L772.6 582.8L775.0 585.8L779.0 587.4L774.7 588.8L773.7 585.8L770.9 588.6L768.6 582.2L776.5 580.1L783.1 581.7ZM258.6 584.8L258.7 586.6L254.2 584.2L251.0 585.4L248.8 584.3L250.7 579.6L256.3 583.9ZM118.6 560.1L117.5 567.6L114.1 568.5L112.3 563.5L107.9 561.1L105.1 554.8L102.5 552.4L105.6 551.3L107.0 549.1L109.7 550.5L113.8 556.3ZM713.3 584.2L714.3 573.7L711.4 571.4L710.5 568.8L712.2 562.8L708.1 559.2L708.1 555.4L710.8 550.5L711.1 546.1L713.8 541.5L719.1 536.1L721.0 535.9L716.9 543.0L720.3 545.6L720.7 549.3L717.8 557.0L712.5 560.9L715.0 563.7L718.6 562.3L718.7 559.9L723.9 556.1L721.8 554.9L724.1 552.2L729.2 549.1L734.4 548.6L734.9 551.9L734.1 558.5L726.3 562.0L724.3 564.5L726.3 566.6L733.6 568.9L733.8 573.1L737.2 575.1L730.7 573.5L729.5 572.3L725.3 572.2L719.6 570.5L717.6 573.5L718.1 581.0L720.9 588.3L724.6 594.2L727.7 597.3L725.0 597.3L724.1 595.4L721.0 594.2L717.0 587.3ZM733.7 530.3L732.8 534.8L729.8 538.9L725.8 539.2L723.9 534.7L729.3 528.1L731.7 527.5ZM673.1 510.6L670.1 510.7L670.4 508.5L668.4 506.6L670.3 505.8ZM697.4 493.4L695.2 500.2L693.3 499.3L696.0 495.5L694.2 494.7L694.7 489.3L697.5 490.1ZM131.0 576.8L136.1 576.8L136.9 578.3L130.8 578.2Z",
+    "TL":"M649.0 763.6L648.7 765.8L645.1 770.0L643.9 767.5L640.6 766.8ZM658.4 759.2L662.0 755.6L662.9 752.6L678.0 749.6L681.4 750.4L688.2 748.4L691.0 749.7L696.8 747.8L699.4 746.2L703.9 746.6L706.3 748.3L700.4 753.5L691.7 756.1L688.6 759.1L683.3 759.8L678.9 762.5L672.2 763.7L667.6 765.6L661.2 769.7L659.5 763.8L662.9 763.8L661.7 759.7L659.0 761.6Z",
+    "PH":"M691.4 434.0L692.2 434.5L689.3 439.9L684.2 441.3L685.1 444.7L684.0 454.3L682.0 450.1L681.6 443.1L679.6 441.2L676.2 433.0L673.1 435.2L672.8 438.2L670.2 439.7L667.7 444.6L668.0 448.0L671.5 449.7L674.2 457.0L673.4 461.0L668.0 468.4L666.2 468.4L663.6 464.0L665.2 458.3L663.1 457.8L661.4 462.8L654.1 461.1L644.9 456.3L642.0 452.7L640.7 444.0L639.4 443.8L640.6 437.7L644.4 434.4L641.3 427.9L635.9 425.8L634.1 423.8L628.9 424.0L629.7 426.7L627.1 428.6L628.4 432.5L625.3 429.5L623.4 430.3L622.4 425.2L619.9 430.7L618.4 429.1L616.4 430.8L616.3 425.1L614.1 424.2L610.2 426.1L607.2 430.5L604.9 438.0L602.4 442.1L599.2 440.9L598.0 438.9L598.7 435.6L601.1 433.7L602.6 423.7L605.0 420.4L613.8 417.4L618.5 417.0L619.1 413.8L621.7 409.6L626.6 409.1L630.2 406.0L630.5 407.6L635.2 407.9L637.1 411.8L637.4 416.9L633.7 419.3L633.5 420.7L639.4 416.6L644.6 415.8L646.4 409.7L648.1 407.9L655.1 410.0L655.8 400.2L658.3 400.1L662.3 403.4L663.7 402.5L664.4 398.2L666.2 400.1L670.6 399.5L670.8 396.2L668.0 386.4L669.2 383.5L671.8 384.9L672.9 387.8L678.7 390.2L681.5 395.2L683.6 394.0L683.6 398.1L686.3 400.9L686.3 404.2L682.2 407.9L688.1 409.9L686.7 413.1L687.3 416.3L689.3 415.4L687.8 422.8L691.7 425.6L692.2 430.7ZM665.9 380.6L665.4 381.6L662.5 377.0L664.4 377.4ZM652.0 348.7L649.3 350.4L647.0 346.4L649.9 346.1ZM606.0 211.9L606.4 214.1L603.5 217.7L602.8 224.0L603.2 228.1L604.9 232.5L607.3 232.9L609.0 237.7L610.6 237.8L606.9 247.1L604.1 251.5L604.1 255.3L595.0 258.4L591.6 261.4L592.9 265.3L587.6 273.8L594.5 285.6L592.2 287.8L595.6 297.5L598.7 300.1L604.6 301.9L607.8 293.9L609.4 293.1L617.1 294.4L621.6 300.2L621.0 304.5L622.2 305.6L626.3 303.7L624.3 300.2L626.9 298.1L628.9 300.8L638.7 304.2L635.9 306.2L631.7 305.4L630.5 307.9L633.3 310.3L637.1 315.4L635.3 315.5L634.9 318.7L637.7 317.1L641.6 319.8L642.8 324.1L641.9 328.9L637.6 327.1L636.9 324.0L640.4 322.1L637.9 320.5L634.5 323.1L628.8 319.3L626.0 319.6L626.0 315.3L623.4 311.0L619.4 309.4L616.3 306.9L617.3 306.1L610.7 300.8L608.3 300.8L610.2 303.6L609.9 306.9L613.1 311.2L613.8 315.4L611.7 316.5L610.0 312.7L606.4 308.2L603.9 307.6L602.4 305.0L594.5 300.6L589.7 303.0L588.6 306.8L585.6 308.1L580.9 307.5L580.8 304.8L578.6 304.3L577.5 301.7L574.5 301.3L572.6 303.8L572.4 297.9L571.5 296.5L577.5 290.8L579.6 289.7L578.8 286.6L576.6 284.7L570.9 283.3L572.0 289.9L568.2 291.0L567.4 287.6L561.6 283.9L560.1 274.6L557.7 271.4L559.2 269.6L558.0 267.8L557.6 261.7L555.4 261.7L555.1 255.7L557.8 252.2L558.0 255.0L561.8 256.9L562.1 258.6L566.2 259.1L568.0 256.7L566.7 254.2L565.5 247.8L566.2 244.4L568.7 239.8L568.0 229.6L566.7 228.9L571.3 214.1L571.2 210.3L582.1 207.2L591.9 212.3L599.5 214.3L602.2 212.1L603.1 209.6ZM565.0 474.7L564.6 477.4L562.4 475.6L559.1 478.5L556.2 477.6L564.0 473.0ZM605.9 447.3L603.7 451.0L599.1 451.9L596.3 448.1L596.8 446.6L601.4 445.2ZM501.7 418.8L500.5 424.0L499.3 418.8ZM634.0 396.7L632.8 398.0L629.5 396.1L632.3 394.2ZM683.3 383.4L679.8 383.7L681.6 378.9ZM651.3 382.6L645.9 387.9L641.3 388.1L637.4 387.1L636.0 384.9L638.7 381.2L641.0 380.4L643.3 377.3L647.9 377.0L651.8 379.5ZM674.4 381.7L669.9 377.1L670.4 373.6L673.7 372.0L673.1 376.3ZM559.0 367.9L560.3 368.7L556.1 371.1L556.7 367.3ZM614.3 365.3L614.8 367.2L612.7 371.1L610.6 371.6L610.6 368.2ZM631.5 363.4L629.7 369.0L626.9 373.0L625.8 378.1L623.1 382.7L622.7 388.9L626.4 393.1L624.6 397.9L620.7 399.3L618.6 397.6L617.6 393.9L612.0 391.3L609.9 388.8L607.9 383.3L609.2 380.7L612.9 380.7L617.6 377.6L617.4 373.0L616.3 369.7L619.4 365.6L619.3 362.5L624.3 360.1L630.5 361.6ZM641.0 363.3L640.7 370.7L639.5 373.5L636.1 375.3L632.9 379.0L629.6 389.0L626.6 391.8L626.3 389.9L628.4 379.3L630.5 377.1L634.5 370.1L638.7 360.6L639.0 356.9L641.5 354.6ZM553.4 369.0L554.5 369.6L551.3 372.5L549.2 372.4L545.7 374.8L543.9 378.9L535.9 381.1L535.6 385.3L529.9 393.8L527.1 396.3L522.7 397.5L520.3 402.2L515.1 406.2L511.3 406.8L510.3 409.8L506.4 411.0L503.9 413.3L505.8 407.2L513.1 398.8L515.4 398.3L518.1 394.8L520.1 395.3L522.7 393.1L527.2 386.8L530.6 384.5L536.2 376.5L539.0 375.6L540.2 371.9L543.0 372.0L545.6 369.8L546.9 365.5L544.5 363.0L546.4 361.1L546.7 357.9L550.0 351.5L551.3 354.0L550.1 362.3L551.9 363.2L551.8 366.6ZM665.4 373.5L661.8 375.4L659.8 373.3L660.8 379.4L655.6 377.0L654.8 372.1L656.0 365.5L652.8 360.1L650.3 362.5L648.0 361.4L648.1 354.0L646.6 348.9L652.6 353.9L656.9 351.4L659.7 352.4L661.1 359.8L660.3 364.9L663.9 367.9ZM623.4 350.4L622.2 357.0L615.6 360.8L615.3 363.8L611.8 366.0L604.5 367.2L599.0 371.3L599.7 367.5L598.8 364.1L600.9 359.7L601.7 345.5L597.3 344.7L599.2 341.3L602.4 343.5L607.8 345.4L612.1 349.7L614.7 348.0L618.9 349.6L618.0 351.3L622.4 349.0ZM560.5 342.1L561.0 345.8L559.3 346.7L558.1 340.4ZM566.9 339.4L562.7 340.5L559.7 339.5L557.7 333.6L563.9 337.7L564.5 335.6ZM613.7 331.9L612.2 334.5L608.6 331.8L609.6 330.1ZM674.2 357.0L665.0 358.1L662.6 354.4L660.0 354.2L660.1 351.5L656.6 349.8L659.8 347.8L660.9 344.8L658.5 345.2L653.6 339.4L649.9 338.0L647.8 335.6L645.5 329.3L653.6 329.7L663.4 328.4L667.0 332.0L667.2 334.3L670.0 335.0L668.9 341.1L669.8 344.0L669.3 347.8L672.8 352.6L671.3 354.6ZM641.1 344.0L632.3 338.4L630.8 336.1L628.2 336.2L623.6 341.4L625.5 331.5L624.6 328.4L631.0 330.8L635.9 336.3L637.8 335.9L639.6 338.2ZM602.3 326.7L601.7 333.7L600.4 336.9L598.4 333.9L599.9 328.2ZM635.8 332.5L631.7 327.5L633.9 327.4ZM625.6 322.7L626.9 325.6L620.7 319.9L619.9 316.9L623.2 321.3ZM590.5 325.9L590.9 327.1L587.7 332.6L584.9 335.7L582.3 335.0L578.3 329.7L578.5 327.6L575.9 325.4L575.2 319.9L572.9 316.3L570.5 315.5L569.2 311.9L566.2 311.4L568.0 309.4L575.1 310.7L579.1 310.0L580.8 311.7L583.9 311.2L590.6 317.2L589.7 324.6ZM602.0 311.7L599.9 316.0L596.3 313.2L597.5 308.6L600.4 309.3ZM648.4 302.6L646.7 308.6L643.4 309.4L640.5 306.6L642.6 303.6L642.5 299.0L643.8 298.2ZM600.1 279.8L599.4 281.9L600.5 285.5L598.8 287.2L598.4 283.8L596.4 281.1L596.9 279.1ZM590.5 193.6L590.0 194.8L587.0 192.6L590.3 192.1ZM587.6 459.9L585.9 462.8L584.6 461.1L578.3 462.1L578.1 459.7L580.8 458.1L584.4 460.0Z",
+    "SG":"M239.2 552.2L236.5 554.7L232.9 553.8L234.2 551.4Z"};
+  // 小さい国は、まわりを押しても当たりにする(地図の座標で半径)
+  var TINY = { SG: { at: [103.85, 1.15], r: 34 }, BN: { at: [114.7, 4.5], r: 26 } };
+  var GHOSTS = {"CN":"M-284.0 -129.9L-291.7 -129.4L-304.5 -132.9L-308.6 -135.0L-309.2 -138.1L-316.2 -136.1L-317.7 -138.8L-321.0 -140.2L-322.0 -142.3L-319.7 -145.0L-320.5 -149.2L-324.2 -153.8L-328.6 -155.3L-331.8 -154.9L-332.4 -157.9L-338.0 -159.9L-342.6 -158.2L-344.1 -160.3L-349.1 -160.4L-352.4 -162.5L-350.3 -164.5L-345.6 -166.0L-342.1 -164.6L-336.7 -168.0L-341.1 -171.0L-342.3 -173.1L-340.7 -175.3L-342.3 -176.9L-342.1 -179.9L-344.2 -181.6L-344.6 -185.8L-343.2 -187.6L-344.5 -190.2L-353.3 -193.3L-357.8 -193.2L-359.4 -190.5L-363.7 -191.7L-366.4 -197.5L-363.4 -199.5L-368.0 -204.7L-367.3 -209.0L-363.6 -209.4L-361.4 -211.9L-363.4 -216.5L-359.9 -221.2L-352.6 -222.1L-345.1 -226.7L-343.3 -230.2L-336.2 -228.8L-330.4 -232.3L-328.2 -232.3L-326.4 -225.8L-321.5 -226.2L-315.1 -228.8L-313.4 -226.9L-311.0 -228.3L-307.5 -232.6L-304.7 -238.9L-299.9 -240.9L-290.5 -239.6L-282.7 -241.3L-278.5 -240.8L-272.8 -245.8L-272.8 -247.5L-267.1 -250.5L-253.9 -255.8L-251.8 -255.6L-245.1 -257.6L-243.1 -260.0L-236.4 -260.4L-235.8 -263.8L-234.6 -264.8L-237.2 -272.9L-235.1 -276.3L-229.5 -277.4L-232.6 -280.6L-228.5 -282.4L-224.1 -283.0L-227.1 -286.5L-225.8 -289.2L-231.9 -301.0L-233.1 -302.1L-232.9 -313.1L-230.5 -314.7L-235.6 -316.4L-240.2 -315.9L-242.8 -318.1L-238.7 -320.4L-232.2 -320.9L-226.1 -322.9L-222.9 -322.5L-205.2 -326.8L-204.3 -324.2L-201.0 -322.9L-194.1 -324.5L-190.5 -322.3L-188.3 -323.5L-187.3 -328.3L-194.2 -330.7L-190.2 -338.0L-188.6 -343.9L-186.2 -347.2L-183.2 -354.6L-180.3 -358.9L-179.7 -363.9L-177.0 -364.2L-169.5 -361.3L-161.9 -359.5L-156.9 -359.9L-146.7 -359.7L-145.2 -356.3L-141.7 -357.0L-135.9 -360.7L-130.0 -361.0L-126.8 -364.1L-126.6 -367.7L-129.7 -378.4L-128.3 -382.8L-124.3 -388.1L-116.2 -388.4L-109.1 -390.3L-105.1 -394.1L-104.2 -396.8L-105.8 -399.1L-103.2 -401.9L-97.7 -402.6L-93.5 -401.7L-83.7 -403.3L-82.6 -399.4L-85.2 -397.4L-78.9 -393.5L-79.7 -390.8L-73.4 -389.1L-68.7 -386.9L-68.5 -384.6L-63.9 -382.1L-61.3 -381.9L-59.1 -379.9L-53.3 -380.6L-48.6 -380.4L-45.0 -376.5L-39.1 -377.6L-38.4 -375.1L-33.1 -373.2L-31.2 -369.9L-30.7 -366.2L-25.8 -360.3L-23.0 -359.5L-19.9 -354.8L-19.1 -351.0L-22.1 -346.0L-19.9 -340.4L-25.8 -335.1L-27.0 -329.9L-25.3 -328.8L-21.9 -323.7L-17.3 -324.0L-9.3 -321.4L0.9 -321.5L3.9 -320.3L9.5 -320.0L15.1 -320.8L23.3 -320.2L30.5 -319.0L34.3 -317.5L39.5 -313.2L43.9 -313.1L46.7 -310.2L51.8 -308.7L53.9 -306.9L60.7 -305.1L67.6 -305.7L66.5 -300.1L70.2 -299.6L76.6 -288.2L77.5 -284.9L85.9 -278.7L87.0 -274.8L89.5 -274.6L103.8 -275.7L149.5 -271.3L160.4 -273.5L184.4 -270.6L192.8 -270.3L197.7 -265.5L200.7 -263.7L221.5 -260.1L234.4 -255.1L250.0 -257.4L249.9 -253.3L257.8 -252.9L260.3 -251.9L264.0 -254.9L277.4 -259.9L295.4 -265.7L323.5 -269.1L336.0 -268.0L339.9 -269.0L349.7 -269.0L353.3 -271.0L361.5 -272.9L368.2 -275.4L378.7 -285.7L381.9 -287.3L391.9 -290.5L395.1 -293.3L398.7 -293.9L396.8 -298.8L390.9 -303.1L388.1 -308.3L394.8 -319.3L400.2 -321.7L408.8 -321.0L412.3 -318.2L422.1 -315.9L432.1 -314.8L437.8 -318.2L440.4 -318.5L448.4 -324.0L450.7 -327.7L454.8 -328.5L458.8 -327.5L466.7 -327.9L472.8 -328.9L480.3 -333.6L483.4 -334.2L484.3 -338.2L487.2 -342.1L492.1 -346.2L496.3 -347.7L506.0 -347.0L508.3 -350.5L511.1 -352.0L514.0 -350.2L525.4 -354.5L534.4 -353.5L536.3 -355.2L541.2 -353.2L546.4 -352.2L553.6 -351.8L558.1 -354.2L557.9 -358.1L555.1 -361.9L543.1 -370.3L541.7 -373.2L535.3 -375.1L530.9 -379.3L523.7 -380.6L514.8 -379.6L507.2 -373.0L501.4 -376.2L497.0 -377.4L488.6 -376.7L484.9 -377.3L478.3 -373.7L472.0 -377.7L470.3 -382.6L476.2 -385.5L476.0 -390.6L480.5 -395.3L480.8 -397.4L493.7 -416.5L501.1 -413.5L509.5 -412.3L515.2 -410.3L523.4 -413.4L531.4 -418.4L544.2 -420.3L546.4 -421.8L547.1 -426.9L542.7 -427.6L544.8 -428.9L545.9 -432.0L550.0 -434.7L550.4 -438.1L554.9 -441.4L556.3 -445.4L558.3 -446.6L561.7 -452.9L569.8 -457.5L573.2 -458.5L575.6 -462.3L574.8 -465.1L572.5 -466.9L574.5 -470.8L569.1 -472.8L563.5 -471.7L560.6 -472.8L560.7 -475.2L565.4 -477.2L569.0 -480.2L577.5 -485.6L584.1 -485.5L597.8 -488.6L601.7 -488.6L606.3 -489.9L609.4 -489.3L617.2 -489.5L625.1 -491.3L629.7 -490.4L632.3 -491.3L639.4 -489.1L642.4 -487.1L644.6 -487.6L646.9 -485.4L658.0 -482.4L657.6 -483.4L662.6 -484.1L674.7 -479.6L673.4 -477.6L676.7 -478.1L679.6 -475.3L679.6 -473.1L684.2 -470.7L688.8 -465.5L686.3 -464.0L690.6 -463.0L688.9 -459.6L692.9 -454.8L693.5 -451.8L696.1 -450.7L696.0 -448.4L699.6 -445.9L698.1 -443.9L698.6 -441.3L702.9 -438.1L707.3 -431.1L705.8 -429.3L707.1 -426.0L711.6 -424.4L709.7 -420.5L710.2 -416.4L713.6 -414.8L714.4 -413.0L721.3 -410.9L727.7 -411.6L735.9 -411.4L735.0 -409.7L740.3 -408.6L742.3 -407.0L750.4 -407.9L751.4 -405.6L754.2 -405.5L758.3 -400.8L765.0 -397.3L767.8 -397.9L773.5 -397.4L770.6 -392.7L772.8 -389.6L776.5 -386.7L773.7 -381.0L778.1 -377.7L778.8 -374.4L780.9 -373.6L788.4 -374.9L791.7 -373.3L798.1 -373.3L806.6 -374.7L811.0 -374.3L813.5 -379.0L816.1 -378.7L821.8 -382.1L829.2 -381.8L834.4 -384.9L847.8 -387.6L854.4 -385.3L851.2 -380.2L855.5 -374.2L849.7 -368.6L846.2 -368.4L843.1 -365.1L844.5 -362.3L842.3 -361.1L840.4 -356.7L840.1 -352.9L837.0 -349.6L838.5 -348.2L838.0 -345.2L833.8 -342.9L833.1 -338.7L829.5 -336.4L829.8 -333.7L827.5 -331.5L823.8 -330.1L822.0 -324.9L822.3 -322.5L819.1 -320.5L799.4 -324.7L796.3 -326.6L792.1 -323.3L792.2 -321.8L788.7 -319.2L781.0 -318.2L778.7 -316.8L781.3 -313.6L785.3 -301.1L783.4 -295.6L783.3 -290.4L785.6 -287.6L781.6 -280.6L782.1 -278.2L779.9 -277.0L775.4 -277.3L768.1 -274.7L771.7 -272.0L770.6 -270.6L764.9 -274.9L764.8 -278.0L762.4 -279.6L757.2 -279.4L755.2 -274.9L754.1 -268.9L750.9 -267.4L746.8 -268.9L744.9 -267.6L744.3 -264.5L738.1 -260.5L734.4 -261.0L730.0 -259.9L725.2 -260.7L720.7 -259.9L720.8 -257.6L726.1 -251.7L722.9 -247.5L718.1 -249.3L712.7 -248.6L702.1 -250.8L700.7 -254.6L698.2 -255.9L695.8 -253.9L692.4 -253.3L689.4 -247.3L685.2 -242.9L682.9 -241.8L680.3 -238.2L675.2 -237.7L669.5 -234.4L668.3 -232.6L657.9 -229.7L647.4 -222.0L644.1 -217.6L639.7 -216.2L634.4 -216.6L632.6 -218.1L632.0 -215.8L628.6 -214.5L628.2 -216.5L624.7 -216.0L625.3 -214.0L617.0 -212.4L611.7 -209.4L607.9 -208.2L602.3 -204.0L602.5 -202.8L597.2 -198.9L595.5 -200.4L591.7 -198.8L593.9 -197.3L586.9 -196.3L583.9 -194.6L582.3 -195.4L582.4 -198.9L586.7 -199.4L593.5 -201.8L592.0 -204.4L595.6 -207.4L591.0 -207.2L588.7 -210.2L584.4 -210.6L590.5 -213.1L589.1 -215.0L590.7 -217.2L595.5 -218.4L599.9 -222.5L602.2 -226.2L606.0 -230.1L601.0 -234.9L597.0 -236.6L596.5 -239.0L594.8 -237.0L591.5 -236.8L587.3 -238.8L583.5 -238.4L576.5 -233.5L572.1 -229.3L568.7 -223.9L559.0 -221.1L558.2 -220.0L550.7 -217.8L546.8 -214.3L545.2 -210.7L546.1 -208.6L540.3 -203.8L530.5 -203.0L526.9 -200.6L524.7 -201.0L520.9 -204.4L514.3 -202.2L514.2 -199.6L511.7 -196.2L511.6 -191.7L516.8 -185.4L521.7 -182.8L524.3 -182.9L530.9 -181.4L533.1 -182.9L536.8 -183.0L545.1 -173.4L540.7 -174.4L539.5 -172.2L539.2 -165.9L542.9 -163.6L548.8 -162.4L555.4 -163.1L557.9 -165.0L557.2 -167.2L561.2 -168.8L565.9 -172.0L566.2 -173.7L574.8 -176.7L578.5 -176.4L582.8 -174.0L583.1 -171.7L587.6 -171.3L591.9 -168.5L598.8 -169.3L602.4 -171.3L603.7 -168.4L613.7 -168.2L611.4 -166.9L612.6 -163.9L608.7 -162.0L610.5 -158.9L606.4 -156.5L604.0 -156.8L600.6 -159.7L592.7 -156.6L592.2 -154.8L589.1 -155.2L583.1 -153.4L580.5 -151.7L577.0 -153.0L578.8 -150.2L577.0 -147.7L575.0 -149.2L572.9 -146.4L573.9 -142.9L567.1 -140.8L567.2 -143.8L562.2 -144.5L562.0 -141.9L563.7 -139.7L566.1 -139.9L558.7 -135.2L558.1 -132.5L553.1 -131.8L551.0 -127.6L548.6 -126.4L547.1 -122.0L543.8 -120.0L543.8 -114.4L546.9 -115.6L552.8 -111.0L558.8 -109.2L565.1 -106.2L568.0 -97.6L570.0 -95.1L569.7 -93.0L572.6 -89.6L574.6 -84.1L577.8 -80.5L577.2 -73.4L582.4 -70.1L587.1 -68.3L588.8 -62.3L593.1 -61.3L596.5 -59.0L598.6 -54.5L593.5 -54.5L585.7 -57.8L582.3 -55.9L579.5 -56.3L576.2 -60.5L569.8 -61.6L565.4 -59.0L559.8 -60.3L557.5 -65.3L553.8 -66.4L555.7 -62.3L560.1 -59.0L564.6 -58.2L569.1 -60.4L575.0 -59.6L576.5 -56.6L574.9 -56.0L581.3 -54.5L586.4 -50.1L594.5 -45.6L599.6 -38.3L598.1 -37.2L592.7 -36.7L588.2 -35.4L579.5 -30.9L578.8 -28.4L575.7 -25.9L573.9 -27.9L574.0 -25.0L577.9 -23.4L583.0 -26.5L587.5 -26.5L593.6 -20.0L598.7 -17.7L602.7 -17.7L597.7 -15.2L594.1 -11.5L588.8 -10.5L588.8 -8.3L598.3 -12.8L599.4 -9.0L598.0 -6.0L598.8 -3.9L593.1 -3.7L592.5 -6.0L590.5 -5.5L588.0 -2.1L592.4 -2.3L593.7 1.7L590.0 1.0L593.4 3.5L590.2 6.9L593.2 13.2L590.0 13.3L586.6 17.1L583.7 12.4L579.3 20.3L576.4 20.2L577.4 22.4L574.4 25.7L572.7 24.7L573.6 30.1L571.2 31.9L570.3 36.0L565.6 38.7L564.2 41.7L560.5 43.3L562.6 44.1L561.6 47.1L559.7 46.9L561.5 44.3L559.0 44.1L557.2 46.9L555.9 43.2L553.9 45.8L551.7 44.1L552.0 48.6L555.7 48.5L555.9 51.7L553.3 50.1L553.6 53.7L556.5 51.5L557.5 53.7L553.1 54.5L549.2 60.3L544.3 58.0L544.9 60.7L546.9 61.2L551.3 59.0L554.0 60.5L551.7 63.6L551.6 66.4L548.9 66.3L552.9 71.8L545.6 68.6L542.0 71.6L547.1 74.8L545.8 76.2L542.0 76.1L539.7 74.3L537.1 78.0L539.9 80.9L534.3 83.1L533.3 80.9L532.7 84.6L535.2 84.6L533.0 88.6L528.6 87.4L524.4 89.2L523.2 86.8L519.9 91.0L515.8 90.8L518.1 92.3L520.9 91.9L522.5 94.8L519.4 96.8L517.8 99.5L514.2 99.3L511.9 105.3L511.4 101.9L509.3 104.2L505.8 104.2L504.8 107.9L501.7 109.0L500.7 106.8L498.3 106.7L497.3 111.0L495.5 113.0L490.4 111.8L491.8 113.7L494.9 113.5L492.9 116.7L492.2 115.2L489.9 121.2L485.9 120.7L481.9 123.5L481.8 122.2L475.9 124.9L473.9 123.0L471.2 123.0L471.5 126.6L464.6 124.2L461.3 124.1L457.6 128.8L455.1 128.2L455.5 123.7L451.2 125.4L450.2 127.1L452.2 129.9L450.0 131.0L447.9 127.7L444.6 128.9L441.7 129.4L437.8 131.0L435.2 124.9L433.1 124.8L431.7 118.0L429.9 118.7L429.5 121.6L427.0 122.2L432.0 128.5L430.9 131.2L432.2 132.6L430.6 136.0L426.0 136.3L425.0 138.9L422.4 138.7L422.2 135.6L420.5 137.1L420.6 140.8L417.6 142.5L414.9 141.4L411.6 144.7L408.8 143.4L404.9 145.9L404.1 143.9L400.6 144.1L395.6 146.5L392.6 149.4L388.7 149.3L375.4 152.0L372.3 154.0L372.8 155.4L368.7 156.2L363.1 160.3L363.1 163.0L367.4 163.0L366.0 166.9L370.7 170.4L368.0 174.0L358.3 175.0L357.3 171.9L359.5 172.9L358.6 169.9L356.4 169.7L355.5 163.6L353.2 161.5L355.3 152.9L358.5 152.7L358.9 150.1L354.8 150.5L352.2 148.5L351.4 144.8L349.9 146.0L351.4 148.4L350.6 150.2L343.1 151.9L341.0 151.3L342.7 147.9L336.4 147.1L331.4 143.7L331.1 141.0L329.0 142.7L329.4 146.6L326.8 146.1L325.0 148.1L319.8 150.3L316.7 147.2L307.0 148.0L305.4 145.6L303.4 145.7L299.8 143.1L300.4 141.7L294.4 139.8L292.7 133.8L290.5 131.4L292.1 127.8L293.6 128.4L295.8 124.1L289.7 121.5L286.3 122.9L284.1 121.1L280.0 120.5L277.1 121.9L273.8 119.1L271.3 118.9L268.6 114.7L265.8 112.7L264.3 114.7L257.4 116.7L256.0 118.3L256.5 121.5L253.7 123.8L251.1 123.3L246.8 126.3L244.8 123.5L241.4 124.3L239.2 129.8L232.9 124.0L229.7 128.3L226.2 124.2L220.9 131.2L218.0 130.5L216.7 128.0L209.3 124.6L204.4 131.8L202.4 132.0L200.3 131.1L197.4 132.4L195.1 130.1L190.3 135.1L192.1 140.7L195.1 143.9L196.1 147.5L194.7 148.6L194.3 153.6L196.4 155.0L194.1 157.3L189.9 155.1L185.2 156.4L183.2 149.0L181.7 144.7L176.7 146.8L172.5 150.6L169.1 150.9L166.6 149.5L163.7 151.4L161.7 148.7L163.0 147.0L159.0 145.6L158.8 139.1L142.9 136.9L144.9 132.1L147.2 130.1L146.2 125.1L148.6 121.3L150.8 121.5L149.6 118.7L146.2 117.5L144.5 118.9L140.6 116.8L137.2 116.4L138.2 114.0L135.7 109.0L137.2 107.9L135.9 104.8L133.3 104.0L133.1 100.8L137.3 97.1L131.7 98.5L130.0 97.6L123.6 97.6L117.8 99.6L112.5 103.1L110.3 101.1L114.1 97.5L114.4 94.5L112.8 91.2L110.4 91.4L110.8 85.1L115.4 82.9L114.1 78.5L116.4 74.8L117.8 75.9L122.2 72.2L122.8 67.8L127.2 68.1L129.3 64.1L133.9 62.4L131.6 60.3L131.0 57.6L132.9 58.0L132.9 55.1L135.1 47.5L134.3 42.8L134.7 38.6L133.5 28.3L128.2 26.3L125.9 29.3L122.1 20.5L122.6 17.5L117.2 12.6L114.8 12.4L114.0 10.2L110.9 9.2L109.0 14.0L106.5 15.7L102.3 12.7L99.3 13.4L94.0 8.2L92.2 7.8L89.9 11.6L88.7 7.8L92.0 5.8L91.5 3.8L87.1 -2.0L83.9 -0.5L83.5 -2.2L86.3 -3.4L86.8 -5.6L84.1 -5.1L82.8 -7.4L74.9 -6.8L74.3 -4.4L71.9 -5.0L70.2 -2.6L66.1 -2.7L65.6 -1.1L55.4 -4.3L52.6 -6.4L47.9 -4.2L45.4 -2.0L47.0 -0.5L42.7 2.1L32.5 6.5L29.0 6.5L23.1 10.1L22.3 12.2L16.7 16.3L14.1 16.9L13.3 21.2L6.1 24.3L2.1 23.8L-0.5 25.5L-7.3 24.8L-7.0 21.7L-11.6 20.1L-14.2 18.2L-18.1 20.6L-26.3 18.3L-30.5 18.5L-28.2 15.3L-35.5 12.8L-42.8 14.1L-44.9 16.3L-48.8 17.3L-52.6 21.8L-55.5 23.8L-57.6 27.6L-60.5 29.4L-60.0 33.4L-62.1 33.7L-64.5 31.8L-65.1 29.1L-62.9 23.1L-63.6 20.1L-68.1 17.9L-72.4 20.4L-77.5 21.0L-77.6 22.8L-83.5 21.9L-85.5 23.8L-92.3 23.9L-97.7 23.1L-99.9 21.0L-109.1 18.1L-111.2 21.8L-115.9 20.0L-116.9 16.9L-118.6 18.5L-117.7 21.5L-120.7 22.2L-123.0 16.8L-126.1 13.3L-127.8 15.0L-133.1 14.8L-138.4 13.6L-136.8 8.1L-138.9 7.2L-141.6 9.3L-146.4 7.9L-147.7 6.1L-151.0 5.3L-155.3 2.0L-155.4 -0.5L-158.2 -5.1L-161.3 -5.8L-169.7 -3.8L-173.4 -9.7L-176.7 -12.5L-178.4 -11.6L-182.0 -13.8L-183.3 -13.2L-189.1 -18.5L-197.1 -21.4L-198.6 -26.8L-204.4 -27.2L-207.7 -28.3L-209.6 -26.6L-212.2 -27.5L-213.0 -23.1L-215.6 -20.2L-218.1 -20.3L-220.1 -23.9L-226.1 -28.2L-233.5 -30.9L-236.4 -31.2L-235.4 -34.5L-238.7 -35.7L-243.0 -39.1L-248.2 -38.8L-254.4 -42.8L-256.1 -46.7L-258.8 -48.7L-260.5 -46.4L-264.3 -45.8L-266.0 -50.2L-263.7 -52.1L-266.6 -55.4L-265.1 -59.3L-270.9 -64.6L-270.9 -68.3L-272.4 -70.6L-265.7 -72.7L-264.6 -69.2L-261.8 -67.1L-258.5 -67.4L-257.7 -69.4L-254.1 -69.9L-250.5 -72.9L-250.0 -74.9L-253.4 -79.9L-253.1 -83.6L-260.6 -86.2L-264.4 -91.1L-264.1 -94.9L-265.4 -101.6L-261.9 -103.2L-260.3 -105.7L-261.6 -107.4L-267.8 -110.9L-272.4 -111.6L-274.5 -113.2L-277.4 -121.1L-280.0 -125.4L-278.9 -129.0L-282.4 -128.6ZM380.2 186.3L376.4 188.9L373.4 192.4L369.4 204.4L368.1 206.7L365.4 206.6L362.0 209.2L360.8 212.4L354.9 212.1L354.5 213.9L351.2 216.5L351.2 214.8L343.2 214.2L333.9 209.9L333.9 205.6L332.4 203.0L332.5 194.5L340.3 188.0L345.5 185.4L343.3 183.9L346.0 181.6L349.3 183.3L351.9 180.1L354.4 179.8L359.5 181.3L363.1 178.6L371.5 180.0L373.6 176.7L375.8 179.8L378.7 180.1ZM596.9 -52.1L599.6 -50.8L597.0 -48.8L586.9 -52.8L583.5 -55.7L585.3 -56.8L592.8 -53.3Z",
+    "IN":"M-284.0 -129.9L-282.4 -128.6L-278.9 -129.0L-280.0 -125.4L-277.4 -121.1L-274.5 -113.2L-272.4 -111.6L-267.8 -110.9L-261.6 -107.4L-260.3 -105.7L-261.9 -103.2L-265.4 -101.6L-264.1 -94.9L-264.4 -91.1L-260.6 -86.2L-253.1 -83.6L-253.4 -79.9L-250.0 -74.9L-250.5 -72.9L-254.1 -69.9L-257.7 -69.4L-258.5 -67.4L-261.8 -67.1L-264.6 -69.2L-265.7 -72.7L-272.4 -70.6L-270.9 -68.3L-270.9 -64.6L-265.1 -59.3L-266.6 -55.4L-263.7 -52.1L-266.0 -50.2L-264.3 -45.8L-260.5 -46.4L-258.8 -48.7L-256.1 -46.7L-254.4 -42.8L-248.2 -38.8L-243.0 -39.1L-238.7 -35.7L-235.4 -34.5L-236.4 -31.2L-233.5 -30.9L-226.1 -28.2L-220.1 -23.9L-223.0 -22.9L-230.5 -16.1L-232.6 -15.2L-232.3 -12.5L-235.7 -8.3L-234.4 -6.2L-235.6 -2.5L-237.4 -2.2L-239.2 3.3L-230.1 8.5L-230.0 6.6L-220.0 12.1L-217.1 12.6L-213.8 17.5L-210.5 18.7L-202.3 23.0L-199.0 21.9L-191.9 26.5L-187.0 25.9L-185.4 29.6L-177.3 31.1L-173.9 33.4L-172.3 30.6L-168.2 30.9L-162.9 33.1L-163.3 31.3L-158.4 29.8L-154.2 32.5L-148.5 33.4L-147.0 35.2L-147.2 39.4L-142.0 40.7L-139.6 43.1L-136.8 43.0L-134.3 45.3L-128.0 42.9L-126.3 43.8L-125.8 46.9L-123.4 48.7L-119.8 46.9L-114.3 47.7L-105.8 51.7L-99.4 48.4L-97.9 51.9L-93.4 53.0L-90.4 51.5L-88.3 52.4L-82.9 50.8L-79.8 52.6L-76.6 45.1L-77.0 42.8L-80.6 37.8L-79.4 34.0L-79.5 30.1L-76.8 24.5L-77.6 22.8L-77.5 21.0L-72.4 20.4L-68.1 17.9L-63.6 20.1L-62.9 23.1L-65.1 29.1L-64.5 31.8L-62.1 33.7L-65.4 37.0L-63.4 38.1L-63.0 41.1L-56.3 43.8L-53.2 42.9L-44.9 46.0L-37.4 45.0L-36.4 43.4L-32.3 42.2L-28.2 44.4L-13.4 44.3L-10.8 42.6L-6.0 43.9L-2.1 42.4L0.7 42.9L1.7 41.3L-0.3 37.9L1.7 33.9L-0.5 30.6L-5.0 31.7L-8.1 29.1L-7.3 24.8L-0.5 25.5L2.1 23.8L6.1 24.3L13.3 21.2L14.1 16.9L16.7 16.3L22.3 12.2L23.1 10.1L29.0 6.5L32.5 6.5L42.7 2.1L47.0 -0.5L45.4 -2.0L47.9 -4.2L52.6 -6.4L55.4 -4.3L65.6 -1.1L66.1 -2.7L70.2 -2.6L71.9 -5.0L74.3 -4.4L74.9 -6.8L82.8 -7.4L84.1 -5.1L86.8 -5.6L86.3 -3.4L83.5 -2.2L83.9 -0.5L87.1 -2.0L91.5 3.8L92.0 5.8L88.7 7.8L89.9 11.6L92.2 7.8L94.0 8.2L99.3 13.4L102.3 12.7L106.5 15.7L106.8 22.0L104.5 22.0L97.2 28.0L98.1 31.8L102.0 36.3L102.4 38.3L96.9 36.2L95.2 33.2L82.9 34.8L80.3 36.2L77.8 39.5L75.5 40.1L67.8 46.2L64.5 46.6L60.8 50.5L61.8 57.9L62.8 59.4L60.0 61.6L60.2 65.2L55.3 70.2L52.1 72.1L51.0 75.1L54.3 78.7L51.4 85.7L50.3 85.9L45.9 93.3L43.8 100.1L42.0 103.1L40.0 101.6L32.3 99.8L29.1 100.8L26.9 98.2L26.2 100.5L28.7 107.1L27.5 117.4L26.0 119.6L22.8 119.4L23.6 122.0L21.6 124.5L22.0 129.7L23.3 132.3L22.4 136.4L20.5 136.0L19.6 140.1L13.7 136.9L11.5 140.5L11.5 136.6L10.0 126.1L7.1 120.8L7.0 112.9L5.1 107.8L3.0 105.4L0.9 107.1L-1.3 105.5L-1.2 110.1L-5.1 114.5L-4.1 118.2L-8.3 121.1L-10.7 116.3L-12.6 114.8L-12.6 118.7L-14.0 117.1L-15.6 110.4L-17.2 107.8L-15.7 101.8L-12.7 98.0L-6.0 97.2L-5.3 95.3L-2.4 96.9L-1.6 93.1L2.2 91.9L5.1 81.9L7.6 83.3L9.9 82.1L6.1 78.5L0.7 76.4L-10.6 77.3L-15.3 75.9L-23.5 77.2L-27.6 76.6L-32.7 77.0L-41.8 74.1L-43.6 74.3L-43.3 67.3L-44.3 63.2L-43.3 61.4L-46.9 55.6L-48.7 57.1L-49.2 60.8L-53.7 59.9L-57.4 57.3L-58.1 53.3L-61.2 51.2L-62.2 52.3L-59.2 55.0L-63.9 55.3L-66.9 51.7L-72.1 48.8L-71.3 50.7L-73.3 55.4L-76.7 57.2L-78.5 61.8L-77.5 64.5L-75.4 63.9L-71.6 66.9L-69.4 70.0L-63.7 70.8L-63.6 72.8L-60.5 74.0L-61.5 76.7L-71.2 76.2L-71.5 79.0L-73.7 82.6L-75.9 81.1L-79.5 87.1L-77.2 90.1L-70.5 93.7L-65.0 95.5L-66.4 96.9L-65.7 101.5L-68.5 102.9L-69.2 107.2L-64.6 110.7L-66.3 114.1L-60.9 116.3L-63.1 120.7L-61.0 123.3L-61.8 125.2L-58.8 137.4L-59.8 141.9L-58.3 146.5L-60.0 147.9L-66.3 146.1L-65.4 139.3L-68.7 143.0L-67.5 144.4L-68.5 148.8L-69.4 146.8L-74.7 144.5L-73.9 148.6L-76.4 146.3L-77.1 140.8L-76.5 137.6L-80.3 142.9L-86.0 146.9L-96.0 149.0L-101.7 153.5L-103.2 156.5L-100.1 166.6L-104.5 169.8L-105.7 174.3L-109.8 176.0L-112.5 180.7L-118.4 183.1L-127.7 185.4L-128.6 182.5L-130.7 182.0L-135.6 185.3L-137.8 189.2L-135.3 188.9L-135.1 186.9L-132.2 186.2L-133.3 188.5L-142.5 195.6L-151.3 207.1L-158.5 214.6L-167.7 219.1L-175.2 228.2L-190.5 235.9L-194.0 239.4L-194.7 242.6L-192.7 242.8L-193.9 248.4L-200.1 251.8L-205.6 253.8L-211.7 252.3L-215.1 253.6L-217.0 260.6L-220.1 264.3L-222.2 262.1L-226.2 262.0L-232.8 264.5L-234.4 266.0L-238.2 273.9L-239.0 278.1L-237.8 285.9L-236.1 288.7L-237.4 294.9L-237.0 299.4L-235.3 303.2L-235.6 306.1L-233.8 310.4L-237.2 305.4L-239.0 307.6L-233.1 313.0L-234.7 323.3L-236.9 330.5L-242.8 339.6L-244.9 348.0L-244.3 351.5L-246.1 353.9L-243.3 353.1L-242.7 372.4L-244.8 374.8L-252.1 373.5L-255.2 376.4L-254.4 379.3L-260.4 386.6L-261.7 390.9L-259.2 393.7L-253.6 393.5L-251.2 397.0L-254.1 395.0L-260.8 394.5L-267.6 397.2L-271.8 398.0L-275.2 400.7L-277.7 406.8L-277.4 410.3L-278.9 412.7L-289.8 418.5L-293.7 417.4L-300.1 412.7L-308.8 402.2L-313.8 390.1L-314.2 381.8L-312.1 386.4L-312.8 381.7L-314.1 381.0L-316.9 375.6L-318.9 369.7L-321.6 364.5L-323.3 358.0L-329.4 346.1L-336.2 339.6L-343.6 322.8L-347.7 303.3L-350.1 299.4L-352.4 289.1L-354.0 289.5L-354.7 286.0L-357.8 284.4L-359.3 280.1L-361.7 278.4L-362.1 273.1L-364.1 271.0L-368.3 261.9L-371.1 258.6L-373.9 248.7L-375.0 234.3L-376.7 231.7L-377.6 225.3L-379.6 221.0L-381.7 212.9L-381.6 208.9L-382.9 204.3L-379.6 203.7L-382.1 202.1L-381.3 199.3L-384.6 201.0L-384.1 189.5L-385.6 187.9L-387.0 183.2L-385.0 174.4L-382.4 169.8L-382.7 162.1L-386.0 158.5L-385.3 156.0L-387.9 154.7L-387.6 150.2L-381.4 146.3L-389.4 145.7L-387.3 141.3L-389.9 140.8L-388.2 135.9L-385.0 136.7L-384.9 135.1L-388.9 134.3L-393.9 135.4L-393.8 138.4L-397.0 140.1L-396.7 144.1L-394.1 146.8L-395.1 150.4L-397.6 153.6L-397.9 155.9L-410.7 162.3L-420.5 165.8L-423.2 165.9L-429.2 163.9L-433.3 161.5L-438.8 157.0L-447.4 147.7L-456.0 140.4L-460.1 135.9L-460.4 131.6L-456.4 131.4L-455.8 134.5L-444.1 131.6L-440.8 129.3L-437.1 129.0L-432.5 121.9L-429.4 119.1L-430.6 117.4L-432.0 121.1L-437.5 120.5L-437.6 121.5L-443.4 122.8L-445.5 124.9L-456.0 123.0L-462.7 119.6L-467.8 115.9L-467.8 113.5L-471.5 111.1L-471.8 107.6L-466.6 103.7L-471.8 106.0L-473.5 108.3L-476.8 108.0L-474.5 106.7L-476.3 103.2L-474.5 101.2L-465.5 100.7L-465.5 94.2L-463.0 95.1L-454.4 94.3L-448.8 94.5L-446.6 96.2L-440.6 96.7L-437.8 93.9L-428.7 91.5L-428.8 94.3L-424.9 95.4L-421.6 92.8L-418.3 91.8L-420.5 90.6L-420.5 87.2L-418.7 86.4L-422.1 80.0L-422.8 77.2L-427.1 71.4L-427.4 66.0L-434.7 66.1L-438.7 60.4L-437.0 54.9L-436.8 49.4L-438.9 48.2L-443.7 48.4L-449.9 45.3L-450.7 43.8L-448.5 36.2L-443.0 31.8L-439.7 28.0L-438.0 23.8L-433.5 20.0L-429.8 19.4L-427.3 21.4L-425.8 25.2L-423.3 26.0L-413.8 22.8L-408.8 22.6L-402.8 21.0L-402.2 18.1L-397.0 12.9L-394.4 6.2L-392.4 4.3L-381.9 -0.4L-375.3 -10.7L-372.6 -18.5L-365.2 -21.0L-361.1 -23.8L-363.2 -27.1L-356.7 -33.3L-353.4 -38.0L-352.0 -37.9L-346.8 -41.7L-349.8 -43.1L-347.7 -49.5L-350.2 -54.2L-348.7 -56.8L-343.4 -60.5L-339.2 -62.0L-336.5 -61.7L-332.8 -65.3L-335.4 -67.6L-339.5 -69.3L-345.5 -69.2L-347.4 -71.8L-346.3 -76.6L-348.1 -75.1L-352.6 -75.3L-353.6 -79.4L-360.0 -83.6L-358.0 -86.6L-357.2 -91.0L-360.5 -93.0L-359.3 -96.6L-354.7 -98.6L-355.5 -100.3L-361.1 -100.2L-362.1 -102.3L-360.1 -103.5L-361.2 -106.1L-364.5 -107.4L-361.5 -111.3L-361.6 -112.8L-354.3 -115.4L-339.6 -112.6L-335.7 -112.9L-333.1 -111.1L-327.7 -110.0L-324.1 -110.2L-318.8 -113.7L-314.8 -113.7L-312.0 -115.0L-308.9 -114.5L-305.1 -116.4L-304.8 -118.3L-301.6 -118.4L-299.0 -122.2ZM38.4 439.5L38.0 443.9L36.7 445.1L35.3 441.5L33.0 439.7L33.5 436.4L37.3 436.0ZM11.7 364.6L10.7 369.5L7.6 369.2L7.5 364.3L10.5 362.1ZM21.0 314.3L20.4 319.3L18.7 318.7L19.8 329.6L17.9 335.7L14.9 340.1L15.9 342.7L14.3 350.1L12.4 347.8L10.7 343.0L12.4 342.5L12.9 336.9L15.7 336.2L14.4 333.3L14.8 323.9L16.0 322.9L17.3 315.3L16.8 313.5L18.9 309.3L21.3 309.2Z",
+    "BD":"M11.5 140.5L12.0 151.6L10.5 152.8L6.4 150.8L4.7 151.7L3.5 156.5L5.3 158.8L6.0 164.8L3.8 159.9L1.0 156.9L-0.7 151.0L0.7 147.2L-1.4 143.1L-5.1 131.8L-10.9 124.5L-16.3 125.5L-15.2 128.5L-17.5 129.4L-20.9 128.5L-24.6 124.3L-27.5 118.5L-26.6 114.7L-28.0 112.6L-34.8 111.1L-27.8 115.1L-28.6 118.4L-30.9 118.6L-29.2 122.1L-31.9 124.7L-27.8 130.7L-27.7 133.7L-31.2 138.5L-31.7 136.3L-34.3 142.6L-35.9 143.9L-39.5 142.7L-38.4 140.2L-40.7 140.5L-42.5 134.9L-43.3 139.0L-42.3 142.0L-46.8 143.0L-48.2 144.9L-49.6 140.8L-50.7 144.4L-52.6 145.1L-52.3 141.6L-54.6 146.0L-57.9 143.7L-58.8 137.4L-61.8 125.2L-61.0 123.3L-63.1 120.7L-60.9 116.3L-66.3 114.1L-64.6 110.7L-69.2 107.2L-68.5 102.9L-65.7 101.5L-66.4 96.9L-65.0 95.5L-70.5 93.7L-77.2 90.1L-79.5 87.1L-75.9 81.1L-73.7 82.6L-71.5 79.0L-71.2 76.2L-61.5 76.7L-60.5 74.0L-63.6 72.8L-63.7 70.8L-69.4 70.0L-71.6 66.9L-75.4 63.9L-77.5 64.5L-78.5 61.8L-76.7 57.2L-73.3 55.4L-71.3 50.7L-72.1 48.8L-66.9 51.7L-63.9 55.3L-59.2 55.0L-62.2 52.3L-61.2 51.2L-58.1 53.3L-57.4 57.3L-53.7 59.9L-49.2 60.8L-48.7 57.1L-46.9 55.6L-43.3 61.4L-44.3 63.2L-43.3 67.3L-43.6 74.3L-41.8 74.1L-32.7 77.0L-27.6 76.6L-23.5 77.2L-15.3 75.9L-10.6 77.3L0.7 76.4L6.1 78.5L9.9 82.1L7.6 83.3L5.1 81.9L2.2 91.9L-1.6 93.1L-2.4 96.9L-5.3 95.3L-6.0 97.2L-12.7 98.0L-15.7 101.8L-17.2 107.8L-15.6 110.4L-14.0 117.1L-12.6 118.7L-12.6 114.8L-10.7 116.3L-8.3 121.1L-4.1 118.2L-5.1 114.5L-1.2 110.1L-1.3 105.5L0.9 107.1L3.0 105.4L5.1 107.8L7.0 112.9L7.1 120.8L10.0 126.1L11.5 136.6ZM-24.2 130.1L-22.9 131.3L-23.2 136.4L-26.2 139.8L-27.8 138.6L-26.3 131.1L-28.9 128.0L-27.0 124.2Z",
+    "TW":"M598.1 81.0L596.1 84.4L596.8 90.4L593.2 96.1L588.0 117.1L582.9 125.2L580.4 127.0L577.6 133.1L577.6 138.9L574.0 141.0L573.9 137.8L570.3 131.5L566.7 129.6L561.2 117.0L562.6 112.8L563.8 104.5L568.2 98.1L574.1 87.9L576.5 86.3L580.6 79.4L586.6 77.4L589.2 74.8L591.6 74.3L594.4 77.0L598.1 77.9Z",
+    "PG":"M979.5 632.0L985.6 633.0L986.8 634.0L996.0 638.0L1000.0 639.1L1002.8 641.1L1010.0 643.9L1020.6 647.1L1030.5 648.7L1032.2 650.8L1036.4 652.4L1039.9 655.9L1050.3 656.3L1051.0 659.4L1057.5 662.1L1061.0 666.8L1066.9 667.8L1076.2 677.4L1075.8 684.4L1074.6 688.5L1077.7 690.3L1079.2 689.5L1089.2 692.0L1096.2 696.8L1100.8 698.8L1105.8 698.6L1110.1 699.9L1116.5 706.7L1117.1 713.8L1110.0 715.1L1101.6 714.3L1099.2 714.9L1099.1 719.1L1101.5 720.3L1103.6 729.0L1107.1 730.3L1113.6 736.2L1114.5 738.6L1117.5 738.7L1120.0 741.1L1122.9 740.9L1124.7 751.4L1129.6 754.6L1129.9 757.7L1132.4 761.7L1135.2 762.1L1141.5 760.7L1142.8 759.5L1146.6 760.9L1143.7 767.8L1144.5 769.8L1149.1 771.9L1160.2 772.9L1161.1 774.3L1154.6 776.2L1157.1 780.3L1163.8 781.8L1166.0 783.6L1176.0 785.0L1172.3 786.9L1168.0 786.0L1166.9 787.3L1173.0 789.5L1173.8 791.1L1168.6 793.5L1164.2 794.0L1157.9 790.9L1161.4 789.1L1155.0 786.8L1149.2 787.0L1141.4 784.7L1139.1 785.6L1132.8 783.8L1128.0 784.0L1123.5 782.0L1119.2 783.1L1117.6 781.0L1114.4 782.0L1114.0 780.3L1110.3 777.6L1109.8 775.4L1106.2 770.8L1101.0 769.2L1098.4 765.1L1098.2 762.1L1092.0 760.1L1092.1 756.7L1085.6 748.7L1084.9 745.8L1082.3 744.0L1082.1 741.9L1072.2 738.6L1068.1 738.6L1066.4 737.2L1057.7 735.6L1057.1 731.4L1055.4 733.6L1053.1 731.2L1051.7 733.0L1050.4 729.9L1050.3 733.4L1048.1 730.3L1050.1 735.9L1046.9 733.2L1044.6 733.3L1044.3 735.9L1038.5 733.9L1034.9 730.5L1038.3 740.2L1031.0 740.6L1031.9 744.8L1026.7 745.0L1019.6 746.7L1014.0 745.2L1018.0 748.3L1021.3 749.0L1025.2 751.9L1027.8 755.1L1028.1 759.2L1023.4 760.9L1013.1 766.6L1004.2 763.2L992.4 764.7L987.7 762.8L982.3 764.4L979.5 762.1L979.5 717.9L978.3 717.3L977.0 712.5L979.1 709.6L979.5 706.7Z",
+    "AU":"",
+    "BT":"M-7.3 24.8L-8.1 29.1L-5.0 31.7L-0.5 30.6L1.7 33.9L-0.3 37.9L1.7 41.3L0.7 42.9L-2.1 42.4L-6.0 43.9L-10.8 42.6L-13.4 44.3L-28.2 44.4L-32.3 42.2L-36.4 43.4L-37.4 45.0L-44.9 46.0L-53.2 42.9L-56.3 43.8L-63.0 41.1L-63.4 38.1L-65.4 37.0L-62.1 33.7L-60.0 33.4L-60.5 29.4L-57.6 27.6L-55.5 23.8L-52.6 21.8L-48.8 17.3L-44.9 16.3L-42.8 14.1L-35.5 12.8L-28.2 15.3L-30.5 18.5L-26.3 18.3L-18.1 20.6L-14.2 18.2L-11.6 20.1L-7.0 21.7Z",
+    "NP":"M-77.6 22.8L-76.8 24.5L-79.5 30.1L-79.4 34.0L-80.6 37.8L-77.0 42.8L-76.6 45.1L-79.8 52.6L-82.9 50.8L-88.3 52.4L-90.4 51.5L-93.4 53.0L-97.9 51.9L-99.4 48.4L-105.8 51.7L-114.3 47.7L-119.8 46.9L-123.4 48.7L-125.8 46.9L-126.3 43.8L-128.0 42.9L-134.3 45.3L-136.8 43.0L-139.6 43.1L-142.0 40.7L-147.2 39.4L-147.0 35.2L-148.5 33.4L-154.2 32.5L-158.4 29.8L-163.3 31.3L-162.9 33.1L-168.2 30.9L-172.3 30.6L-173.9 33.4L-177.3 31.1L-185.4 29.6L-187.0 25.9L-191.9 26.5L-199.0 21.9L-202.3 23.0L-210.5 18.7L-213.8 17.5L-217.1 12.6L-220.0 12.1L-230.0 6.6L-230.1 8.5L-239.2 3.3L-237.4 -2.2L-235.6 -2.5L-234.4 -6.2L-235.7 -8.3L-232.3 -12.5L-232.6 -15.2L-230.5 -16.1L-223.0 -22.9L-220.1 -23.9L-218.1 -20.3L-215.6 -20.2L-213.0 -23.1L-212.2 -27.5L-209.6 -26.6L-207.7 -28.3L-204.4 -27.2L-198.6 -26.8L-197.1 -21.4L-189.1 -18.5L-183.3 -13.2L-182.0 -13.8L-178.4 -11.6L-176.7 -12.5L-173.4 -9.7L-169.7 -3.8L-161.3 -5.8L-158.2 -5.1L-155.4 -0.5L-155.3 2.0L-151.0 5.3L-147.7 6.1L-146.4 7.9L-141.6 9.3L-138.9 7.2L-136.8 8.1L-138.4 13.6L-133.1 14.8L-127.8 15.0L-126.1 13.3L-123.0 16.8L-120.7 22.2L-117.7 21.5L-118.6 18.5L-116.9 16.9L-115.9 20.0L-111.2 21.8L-109.1 18.1L-99.9 21.0L-97.7 23.1L-92.3 23.9L-85.5 23.8L-83.5 21.9Z"};
+
+  function mapMarkup(prefix) {
+    var s = '<svg class="mapSvg" viewBox="0 0 980 800" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">' +
+      '<defs><linearGradient id="' + prefix + 'sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C9ECF2"/><stop offset="1" stop-color="#92CDE0"/></linearGradient></defs>' +
+      '<rect x="-400" y="-300" width="1780" height="1400" fill="url(#' + prefix + 'sg)"/>';
+    // 波
+    var waves = [[60, 520], [180, 660], [330, 740], [560, 760], [800, 120], [870, 300], [700, 420], [420, 60], [300, 560], [890, 520]];
+    waves.forEach(function (w) { s += '<path class="wave" d="M' + w[0] + ' ' + w[1] + ' q 10 -8 20 0 t 20 0"/>'; });
+    Object.keys(GHOSTS).forEach(function (k) { s += '<g class="ghost"><path d="' + GHOSTS[k] + '"/></g>'; });
+    var cl = P(104, 26.5), il = P(92.3, 26.2);
+    s += '<text class="ghostLab" x="' + cl[0] + '" y="' + cl[1] + '">CHINA</text><text class="ghostLab" x="' + il[0] + '" y="' + il[1] + '">INDIA</text>';
+    var io = P(94, -6), po = P(131.5, 12.5), au = P(128, -10.4);
+    s += '<text class="seaLab" x="' + io[0] + '" y="' + io[1] + '">Indian Ocean</text><text class="seaLab" x="' + po[0] + '" y="' + po[1] + '">Pacific Ocean</text>' +
+         '<text class="ghostLab" x="' + au[0] + '" y="' + au[1] + '">↓ AUSTRALIA</text>';
+    // 国(BN はマレーシアの上、SG は一番上)
+    ['MM', 'TH', 'LA', 'KH', 'VN', 'MY', 'ID', 'TL', 'PH', 'BN', 'SG'].forEach(function (id) {
+      var sh = SHAPES[id], c = COUNTRIES[id];
+      s += '<g class="ctry" data-id="' + id + '" style="--c:' + c.color + '">';
+      s += '<path d="' + sh + '"/>';
+      // シンガポールは本当の大きさだと点になるので、丸い印も重ねる
+      if (id === 'SG') { var q = P(103.82, 1.35); s += '<circle cx="' + q[0] + '" cy="' + q[1] + '" r="9"/>'; }
+      s += '</g>';
+    });
+    Object.keys(TINY).forEach(function (id) { var q = P(TINY[id].at[0], TINY[id].at[1]); s += '<circle class="hit" data-id="' + id + '" cx="' + q[0] + '" cy="' + q[1] + '" r="' + (TINY[id].r * 0.6) + '"/>'; });
+    ORDER.forEach(function (id) {
+      var q = P(COUNTRIES[id].label[0], COUNTRIES[id].label[1]);
+      s += '<text class="lab" data-lab="' + id + '" x="' + q[0].toFixed(1) + '" y="' + q[1].toFixed(1) + '">' + esc(COUNTRIES[id].name) + '</text>';
+    });
+    s += '<g class="pins"></g></svg>';
+    return s;
+  }
+
+  // ---------- map state ----------
+  var mapBox = $('mapBox'), svg = null;
+  function buildMaps() {
+    $('titleMap').innerHTML = mapMarkup('t');
+    mapBox.insertAdjacentHTML('afterbegin', mapMarkup('m'));
+    svg = mapBox.querySelector('svg');
+    svg.addEventListener('click', onMapClick);
+  }
+  // 国名の文字は、画面の上でだいたい 12〜15px になるように地図の大きさから決める
+  function fitLabels() {
+    [svg, $('titleMap').querySelector('svg')].forEach(function (el) {
+      if (!el || !el.clientWidth) return;
+      var sc = Math.min(el.clientWidth / 980, el.clientHeight / 800);
+      var px = Math.max(13, Math.min(15, 13 + (sc - 0.4) * 5));
+      var f = Math.max(15, Math.min(34, px / sc));
+      el.style.setProperty('--lf', f.toFixed(1) + 'px');
+      el.style.setProperty('--ls', (f * 0.27).toFixed(1) + 'px');
+    });
+  }
+  window.addEventListener('resize', fitLabels);
+  function ctryEl(id) { return svg.querySelector('.ctry[data-id="' + id + '"]'); }
+  function forCtry(fn) { ORDER.forEach(function (id) { fn(ctryEl(id), id); }); }
+  function clearMap() {
+    forCtry(function (el) { el.classList.remove('hl', 'good', 'wrong', 'dim', 'tap'); });
+    svg.querySelector('.pins').innerHTML = '';
+    setHint('');
+  }
+  function setLabels(ids, qmark) {
+    ORDER.forEach(function (id) {
+      var t = svg.querySelector('[data-lab="' + id + '"]');
+      var on = ids.indexOf(id) >= 0;
+      t.classList.toggle('show', on);
+    });
+  }
+  function knownIds() { return ORDER.filter(function (id) { return progress.found[id] > 0; }); }
+  function setTappable(on) { forCtry(function (el) { el.classList.toggle('tap', on); }); }
+  function setHint(t) { $('mapHint').textContent = t; }
+  function flash(id, cls) {
+    var el = ctryEl(id); if (!el) return;
+    el.classList.remove(cls); void el.getBoundingClientRect(); el.classList.add(cls);
+  }
+  function dropMoku(id) {
+    var c = COUNTRIES[id], q = P(c.label[0], c.label[1]);
+    var w = 74, x = q[0] - w / 2, y = q[1] - w - 22;
+    if (y < 4) y = q[1] + 10;
+    svg.querySelector('.pins').innerHTML =
+      '<g class="pin"><g class="pinBob"><ellipse cx="' + (x + w / 2) + '" cy="' + (y + w + 2) + '" rx="22" ry="5" fill="rgba(60,40,20,0.25)"/>' +
+      '<circle cx="' + (x + w / 2) + '" cy="' + (y + w / 2) + '" r="' + (w / 2 + 3) + '" fill="#FFF7E8" stroke="#7A2050" stroke-width="3"/>' +
+      '<image href="brand/mokumoku-hero.png" x="' + x + '" y="' + y + '" width="' + w + '" height="' + w + '" preserveAspectRatio="xMidYMid slice" clip-path="circle(48%)"/></g></g>';
+  }
+  function svgPoint(ev) {
+    var pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;
+    var m = svg.getScreenCTM(); if (!m) return null;
+    return pt.matrixTransform(m.inverse());
+  }
+  var mapHandler = null;
+  function onMapClick(ev) {
+    if (!mapHandler) return;
+    var el = ev.target.closest && ev.target.closest('[data-id]');
+    var id = el ? el.getAttribute('data-id') : null;
+    if (!id) {
+      // 海を押した時: 小さい国の近くなら、その国にする
+      var p = svgPoint(ev); if (!p) return;
+      var best = null, bd = 1e9;
+      Object.keys(TINY).concat(['TL']).forEach(function (t) {
+        var at = TINY[t] ? TINY[t].at : [126.2, -8.9], r = TINY[t] ? TINY[t].r : 30;
+        var q = P(at[0], at[1]), d = Math.hypot(q[0] - p.x, q[1] - p.y);
+        if (d < r && d < bd) { bd = d; best = t; }
+      });
+      id = best;
+    }
+    if (id) mapHandler(id);
+  }
+
+  // =====================================================================
+  // セーブ
+  // =====================================================================
+  function loadProgress() {
+    var p = readJSON(SAVE_KEY);
+    if (!p || p.version !== 1) p = {};
+    return {
+      version: 1, gameId: GAME_ID,
+      found: p.found || {}, master: p.master || {}, stamps: p.stamps || {},
+      totalStamps: p.totalStamps | 0, trips: p.trips | 0, bestTrip: p.bestTrip | 0,
+      twinRounds: p.twinRounds | 0, twinBest: p.twinBest | 0, twinCorrect: p.twinCorrect | 0,
+      guideGames: p.guideGames | 0, played: p.played | 0,
+      visits: Array.isArray(p.visits) ? p.visits : legacyVisits(p),
+      mointClaims: p.mointClaims || {}, updatedAt: p.updatedAt || null
+    };
+  }
+  // パスポートのスタンプ(visits)がない前のセーブは、見つけた国ごとに1つ(最後に保存した日)
+  function legacyVisits(p) {
+    var d = String(p.updatedAt || new Date().toISOString()).slice(0, 10), out = [];
+    Object.keys(p.found || {}).forEach(function (c) { if (p.found[c] > 0) out.push({ c: c, d: d, st: (p.stamps && p.stamps[c]) | 0, one: !!(p.master && p.master[c]) }); });
+    return out;
+  }
+  var progress = loadProgress();
+  function save() { progress.updatedAt = new Date().toISOString(); writeJSON(SAVE_KEY, progress); }
+  var settings = readJSON(SET_KEY) || { sound: true };
+
+  // ---------- Moint ----------
+  function balance() { if (window.MokuMoint) return MokuMoint.balance(); var w = readJSON('moku:moint:wallet'); return w && w.balance > 0 ? w.balance : 0; }
+  function earn(n, capped) {
+    if (!n) return 0;
+    if (window.MokuMoint) return MokuMoint.earn(GAME_ID, n, capped === false ? { capped: false } : undefined);
+    var b = Math.max(0, balance() + n);
+    writeJSON('moku:moint:wallet', { version: 1, balance: b, updatedAt: new Date().toISOString() });
+    return n;
+  }
+  function earnedToday() { return window.MokuMoint ? MokuMoint.earnedToday(GAME_ID) : 0; }
+  function dailyCap() { return window.MokuMoint ? MokuMoint.DAILY_GAME_CAP : 500; }
+  function claimOnce(key, n) {
+    if (progress.mointClaims[key]) return 0;
+    progress.mointClaims[key] = true;
+    return earn(n, false);
+  }
+  function mointBox(lines) {
+    var got = lines.filter(function (l) { return l[1] > 0; });
+    if (!got.length) return '';
+    var tot = got.reduce(function (a, l) { return a + l[1]; }, 0);
+    return '<div class="moints">' + got.map(function (l) { return '<div><span>' + esc(l[0]) + '</span><span>+' + l[1] + '</span></div>'; }).join('') +
+      '<div class="tot"><span><span class="mcoin">M</span> Moints</span><span>+' + tot + '</span></div>' +
+      '<div style="font-size:12px;color:#9A7420;justify-content:flex-start">Today: ' + earnedToday() + ' / ' + dailyCap() + '</div></div>';
+  }
+
+  // ---------- sound(Web Audio で合成) ----------
+  var actx = null, gestured = false;
+  function audio() {
+    if (!settings.sound || !gestured) return null;
+    if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
+    if (actx.state === 'suspended') actx.resume();
+    return actx;
+  }
+  document.addEventListener('pointerdown', function () { gestured = true; if (settings.sound) audio(); }, { passive: true });
+  function tone(f, t0, dur, type, vol) {
+    var a = audio(); if (!a) return;
+    var o = a.createOscillator(), g = a.createGain(), t = a.currentTime + (t0 || 0);
+    o.type = type || 'sine'; o.frequency.setValueAtTime(f, t);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol || 0.16, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + dur + 0.05);
+  }
+  var sfx = {
+    tap: function () { tone(660, 0, 0.08, 'triangle', 0.08); },
+    card: function () { tone(520, 0, 0.1, 'triangle', 0.09); tone(780, 0.07, 0.12, 'triangle', 0.08); },
+    good: function () { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, i * 0.08, 0.22, 'triangle', 0.13); }); },
+    stamp: function () { tone(140, 0, 0.18, 'square', 0.1); tone(90, 0.02, 0.2, 'sine', 0.2); },
+    bad: function () { tone(330, 0, 0.16, 'sine', 0.12); tone(262, 0.12, 0.22, 'sine', 0.12); },
+    fanfare: function () { [392, 523, 659, 784, 659, 784, 1047].forEach(function (f, i) { tone(f, i * 0.11, 0.25, 'triangle', 0.12); }); }
+  };
+  function syncSoundBtn() { $('soundBtn').textContent = settings.sound ? '🔊' : '🔇'; }
+  $('soundBtn').addEventListener('click', function () { settings.sound = !settings.sound; writeJSON(SET_KEY, settings); syncSoundBtn(); if (settings.sound) sfx.tap(); });
+
+  // =====================================================================
+  // 画面の切り替え
+  // =====================================================================
+  var panel = $('panel');
+  var mode = null;
+  var fresh = false;   // 次に描く画面は新しい画面(カードをすべりこませる)
+  function setPanel(h) {
+    panel.innerHTML = h;
+    if (fresh) { var c = panel.querySelector('.postcard'); if (c) c.classList.add('enter'); panel.scrollTop = 0; }
+    fresh = false;
+  }
+  function showTitle() {
+    mode = null; mapHandler = null;
+    document.body.classList.add('on-title');
+    $('cover').classList.remove('show');
+    var n = knownIds().length;
+    $('passCount').textContent = n + ' / 11 countries · ' + progress.totalStamps + ' stamps';
+    $('titleBal').textContent = num(balance());
+    $('titleToday').textContent = '· Today ' + earnedToday() + ' / ' + dailyCap();
+  }
+  function showPlay(title) {
+    document.body.classList.remove('on-title');
+    $('modeTitle').textContent = title;
+    $('topInfo').textContent = '';
+    clearMap();
+    panel.scrollTop = 0;
+    fitLabels();
+  }
+  $('menuBtn').addEventListener('click', function () { sfx.tap(); showTitle(); });
+  function renderOutfit() {
+    if (!window.MokuMoint) return;
+    try { $('titleOutfit').innerHTML = MokuMoint.outfitSVG(MokuMoint.closet().equipped); } catch (e) {}
+  }
+  function avatar() {
+    var o = '';
+    if (window.MokuMoint) { try { o = MokuMoint.outfitSVG(MokuMoint.closet().equipped); } catch (e) {} }
+    return '<span class="av"><img src="brand/mokumoku-hero.png" alt="">' + o + '</span>';
+  }
+  function clueHTML(cd, id, isNew) {
+    var body = cd.t === 'flag' ? flagSVG(id) : esc(cd.x);
+    return '<li class="clue' + (isNew ? ' new' : '') + '"><span class="ci">' + ICON[cd.t] + '</span><span><span class="cn">' + CARD_NAME[cd.t] + '</span>' + body + '</span></li>';
+  }
+
+  // =====================================================================
+  // 比べる(似ているところ・ちがうところ)。Passport と Twin or Not? で使う
+  // =====================================================================
+  function times(a, b) { var r = a / b; return r >= 2 ? 'about ' + num(r) + ' times' : 'about ' + (Math.round(r * 10) / 10) + ' times'; }
+  function popText(m) { return m >= 1 ? 'about ' + (m >= 10 ? num(m) : (Math.round(m * 10) / 10)) + ' million' : 'about ' + num(m * 1000) + ',000'; }
+  function sameList(a, b) {
+    var A = COUNTRIES[a], B = COUNTRIES[b], out = [];
+    if (neighbors(a, b)) out.push({ w: 3, x: 'they are next-door neighbors' });
+    A.islands.forEach(function (is) { if (B.islands.indexOf(is) >= 0) out.push({ w: 3, x: 'they share the island of ' + ISLAND_NAME[is] }); });
+    if (A.helloGroup === B.helloGroup) out.push({ w: 3, x: 'both say “' + A.hello + '”' });
+    else if (A.helloFamily && A.helloFamily === B.helloFamily) out.push({ w: 2, x: 'they say hello in a similar way (“' + A.hello + '” / “' + B.hello + '”)' });
+    if (A.moneyGroup === 'dollar' && B.moneyGroup === 'dollar') out.push({ w: 2, x: (a === 'SG' && b === 'BN') || (a === 'BN' && b === 'SG') ? 'their dollars are worth exactly the same' : 'both use a dollar' });
+    if (A.mekong && B.mekong) out.push({ w: 2, x: 'the Mekong River flows through both' });
+    if (A.english && B.english) out.push({ w: 2, x: 'both use English as an official language' });
+    if (Math.max(A.area, B.area) / Math.min(A.area, B.area) < 1.12) out.push({ w: 2, x: 'they are almost the same size' });
+    if (A.drive === B.drive) out.push({ w: 1, x: 'both drive on the ' + A.drive });
+    if (A.shape === B.shape) out.push({ w: 1, x: A.shape === 'mainland' ? 'both are on the mainland' : 'both are made of islands' });
+    return out;
+  }
+  function diffList(a, b) {
+    var A = COUNTRIES[a], B = COUNTRIES[b], out = [];
+    if (A.drive !== B.drive) out.push('<b>' + A.name + '</b> drives on the ' + A.drive + ', <b>' + B.name + '</b> on the ' + B.drive + '.');
+    if (A.sea !== B.sea) out.push(A.sea ? '<b>' + B.name + '</b> has no sea, but <b>' + A.name + '</b> does.' : '<b>' + A.name + '</b> has no sea, but <b>' + B.name + '</b> does.');
+    var big = A.area >= B.area ? A : B, sml = big === A ? B : A;
+    if (big.area / sml.area >= 1.5) out.push('<b>' + big.name + '</b> is ' + times(big.area, sml.area) + ' bigger than <b>' + sml.name + '</b>.');
+    var more = A.pop >= B.pop ? A : B, less = more === A ? B : A;
+    if (more.pop / less.pop >= 1.5) out.push('<b>' + more.name + '</b> has ' + times(more.pop, less.pop) + ' more people than <b>' + less.name + '</b>.');
+    if (A.shape !== B.shape && A.shape !== 'both' && B.shape !== 'both') out.push('<b>' + (A.shape === 'islands' ? A.name : B.name) + '</b> is made of islands, <b>' + (A.shape === 'islands' ? B.name : A.name) + '</b> is on the mainland.');
+    out.push('<b>' + A.name + '</b> uses the ' + A.money + ', <b>' + B.name + '</b> the ' + B.money + '.');
+    return out;
+  }
+  function twinOf(id) {
+    var best = null, bs = -1;
+    ORDER.forEach(function (o) {
+      if (o === id) return;
+      var sc = sameList(id, o).reduce(function (a, s) { return a + s.w; }, 0);
+      if (sc > bs) { bs = sc; best = o; }
+    });
+    return best;
+  }
+  function passportHTML(id) {
+    var c = COUNTRIES[id], tw = twinOf(id), same = sameList(id, tw).sort(function (x, y) { return y.w - x.w; }).slice(0, 2);
+    var diff = diffList(id, tw)[0];
+    var size = id === 'SG' ? 'the smallest of the 11' : times(c.area, COUNTRIES.SG.area) + ' bigger than Singapore';
+    return '<div class="pp"><div class="ppHead">' + flagSVG(id) + '<div><h3>' + esc(c.name) + '</h3><p>Capital: ' + esc(c.capital) + '</p></div></div>' +
+      '<dl class="facts">' +
+        '<dt>👋 Hello</dt><dd>' + esc(c.hello) + '</dd>' +
+        '<dt>💰 Money</dt><dd>' + esc(c.money) + '</dd>' +
+        '<dt>🍜 Food</dt><dd>' + esc(c.tell.food) + '</dd>' +
+        '<dt>🚗 Roads</dt><dd>Drive on the ' + c.drive + '</dd>' +
+        '<dt>🗺️ Land</dt><dd>' + (c.shape === 'mainland' ? 'Mainland' : c.shape === 'both' ? 'Mainland + island' : 'Islands') + (c.sea ? '' : ' · no sea') + '</dd>' +
+        '<dt>👥 People</dt><dd>' + popText(c.pop) + '</dd>' +
+        '<dt>📏 Size</dt><dd>' + num(c.area) + ' km² (' + size + ')</dd>' +
+      '</dl>' +
+      '<div class="compare"><div class="like">🤝 <b>Like ' + esc(COUNTRIES[tw].name) + ':</b> ' + same.map(function (s) { return s.x; }).join(', and ') + '.</div>' +
+      '<div class="unlike">↔️ <b>Unlike ' + esc(COUNTRIES[tw].name) + ':</b> ' + diff + '</div></div>' +
+      '<div class="tell"><span class="cn">🗣️ Tell a friend</span>' + esc(c.name) + ' is ' + esc(c.tell.where) + '. People say “' + esc(c.hello.replace(/!$/, '')) + '” and eat ' + esc(c.tell.food) + '. The most special thing: ' + esc(c.tell.special) + '.</div></div>';
+  }
+
+  // =====================================================================
+  // ✉️ Postcards
+  // =====================================================================
+  var TRIP_LEN = 5;
+  var STAMPS_BY_CLUE = [3, 2, 1, 1];
+  var trip = null;
+  function chooseTrip() {
+    // まだ見つけていない国 → 1枚目で当てていない国 → ほか、の順に出やすい
+    var pool = ORDER.map(function (id) { return { id: id, w: !progress.found[id] ? 4 : !progress.master[id] ? 2 : 1 }; }), out = [];
+    while (out.length < TRIP_LEN && pool.length) {
+      var sum = pool.reduce(function (a, p) { return a + p.w; }, 0), r = Math.random() * sum, i = 0;
+      for (; i < pool.length - 1; i++) { r -= pool[i].w; if (r < 0) break; }
+      out.push(pool[i].id); pool.splice(i, 1);
+    }
+    return out;
+  }
+  function cluesFor(id) {
+    var all = CARDS[id];
+    var t1 = all.filter(function (cd) { return /^(fun|nature|size|land|river|island|lang)$/.test(cd.t) && share(cd) <= 2; });
+    if (!t1.length) t1 = all.filter(function (cd) { return /^(fun|nature|size|land)$/.test(cd.t); });
+    var t2 = all.filter(function (cd) { return cd.t === 'hello' || cd.t === 'food'; });
+    var t3 = all.filter(function (cd) { return cd.t === 'place' || cd.t === 'money'; });
+    var flag = all.filter(function (cd) { return cd.t === 'flag'; })[0];
+    var city = all.filter(function (cd) { return cd.t === 'city'; })[0];
+    return [pick(t1), pick(t2), pick(t3), flag, city];
+  }
+  function startTrip() {
+    progress.played++; save();
+    trip = { list: chooseTrip(), i: 0, got: [], stamps: 0, perfect: 0, once: [] };
+    showPlay('✉️ Postcards');
+    nextPostcard();
+  }
+  function tripInfo() { $('topInfo').textContent = '✉️ ' + Math.min(trip.i + 1, trip.list.length) + '/' + trip.list.length + ' · 🔖 ' + trip.stamps; }
+  function nextPostcard() {
+    if (trip.i >= trip.list.length) return endTrip();
+    var id = trip.list[trip.i];
+    trip.cur = { id: id, clues: cluesFor(id), shown: 1, wrong: 0, done: false, say: '' };
+    clearMap();
+    setLabels(knownIds());
+    setTappable(true);
+    setHint('Tap the country where Moku is!');
+    mapHandler = guessPostcard;
+    tripInfo();
+    fresh = true;
+    renderPostcard();
+    sfx.card();
+  }
+  function renderPostcard() {
+    var cur = trip.cur, c = COUNTRIES[cur.id];
+    var shownClues = cur.clues.slice(0, cur.shown >= 4 ? 5 : cur.shown);   // 4枚目は国旗+首都
+    var h = '<div class="postcard"><div class="pcStamp' + (cur.done && cur.ok ? ' got' : '') + '">' + (cur.done && cur.ok ? flagSVG(cur.id) : '?') + '</div>' +
+      '<div class="pcHead">' + avatar() + '<div><h2>' + (cur.done ? (cur.ok ? 'Found me in ' + esc(c.name) + '!' : 'I was in ' + esc(c.name) + '!') : 'Where am I?') + '</h2>' +
+      '<p>Postcard ' + (trip.i + 1) + ' of ' + trip.list.length + ' · from Moku 🦉</p></div></div>' +
+      '<ul class="clues">' + shownClues.map(function (cd, i) { return clueHTML(cd, cur.id, !cur.done && i === shownClues.length - 1 && cur.shown > 1); }).join('');
+    if (!cur.done) {
+      for (var k = cur.shown; k < 4; k++) h += '<li class="clue locked"><span class="ci">🔒</span><span>Clue ' + (k + 1) + (k === 3 ? ' · flag & capital' : '') + '</span></li>';
+    }
+    h += '</ul>';
+    if (cur.say) h += '<div class="say ' + (cur.sayCls || '') + '">' + cur.say + '</div>';
+    if (!cur.done) {
+      var left = STAMPS_BY_CLUE[Math.min(cur.shown, 4) - 1];
+      h += '<div class="row"><button class="btn" id="moreClue"' + (cur.shown >= 4 ? ' disabled' : '') + '>🔓 Next clue</button></div>' +
+           '<div class="tip">Guess now for ' + left + ' stamp' + (left > 1 ? 's' : '') + ' 🔖 — fewer clues, more stamps!</div>';
+    }
+    h += '</div>';
+    if (cur.done) {
+      h += passportHTML(cur.id) + (cur.mointNote || '') +
+        '<div class="row"><button class="btn primary" id="nextCard">' + (trip.i + 1 >= trip.list.length ? 'Finish trip ▶' : 'Next postcard ▶') + '</button></div>';
+    }
+    setPanel(h);
+    if ($('moreClue')) $('moreClue').addEventListener('click', function () { sfx.tap(); revealClue(); });
+    if ($('nextCard')) $('nextCard').addEventListener('click', function () { sfx.tap(); trip.i++; nextPostcard(); });
+  }
+  function revealClue() {
+    var cur = trip.cur;
+    if (cur.shown < 4) { cur.shown++; cur.say = cur.say && cur.sayCls === 'bad' ? cur.say : ''; renderPostcard(); return true; }
+    return false;
+  }
+  function guessPostcard(id) {
+    var cur = trip.cur;
+    if (!cur || cur.done) return;
+    if (id === cur.id) {
+      var st = STAMPS_BY_CLUE[Math.min(cur.shown, 4) - 1];
+      cur.done = true; cur.ok = true; mapHandler = null; setTappable(false);
+      trip.stamps += st; trip.got.push({ id: id, st: st });
+      if (cur.shown === 1 && cur.wrong === 0) trip.perfect++;
+      var first = !progress.found[id];
+      progress.found[id] = (progress.found[id] | 0) + 1;
+      if (cur.shown === 1 && cur.wrong === 0) progress.master[id] = 1;
+      progress.stamps[id] = (progress.stamps[id] | 0) + st;
+      progress.totalStamps += st;
+      var rainbow = addVisit(id, st, cur.shown === 1 && cur.wrong === 0);
+      var lines = [];
+      if (first) lines.push(['First visit to ' + COUNTRIES[id].name + '!', claimOnce('c:' + id, 30)]);
+      if (knownIds().length >= ORDER.length) lines.push(['All 11 countries found! 🎉', claimOnce('all', 300)]);
+      save();
+      cur.mointNote = mointBox(lines);
+      cur.say = '🔖 +' + st + ' stamp' + (st > 1 ? 's' : '') + (cur.shown === 1 && cur.wrong === 0 ? ' — with just one clue! ⭐' : '!') + (first ? ' New country for your Passport!' : '') + (rainbow ? ' <b>🌈 WOW — a RAINBOW stamp in your Passport!</b>' : '');
+      cur.sayCls = 'ok';
+      ctryEl(id).classList.add('good');
+      setLabels(knownIds());
+      dropMoku(id);
+      setHint('');
+      tripInfo();
+      sfx.good(); setTimeout(sfx.stamp, 420);
+      renderPostcard();
+    } else {
+      cur.wrong++;
+      flash(id, 'wrong'); sfx.bad();
+      var w = COUNTRIES[id];
+      cur.say = 'That\'s <b>' + esc(w.name) + '</b> — people there say “' + esc(w.hello) + '” Not me! ' + (cur.shown < 4 ? 'Here\'s another clue.' : '');
+      cur.sayCls = 'bad';
+      svg.querySelector('[data-lab="' + id + '"]').classList.add('show');
+      if (!revealClue()) {
+        if (cur.wrong >= 6) {   // 4枚とも見てまだ当たらない時は答えを見せる
+          cur.done = true; cur.ok = false; mapHandler = null; setTappable(false);
+          trip.got.push({ id: cur.id, st: 0 });
+          ctryEl(cur.id).classList.add('good'); dropMoku(cur.id);
+          cur.say = 'Here I am! Now you know ' + esc(COUNTRIES[cur.id].name) + ' — find me next time!';
+          cur.sayCls = '';
+          cur.mointNote = '';
+          svg.querySelector('[data-lab="' + cur.id + '"]').classList.add('show');
+        }
+        renderPostcard();
+      }
+    }
+  }
+  function endTrip() {
+    mapHandler = null; setTappable(false);
+    progress.trips++;
+    progress.bestTrip = Math.max(progress.bestTrip, trip.stamps);
+    var perfect = trip.perfect === trip.list.length;
+    var lines = [['Stamps: ' + trip.stamps + ' × 5', earn(trip.stamps * 5)]];
+    if (perfect) lines.push(['Every postcard on clue 1! ⭐', earn(25)]);
+    save();
+    clearMap();
+    setLabels(knownIds());
+    trip.got.forEach(function (g) { if (g.st) ctryEl(g.id).classList.add('good'); });
+    $('topInfo').textContent = '🔖 ' + trip.stamps;
+    sfx.fanfare();
+    fresh = true;
+    var h = '<div class="postcard"><div class="pcHead">' + avatar() + '<div><h2>Trip complete!</h2><p>Thanks for finding me, friend!</p></div></div>' +
+      '<div class="big">🔖 ' + trip.stamps + ' / ' + (trip.list.length * 3) + '</div>' +
+      '<div class="stampGrid">' + trip.got.map(function (g) {
+        return '<div class="sg got">' + flagSVG(g.id) + '<span>' + esc(COUNTRIES[g.id].name) + '</span><small>' + (g.st ? '🔖 ' + g.st : 'missed') + '</small></div>';
+      }).join('') + '</div>' + mointBox(lines) +
+      '<div class="row"><button class="btn primary" id="again">✉️ New trip</button><button class="btn" id="toPass">📕 Passport</button></div>' +
+      '<div class="tip">' + knownIds().length + ' / 11 countries in your Passport</div></div>';
+    setPanel(h);
+    $('again').addEventListener('click', function () { sfx.tap(); startTrip(); });
+    $('toPass').addEventListener('click', function () { sfx.tap(); openPassport(); });
+  }
+
+  // =====================================================================
+  // ⚖️ Twin or Not?
+  // =====================================================================
+  var TWIN_LEN = 8;
+  var twin = null;
+  function anyPair(filter) {
+    for (var n = 0; n < 200; n++) {
+      var a = pick(ORDER), b = pick(ORDER);
+      if (a !== b && (!filter || filter(a, b))) return [a, b];
+    }
+    return ['TH', 'VN'];
+  }
+  var Q = {
+    bigger: function () {
+      var p = anyPair(function (a, b) { var r = COUNTRIES[a].area / COUNTRIES[b].area; return r > 1.15 || r < 1 / 1.15; });
+      var A = COUNTRIES[p[0]], B = COUNTRIES[p[1]], big = A.area > B.area ? p[0] : p[1], sml = big === p[0] ? p[1] : p[0];
+      return { a: p[0], b: p[1], q: 'Which country is bigger?', kind: 'pick', ans: big,
+        ex: '<b>' + COUNTRIES[big].name + '</b>: ' + num(COUNTRIES[big].area) + ' km² · <b>' + COUNTRIES[sml].name + '</b>: ' + num(COUNTRIES[sml].area) + ' km².<br>' + COUNTRIES[big].name + ' is ' + times(COUNTRIES[big].area, COUNTRIES[sml].area) + ' bigger!' };
+    },
+    people: function () {
+      var p = anyPair(function (a, b) { var r = COUNTRIES[a].pop / COUNTRIES[b].pop; return r > 1.2 || r < 1 / 1.2; });
+      var A = COUNTRIES[p[0]], B = COUNTRIES[p[1]], more = A.pop > B.pop ? p[0] : p[1], less = more === p[0] ? p[1] : p[0];
+      return { a: p[0], b: p[1], q: 'Which country has more people?', kind: 'pick', ans: more,
+        ex: '<b>' + COUNTRIES[more].name + '</b>: ' + popText(COUNTRIES[more].pop) + ' · <b>' + COUNTRIES[less].name + '</b>: ' + popText(COUNTRIES[less].pop) + '.' };
+    },
+    drive: function () {
+      var p = anyPair(), A = COUNTRIES[p[0]], B = COUNTRIES[p[1]], same = A.drive === B.drive;
+      return { a: p[0], b: p[1], q: 'Do cars drive on the same side in both?', kind: 'yn', ans: same,
+        ex: same ? 'Yes! Both drive on the <b>' + A.drive + '</b>.' : '<b>' + A.name + '</b> drives on the ' + A.drive + ', <b>' + B.name + '</b> on the ' + B.drive + '.' };
+    },
+    hello: function () {
+      var p = Math.random() < 0.45 ? shuffle(['MY', 'ID', 'BN']).slice(0, 2) : anyPair();
+      var A = COUNTRIES[p[0]], B = COUNTRIES[p[1]], same = A.helloGroup === B.helloGroup;
+      var ex = '<b>' + A.name + '</b>: “' + A.hello + '” · <b>' + B.name + '</b>: “' + B.hello + '”';
+      if (same) ex += '<br>Their languages are very close, so people understand each other!';
+      else if (A.helloFamily && A.helloFamily === B.helloFamily) ex += '<br>Not the same — but they sound a bit alike!';
+      return { a: p[0], b: p[1], q: 'Do they say good morning / hello the same way?', kind: 'yn', ans: same, ex: ex };
+    },
+    border: function () {
+      var p = Math.random() < 0.5 ? shuffle(pick(BORDERS)) : (Math.random() < 0.3 ? ['MY', 'SG'] : anyPair(function (a, b) { return !neighbors(a, b); }));
+      var yes = neighbors(p[0], p[1]);
+      var ex = yes ? 'Yes! You can walk from <b>' + COUNTRIES[p[0]].name + '</b> into <b>' + COUNTRIES[p[1]].name + '</b> on land.' : 'No land border between them.';
+      if ((p[0] === 'MY' && p[1] === 'SG') || (p[0] === 'SG' && p[1] === 'MY')) ex = 'No land border — the sea is in between. But two bridges connect them!';
+      return { a: p[0], b: p[1], q: 'Do they touch each other on land?', kind: 'yn', ans: yes, ex: ex };
+    },
+    islands: function () {
+      var isl = pick(['ID', 'PH', 'SG']), main = pick(['MM', 'TH', 'LA', 'KH', 'VN']);
+      var p = shuffle([isl, main]);
+      var what = { ID: 'more than 17,000 islands', PH: '7,641 islands', SG: 'one main island and about 60 small ones' }[isl];
+      return { a: p[0], b: p[1], q: 'Which country is made of islands?', kind: 'pick', ans: isl,
+        ex: '<b>' + COUNTRIES[isl].name + '</b> has ' + what + '. <b>' + COUNTRIES[main].name + '</b> is on the mainland.' };
+    },
+    sea: function () {
+      var o = pick(ORDER.filter(function (x) { return x !== 'LA'; })), p = shuffle(['LA', o]);
+      return { a: p[0], b: p[1], q: 'Which country has no sea?', kind: 'pick', ans: 'LA',
+        ex: '<b>Laos</b> is the only one of the 11 countries with no sea at all!' };
+    },
+    dollar: function () {
+      var d = pick(['SG', 'BN', 'TL']), o = pick(ORDER.filter(function (x) { return COUNTRIES[x].moneyGroup !== 'dollar'; })), p = shuffle([d, o]);
+      var ex = '<b>' + COUNTRIES[d].name + '</b> uses the ' + COUNTRIES[d].money + '. <b>' + COUNTRIES[o].name + '</b> uses the ' + COUNTRIES[o].money + '.';
+      if (d !== 'TL') ex += '<br>Fun fact: Singapore and Brunei dollars are worth exactly the same!';
+      return { a: p[0], b: p[1], q: 'Which country uses a dollar?', kind: 'pick', ans: d, ex: ex };
+    },
+    mekong: function () {
+      var M = ['MM', 'TH', 'LA', 'KH', 'VN'].filter(function (x) { return COUNTRIES[x].mekong; });
+      var p = Math.random() < 0.5 ? shuffle(M).slice(0, 2) : [pick(M), pick(ORDER.filter(function (x) { return !COUNTRIES[x].mekong; }))];
+      p = shuffle(p);
+      var yes = COUNTRIES[p[0]].mekong && COUNTRIES[p[1]].mekong;
+      return { a: p[0], b: p[1], q: 'Does the Mekong River flow through both?', kind: 'yn', ans: yes,
+        ex: 'The Mekong flows through or along <b>Thailand, Laos, Cambodia and Vietnam</b> (and starts far away in China).' };
+    }
+  };
+  function startTwin() {
+    progress.played++; save();
+    var kinds = shuffle(Object.keys(Q)).slice(0, TWIN_LEN);
+    while (kinds.length < TWIN_LEN) kinds.push(pick(Object.keys(Q)));
+    var qs = [], seen = {};
+    kinds.forEach(function (k) {
+      for (var n = 0; n < 20; n++) {
+        var q = Q[k](), key = k + [q.a, q.b].sort().join('');
+        if (!seen[key]) { seen[key] = 1; qs.push(q); return; }
+      }
+    });
+    twin = { qs: qs, i: 0, res: [], answered: false };
+    showPlay('⚖️ Twin or Not?');
+    setLabels([]);
+    fresh = true;
+    renderTwin();
+  }
+  function twinCard(id, extra) { return '<button class="cc' + (extra || '') + '" data-c="' + id + '">' + flagSVG(id) + '<span>' + esc(COUNTRIES[id].name) + '</span></button>'; }
+  function renderTwin() {
+    var q = twin.qs[twin.i];
+    clearMap();
+    forCtry(function (el, id) { el.classList.toggle('dim', id !== q.a && id !== q.b); });
+    ctryEl(q.a).classList.add('hl'); ctryEl(q.b).classList.add('hl');
+    setLabels([q.a, q.b]);
+    $('topInfo').textContent = '⚖️ ' + (twin.i + 1) + '/' + twin.qs.length;
+    var dots = '<div class="dots">' + twin.qs.map(function (x, i) { return '<i class="' + (i < twin.res.length ? (twin.res[i] ? 'ok' : 'no') : i === twin.i ? 'now' : '') + '"></i>'; }).join('') + '</div>';
+    var h = '<div class="postcard">' + dots + '<div class="qText">' + esc(q.q) + '</div>';
+    if (q.kind === 'pick') {
+      var cls = function (id) { if (!twin.answered) return ' pick'; return id === q.ans ? ' right' : id === twin.chosen ? ' miss' : ''; };
+      h += '<div class="pair">' + twinCard(q.a, cls(q.a)) + twinCard(q.b, cls(q.b)) + '</div>';
+    } else {
+      h += '<div class="pair">' + twinCard(q.a) + twinCard(q.b) + '</div>';
+      if (!twin.answered) h += '<div class="row"><button class="btn" data-yn="1">👍 Yes</button><button class="btn" data-yn="0">👎 No</button></div>';
+    }
+    if (twin.answered) {
+      var ok = twin.res[twin.i];
+      h += '<div class="say ' + (ok ? 'ok' : 'bad') + '">' + (ok ? '⭕ Right! ' : '❌ Not quite. ') + q.ex + '</div>' +
+           '<div class="row"><button class="btn primary" id="twNext">' + (twin.i + 1 >= twin.qs.length ? 'See results ▶' : 'Next ▶') + '</button></div>';
+    }
+    h += '</div>';
+    setPanel(h);
+    if (!twin.answered) {
+      if (q.kind === 'pick') panel.querySelectorAll('.cc.pick').forEach(function (b) { b.addEventListener('click', function () { answerTwin(b.getAttribute('data-c')); }); });
+      panel.querySelectorAll('[data-yn]').forEach(function (b) { b.addEventListener('click', function () { answerTwin(b.getAttribute('data-yn') === '1'); }); });
+      mapHandler = q.kind === 'pick' ? function (id) { if (id === q.a || id === q.b) answerTwin(id); } : null;
+      setTappable(q.kind === 'pick');
+      setHint(q.kind === 'pick' ? 'Tap a card — or the country on the map' : '');
+    } else {
+      mapHandler = null; setTappable(false);
+      $('twNext').addEventListener('click', function () { sfx.tap(); twin.i++; twin.answered = false; fresh = true; if (twin.i >= twin.qs.length) endTwin(); else renderTwin(); });
+    }
+  }
+  function answerTwin(v) {
+    if (twin.answered) return;
+    var q = twin.qs[twin.i], ok = v === q.ans;
+    twin.answered = true; twin.chosen = v; twin.res.push(ok);
+    if (ok) sfx.good(); else sfx.bad();
+    renderTwin();
+  }
+  function endTwin() {
+    var n = twin.res.filter(Boolean).length;
+    progress.twinRounds++; progress.twinCorrect += n; progress.twinBest = Math.max(progress.twinBest, n);
+    var lines = [['Right answers: ' + n + ' × 5', earn(n * 5)]];
+    if (n === twin.qs.length) lines.push(['All ' + n + ' right! ⭐', earn(20)]);
+    save();
+    clearMap(); setLabels(knownIds());
+    $('topInfo').textContent = '⚖️ ' + n + '/' + twin.qs.length;
+    sfx.fanfare();
+    fresh = true;
+    setPanel('<div class="postcard"><div class="pcHead">' + avatar() + '<div><h2>' + (n === twin.qs.length ? 'Perfect twins expert!' : n >= 5 ? 'Great comparing!' : 'Good try!') + '</h2><p>Same or different — you can explain it now.</p></div></div>' +
+      '<div class="big">' + n + ' / ' + twin.qs.length + '</div>' + mointBox(lines) +
+      '<div class="row"><button class="btn primary" id="twAgain">⚖️ Play again</button><button class="btn" id="twMenu">Menu</button></div></div>');
+    $('twAgain').addEventListener('click', function () { sfx.tap(); startTwin(); });
+    $('twMenu').addEventListener('click', function () { sfx.tap(); showTitle(); });
+  }
+
+  // =====================================================================
+  // 🗣️ Be the Guide(1台を回して 2〜4人)
+  // =====================================================================
+  var guide = null;
+  var GUIDE_PICK = 3;
+  function startGuideSetup() {
+    progress.played++; save();
+    showPlay('🗣️ Be the Guide');
+    setLabels(ORDER);
+    var saved = settings.players || ['Player 1', 'Player 2', 'Player 3', 'Player 4'];
+    var count = settings.playerCount || 2;
+    function draw() {
+      var h = '<div class="postcard"><div class="pcHead">' + avatar() + '<div><h2>Be the Guide</h2><p>Explain a secret country. Can your friends find it?</p></div></div>' +
+        '<div class="say">1. The <b>Guide</b> secretly gets a country.<br>2. The Guide picks <b>' + GUIDE_PICK + ' clue cards</b> to explain it.<br>3. The next player finds it on the map. Faster = more points for both!<br>💡 Clues that only one country has (⭐) work best.</div>' +
+        '<div class="sec">Players</div><div class="seg" style="margin-top:8px">' + [2, 3, 4].map(function (n) { return '<button data-n="' + n + '" class="' + (n === count ? 'on' : '') + '">' + n + '</button>'; }).join('') + '</div>' +
+        '<div class="players">';
+      for (var i = 0; i < count; i++) h += '<input maxlength="12" data-p="' + i + '" value="' + esc(saved[i] || 'Player ' + (i + 1)) + '">';
+      h += '</div><div class="row"><button class="btn primary" id="gStart">▶ Start</button></div><div class="tip">Each player is the Guide 2 times.</div></div>';
+      setPanel(h);
+      panel.querySelectorAll('[data-n]').forEach(function (b) { b.addEventListener('click', function () { collect(); count = +b.getAttribute('data-n'); sfx.tap(); draw(); }); });
+      $('gStart').addEventListener('click', function () {
+        collect();
+        settings.players = saved; settings.playerCount = count; writeJSON(SET_KEY, settings);
+        var names = saved.slice(0, count).map(function (s, i) { return (s || '').trim() || 'Player ' + (i + 1); });
+        sfx.tap(); beginGuide(names);
+      });
+    }
+    fresh = true;
+    function collect() { panel.querySelectorAll('[data-p]').forEach(function (inp) { saved[+inp.getAttribute('data-p')] = inp.value.trim().slice(0, 12); }); }
+    draw();
+  }
+  function beginGuide(names) {
+    var turns = [];
+    for (var r = 0; r < 2; r++) for (var i = 0; i < names.length; i++) turns.push(i);
+    var deck = shuffle(ORDER);
+    guide = { names: names, pts: names.map(function () { return 0; }), turns: turns, t: 0, deck: deck };
+    nextGuideTurn();
+  }
+  function cover(emo, title, text, btn, fn) {
+    var c = $('cover');
+    c.innerHTML = '<div class="emo">' + emo + '</div><h2>' + esc(title) + '</h2><p>' + text + '</p><button class="btn primary" id="coverGo">' + esc(btn) + '</button>';
+    c.classList.add('show');
+    $('coverGo').addEventListener('click', function () { sfx.tap(); c.classList.remove('show'); fn(); });
+  }
+  function nextGuideTurn() {
+    if (guide.t >= guide.turns.length) return endGuide();
+    var g = guide.turns[guide.t], s = (g + 1) % guide.names.length;
+    guide.cur = { id: guide.deck[guide.t % guide.deck.length], guide: g, seeker: s, picked: [], shown: 0, wrong: 0, done: false };
+    $('topInfo').textContent = 'Turn ' + (guide.t + 1) + '/' + guide.turns.length;
+    clearMap(); setLabels(ORDER);
+    panel.innerHTML = '';
+    cover('🤫', 'Pass to ' + guide.names[g], 'You are the <b>Guide</b>. Only you may look at the screen now!', 'I\'m ' + guide.names[g] + ' — show me', guidePick);
+  }
+  function guidePick() {
+    var cur = guide.cur, c = COUNTRIES[cur.id];
+    clearMap(); setLabels(ORDER); ctryEl(cur.id).classList.add('hl');
+    forCtry(function (el, id) { el.classList.toggle('dim', id !== cur.id); });
+    setHint('🤫 Secret: ' + c.name);
+    fresh = true;
+    var cards = CARDS[cur.id].map(function (cd, i) { return { cd: cd, i: i }; })
+      .filter(function (o) { return o.cd.t !== 'city' && o.cd.t !== 'flag'; });   // 首都と国旗は答えそのものに近いので使わない
+    cards = shuffle(cards);   // 並びはまぜる(⭐ のカードを自分で探して選ぶ)
+    function draw() {
+      var h = '<div class="postcard"><div class="ppHead">' + flagSVG(cur.id) + '<div><h3>' + esc(c.name) + '</h3><p>' + esc(guide.names[cur.guide]) + ', explain it to ' + esc(guide.names[cur.seeker]) + '!</p></div></div>' +
+        '<div class="tip" style="text-align:left">Pick ' + GUIDE_PICK + ' cards in order. Card 1 is shown first. ⭐ = only this country has it.</div><div class="gcards">';
+      cards.forEach(function (o) {
+        var n = share(o.cd), idx = cur.picked.indexOf(o.i);
+        h += '<button class="clue gcard' + (idx >= 0 ? ' sel' : '') + '" data-i="' + o.i + '">' + (idx >= 0 ? '<span class="num">' + (idx + 1) + '</span>' : '') +
+          '<span class="ci">' + ICON[o.cd.t] + '</span><span><span class="cn">' + CARD_NAME[o.cd.t] + '</span>' + esc(o.cd.x) + '</span>' +
+          '<span class="tag' + (n === 1 ? ' only' : '') + '">' + (n === 1 ? '⭐ Only here' : '👥 ' + n + ' countries') + '</span></button>';
+      });
+      h += '</div><div class="row"><button class="btn primary" id="gDone"' + (cur.picked.length === GUIDE_PICK ? '' : ' disabled') + '>Done — hide it! (' + cur.picked.length + '/' + GUIDE_PICK + ')</button></div></div>';
+      var st = panel.scrollTop;
+      setPanel(h); panel.scrollTop = st;
+      panel.querySelectorAll('.gcard').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var i = +b.getAttribute('data-i'), at = cur.picked.indexOf(i);
+          if (at >= 0) cur.picked.splice(at, 1); else if (cur.picked.length < GUIDE_PICK) cur.picked.push(i);
+          sfx.tap(); draw();
+        });
+      });
+      $('gDone').addEventListener('click', function () {
+        sfx.tap();
+        clearMap(); setLabels(ORDER); panel.innerHTML = '';
+        cover('🧭', 'Pass to ' + guide.names[cur.seeker], guide.names[cur.guide] + ' explained a secret country. Find it on the map!', 'I\'m ' + guide.names[cur.seeker] + ' — let\'s go', seekStart);
+      });
+    }
+    draw();
+  }
+  function seekStart() { var cur = guide.cur; cur.shown = 1; clearMap(); setLabels(ORDER); setTappable(true); mapHandler = seekGuess; setHint('Tap the country!'); fresh = true; renderSeek(); }
+  function renderSeek() {
+    var cur = guide.cur, cds = cur.picked.map(function (i) { return CARDS[cur.id][i]; });
+    var h = '<div class="postcard"><div class="pcHead"><div><h2>' + (cur.done ? (cur.ok ? 'Found it: ' : 'It was ') + esc(COUNTRIES[cur.id].name) + '!' : esc(guide.names[cur.guide]) + '\'s clues') + '</h2>' +
+      '<p>' + esc(guide.names[cur.seeker]) + ' is finding the country</p></div></div><ul class="clues">' +
+      cds.slice(0, cur.done ? cds.length : cur.shown).map(function (cd) { return clueHTML(cd, cur.id); }).join('');
+    if (!cur.done) for (var k = cur.shown; k < cds.length; k++) h += '<li class="clue locked"><span class="ci">🔒</span><span>Clue ' + (k + 1) + '</span></li>';
+    h += '</ul>';
+    if (cur.say) h += '<div class="say ' + (cur.sayCls || '') + '">' + cur.say + '</div>';
+    if (cur.done) {
+      // 一番「その国だけ」の手がかり(Moku のコツ)
+      var best = CARDS[cur.id].filter(function (cd) { return cd.t !== 'city' && cd.t !== 'flag'; }).sort(function (x, y) { return share(x) - share(y); })[0];
+      var usedBest = cds.indexOf(best) >= 0;
+      h += '<div class="tell"><span class="cn">🦉 Moku\'s guide tip</span>' + (usedBest ? 'Great pick! ' : 'A super clue for ' + esc(COUNTRIES[cur.id].name) + ': ') + '“' + esc(best.x) + '”' + (share(best) === 1 ? ' — only this country has it!' : '') + '</div>' +
+        passportHTML(cur.id) +
+        '<div class="score">' + guide.names.map(function (n, i) { return '<div><span>' + esc(n) + '</span><span>' + guide.pts[i] + ' pts</span></div>'; }).join('') + '</div>' +
+        '<div class="row"><button class="btn primary" id="gNext">' + (guide.t + 1 >= guide.turns.length ? 'Final scores ▶' : 'Next turn ▶') + '</button></div>';
+    }
+    h += '</div>';
+    setPanel(h); panel.scrollTop = 0;
+    if ($('gNext')) $('gNext').addEventListener('click', function () { sfx.tap(); guide.t++; nextGuideTurn(); });
+  }
+  function seekGuess(id) {
+    var cur = guide.cur;
+    if (cur.done) return;
+    if (id === cur.id) {
+      var pts = Math.max(1, 4 - cur.shown);
+      guide.pts[cur.guide] += pts; guide.pts[cur.seeker] += pts;
+      cur.done = true; cur.ok = true; mapHandler = null; setTappable(false);
+      cur.say = '🎉 With ' + cur.shown + ' clue' + (cur.shown > 1 ? 's' : '') + '! +' + pts + ' for ' + esc(guide.names[cur.guide]) + ' and ' + esc(guide.names[cur.seeker]) + '.'; cur.sayCls = 'ok';
+      ctryEl(id).classList.add('good'); dropMoku(id); setHint(''); sfx.good();
+    } else {
+      cur.wrong++; flash(id, 'wrong'); sfx.bad();
+      if (cur.shown < cur.picked.length) { cur.shown++; cur.say = 'Not ' + esc(COUNTRIES[id].name) + '. Next clue!'; cur.sayCls = 'bad'; }
+      else if (cur.wrong >= cur.picked.length + 2) {
+        cur.done = true; cur.ok = false; mapHandler = null; setTappable(false);
+        cur.say = 'No points this time — what clue would make it easier?'; cur.sayCls = '';
+        ctryEl(cur.id).classList.add('good'); dropMoku(cur.id); setHint('');
+      } else { cur.say = 'Not ' + esc(COUNTRIES[id].name) + '. Think again!'; cur.sayCls = 'bad'; }
+    }
+    renderSeek();
+  }
+  function endGuide() {
+    progress.guideGames++; save();
+    clearMap(); setLabels(ORDER);
+    var top = Math.max.apply(null, guide.pts);
+    var winners = guide.names.filter(function (n, i) { return guide.pts[i] === top; });
+    sfx.fanfare();
+    fresh = true;
+    setPanel('<div class="postcard"><div class="pcHead">' + avatar() + '<div><h2>' + (winners.length > 1 ? 'A tie! Great guides!' : esc(winners[0]) + ' wins!') + '</h2><p>Good guides tell what makes a country special.</p></div></div>' +
+      '<div class="score">' + guide.names.map(function (n, i) { return { n: n, p: guide.pts[i] }; }).sort(function (a, b) { return b.p - a.p; })
+        .map(function (o) { return '<div class="' + (o.p === top ? 'lead' : '') + '"><span>' + (o.p === top ? '👑 ' : '') + esc(o.n) + '</span><span>' + o.p + ' pts</span></div>'; }).join('') + '</div>' +
+      '<div class="row"><button class="btn primary" id="gAgain">🗣️ Play again</button><button class="btn" id="gMenu">Menu</button></div></div>');
+    $('topInfo').textContent = '';
+    $('gAgain').addEventListener('click', function () { sfx.tap(); beginGuide(guide.names); });
+    $('gMenu').addEventListener('click', function () { sfx.tap(); showTitle(); });
+  }
+
+  // =====================================================================
+  // 📕 Passport
+  // =====================================================================
+  // =====================================================================
+  // 📕 Moku のパスポート(日本のパスポートの Moku 版)
+  //   visits = 当てた日ごとのスタンプ [{ c: 国, d: 'YYYY-MM-DD', st: 切手, one: 手がかり1枚 }]
+  //   同じ国でも日がちがえば、もう1つスタンプを押す。1ページに 4 つ
+  // =====================================================================
+  var STAMP_LOOK = {   // [インクの色, 形]
+    MM: ['#2E7D4F', 'oct'], TH: ['#6A3FA0', 'rect'], LA: ['#B03A5B', 'circle'], KH: ['#2E6E5E', 'oval'], VN: ['#C0392B', 'rect'],
+    MY: ['#1F4FA0', 'oval'], SG: ['#C8303F', 'circle'], BN: ['#7A5A10', 'oct'], ID: ['#8E2B2B', 'rect'], PH: ['#2A5DB0', 'circle'], TL: ['#5A3E8A', 'oval']
+  };
+  var MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  function today() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function stampDate(d) { var p = d.split('-'); return ('0' + (+p[2])).slice(-2) + ' ' + MONTHS[+p[1] - 1] + ' ' + p[0]; }
+  function hashN(s) { var h = 7; for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 100003; return h; }
+  // 当てた日を記録する(同じ国・同じ日は1つ。切手の多い方を残す)
+  function addVisit(id, st, one) {
+    var d = today(), v = progress.visits.filter(function (x) { return x.c === id && x.d === d; })[0];
+    if (v) { v.st = Math.max(v.st, st); v.one = v.one || one; return false; }
+    // 新しいスタンプは 1/50 の確率でレインボー(RAINBOW_ODDS)
+    var rb = Math.random() < 1 / RAINBOW_ODDS;
+    progress.visits.push(rb ? { c: id, d: d, st: st, one: one, rainbow: true } : { c: id, d: d, st: st, one: one });
+    return rb;
+  }
+  var RAINBOW_ODDS = 50;
+  function stampSVG(v, k) {
+    var look = STAMP_LOOK[v.c] || ['#333', 'rect'], ink = look[0], name = COUNTRIES[v.c].name.toUpperCase(), fid = 'grain' + k;
+    var rbDef = '';
+    if (v.rainbow) {   // レインボースタンプ: 虹色のインク
+      ink = 'url(#rb' + k + ')';
+      rbDef = '<linearGradient id="rb' + k + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E8443A"/><stop offset="0.2" stop-color="#F29A2E"/><stop offset="0.4" stop-color="#E8C22E"/><stop offset="0.6" stop-color="#3EA65A"/><stop offset="0.8" stop-color="#2E7FD0"/><stop offset="1" stop-color="#8A4FB8"/></linearGradient>';
+    }
+    var s = '<defs>' + rbDef + '<filter id="' + fid + '"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="' + (hashN(v.c + v.d) % 50) + '" result="n"/>' +
+      '<feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.1 1.3" result="m"/><feComposite in="SourceGraphic" in2="m" operator="in"/></filter></defs>' +
+      '<g filter="url(#' + fid + ')" fill="none" stroke="' + ink + '" font-family="\'Courier New\', monospace" font-weight="700">';
+    var fs = name.length > 9 ? 12 : 15;
+    if (look[1] === 'circle') {
+      s += '<circle cx="80" cy="60" r="54" stroke-width="4"/><circle cx="80" cy="60" r="46" stroke-width="1.5"/>' +
+        '<path id="arc' + k + '" d="M42 62 a38 38 0 0 1 76 0" stroke="none"/><text fill="' + ink + '" stroke="none" font-size="' + Math.min(fs, 12) + '" letter-spacing="1"><textPath href="#arc' + k + '" startOffset="50%" text-anchor="middle">' + esc(name) + '</textPath></text>' +
+        '<text x="80" y="76" fill="' + ink + '" stroke="none" font-size="11" text-anchor="middle">' + stampDate(v.d) + '</text>' +
+        '<text x="80" y="94" fill="' + ink + '" stroke="none" font-size="10" text-anchor="middle" letter-spacing="1">✈ ARRIVAL</text>';
+    } else if (look[1] === 'oval') {
+      s += '<ellipse cx="80" cy="60" rx="74" ry="50" stroke-width="4"/><ellipse cx="80" cy="60" rx="66" ry="42" stroke-width="1.5"/>' +
+        '<text x="80" y="44" fill="' + ink + '" stroke="none" font-size="' + fs + '" text-anchor="middle" letter-spacing="2">' + esc(name) + '</text>' +
+        '<line x1="22" y1="52" x2="138" y2="52" stroke-width="1.5"/><text x="80" y="71" fill="' + ink + '" stroke="none" font-size="14" text-anchor="middle">' + stampDate(v.d) + '</text>' +
+        '<text x="80" y="88" fill="' + ink + '" stroke="none" font-size="10" text-anchor="middle" letter-spacing="1">ADMITTED</text>';
+    } else if (look[1] === 'oct') {
+      s += '<polygon points="40,8 120,8 152,38 152,82 120,112 40,112 8,82 8,38" stroke-width="4"/>' +
+        '<text x="80" y="36" fill="' + ink + '" stroke="none" font-size="' + fs + '" text-anchor="middle" letter-spacing="2">' + esc(name) + '</text>' +
+        '<rect x="26" y="46" width="108" height="26" stroke-width="1.5"/><text x="80" y="64" fill="' + ink + '" stroke="none" font-size="14" text-anchor="middle">' + stampDate(v.d) + '</text>' +
+        '<text x="80" y="92" fill="' + ink + '" stroke="none" font-size="10" text-anchor="middle" letter-spacing="1">ENTRY ✈ MOKU</text>';
+    } else {
+      s += '<rect x="8" y="10" width="144" height="100" rx="8" stroke-width="4"/><rect x="15" y="17" width="130" height="86" rx="4" stroke-width="1.5"/>' +
+        '<text x="80" y="40" fill="' + ink + '" stroke="none" font-size="' + fs + '" text-anchor="middle" letter-spacing="2">' + esc(name) + '</text>' +
+        '<text x="80" y="66" fill="' + ink + '" stroke="none" font-size="14" text-anchor="middle">' + stampDate(v.d) + '</text>' +
+        '<text x="80" y="90" fill="' + ink + '" stroke="none" font-size="10" text-anchor="middle" letter-spacing="1">ARRIVAL</text>';
+    }
+    if (v.one) s += '<text x="146" y="22" fill="' + ink + '" stroke="none" font-size="16" text-anchor="middle">★</text>';
+    if (v.rainbow) s += '<text x="14" y="112" fill="' + ink + '" stroke="none" font-size="15">✦</text><text x="150" y="108" fill="' + ink + '" stroke="none" font-size="11">✦</text>';
+    s += '</g>';
+    return '<svg class="stmp" viewBox="0 0 160 120" aria-label="' + esc(COUNTRIES[v.c].name + ' ' + stampDate(v.d)) + '">' + s + '</svg>';
+  }
+  function playerName() {
+    var u = readJSON('moku:account:user'), n = u && (u.name || u.displayName);
+    return String(n || 'Moku').toUpperCase().replace(/[^A-Z0-9 ]/g, '').slice(0, 14) || 'MOKU';
+  }
+  function bookPages() {
+    var vs = progress.visits.slice().sort(function (a, b) { return a.d < b.d ? -1 : a.d > b.d ? 1 : 0; }), pages = [];
+    for (var i = 0; i < Math.max(1, vs.length); i += 4) pages.push(vs.slice(i, i + 4));
+    if (vs.length && vs.length % 4 === 0) pages.push([]);   // 次のスタンプ用の白いページ
+    return pages;
+  }
+  var EMBLEM = '<svg class="emb" viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="#D9B65A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">' +
+    '<circle cx="50" cy="50" r="44"/><circle cx="50" cy="50" r="38" stroke-width="1.5"/>' +
+    '<path d="M30 40 q0 -14 20 -14 q20 0 20 14 v14 q0 18 -20 22 q-20 -4 -20 -22z"/><path d="M30 32 l-6 -10 l12 6 M70 32 l6 -10 l-12 6"/>' +
+    '<circle cx="41" cy="44" r="6"/><circle cx="59" cy="44" r="6"/><path d="M50 50 l-4 6 h8z"/>' +
+    '<path d="M22 70 q-6 -12 2 -24 M78 70 q6 -12 -2 -24 M26 74 q-8 -2 -10 -10 M74 74 q8 -2 10 -10"/></g></svg>';
+  function bookHTML(page) {
+    var pages = bookPages(), total = pages.length + 2, h = '<div class="book">';
+    page = Math.max(0, Math.min(total - 1, page));
+    if (page === 0) {
+      h += '<div class="pg cover"><div class="cvTop">MOKU LAND</div>' + EMBLEM + '<div class="cvBot">PASSPORT</div><div class="cvSmall">✈ Southeast Asia travel book</div></div>';
+    } else if (page === 1) {
+      var first = progress.visits.length ? progress.visits.map(function (v) { return v.d; }).sort()[0] : today();
+      h += '<div class="pg idp"><div class="idHead"><span>PASSPORT</span><span>Type P · Code MKU</span></div><div class="idBody"><div class="photo">' + avatar() + '</div><dl>' +
+        '<dt>Surname</dt><dd>MOKU</dd><dt>Given name</dt><dd>' + esc(playerName()) + '</dd><dt>Nationality</dt><dd>MOKU LAND</dd>' +
+        '<dt>Date of issue</dt><dd>' + stampDate(first) + '</dd><dt>Countries</dt><dd>' + knownIds().length + ' / 11 · ' + progress.visits.length + (progress.visits.length === 1 ? ' stamp' : ' stamps') + '</dd></dl></div>' +
+        '<div class="mrz">P&lt;MKUMOKU&lt;&lt;' + esc(playerName().replace(/ /g, '&lt;')) + '&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;<br>MOKU' + knownIds().length + '&lt;&lt;ASEAN&lt;&lt;' + progress.visits.length + '&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;</div></div>';
+    } else {
+      var vs = pages[page - 2];
+      h += '<div class="pg visa"><div class="vHead">VISAS · STAMPS</div><div class="stamps">' +
+        (vs.length ? vs.map(function (v, i) {
+          var r = hashN(v.c + v.d + i), rot = (r % 21) - 10, dx = (r % 13) - 6, dy = ((r >> 3) % 11) - 5;
+          return '<button class="st' + (v.rainbow ? ' rb' : '') + '" data-c="' + v.c + '" style="transform:translate(' + dx + 'px,' + dy + 'px) rotate(' + rot + 'deg)">' + stampSVG(v, page + '_' + i) + '</button>';
+        }).join('') : '<div class="empty">Find Moku on a postcard to get your next stamp here!</div>') +
+        '</div><div class="pgNo">' + (page - 1) + '</div></div>';
+    }
+    h += '</div><div class="bookNav"><button class="btn" id="pgPrev"' + (page === 0 ? ' disabled' : '') + '>◀</button><span>' +
+      (page === 0 ? 'Cover' : page === 1 ? 'Photo page' : 'Page ' + (page - 1) + ' of ' + pages.length) + '</span><button class="btn" id="pgNext"' + (page >= total - 1 ? ' disabled' : '') + '>▶</button></div>';
+    return { html: h, page: page, last: total - 1 };
+  }
+  function openPassport(sel) {
+    showPlay('📕 My Passport');
+    var known = knownIds();
+    setLabels(known);
+    $('topInfo').textContent = known.length + '/11';
+    setTappable(true);
+    mapHandler = function (id) { if (progress.found[id]) { sfx.tap(); draw(id); } };
+    setHint(known.length ? 'Tap a country you found' : '');
+    var bookPage = bookPages().length + 1;   // さいごのスタンプのページから
+    if (!progress.visits.length) bookPage = 0;
+    function draw(open) {
+      clearMap(); setLabels(known); setTappable(true);
+      var bk = bookHTML(bookPage); bookPage = bk.page;
+      forCtry(function (el, id) { el.classList.toggle('dim', !progress.found[id]); });
+      if (open) { ctryEl(open).classList.add('hl'); dropMoku(open); }
+      var h = '<div class="postcard"><div class="pcHead">' + avatar() + '<div><h2>My Passport</h2><p>' + known.length + ' / 11 countries · 🔖 ' + progress.totalStamps + ' stamps' + (progress.twinBest ? ' · ⚖️ best ' + progress.twinBest + '/8' : '') + '</p></div></div>' +
+        bk.html + '<div class="sec">Countries</div>' +
+        '<div class="stampGrid">' + ORDER.map(function (id) {
+          if (!progress.found[id]) return '<div class="sg"><div class="q">?</div><span>???</span><small>not found</small></div>';
+          return '<button class="sg got" data-c="' + id + '">' + (progress.master[id] ? '<span class="star">⭐</span>' : '') + flagSVG(id) + '<span>' + esc(COUNTRIES[id].name) + '</span><small>🔖 ' + (progress.stamps[id] | 0) + '</small></button>';
+        }).join('') + '</div>' +
+        (known.length ? '' : '<div class="say">Your Passport is empty. Go to Postcards and find Moku!</div>') +
+        '<div class="tip">⭐ = found with just one clue</div></div>' +
+        (open ? passportHTML(open) : '');
+      setPanel(h);
+      $('pgPrev').addEventListener('click', function () { sfx.tap(); bookPage--; draw(open); });
+      $('pgNext').addEventListener('click', function () { sfx.tap(); bookPage++; draw(open); });
+      panel.querySelectorAll('.st[data-c]').forEach(function (b) { b.addEventListener('click', function () { sfx.stamp(); draw(b.getAttribute('data-c')); var pp = panel.querySelector('.pp'); if (pp) pp.scrollIntoView({ behavior: 'smooth', block: 'start' }); }); });
+      panel.querySelectorAll('.sg[data-c]').forEach(function (b) { b.addEventListener('click', function () { sfx.tap(); draw(b.getAttribute('data-c')); var pp = panel.querySelector('.pp'); if (pp) pp.scrollIntoView({ behavior: 'smooth', block: 'start' }); }); });
+      if (!open) setHint(known.length ? 'Tap a country you found' : '');
+    }
+    fresh = true;
+    draw(sel);
+  }
+
+  // ---------- start ----------
+  buildMaps();
+  syncSoundBtn();
+  renderOutfit();
+  $('goPost').addEventListener('click', function () { sfx.tap(); startTrip(); });
+  $('goTwin').addEventListener('click', function () { sfx.tap(); startTwin(); });
+  $('goGuide').addEventListener('click', function () { sfx.tap(); startGuideSetup(); });
+  $('goPass').addEventListener('click', function () { sfx.tap(); openPassport(); });
+  window.addEventListener('moku:moint', function () { if (!mode) showTitle(); });
+  showTitle();
+  // 開発用: ?screen=post|twin|guide|pass で直接開く(スクリーンショット用)
+  try {
+    var scr = new URLSearchParams(location.search).get('screen');
+    if (scr === 'post') startTrip(); else if (scr === 'twin') startTwin(); else if (scr === 'guide') startGuideSetup(); else if (scr === 'pass') openPassport();
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>
