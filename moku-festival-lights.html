@@ -37,7 +37,7 @@
   東南アジアのお祭り・伝統の飾りを、光る点を指でなぞって作り、色を選んで仕上げる。
   Live in ASIA の目標(CLAUDE.md §2)に合わせて: ①どの飾りにも国 ②「どの国の・いつの・何でできている」をくらべる
   ③作り終えたら「Tell a friend」の一文。
-  - 🎨 Make: 6 つの飾り(CRAFTS)から選ぶ → ①なぞる(点線の上を、光る点から順に指でなぞる。何本かある飾りもある)
+  - 🎨 Make: 12 の飾り(CRAFTS)から選ぶ → ①なぞる(点線の上を、光る点から順に指でなぞる。何本かある飾りもある)
     → ②色を選ぶ(伝統の色にはしるし)→ ③できあがりの演出と本当の話。なぞりのうまさで ⭐1〜3。
   - 🌙 Festival Night: 作った飾りが、夜のお祭りの景色に集まる(ランタンは吊るされ、クラトンは川に浮かぶ)。押すとその飾りの話。
   宗教の行事は「何のお祭りか」を一言だけ、中立に書く(どの宗教が正しい、のような話はしない)。
@@ -175,7 +175,7 @@ svg.flag { display: block; border-radius: 2px; }
 
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.1.0 · Updated Nov 19, 2026</div>
+<div id="buildInfo">v0.2.0 · Updated Nov 20, 2026</div>
 <button id="soundBtn" aria-label="Sound">🔊</button>
 
 <div id="titleScreen">
@@ -191,8 +191,8 @@ svg.flag { display: block; border-radius: 2px; }
         <div id="titleSub">Live in Asia · make & celebrate</div>
       </div>
       <div id="titleMenu">
-        <button class="titleMenuItem primary" id="goMake"><span class="ic">🎨</span><span>Make<small>Trace and color 6 festival crafts</small></span></button>
-        <button class="titleMenuItem" id="goNight"><span class="ic">🌙</span><span>Festival Night<small id="nightCount">0 / 6 made</small></span></button>
+        <button class="titleMenuItem primary" id="goMake"><span class="ic">🎨</span><span>Make<small>Trace and color 12 festival crafts</small></span></button>
+        <button class="titleMenuItem" id="goNight"><span class="ic">🌙</span><span>Festival Night<small id="nightCount">0 / 12 made</small></span></button>
       </div>
       <div id="titleMoints"><span class="mcoin">M</span><span id="titleBal">0</span><span id="titleToday"></span></div>
     </div>
@@ -296,11 +296,55 @@ svg.flag { display: block; border-radius: 2px; }
       ask: 'Pick a lantern to carry under the moon:',
       colors: [{ c: '#E0473B', n: 'Red', trad: true }, { c: '#F2B530', n: 'Yellow', trad: true }, { c: '#E87AA0', n: 'Pink' }, { c: '#5AA9E6', n: 'Blue' }],
       facts: ['At the Mid-Autumn Festival, families share mooncakes under the full moon.', 'Children carry glowing lanterns — in Vietnam, star-shaped ones are very popular.', 'Mooncakes are often filled with sweet lotus seed or red bean paste.'],
-      tell: 'a round cake shared under the full moon' }
+      tell: 'a round cake shared under the full moon' },
+    { id: 'wau', name: 'Wau kite', where: 'MY', country: 'Malaysia', when: 'kite festivals, like the one in Kelantan',
+      intro: 'Trace the frame of a wau bulan — the “moon kite”.',
+      strokes: [densify([[50, 6], [58, 18], [86, 28], [64, 40], [58, 50], [78, 58], [90, 72], [66, 78], [50, 92], [34, 78], [10, 72], [22, 58], [42, 50], [36, 40], [14, 28], [42, 18], [50, 6]], 3)],
+      ask: 'Paint the kite. Pick a color:',
+      colors: [{ c: '#E0473B', n: 'Red', trad: true }, { c: '#3E7FC0', n: 'Blue', trad: true }, { c: '#F2B530', n: 'Gold' }, { c: '#3E9B5A', n: 'Green' }],
+      facts: ['“Wau bulan” means moon kite — its tail is shaped like a crescent moon.', 'Big waus can be more than 2 meters wide, and some have a bow that hums in the wind.', 'You can see a wau on Malaysia’s 50 sen coin!'],
+      tell: 'a big kite with a tail shaped like the moon' },
+    { id: 'ketupat', name: 'Ketupat', where: 'ID', country: 'Indonesia, Malaysia, Brunei & Singapore', when: 'Hari Raya, the celebration at the end of the fasting month',
+      intro: 'Trace the woven diamond of a ketupat — the outside, then the middle.',
+      strokes: [densify([[50, 12], [86, 50], [50, 88], [14, 50], [50, 12]], 3), densify([[50, 30], [68, 50], [50, 70], [32, 50], [50, 30]], 3)],
+      ask: 'Pick the leaf color:',
+      colors: [{ c: '#6FAE3E', n: 'Young leaf green', trad: true }, { c: '#D9C05A', n: 'Dry leaf yellow', trad: true }, { c: '#3E9B5A', n: 'Dark green' }, { c: '#E0473B', n: 'Red ribbon' }],
+      facts: ['A ketupat is a little pouch woven from young coconut leaves.', 'Rice is cooked inside it, so it comes out as a firm rice cake.', 'Families hang and share ketupat for Hari Raya in Indonesia, Malaysia, Brunei and Singapore.'],
+      tell: 'a diamond-shaped pouch of woven leaves with rice inside' },
+    { id: 'skylantern', name: 'Yi Peng sky lantern', where: 'TH', country: 'Thailand', when: 'Yi Peng, the lantern festival in Chiang Mai',
+      intro: 'Trace the paper lantern, then its round bamboo bottom.',
+      strokes: [densify([[30, 66], [24, 32], [32, 16], [50, 10], [68, 16], [76, 32], [70, 66]], 3), ellipse(50, 68, 21, 5, 0, 32)],
+      ask: 'Pick the paper color:',
+      colors: [{ c: '#FFF1D6', n: 'Cream', trad: true }, { c: '#F2B530', n: 'Yellow', trad: true }, { c: '#E0473B', n: 'Red' }, { c: '#E87AA0', n: 'Pink' }],
+      facts: ['At Yi Peng in Chiang Mai, thousands of paper lanterns float up into the night sky.', 'A small flame heats the air inside, so the lantern rises like a tiny hot-air balloon.', 'Now there are special places and times to let them go, to keep planes and forests safe.'],
+      tell: 'a paper lantern that floats up into the night sky' },
+    { id: 'padauk', name: 'Padauk flowers', where: 'MM', country: 'Myanmar', when: 'Thingyan, the water festival for the new year in April',
+      intro: 'Trace a golden padauk flower — the petals, then the middle.',
+      strokes: [wavy(50, 50, 26, 10, 5, 100), ellipse(50, 50, 7, 7, 0, 20)],
+      ask: 'Pick the flower color:',
+      colors: [{ c: '#F2B530', n: 'Golden yellow', trad: true }, { c: '#F7D04A', n: 'Bright yellow', trad: true }, { c: '#E87AA0', n: 'Pink' }, { c: '#FFFFFF', n: 'White' }],
+      facts: ['The padauk tree bursts into golden flowers around Myanmar’s new year in April.', 'People wear the flowers in their hair during Thingyan.', 'At Thingyan, people splash water on each other to wash away the old year.'],
+      tell: 'a golden flower people wear for the new year' },
+    { id: 'boat', name: 'Racing boat', where: 'KH', country: 'Cambodia', when: 'Bon Om Touk, the Water Festival in Phnom Penh',
+      intro: 'Trace the long, thin racing boat.',
+      strokes: [densify([[4, 46], [12, 58], [88, 58], [96, 44], [92, 62], [82, 70], [18, 70], [8, 62], [4, 46]], 3)],
+      ask: 'Paint the boat. Pick a color:',
+      colors: [{ c: '#E0473B', n: 'Red', trad: true }, { c: '#F2B530', n: 'Gold', trad: true }, { c: '#3E7FC0', n: 'Blue' }, { c: '#3E9B5A', n: 'Green' }],
+      facts: ['At the Water Festival, long racing boats with dozens of rowers race on the river.', 'It happens when the Tonlé Sap River turns around and flows the other way.', 'At night, boats covered in lights float on the river.'],
+      tell: 'a long boat with lots of rowers that races on the river' },
+    { id: 'tais', name: 'Tais cloth', where: 'TL', country: 'Timor-Leste', when: 'welcomes, weddings and special days',
+      intro: 'Weave a tais pattern — trace the zigzags and the diamond.',
+      strokes: [densify([[8, 30], [22, 16], [36, 30], [50, 16], [64, 30], [78, 16], [92, 30]], 3), densify([[50, 38], [66, 54], [50, 70], [34, 54], [50, 38]], 3), densify([[8, 78], [22, 92], [36, 78], [50, 92], [64, 78], [78, 92], [92, 78]], 3)],
+      ask: 'Pick the thread color:',
+      colors: [{ c: '#B8322E', n: 'Red', trad: true }, { c: '#2E2A3A', n: 'Black', trad: true }, { c: '#2E4A8A', n: 'Indigo' }, { c: '#C98A2E', n: 'Gold' }],
+      facts: ['Tais is cloth woven by hand in Timor-Leste, often on a loom tied around the weaver’s back.', 'Each area has its own patterns and colors.', 'Tais is given as a gift to welcome people, and UNESCO added it to its world treasures in 2021.'],
+      tell: 'a hand-woven cloth given as a welcome gift' }
   ];
   var BY = {}; CRAFTS.forEach(function (c) { BY[c.id] = c; });
   function tellName(c) { return c.id === 'lantern' ? c.name : c.name.toLowerCase(); }   // 文の中では小文字(Hội An は地名なのでそのまま)
-  var CNAME = { ID: 'Indonesia', MY: 'Malaysia', VN: 'Vietnam', TH: 'Thailand', PH: 'Philippines', SG: 'Singapore' };
+  var CNAME = { ID: 'Indonesia', MY: 'Malaysia', VN: 'Vietnam', TH: 'Thailand', PH: 'Philippines', SG: 'Singapore', MM: 'Myanmar', KH: 'Cambodia', TL: 'Timor-Leste', BN: 'Brunei' };
+  // 明るい布の上に作る飾り(ほかは夜空の上)
+  function onCloth(c) { return c.id === 'batik' || c.id === 'kolam' || c.id === 'tais'; }
 
   // ---------- 国旗(Where's Moku? と同じ絵。30×20) ----------
   function starPts(cx, cy, r, n, inner, rot) {
@@ -487,6 +531,65 @@ svg.flag { display: block; border-radius: 2px; }
       ctx.strokeStyle = '#4E2C17'; ctx.lineWidth = lw * 0.5; ctx.beginPath(); ctx.moveTo(0, -12 * S); ctx.lineTo(0, -4 * S); ctx.stroke();
       ctx.shadowColor = color; ctx.shadowBlur = 12 * S / 4; ctx.fillStyle = color; ctx.beginPath(); ctx.ellipse(0, 4 * S, 9 * S, 10 * S, 0, 0, 7); ctx.fill(); ctx.shadowBlur = 0;
       ctx.restore();
+    } else if (c.id === 'wau') {
+      var sw2 = Math.sin(t / 900) * 4;
+      ctx.translate(50 * S, 50 * S); ctx.rotate(sw2 * Math.PI / 180); ctx.translate(-50 * S, -50 * S);
+      ctx.fillStyle = color; path(ctx, c.strokes[0], S); ctx.fill();
+      ctx.strokeStyle = '#4E2C17'; ctx.lineWidth = lw * 0.7; path(ctx, c.strokes[0], S); ctx.stroke();
+      ctx.strokeStyle = '#FFF4DE'; ctx.lineWidth = lw * 0.6;
+      [[30, 30, 1], [70, 30, -1], [30, 70, 1], [70, 70, -1]].forEach(function (q) { ctx.beginPath(); ctx.arc(q[0] * S, q[1] * S, 6 * S, 0, 4.7, q[2] < 0); ctx.stroke(); });
+      ctx.fillStyle = '#FFF4DE'; ctx.beginPath(); ctx.arc(50 * S, 34 * S, 4 * S, 0, 7); ctx.fill();
+      ctx.strokeStyle = '#8A5A2E'; ctx.lineWidth = lw * 0.6; ctx.beginPath(); ctx.moveTo(50 * S, 6 * S); ctx.lineTo(50 * S, 92 * S); ctx.moveTo(14 * S, 28 * S); ctx.quadraticCurveTo(50 * S, 22 * S, 86 * S, 28 * S); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,244,222,0.6)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(50 * S, 60 * S); ctx.quadraticCurveTo(60 * S, 90 * S, 96 * S, 100 * S); ctx.stroke();
+    } else if (c.id === 'ketupat') {
+      ctx.strokeStyle = '#3E6A2A'; ctx.lineWidth = lw * 0.8; ctx.beginPath(); ctx.moveTo(50 * S, 12 * S); ctx.quadraticCurveTo(44 * S, 4 * S, 36 * S, 2 * S); ctx.moveTo(50 * S, 12 * S); ctx.quadraticCurveTo(58 * S, 4 * S, 64 * S, 0); ctx.stroke();
+      ctx.fillStyle = color; path(ctx, c.strokes[0], S); ctx.fill();
+      ctx.save(); path(ctx, c.strokes[0], S); ctx.clip();
+      ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = 3 * S;
+      for (var w = -60; w <= 60; w += 10) { ctx.beginPath(); ctx.moveTo((50 + w - 40) * S, 10 * S); ctx.lineTo((50 + w + 40) * S, 90 * S); ctx.stroke(); ctx.beginPath(); ctx.moveTo((50 + w + 40) * S, 10 * S); ctx.lineTo((50 + w - 40) * S, 90 * S); ctx.stroke(); }
+      ctx.restore();
+      ctx.strokeStyle = '#3E5A1E'; ctx.lineWidth = lw * 0.8; path(ctx, c.strokes[0], S); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = lw * 0.6; path(ctx, c.strokes[1], S); ctx.stroke();
+    } else if (c.id === 'skylantern') {
+      var up = (t / 60) % 6;
+      ctx.translate(0, -Math.sin(t / 900) * 2 * S);
+      var g2 = ctx.createRadialGradient(50 * S, 50 * S, 4 * S, 50 * S, 46 * S, 36 * S); g2.addColorStop(0, '#FFF6D0'); g2.addColorStop(1, color);
+      ctx.shadowColor = 'rgba(255,200,90,0.9)'; ctx.shadowBlur = 22 * S / 4;
+      ctx.fillStyle = g2; path(ctx, c.strokes[0], S); ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0;
+      ctx.strokeStyle = 'rgba(122,74,30,0.6)'; ctx.lineWidth = lw * 0.5; path(ctx, c.strokes[0], S); ctx.stroke();
+      [38, 50, 62].forEach(function (x) { ctx.beginPath(); ctx.moveTo(x * S, 13 * S); ctx.quadraticCurveTo((x + (x - 50) * 0.3) * S, 40 * S, (x + (x - 50) * 0.5) * S, 66 * S); ctx.stroke(); });
+      ctx.strokeStyle = '#8A5A2E'; ctx.lineWidth = lw * 0.6; path(ctx, c.strokes[1], S); ctx.stroke();
+      var fl2 = 1 + Math.sin(t / 110 + up) * 0.18;
+      ctx.fillStyle = '#FFC24A'; ctx.beginPath(); ctx.ellipse(50 * S, 74 * S, 3.5 * S * fl2, 6 * S * fl2, 0, 0, 7); ctx.fill();
+    } else if (c.id === 'padauk') {
+      ctx.fillStyle = '#4E8A3A';
+      [[18, 80, -0.6], [82, 78, 0.6], [30, 22, -2.4]].forEach(function (q) { ctx.save(); ctx.translate(q[0] * S, q[1] * S); ctx.rotate(q[2]); ctx.beginPath(); ctx.ellipse(0, 0, 13 * S, 5 * S, 0, 0, 7); ctx.fill(); ctx.restore(); });
+      [[78, 22, 0.35], [20, 52, 0.3]].forEach(function (q) { ctx.save(); ctx.translate(q[0] * S, q[1] * S); ctx.scale(q[2], q[2]); ctx.translate(-50 * S, -50 * S);
+        ctx.fillStyle = color; path(ctx, c.strokes[0], S); ctx.fill(); ctx.restore(); });
+      ctx.shadowColor = shade(color, 0.4); ctx.shadowBlur = 14 * S / 4;
+      ctx.fillStyle = color; path(ctx, c.strokes[0], S); ctx.fill(); ctx.shadowBlur = 0;
+      ctx.strokeStyle = '#8A5A10'; ctx.lineWidth = lw * 0.6; path(ctx, c.strokes[0], S); ctx.stroke();
+      ctx.fillStyle = '#C97A1A'; path(ctx, c.strokes[1], S); ctx.fill();
+      ctx.fillStyle = '#FFF4DE'; for (var d2 = 0; d2 < 5; d2++) { var a2 = -Math.PI / 2 + d2 * Math.PI * 2 / 5; ctx.beginPath(); ctx.arc((50 + Math.cos(a2) * 12) * S, (50 + Math.sin(a2) * 12) * S, 1.6 * S, 0, 7); ctx.fill(); }
+    } else if (c.id === 'boat') {
+      var rock = Math.sin(t / 500) * 1.2;
+      ctx.translate(0, rock * S);
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = lw * 0.5;
+      for (var wv = 0; wv < 4; wv++) { ctx.beginPath(); ctx.moveTo((8 + wv * 24) * S, 80 * S); ctx.quadraticCurveTo((14 + wv * 24) * S, 76 * S, (20 + wv * 24) * S, 80 * S); ctx.stroke(); }
+      ctx.strokeStyle = '#4E2C17'; ctx.lineWidth = lw * 0.5;
+      for (var r2 = 0; r2 < 8; r2++) { var rx = 20 + r2 * 8.5, sw3 = Math.sin(t / 250 + r2 * 0.4) * 3;
+        ctx.beginPath(); ctx.moveTo(rx * S, 52 * S); ctx.lineTo((rx - 4 + sw3) * S, 76 * S); ctx.stroke();
+        ctx.fillStyle = '#F4E4D0'; ctx.beginPath(); ctx.arc(rx * S, 48 * S, 3 * S, 0, 7); ctx.fill(); ctx.fillStyle = '#E0473B'; ctx.fillRect((rx - 2.5) * S, 50 * S, 5 * S, 7 * S); }
+      ctx.fillStyle = color; path(ctx, c.strokes[0], S); ctx.fill();
+      ctx.strokeStyle = '#4E2C17'; ctx.lineWidth = lw * 0.7; path(ctx, c.strokes[0], S); ctx.stroke();
+      ctx.fillStyle = '#F2B530'; ctx.beginPath(); ctx.moveTo(96 * S, 44 * S); ctx.lineTo(100 * S, 38 * S); ctx.lineTo(94 * S, 40 * S); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,244,222,0.7)'; ctx.lineWidth = lw * 0.5; ctx.beginPath(); ctx.moveTo(14 * S, 63 * S); ctx.lineTo(86 * S, 63 * S); ctx.stroke();
+    } else if (c.id === 'tais') {
+      if (bgOn !== false) { ctx.fillStyle = color; ctx.fillRect(0, 0, 100 * S, 100 * S); }
+      ctx.fillStyle = 'rgba(255,255,255,0.12)'; for (var st2 = 0; st2 < 100; st2 += 8) ctx.fillRect(0, st2 * S, 100 * S, 2 * S);
+      ctx.fillStyle = '#F2C24A'; ctx.fillRect(0, 40 * S, 100 * S, 2 * S); ctx.fillRect(0, 68 * S, 100 * S, 2 * S);
+      ctx.strokeStyle = '#FFF4DE'; ctx.lineWidth = lw * 1.1; c.strokes.forEach(function (st3) { path(ctx, st3, S); ctx.stroke(); });
+      ctx.fillStyle = '#F2C24A'; ctx.beginPath(); ctx.arc(50 * S, 54 * S, 4 * S, 0, 7); ctx.fill();
     }
     ctx.restore();
   }
@@ -494,9 +597,9 @@ svg.flag { display: block; border-radius: 2px; }
     var cvs = document.createElement('canvas'), d = Math.min(2, window.devicePixelRatio || 1);
     cvs.width = cvs.height = size * d; var x = cvs.getContext('2d'); x.scale(d, d);
     var made = progress.made[c.id];
-    x.fillStyle = c.id === 'batik' || c.id === 'kolam' ? '#FFF4E2' : '#2E2A4A'; x.fillRect(0, 0, size, size);
+    x.fillStyle = onCloth(c) ? '#FFF4E2' : '#2E2A4A'; x.fillRect(0, 0, size, size);
     if (made) drawCraft(x, c, progress.color[c.id] || c.colors[0].c, size / 100, 0);
-    else { x.globalAlpha = 0.4; x.strokeStyle = c.id === 'batik' || c.id === 'kolam' ? '#B9A27F' : '#BCAFD8'; x.setLineDash([3, 3]); x.lineWidth = 2; c.strokes.forEach(function (s) { path(x, s, size / 100); x.stroke(); }); }
+    else { x.globalAlpha = 0.4; x.strokeStyle = onCloth(c) ? '#B9A27F' : '#BCAFD8'; x.setLineDash([3, 3]); x.lineWidth = 2; c.strokes.forEach(function (s) { path(x, s, size / 100); x.stroke(); }); }
     return cvs;
   }
 
@@ -607,7 +710,7 @@ svg.flag { display: block; border-radius: 2px; }
     progress.color[c.id] = work.color;
     var lines = [['Stars: ' + work.stars + ' × 10', earn(work.stars * 10)]];
     if (first) lines.push(['First ' + c.name + '!', claimOnce('c:' + c.id, 30)]);
-    if (madeCount() >= CRAFTS.length) lines.push(['All 6 crafts made! 🎉', claimOnce('all', 200)]);
+    if (madeCount() >= CRAFTS.length) lines.push(['All ' + CRAFTS.length + ' crafts made! 🎉', claimOnce('all', 200)]);
     work.lines = lines;
     save(); sfx.glow();
     $('topInfo').textContent = madeCount() + '/' + CRAFTS.length;
@@ -618,20 +721,20 @@ svg.flag { display: block; border-radius: 2px; }
     if (!work || !work.ctx) return;
     var x = work.ctx, S = work.size / 100, c = work.c;
     x.setTransform(work.d, 0, 0, work.d, 0, 0);
-    var darkBg = !(c.id === 'batik' || c.id === 'kolam');
+    var darkBg = !onCloth(c);
     if (work.phase === 'done') {
       var k = Math.min(1, (t - work.doneAt) / 900);
       x.fillStyle = darkBg ? '#2E2A4A' : '#FFF4E2'; x.fillRect(0, 0, work.size, work.size);
-      if (c.id === 'krathong') { x.fillStyle = '#2C4A6A'; x.fillRect(0, 70 * S, work.size, 30 * S); }
+      if (c.id === 'krathong' || c.id === 'boat') { x.fillStyle = '#2C4A6A'; x.fillRect(0, 70 * S, work.size, 30 * S); }
       x.globalAlpha = k; drawCraft(x, c, work.color, S, t); x.globalAlpha = 1;
       // きらきら
       for (var i = 0; i < 14; i++) { var a = i * 2.4 + t / 900, r = 40 + 8 * Math.sin(t / 400 + i); x.fillStyle = 'rgba(255,236,160,' + (0.4 + 0.4 * Math.sin(t / 200 + i)) + ')';
         x.beginPath(); x.arc((50 + Math.cos(a) * r) * S, (50 + Math.sin(a) * r) * S, 1.6 * S, 0, 7); x.fill(); }
       return;
     }
-    x.fillStyle = c.id === 'kolam' ? '#7A5236' : c.id === 'batik' ? '#FFF4E2' : '#3A3458';
+    x.fillStyle = c.id === 'kolam' ? '#7A5236' : (c.id === 'batik' || c.id === 'tais') ? '#FFF4E2' : '#3A3458';
     x.fillRect(0, 0, work.size, work.size);
-    var guide = c.id === 'batik' ? 'rgba(122,82,54,0.35)' : 'rgba(255,244,222,0.35)', ink = c.id === 'batik' ? '#C9883A' : '#FFF4DE';
+    var guide = (c.id === 'batik' || c.id === 'tais') ? 'rgba(122,82,54,0.35)' : 'rgba(255,244,222,0.35)', ink = (c.id === 'batik' || c.id === 'tais') ? '#C9883A' : '#FFF4DE';
     if (c.dots) { x.fillStyle = '#FFF8EC'; c.dots.forEach(function (d) { x.beginPath(); x.arc(d[0] * S, d[1] * S, 2.2 * S, 0, 7); x.fill(); }); }
     // 点線(まだの線)と、なぞり終えた線
     c.strokes.forEach(function (s, si) {
@@ -654,7 +757,9 @@ svg.flag { display: block; border-radius: 2px; }
   // =====================================================================
   // 🌙 Festival Night(作った飾りが集まる景色)
   // =====================================================================
-  var SPOTS = { lantern: [0.18, 0.22, 0.22], parol: [0.5, 0.16, 0.24], mooncake: [0.82, 0.62, 0.2], batik: [0.82, 0.24, 0.22], kolam: [0.18, 0.66, 0.22], krathong: [0.5, 0.82, 0.18] };
+  var SPOTS = { lantern: [0.1, 0.18, 0.15], parol: [0.3, 0.16, 0.16], skylantern: [0.5, 0.26, 0.12], wau: [0.88, 0.2, 0.16],
+    batik: [0.1, 0.44, 0.14], tais: [0.27, 0.44, 0.14], ketupat: [0.5, 0.47, 0.13], padauk: [0.72, 0.44, 0.14],
+    kolam: [0.15, 0.66, 0.15], mooncake: [0.86, 0.64, 0.15], krathong: [0.36, 0.87, 0.14], boat: [0.66, 0.88, 0.24] };
   function openNight(sel) {
     showPlay('🌙 Festival Night');
     $('topInfo').textContent = madeCount() + '/' + CRAFTS.length;

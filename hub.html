@@ -2987,10 +2987,10 @@ html.me-open #ceoPeek { display: none; }
       name: 'Moku Festival Lights',
       card: 'mfl',
       gameId: 'moku-festival-lights',
-      // 完了 = 6 つの飾りを全部 ⭐3 で作った
+      // 完了 = 12 の飾りを全部 ⭐3 で作った
       isCompleted: function () {
         if (isExplicitlyMarked('completed', 'mfl')) return true;
-        return mflStars() >= 18;
+        return mflStars() >= 36;
       },
       isPlayed: function () {
         if (isExplicitlyMarked('played', 'mfl')) return true;
@@ -2999,13 +2999,13 @@ html.me-open #ceoPeek { display: none; }
       },
       progress: function () {
         if (this.isCompleted()) return 1;
-        return Math.min(1, mflStars() / 18);
+        return Math.min(1, mflStars() / 36);
       },
       badge: function () {
         var p = readJSON('moku:moku-festival-lights:progress');
         if (!p || !this.isPlayed()) return null;
         var made = p.made && typeof p.made === 'object' ? Object.keys(p.made).length : 0;
-        return '🏮 ' + made + ' / 6 crafts · ⭐ ' + mflStars() + ' / 18';
+        return '🏮 ' + made + ' / 12 crafts · ⭐ ' + mflStars() + ' / 36';
       }
     },
     {
@@ -3094,7 +3094,7 @@ html.me-open #ceoPeek { display: none; }
     mmm: { title: 'Market Stars', read: function () { var p = readJSON('moku:moku-money-market:progress'); return p && p.totalStars; }, fmt: function (n) { return num(n) + ' ⭐'; } },
     mff: { title: 'Facts Found', read: mffKnown, fmt: function (n) { return n + ' / ' + MFF_TOTAL + ' 📚'; } },
     mnj: { title: 'Critters Found', read: mnjFound, fmt: function (n) { return n + ' / ' + MNJ_TOTAL + ' 🔦'; } },
-    mfl: { title: 'Festival Stars', read: mflStars, fmt: function (n) { return n + ' / 18 ⭐'; } },
+    mfl: { title: 'Festival Stars', read: mflStars, fmt: function (n) { return n + ' / 36 ⭐'; } },
     ceo: { title: 'Pop Quizzes Solved', read: function () { var m = readJSON('moku:ceo-moku:memory'); return m && m.quiz && m.quiz.wins; }, fmt: function (n) { return n + ' 🧩'; } }
   };
   function myRecords() {

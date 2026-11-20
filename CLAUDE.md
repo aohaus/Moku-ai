@@ -46,7 +46,7 @@
 | Moku Money Market | `moku-money-market.html` | 東南アジア 8 か国の屋台で、その国のお金で買い物(合計・払う・おつり)+自分のお金でだいたいいくら? の Price Check。Live in ASIA の第2弾 |
 | Fact or Fib? Asia | `moku-fact-or-fib.html` | 東南アジア 11 か国の「うそみたいな本当の話」と「本当っぽいうそ」を見分ける(1人の Quiz+1台を回す Party+Fact Book)。Live in ASIA の第3弾 |
 | Moku Night Jungle | `moku-night-jungle.html` | 夜の熱帯雨林を懐中電灯で照らし、手がかりと鳴き声で本当にいる生き物を探す(Night Walk+図鑑 Junglepedia)。Live in ASIA の第4弾 |
-| Moku Festival Lights | `moku-festival-lights.html` | 東南アジアのお祭りの飾り(バティック・コーラム・ホイアンのランタン・クラトン・パロル・月餅)を指でなぞって色を選んで作る+できた飾りが集まる Festival Night。Live in ASIA の第5弾 |
+| Moku Festival Lights | `moku-festival-lights.html` | 東南アジアのお祭りの飾り12種(バティック・コーラム・ホイアンのランタン・クラトン・パロル・月餅・ワウ・クトゥパ・コムローイ・パダウ・水祭りの舟・タイス)を指でなぞって色を選んで作る+できた飾りが集まる Festival Night。Live in ASIA の第5弾 |
 | Sir CEO Moku | `ceo-moku.html` | 社長の Moku と会話する部屋(CEO's Pick のボーナス・Pop Quiz・ゲームのアイデア相談・おしゃべり。ハブの左の端からひょっこり出てくる) |
 
 **Special Events**(2026-11-13〜): Moku とは関係ないが家族のイベントに合わせて作る特別アプリ。ハブの「⭐ Special Events」(`hub.html` の `EVENTS`)から開く。Moku のゲームではないので上の表・`CATALOG`・Achievements・Moint には入れない。保護者が頼んだ時は、見た目(暗い配色など)とことば(日英の切り替え)を §4 の例外にしてよい。足し方は SPEC.md §15。第1弾は `event-japan-brazil.html`(2026-11-14 の日本 vs ブラジルの選手ガイド+横持ちのミニサッカー)。第2弾は `event-japan-paraguay.html`(2026-11-17 の日本 vs パラグアイ。ブラジル戦と同じ作り)。
