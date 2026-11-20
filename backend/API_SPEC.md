@@ -174,9 +174,10 @@ IDが存在しない場合と PIN 違いは同じ応答(`401 bad_credentials`)�
   ```json
   { "level": 4, "outfit": { "head": "wizard-hat", "mood": "mood-cookie-eyes", "face": "round-glasses", "neck": "pearls", "hand": "good-chess-knight", "bg": "bg-japan" },
     "highlights": [ { "icon": "🏆", "title": "Badges", "value": "4 / 5", "game": "" }, { "title": "🍀 Luckiest Steps", "value": "8 in a row", "game": "moku-bridge" } ],
-    "records": { "moku-drop": 8200, "moku-bridge": 8 } }
+    "records": { "moku-drop": 8200, "moku-bridge": 8 },
+    "plays": { "moku-drop": 14, "moku-bridge": 3 } }
   ```
-  サーバーは短い値だけ残す: `outfit` は6つの枠(head / mood / face / neck / hand / bg)の `[a-z0-9-]{1,40}` のIDだけ、`highlights` は最大4件(`icon` 8文字・`title` 32文字・`value` 40文字・`game` はID、`title` がないものは捨てる)、`records`(2026-10-26〜、ハブの Achievements の Top 3 用)はゲームID→数値で最大40件、正の数だけを整数に丸めて残す(上限 1e9)、`level` は1〜9999の整数。`updatedAt` はサーバーが付ける。セーブの中身そのものはほかの人に見せない。
+  サーバーは短い値だけ残す: `outfit` は6つの枠(head / mood / face / neck / hand / bg)の `[a-z0-9-]{1,40}` のIDだけ、`highlights` は最大4件(`icon` 8文字・`title` 32文字・`value` 40文字・`game` はID、`title` がないものは捨てる)、`records`(2026-10-26〜、ハブの Achievements の Top 3 用)はゲームID→数値で最大40件、正の数だけを整数に丸めて残す(上限 1e9)、`plays`(2026-11-20〜、ハブの Achievements でゲームを人気順に並べる用。そのプレイヤーがハブから各ゲームを始めた回数)は `records` と同じ形(ゲームID→正の整数、最大40件)、`level` は1〜9999の整数。`updatedAt` はサーバーが付ける。セーブの中身そのものはほかの人に見せない。
 
 **200** `{ "rev": 4, "updatedAt": "…" }`
 

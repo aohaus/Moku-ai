@@ -121,7 +121,15 @@ function cleanCard(card, t) {
     const v = rsrc[id];
     if (CARD_ID_RE.test(id) && typeof v === "number" && Number.isFinite(v) && v > 0) records[id] = Math.min(MAX_CARD_RECORD, Math.round(v));
   }
-  const out = { outfit, highlights, records, updatedAt: new Date(t).toISOString() };
+  // plays: { gameId: number } = how many times this player started each game from the hub
+  // (Achievements sorts games by everyone's total). Whole numbers, 0..1e9.
+  const plays = {};
+  const psrc = card.plays && typeof card.plays === "object" && !Array.isArray(card.plays) ? card.plays : {};
+  for (const id of Object.keys(psrc).slice(0, MAX_CARD_RECORDS)) {
+    const v = psrc[id];
+    if (CARD_ID_RE.test(id) && typeof v === "number" && Number.isFinite(v) && v > 0) plays[id] = Math.min(MAX_CARD_RECORD, Math.round(v));
+  }
+  const out = { outfit, highlights, records, plays, updatedAt: new Date(t).toISOString() };
   if (Number.isInteger(card.level) && card.level > 0 && card.level < 10000) out.level = card.level;
   return out;
 }

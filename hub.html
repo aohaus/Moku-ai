@@ -1619,6 +1619,15 @@ button.me-row:hover, button.me-row:focus-visible { background: rgba(255,255,255,
   border: 1px solid rgba(255,255,255,0.09); box-shadow: inset 0 3px 0 -1px var(--hi); }
 .award-head { display: flex; align-items: center; gap: 11px; margin-bottom: 10px; }
 .award-head .game-icon { width: 44px; height: 44px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.18); }
+.award-head > div:not(.award-pop) { min-width: 0; flex: 1; }
+.award-head > div small { white-space: normal; overflow-wrap: anywhere; }
+.award-pop { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.72); }
+.award-pop .pips { display: flex; gap: 3px; }
+.award-pop .pips i { width: 7px; height: 12px; border-radius: 2px; background: rgba(255,255,255,0.16); }
+.award-pop .pips i.on { background: #ffb347; }
+.award-pop.tier-5 { color: #ffd37a; }
+.award-pop.tier-5 .pips i.on { background: #ff7a3d; box-shadow: 0 0 6px rgba(255,122,61,0.6); }
+.award-pop.tier-1 .pips i.on { background: rgba(255,255,255,0.4); }
 .award-head b { display: block; font-size: 15px; font-weight: 800; }
 .award-head small { display: block; font-size: 12px; font-weight: 800; letter-spacing: 0.03em; color: var(--hi); }
 .award-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
@@ -3109,6 +3118,20 @@ html.me-open #ceoPeek { display: none; }
     return out;
   }
 
+  // How many times you started each game from the hub. Games you played before
+  // counting began count as 1, so the popularity order starts out meaningful.
+  function myPlays() {
+    var out = {};
+    var launches = readJSON('moku:stats:launches') || {};
+    GAMES.forEach(function (g) {
+      if (!g.card) return;
+      var n = parseInt(launches[g.card], 10) || 0;
+      if (!n) { try { if (Date.parse(localStorage.getItem('moku:played:' + g.card) || '')) n = 1; } catch (e) {} }
+      if (n > 0) out[g.gameId] = n;
+    });
+    return out;
+  }
+
   var XP_PER_GAME = 400;
   var XP_PER_LEVEL = 200;
 
@@ -3963,7 +3986,7 @@ html.me-open #ceoPeek { display: none; }
     try { if (window.MokuMoint) outfit = MokuMoint.closet().equipped || {}; } catch (e) {}
     var clean = {};
     Object.keys(outfit).forEach(function (k) { if (outfit[k]) clean[k] = outfit[k]; });
-    return { level: hubLevel, outfit: clean, highlights: publicHighlights(), records: myRecords() };
+    return { level: hubLevel, outfit: clean, highlights: publicHighlights(), records: myRecords(), plays: myPlays() };
   };
 
   function loadFriends(force) {
@@ -3980,13 +4003,27 @@ html.me-open #ceoPeek { display: none; }
   function awardsPeople() {
     var data = hollowPeople();
     var mine = myRecords();
+    var minePlays = myPlays();
     return {
       data: data,
       people: data.people.map(function (p) {
         return { name: p.name, tag: p.tag, you: p.you, outfit: p.card && p.card.outfit,
-                 records: p.you ? mine : (p.card && p.card.records) || {} };
+                 records: p.you ? mine : (p.card && p.card.records) || {},
+                 plays: p.you ? minePlays : (p.card && p.card.plays) || {} };
       })
     };
+  }
+  // Popularity mark: 5 pips + a name. Tier 5 = most played.
+  var POP_TIERS = { 5: ['🔥', 'Hottest'], 4: ['⭐', 'Popular'], 3: ['👍', 'Liked'], 2: ['🌱', 'Growing'], 1: ['🐣', 'Newcomer'] };
+  function popBadge(tier, total) {
+    var b = el('span', 'award-pop tier-' + tier);
+    b.title = total + (total === 1 ? ' play' : ' plays') + ' by all players';
+    var pips = el('span', 'pips');
+    pips.setAttribute('aria-hidden', 'true');
+    for (var i = 1; i <= 5; i++) pips.appendChild(el('i', i <= tier ? 'on' : null));
+    b.appendChild(pips);
+    b.appendChild(el('span', 'pop-name', POP_TIERS[tier][0] + ' ' + POP_TIERS[tier][1]));
+    return b;
   }
   function renderAwards() {
     var grid = document.getElementById('awardsGrid');
@@ -3995,10 +4032,25 @@ html.me-open #ceoPeek { display: none; }
     var people = info.people;
     grid.textContent = '';
     var shown = 0;
-    // games with records first (catalog order otherwise)
+    // Most-played games first (everyone's starts added up), then 5 popularity tiers by rank.
     var order = GAMES.filter(function (g) { return g.card && RECORDS[g.card] && CATALOG[g.card]; });
-    var hasAny = function (g) { return people.some(function (p) { return p.records[g.gameId] > 0; }); };
-    order = order.filter(hasAny).concat(order.filter(function (g) { return !hasAny(g); }));
+    var totals = {};
+    order.forEach(function (g) {
+      totals[g.gameId] = people.reduce(function (sum, p) { return sum + (p.plays[g.gameId] || 0); }, 0);
+    });
+    var anyPlays = order.some(function (g) { return totals[g.gameId] > 0; });
+    if (anyPlays) {
+      var pos = {};
+      order.forEach(function (g, i) { pos[g.gameId] = i; });
+      order.sort(function (a, b) { return totals[b.gameId] - totals[a.gameId] || pos[a.gameId] - pos[b.gameId]; });
+    }
+    var tierOf = {};
+    order.forEach(function (g, i) {
+      // ties share a tier; games nobody has played yet are always the last tier
+      var rank = i;
+      while (rank > 0 && totals[order[rank - 1].gameId] === totals[g.gameId]) rank--;
+      tierOf[g.gameId] = totals[g.gameId] > 0 ? 5 - Math.min(4, Math.floor(rank * 5 / order.length)) : 1;
+    });
     people.forEach(function (p) { p.medals = [0, 0, 0]; });
     order.forEach(function (g) {
       var r = g.card && RECORDS[g.card];
@@ -4022,6 +4074,7 @@ html.me-open #ceoPeek { display: none; }
       t.appendChild(el('b', null, c.name));
       t.appendChild(el('small', null, '🏅 ' + r.title));
       head.appendChild(t);
+      if (anyPlays) head.appendChild(popBadge(tierOf[g.gameId], totals[g.gameId]));
       card.appendChild(head);
       var rows = el('ol', 'award-rows');
       function row(p, medal) {
@@ -4067,7 +4120,7 @@ html.me-open #ceoPeek { display: none; }
     else note = 'Records update when each player opens the hub.';
     document.getElementById('awardsNote').textContent = note;
     var others = people.filter(function (p) { return !p.you; }).length;
-    document.getElementById('awardsSub').textContent = others ? 'The Top 3 in every game · ' + (others + 1) + ' players' : 'The Top 3 in every game.';
+    document.getElementById('awardsSub').textContent = others ? 'The Top 3 in every game, most played first · ' + (others + 1) + ' players' : 'The Top 3 in every game.';
   }
   // Medal Count: everyone with a medal, most 🥇 first (then 🥈, then 🥉).
   // Each medal is shown as its own emoji: 5 golds = 🥇🥇🥇🥇🥇.
@@ -4551,6 +4604,10 @@ html.me-open #ceoPeek { display: none; }
         localStorage.setItem('moku:played:' + gameKey, new Date().toISOString());
         var curCount = parseInt(localStorage.getItem('moku:stats:total_games_played'), 10) || 0;
         localStorage.setItem('moku:stats:total_games_played', String(curCount + 1));
+        // per-game start count (Achievements sorts games by everyone's total)
+        var launches = readJSON('moku:stats:launches') || {};
+        launches[gameKey] = (parseInt(launches[gameKey], 10) || 0) + 1;
+        localStorage.setItem('moku:stats:launches', JSON.stringify(launches));
       } catch (err) {}
       renderProgress();
     }
