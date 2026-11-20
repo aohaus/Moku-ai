@@ -229,6 +229,14 @@ body.on-title #playScreen { display: none; }
 .ch.right { border-color: var(--ok); background: #EAF7E6; }
 .ch.miss { border-color: var(--bad); background: #FDEDEA; }
 .ch:disabled { opacity: 1; }
+.padShow { margin: 4px auto 8px; max-width: 280px; text-align: center; font: 700 26px var(--round); padding: 8px 12px; border-radius: 12px; background: #fff; border: 2.5px solid rgba(90,58,34,0.25); min-height: 50px; }
+.padShow span { font-size: 15px; color: #B9A88E; }
+.pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; max-width: 280px; margin: 0 auto; }
+.pk { padding: 10px 0; border-radius: 12px; background: #fff; border: 2px solid rgba(90,58,34,0.22); font: 700 20px var(--round); box-shadow: 0 3px 0 rgba(90,58,34,0.15); }
+.pk:active { transform: translateY(2px); box-shadow: none; }
+.pk.ok { background: var(--hi); color: #fff; border-color: var(--lo); }
+.li .qn { color: var(--lo); }
+.li .m small { font-size: 12px; color: #8B6E57; font-weight: 700; }
 .row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 .btn { flex: 1; min-width: 120px; padding: 11px 14px; border-radius: 12px; font-weight: 800; font-size: 15.5px;
   background: #fff; border: 2px solid rgba(90,58,34,0.3); box-shadow: 0 3px 0 rgba(90,58,34,0.2); }
@@ -313,7 +321,7 @@ svg.flag { display: block; border-radius: 2px; }
 
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.4.0 · Updated Nov 20, 2026</div>
+<div id="buildInfo">v0.5.0 · Updated Nov 20, 2026</div>
 <button id="soundBtn" aria-label="Sound">🔊</button>
 
 <div id="titleScreen">
@@ -945,7 +953,8 @@ svg.flag { display: block; border-radius: 2px; }
   // =====================================================================
   // 🛒 Market Trip
   // =====================================================================
-  var ORDER_SIZES = [1, 1, 2, 2, 3];
+  // 9〜12 才向け(v0.5.0〜): 2〜4 品、それぞれ 1〜3 こ。合計とおつりは数字を打って答える
+  var ORDER_SIZES = [2, 2, 3, 3, 4];
   var trip = null;
   function openTripPicker() {
     showPlay('🛒 Market Trip');
@@ -955,7 +964,7 @@ svg.flag { display: block; border-radius: 2px; }
   }
   function makeOrder(id, size) {
     var m = MARKETS[id], picks = shuffle(m.items).slice(0, size);
-    return picks.map(function (it) { return { name: it.name, em: it.em, p: it.p, q: size === 1 && Math.random() < 0.35 ? 2 : 1 }; });
+    return picks.map(function (it) { var r = Math.random(); return { name: it.name, em: it.em, p: it.p, q: r < 0.4 ? 1 : r < 0.75 ? 2 : 3 }; });
   }
   function startTrip(id) {
     progress.played++; save();
@@ -967,30 +976,12 @@ svg.flag { display: block; border-radius: 2px; }
   function nextOrder() {
     if (trip.i >= ORDER_SIZES.length) return endTrip();
     var o = makeOrder(trip.id, ORDER_SIZES[trip.i]);
-    trip.cur = { items: o, total: orderTotal(o), step: o.length > 1 || o[0].q > 1 ? 'add' : 'pay', paid: [], stars: 0, tries: 0, say: '' };
-    if (trip.cur.step === 'pay') trip.cur.stars++;   // 合計を出すステップがない注文は ⭐ 1つ付き
-    else trip.cur.choices = totalChoices(trip.cur.total, o.map(function (it) { return it.p * it.q; }), trip.id);
+    trip.cur = { items: o, total: orderTotal(o), step: 'add', paid: [], stars: 0, tries: 0, say: '', typed: '' };
     $('topInfo').textContent = '🧺 ' + (trip.i + 1) + '/5 · ⭐ ' + trip.stars;
     var m = MARKETS[trip.id];
     drawScene(trip.id, o, 'I’d like ' + o.map(function (it) { return (it.q > 1 ? it.q + ' × ' : '') + esc(it.name); }).join(', ') + ', please!');
     fresh = true;
     renderOrder();
-  }
-  function totalChoices(total, prices, mk) {
-    var step = Math.min.apply(null, prices);
-    var set = [total, total + step, Math.max(step, total - step), total * 10];
-    if (mk === 'VN' || mk === 'ID') set[3] = total / 10;
-    var out = []; set.forEach(function (v) { if (out.indexOf(v) < 0 && v > 0) out.push(v); });
-    while (out.length < 4) out.push(total + step * (out.length + 1));
-    return shuffle(out.slice(0, 4));
-  }
-  function changeChoices(change, mk) {
-    var denoms = MARKETS[mk].money.map(function (x) { return x.v; });
-    var small = denoms[0];
-    var set = [change, change + small, Math.max(0, change - small), change + denoms[Math.min(2, denoms.length - 1)]];
-    var out = []; set.forEach(function (v) { if (out.indexOf(v) < 0) out.push(v); });
-    while (out.length < 4) out.push(change + small * (out.length + 2));
-    return shuffle(out.slice(0, 4));
   }
   function paidSum() { return trip.cur.paid.reduce(function (a, v) { return a + v; }, 0); }
   // よけいなお札がない = どれを1枚引いても足りなくなる
@@ -1003,12 +994,11 @@ svg.flag { display: block; border-radius: 2px; }
     var dots = '<div class="dots">' + ORDER_SIZES.map(function (x, i) { return '<i class="' + (i < trip.i ? (trip.res[i] >= 2 ? 'ok' : 'no') : i === trip.i ? 'now' : '') + '"></i>'; }).join('') + '</div>';
     var h = '<div class="card">' + dots + '<div class="h">Customer ' + (trip.i + 1) + ' of 5</div>' +
       '<div class="list">' + cur.items.map(function (it) {
-        return '<div class="li"><span class="lin">' + foodSVG(it.em, 'fd sm') + ' ' + (it.q > 1 ? it.q + ' × ' : '') + esc(it.name) + '</span><span class="m">' + esc(m.fmt(it.p * it.q)) + '</span></div>';
+        return '<div class="li"><span class="lin">' + foodSVG(it.em, 'fd sm') + ' <b class="qn">' + it.q + ' ×</b> ' + esc(it.name) + '</span><span class="m">' + esc(m.fmt(it.p)) + (cur.step === 'add' ? ' <small>each</small>' : '<small> → ' + esc(m.fmt(it.p * it.q)) + '</small>') + '</span></div>';
       }).join('') +
       '<div class="li tot"><span>Total</span><span class="m">' + (cur.step === 'add' ? '?' : esc(m.fmt(cur.total))) + '</span></div></div>';
     if (cur.step === 'add') {
-      h += '<div class="q">How much is it all together?</div><div class="choices">' + cur.choices.map(function (v) {
-        return '<button class="ch" data-v="' + v + '">' + esc(m.fmt(v)) + '</button>'; }).join('') + '</div>';
+      h += '<div class="q">How much is it all together?</div>' + padHTML(m, cur.typed);
     } else if (cur.step === 'pay') {
       var sum = paidSum(), diff = sum - cur.total;
       h += '<div class="q">Pay ' + esc(m.fmt(cur.total)) + '</div>' +
@@ -1019,8 +1009,7 @@ svg.flag { display: block; border-radius: 2px; }
         '<div class="row"><button class="btn primary" id="payBtn"' + (diff < 0 ? ' disabled' : '') + '>💵 Pay</button></div>' +
         '<div class="tip">⭐ Don’t give extra notes you don’t need. Tap money on the counter to take it back.</div>';
     } else if (cur.step === 'change') {
-      h += '<div class="q">You paid ' + esc(m.fmt(paidSum())) + '. How much change?</div><div class="choices">' + cur.choices.map(function (v) {
-        return '<button class="ch" data-v="' + v + '">' + esc(m.fmt(v)) + '</button>'; }).join('') + '</div>';
+      h += '<div class="q">You paid ' + esc(m.fmt(paidSum())) + '. How much change?</div>' + padHTML(m, cur.typed);
     } else if (cur.step === 'done') {
       h += '<div class="stars">' + '⭐'.repeat(cur.stars) + '<span style="opacity:.25">' + '⭐'.repeat(3 - cur.stars) + '</span></div>' +
         '<div class="row"><button class="btn primary" id="nextBtn">' + (trip.i + 1 >= ORDER_SIZES.length ? 'Close the market ▶' : 'Next customer ▶') + '</button></div>';
@@ -1032,7 +1021,13 @@ svg.flag { display: block; border-radius: 2px; }
     if (cur.step === 'pay') $('panel').scrollTop = st;
     // events
     if (cur.step === 'add' || cur.step === 'change') {
-      panel.querySelectorAll('.ch').forEach(function (b) { b.addEventListener('click', function () { answer(+b.getAttribute('data-v'), b); }); });
+      panel.querySelectorAll('[data-k]').forEach(function (b) { b.addEventListener('click', function () {
+        var k = b.getAttribute('data-k');
+        if (k === 'ok') { if (cur.typed) answer(+cur.typed); return; }
+        if (k === 'del') cur.typed = cur.typed.slice(0, -1);
+        else if ((cur.typed + k).replace(/^0+/, '').length <= 7) cur.typed = (cur.typed + k).replace(/^0+(?=\d)/, '');
+        sfx.tap(); updatePad(m, cur.typed);
+      }); });
     }
     panel.querySelectorAll('[data-add]').forEach(function (b) { b.addEventListener('click', function () {
       var x = m.money[+b.getAttribute('data-add')];
@@ -1045,34 +1040,44 @@ svg.flag { display: block; border-radius: 2px; }
     if ($('payBtn')) $('payBtn').addEventListener('click', pay);
     if ($('nextBtn')) $('nextBtn').addEventListener('click', function () { sfx.tap(); trip.i++; nextOrder(); });
   }
-  function answer(v, btn) {
-    var cur = trip.cur, m = MARKETS[trip.id];
+  // 3回まちがえたら答えを見せて先へ(⭐ はなし)
+  function answer(v) {
+    var cur = trip.cur, m = MARKETS[trip.id], steps = cur.items.map(function (it) { return it.q + ' × ' + m.fmt(it.p) + ' = ' + m.fmt(it.p * it.q); }).join(', ');
     if (cur.step === 'add') {
-      if (v === cur.total) {
-        if (cur.tries === 0) cur.stars++;
-        cur.say = 'Yes! ' + cur.items.map(function (it) { return m.fmt(it.p * it.q); }).join(' + ') + ' = <b>' + esc(m.fmt(cur.total)) + '</b>';
-        cur.sayCls = 'ok'; sfx.good();
-        cur.step = 'pay'; cur.tries = 0;
+      if (v === cur.total || cur.tries >= 2) {
+        var got = v === cur.total;
+        if (got && cur.tries === 0) cur.stars++;
+        cur.say = (got ? 'Yes! ' : 'The total is <b>' + esc(m.fmt(cur.total)) + '</b>: ') + esc(steps) + (cur.items.length > 1 ? ' → ' + cur.items.map(function (it) { return m.fmt(it.p * it.q); }).join(' + ') : '') + ' = <b>' + esc(m.fmt(cur.total)) + '</b>';
+        cur.sayCls = got ? 'ok' : ''; if (got) sfx.good(); else sfx.bad();
+        cur.step = 'pay'; cur.tries = 0; cur.typed = '';
       } else {
-        cur.tries++; cur.say = 'Not quite — add the prices on the list again.'; cur.sayCls = 'bad'; sfx.bad();
-        btn.classList.add('miss'); btn.disabled = true;
-        return;
+        cur.tries++; cur.typed = ''; sfx.bad(); cur.sayCls = 'bad';
+        cur.say = cur.tries === 1 ? 'Not quite. Multiply first: how much is ' + esc(cur.items[0].q + ' × ' + m.fmt(cur.items[0].p)) + '?' : 'Close? Work out each line: ' + esc(steps) + '. Now add them up!';
       }
     } else if (cur.step === 'change') {
       var change = paidSum() - cur.total;
-      if (v === change) {
-        if (cur.tries === 0) cur.stars++;
-        cur.say = '✓ ' + esc(m.fmt(paidSum())) + ' − ' + esc(m.fmt(cur.total)) + ' = <b>' + esc(m.fmt(change)) + '</b> change. ' + THANKS[trip.id];
-        cur.sayCls = 'ok'; sfx.till();
+      if (v === change || cur.tries >= 2) {
+        var ok2 = v === change;
+        if (ok2 && cur.tries === 0) cur.stars++;
+        cur.say = (ok2 ? '✓ ' : 'The change is: ') + esc(m.fmt(paidSum())) + ' − ' + esc(m.fmt(cur.total)) + ' = <b>' + esc(m.fmt(change)) + '</b>. ' + THANKS[trip.id];
+        cur.sayCls = ok2 ? 'ok' : ''; sfx.till();
         finishOrder();
       } else {
-        cur.tries++; cur.say = 'Hmm, count again: what you paid − the total.'; cur.sayCls = 'bad'; sfx.bad();
-        btn.classList.add('miss'); btn.disabled = true;
-        return;
+        cur.tries++; cur.typed = ''; sfx.bad(); cur.sayCls = 'bad';
+        cur.say = cur.tries === 1 ? 'Hmm, count again: what you paid − the total.' : 'Tip: count up from ' + esc(m.fmt(cur.total)) + ' to ' + esc(m.fmt(paidSum())) + '.';
       }
     }
     renderOrder();
   }
+  // 数字のキー(VN・ID・KH は 000 のキーつき)
+  function padHTML(m, typed) {
+    var big = m === MARKETS.VN || m === MARKETS.ID || m === MARKETS.KH;
+    var keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', big ? '000' : 'del', '0', big ? 'del' : 'ok'];
+    return '<div class="padShow" id="padShow">' + (typed ? esc(m.fmt(+typed)) : '<span>type the amount</span>') + '</div><div class="pad">' +
+      keys.map(function (k) { return '<button class="pk' + (k === 'ok' ? ' ok' : '') + '" data-k="' + k + '">' + (k === 'del' ? '⌫' : k === 'ok' ? 'OK' : k) + '</button>'; }).join('') +
+      '</div>' + (big ? '<div class="row"><button class="btn primary" data-k="ok">✓ OK</button></div>' : '');
+  }
+  function updatePad(m, typed) { var el = $('padShow'); if (el) el.innerHTML = typed ? esc(m.fmt(+typed)) : '<span>type the amount</span>'; }
   var THANKS = { MY: 'Terima kasih!', SG: 'Thank you!', BN: 'Terima kasih!', TH: 'Khop khun!', KH: 'Orkun!', VN: 'Cảm ơn!', ID: 'Terima kasih!', PH: 'Salamat!' };
   function pay() {
     var cur = trip.cur, m = MARKETS[trip.id];
@@ -1081,7 +1086,7 @@ svg.flag { display: block; border-radius: 2px; }
     var change = paidSum() - cur.total;
     cur.say = clean ? '👌 Smart paying — no extra notes!' : 'Paid! (Tip: you gave a note you didn’t need.)';
     cur.sayCls = clean ? 'ok' : '';
-    if (change > 0) { cur.step = 'change'; cur.tries = 0; cur.choices = changeChoices(change, trip.id); sfx.note(); }
+    if (change > 0) { cur.step = 'change'; cur.tries = 0; cur.typed = ''; sfx.note(); }
     else { cur.stars++; cur.say += ' No change needed. ' + THANKS[trip.id]; sfx.till(); finishOrder(); }   // ちょうど払えたら、おつりの ⭐ も付ける
     renderOrder();
   }
@@ -1127,7 +1132,8 @@ svg.flag { display: block; border-radius: 2px; }
   function startCheck() {
     progress.played++; save();
     var qs = [];
-    for (var i = 0; i < CHECK_LEN; i++) qs.push(i % 3 === 2 ? qCompare() : qEstimate());
+    // 9〜12 才向け: 見当 3・くらべる 2・のこり 2・いくつ買える 1
+    [qEstimate, qEstimate, qEstimate, qCompare, qCompare, qLeft, qLeft, qHowMany].forEach(function (f) { qs.push(f()); });
     check = { qs: shuffle(qs), i: 0, res: [], answered: false };
     showPlay('💱 Price Check');
     renderCheck();
@@ -1137,7 +1143,7 @@ svg.flag { display: block; border-radius: 2px; }
   function qEstimate() {
     var id = pick(abroad()), m = MARKETS[id], it = pick(m.items);
     var v = toHome(id, it.p), r = niceNum(v);
-    var opts = [r, niceNum(v * 10), niceNum(v / 10), niceNum(v * 3)];
+    var opts = [r, niceNum(v * 2), niceNum(v / 2), niceNum(v * 4)];
     var out = []; opts.forEach(function (x) { if (x > 0 && out.indexOf(x) < 0) out.push(x); });
     while (out.length < 4) out.push(niceNum(v * (out.length + 2)));
     return { kind: 'est', id: id, it: it, ans: r, opts: shuffle(out.slice(0, 4)) };
@@ -1147,7 +1153,41 @@ svg.flag { display: block; border-radius: 2px; }
     for (var n = 0; n < 30; n++) {
       var ia = pick(MARKETS[a].items), ib = pick(MARKETS[b].items);
       var va = toHome(a, ia.p), vb = toHome(b, ib.p);
-      if (Math.max(va, vb) / Math.min(va, vb) > 1.3) return { kind: 'cmp', A: { id: a, it: ia, v: va }, B: { id: b, it: ib, v: vb }, ans: va > vb ? 'A' : 'B' };
+      var ratio = Math.max(va, vb) / Math.min(va, vb);
+      if (ratio > 1.12 && ratio < 1.9) return { kind: 'cmp', A: { id: a, it: ia, v: va }, B: { id: b, it: ib, v: vb }, ans: va > vb ? 'A' : 'B' };
+    }
+    return qEstimate();
+  }
+  // おさいふのお札(合計より大きい一番小さいお札)
+  function walletNote(id, need) {
+    var notes = MARKETS[id].money.filter(function (x) { return !x.coin && x.v > need; }).map(function (x) { return x.v; });
+    return notes.length ? notes[0] : null;
+  }
+  function closeOpts(ans, step) {
+    var out = [ans], c = [ans + step, ans - step, ans + 2 * step, ans - 2 * step, ans + 3 * step];
+    c.forEach(function (v) { if (out.length < 4 && v >= 0 && out.indexOf(v) < 0) out.push(v); });
+    return shuffle(out);
+  }
+  // おつりはいくら? 2つの品を何こか買って、お札1枚で払う
+  function qLeft() {
+    for (var n = 0; n < 40; n++) {
+      var id = pick(ORDER), m = MARKETS[id], two = shuffle(m.items).slice(0, 2);
+      var qa = 1 + Math.floor(Math.random() * 3), qb = 1 + Math.floor(Math.random() * 2), tot = two[0].p * qa + two[1].p * qb;
+      var note = walletNote(id, tot);
+      if (!note) continue;
+      var step = Math.min(two[0].p, two[1].p);
+      return { kind: 'left', id: id, a: two[0], b: two[1], qa: qa, qb: qb, note: note, tot: tot, ans: note - tot, opts: closeOpts(note - tot, step) };
+    }
+    return qEstimate();
+  }
+  // いくつ買える? お札1枚で、1つの品をいくつ買えるか(わり算のあまりは使えない)
+  function qHowMany() {
+    for (var n = 0; n < 40; n++) {
+      var id = pick(ORDER), m = MARKETS[id], it = pick(m.items);
+      var notes = m.money.filter(function (x) { return !x.coin && x.v >= it.p * 3 && x.v <= it.p * 12 && x.v % it.p !== 0; });
+      if (!notes.length) continue;
+      var note = pick(notes).v, ans = Math.floor(note / it.p);
+      return { kind: 'many', id: id, it: it, note: note, ans: ans, opts: closeOpts(ans, 1) };
     }
     return qEstimate();
   }
@@ -1163,6 +1203,20 @@ svg.flag { display: block; border-radius: 2px; }
         q.opts.map(function (v) { return '<button class="ch' + (check.answered ? (v === q.ans ? ' right' : v === check.chosen ? ' miss' : '') : '') + '" data-v="' + v + '"' + (check.answered ? ' disabled' : '') + '>about ' + esc(homeFmt(v)) + '</button>'; }).join('') + '</div>';
       if (check.answered) h += '<div class="say ' + (check.res[check.i] ? 'ok' : 'bad') + '">' + (check.res[check.i] ? '⭕ Right! ' : '❌ Not quite. ') +
         'Rule of thumb: <b>' + esc(rule(q.id)) + '</b>, so ' + esc(m.fmt(q.it.p)) + ' ≈ <b>' + esc(homeFmt(toHome(q.id, q.it.p))) + '</b>.</div>';
+    } else if (q.kind === 'left') {
+      var ml = MARKETS[q.id];
+      drawScene(q.id, [{ em: q.a.em, p: q.a.p, q: q.qa }, { em: q.b.em, p: q.b.p, q: q.qb }], 'You have one ' + esc(ml.fmt(q.note)) + ' note.');
+      h += '<div class="q">You have <b>' + esc(ml.fmt(q.note)) + '</b>. You buy <b>' + q.qa + ' × ' + esc(q.a.name) + '</b> (' + esc(ml.fmt(q.a.p)) + ' each) and <b>' + q.qb + ' × ' + esc(q.b.name) + '</b> (' + esc(ml.fmt(q.b.p)) + ' each).<br>How much money is left?</div><div class="choices">' +
+        q.opts.map(function (v) { return '<button class="ch' + (check.answered ? (v === q.ans ? ' right' : v === check.chosen ? ' miss' : '') : '') + '" data-v="' + v + '"' + (check.answered ? ' disabled' : '') + '>' + esc(ml.fmt(v)) + '</button>'; }).join('') + '</div>';
+      if (check.answered) h += '<div class="say ' + (check.res[check.i] ? 'ok' : 'bad') + '">' + (check.res[check.i] ? '⭕ Right! ' : '❌ Not quite. ') +
+        esc(q.qa + ' × ' + ml.fmt(q.a.p) + ' + ' + q.qb + ' × ' + ml.fmt(q.b.p) + ' = ' + ml.fmt(q.tot)) + ', and ' + esc(ml.fmt(q.note) + ' − ' + ml.fmt(q.tot)) + ' = <b>' + esc(ml.fmt(q.ans)) + '</b>.</div>';
+    } else if (q.kind === 'many') {
+      var mh = MARKETS[q.id];
+      drawScene(q.id, [{ em: q.it.em, p: q.it.p, q: 1 }], esc(q.it.name) + ' — ' + esc(q.it.what) + '.');
+      h += '<div class="q">You have <b>' + esc(mh.fmt(q.note)) + '</b>. ' + esc(q.it.name) + ' costs <b>' + esc(mh.fmt(q.it.p)) + '</b>.<br>How many can you buy?</div><div class="choices">' +
+        q.opts.map(function (v) { return '<button class="ch' + (check.answered ? (v === q.ans ? ' right' : v === check.chosen ? ' miss' : '') : '') + '" data-v="' + v + '"' + (check.answered ? ' disabled' : '') + '>' + v + '</button>'; }).join('') + '</div>';
+      if (check.answered) h += '<div class="say ' + (check.res[check.i] ? 'ok' : 'bad') + '">' + (check.res[check.i] ? '⭕ Right! ' : '❌ Not quite. ') +
+        esc(q.ans + ' × ' + mh.fmt(q.it.p) + ' = ' + mh.fmt(q.ans * q.it.p)) + ', with ' + esc(mh.fmt(q.note - q.ans * q.it.p)) + ' left — not enough for one more.</div>';
     } else {
       drawScene(null, [], 'Which one costs more?');
       var card = function (side) {
