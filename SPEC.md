@@ -394,7 +394,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
   - **💱 Price Check**(8問): 「この値段は My money でだいたいいくら?」(4択。答えは子どもが言いやすい丸め方 `niceNum()`: 9.7 → 10、273 → 300)と、3問に1問は「どっちが高い?」(ちがう国の2品)。答えのあとに目安の式(`rule()`。例「10.000₫ ≈ RM1.6」)。My money が RM の時はマレーシアの品を「RM でいくら?」には出さない。
   - **📒 Money Book**: その国の市場に行くと開く。お金の名前と記号・値段の書き方(RM5 / S$5 / B$2 / ฿60 / 5,000៛ / 50.000₫ / Rp20.000 / ₱100)・目安・お札と硬貨・本当の話 3つ・「Tell a friend」の一文。
   - **My money**(タイトル画面): RM / ¥ / US$(`HOME`)。設定は `moku:moku-money-market:settings` の `home`。
-  - **事実のデータ**はページ内の `MARKETS`(値段は 2025 年ごろの屋台・ホーカーのだいたいの値段、`perUSD` は 2025 年ごろの 1 US$ あたりのだいたいのレート)。お札は色の系統と数字だけで、本物のデザインはまねない。値切りはまだ入れない(CLAUDE.md §2)。
+  - **事実のデータ**はページ内の `MARKETS`(値段は 2025 年ごろの屋台・ホーカーのだいたいの値段、`perUSD` は 2025 年ごろの 1 US$ あたりのだいたいのレート)。お札と硬貨(v0.3.0〜)は今のシリーズの色・素材(ポリマーの透明な窓、タイの ฿10 とシンガポールの S$1・フィリピンの ₱20 の2色の硬貨、₱5 の9角形)と、裏の絵の題材(凧・サイチョウ・ラフレシア・ホイアンの橋・ワシ など。`MOTIF`)に近づけた。人の顔・中央銀行の紋章・王室・宗教の絵は描かず、本物そのものはまねない(各品の `mo` / `poly` / `metal` / `ring` / `shape`)。料理は絵文字をやめ、40 品すべてをこげ茶の輪郭の SVG で描いた(`FOOD`。品の `em` が絵の id)。値切りはまだ入れない(CLAUDE.md §2)。
   - Moint: 毎回(上限 500/日)= ⭐1つ +5(1回で最大 75)、⭐15 +25、Price Check 1問正解 +5・8問全部 +20。1回きり = その国の市場に初めて行った +30、8 か国全部 +200。受け取り済みは `mointClaims`(`m:<国のコード>` `all`)。
   - 記録は `moku:moku-money-market:progress` = `{ version: 1, gameId, markets: { 国: { played, best } }, totalStars, orders, checkRounds, checkBest, checkCorrect, played, mointClaims, updatedAt }`。音のオン/オフと My money は `moku:moku-money-market:settings`。
 - **Fact or Fib? Asia**(`moku-fact-or-fib.html`、2026-11-19〜、v0.1.0。ハブの Live in ASIA の棚): 東南アジア 11 か国の「うそみたいな本当の話(Fact)」と「本当っぽいうそ(Fib)」を見分ける。目標は CLAUDE.md §2。

@@ -183,7 +183,9 @@ body.on-title #playScreen { display: none; }
   display: flex; align-items: center; justify-content: center; gap: 12px; padding: 0 12px; }
 .counter::before { content: ''; position: absolute; inset: 6px 0 auto 0; height: 2px; background: rgba(255,255,255,0.15); }
 .food { position: relative; display: flex; flex-direction: column; align-items: center; animation: pop 0.4s both; }
-.food .em { font-size: clamp(28px, 6vh, 44px); line-height: 1; filter: drop-shadow(0 3px 0 rgba(0,0,0,0.2)); }
+.food .fd { width: clamp(56px, 11vh, 84px); height: clamp(56px, 11vh, 84px); filter: drop-shadow(0 3px 0 rgba(0,0,0,0.18)); }
+.fd.sm { width: 28px; height: 28px; flex: none; }
+.li .lin { display: flex; align-items: center; gap: 6px; }
 .food .qty { position: absolute; top: -6px; right: -12px; background: var(--hi); color: #fff; font: 800 12px var(--round); border-radius: 999px; padding: 1px 6px; border: 2px solid #fff; }
 .pricetag { margin-top: 3px; background: #FFF9EC; border: 2px solid var(--line); border-radius: 6px; padding: 0 6px; font: 700 13px var(--round); white-space: nowrap; transform: rotate(-3deg); }
 
@@ -222,14 +224,11 @@ body.on-title #playScreen { display: none; }
 .money { position: relative; display: inline-flex; align-items: center; justify-content: center; font-family: var(--round); font-weight: 700; color: #fff;
   text-shadow: 0 1px 0 rgba(0,0,0,0.35); transition: transform 0.12s; }
 .money:active { transform: scale(0.94); }
-.note { width: 78px; height: 42px; border-radius: 6px; background: var(--nc); border: 2px solid rgba(0,0,0,0.25);
-  box-shadow: inset 0 0 0 3px rgba(255,255,255,0.35), 0 2px 0 rgba(0,0,0,0.2); font-size: 15px; overflow: hidden; }
-.note::before { content: ''; position: absolute; left: 6px; top: 6px; bottom: 6px; width: 22px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(255,255,255,0.45), rgba(255,255,255,0.1)); }
-.note::after { content: ''; position: absolute; right: -6px; bottom: -10px; width: 34px; height: 34px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.22); }
-.note span { position: relative; z-index: 1; padding-left: 16px; }
-.coin { width: 44px; height: 44px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff8, transparent 55%), var(--nc);
-  border: 2px solid rgba(0,0,0,0.3); box-shadow: inset 0 0 0 3px rgba(255,255,255,0.3), 0 2px 0 rgba(0,0,0,0.2); font-size: 12.5px; }
+.note { width: 88px; height: 44px; border-radius: 6px; box-shadow: 0 2px 0 rgba(0,0,0,0.22); font-size: 15px; overflow: hidden; border: 0; padding: 0; background: none; }
+.money .nart { position: absolute; inset: 0; width: 100%; height: 100%; }
+.note span { position: absolute; right: 7px; top: 3px; z-index: 1; text-shadow: 0 1px 0 rgba(0,0,0,0.45), 0 0 3px rgba(0,0,0,0.35); }
+.coin { width: 46px; height: 46px; border-radius: 50%; border: 0; padding: 0; background: none; font-size: 12.5px; color: #3A2A18; text-shadow: 0 1px 0 rgba(255,255,255,0.6); filter: drop-shadow(0 2px 0 rgba(0,0,0,0.22)); }
+.coin span { position: relative; z-index: 1; }
 .paid { min-height: 56px; margin-top: 8px; padding: 8px; border-radius: 12px; border: 2.5px dashed #C9A87D; background: #FFFDF6;
   display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; align-items: center; }
 .paid:empty::before { content: 'Tap money to put it here'; color: #C5AE88; font-weight: 700; font-size: 13px; }
@@ -272,7 +271,7 @@ svg.flag { display: block; border-radius: 2px; }
 .dots i.ok { background: var(--ok); } .dots i.no { background: var(--bad); } .dots i.now { background: var(--hi); }
 .vs { display: flex; gap: 8px; align-items: stretch; }
 .vs .ch { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 15px; }
-.vs .ch .em { font-size: 34px; }
+.vs .ch .fd { width: 56px; height: 56px; }
 .vs .ch .m { font-size: 16px; }
 .vs .ch small { font-size: 11.5px; color: var(--ink-soft); font-weight: 700; display: flex; align-items: center; gap: 4px; }
 .vs .ch svg.flag { width: 18px; height: 12px; }
@@ -285,7 +284,7 @@ svg.flag { display: block; border-radius: 2px; }
 
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.2.0 · Updated Nov 19, 2026</div>
+<div id="buildInfo">v0.3.0 · Updated Nov 20, 2026</div>
 <button id="soundBtn" aria-label="Sound">🔊</button>
 
 <div id="titleScreen">
@@ -347,97 +346,97 @@ svg.flag { display: block; border-radius: 2px; }
     MY: { country: 'Malaysia', cur: 'ringgit', perUSD: 4.2, anchor: 1, place: 'Pasar malam (night market)',
           fmt: function (n) { return 'RM' + group(n, ','); }, write: 'RM5 — “RM” comes first',
           vendor: { em: '🐯', name: 'Malayan tiger' },
-          money: [{ v: 1, c: '#3E6FC0' }, { v: 5, c: '#3E9B5A' }, { v: 10, c: '#C8443B' }, { v: 20, c: '#E08A2E' }, { v: 50, c: '#2E8C8C' }, { v: 100, c: '#7B4FA8' }],
+          money: [{ v: 1, c: '#3F72C4', c2: '#1F3F7A', mo: 'kite' }, { v: 5, c: '#4E9E4A', c2: '#22562A', mo: 'hornbill', poly: true }, { v: 10, c: '#D04A3E', c2: '#7A1E1A', mo: 'flower' }, { v: 20, c: '#E7902E', c2: '#7A4310', mo: 'turtle' }, { v: 50, c: '#3A9A9A', c2: '#165252', mo: 'palm' }, { v: 100, c: '#8456B0', c2: '#3E2066', mo: 'mountain' }],
           items: [
-            { name: 'Teh tarik', em: '🧋', p: 3, what: 'pulled milk tea' },
-            { name: 'Nasi lemak', em: '🍛', p: 5, what: 'coconut rice with sambal' },
-            { name: 'Roti canai', em: '🫓', p: 2, what: 'flaky flatbread with curry' },
-            { name: 'Satay (10 sticks)', em: '🍢', p: 10, what: 'grilled skewers with peanut sauce' },
-            { name: 'Cendol', em: '🍧', p: 4, what: 'shaved ice with palm sugar' }
+            { name: 'Teh tarik', em: 'tehtarik', p: 3, what: 'pulled milk tea' },
+            { name: 'Nasi lemak', em: 'nasilemak', p: 5, what: 'coconut rice with sambal' },
+            { name: 'Roti canai', em: 'roticanai', p: 2, what: 'flaky flatbread with curry' },
+            { name: 'Satay (10 sticks)', em: 'satay', p: 10, what: 'grilled skewers with peanut sauce' },
+            { name: 'Cendol', em: 'cendol', p: 4, what: 'shaved ice with palm sugar' }
           ],
           facts: ['“Ringgit” means “jagged” in Malay — old silver coins had jagged edges.', '100 sen = RM1. Small prices can be like RM2.50.', 'People also say “dollar” for ringgit in daily talk.'] },
     SG: { country: 'Singapore', cur: 'Singapore dollar', perUSD: 1.3, anchor: 1, place: 'Hawker centre',
           fmt: function (n) { return 'S$' + group(n, ','); }, write: 'S$5 — or just $5 in Singapore',
           vendor: { em: '🦁', name: 'Lion (the “Lion City”)' },
-          money: [{ v: 1, c: '#C9A34A', coin: true }, { v: 2, c: '#8A5BB5' }, { v: 5, c: '#3E9B5A' }, { v: 10, c: '#C8443B' }, { v: 50, c: '#3E6FC0' }],
+          money: [{ v: 1, coin: true, metal: 'silver', ring: 'gold' }, { v: 2, c: '#8C5DB8', c2: '#43206E', mo: 'cap', poly: true }, { v: 5, c: '#4C9E58', c2: '#1F5228', mo: 'tree', poly: true }, { v: 10, c: '#D04A55', c2: '#741C26', mo: 'ball', poly: true }, { v: 50, c: '#3F7CC4', c2: '#1A3C70', mo: 'palette', poly: true }],
           items: [
-            { name: 'Kopi', em: '☕', p: 2, what: 'local coffee' },
-            { name: 'Chicken rice', em: '🍗', p: 5, what: 'chicken with fragrant rice' },
-            { name: 'Kaya toast set', em: '🍞', p: 5, what: 'toast with coconut jam and eggs' },
-            { name: 'Ice kacang', em: '🍧', p: 3, what: 'rainbow shaved ice' },
-            { name: 'Char kway teow', em: '🍜', p: 6, what: 'fried flat noodles' }
+            { name: 'Kopi', em: 'kopi', p: 2, what: 'local coffee' },
+            { name: 'Chicken rice', em: 'chickenrice', p: 5, what: 'chicken with fragrant rice' },
+            { name: 'Kaya toast set', em: 'kayatoast', p: 5, what: 'toast with coconut jam and eggs' },
+            { name: 'Ice kacang', em: 'icekacang', p: 3, what: 'rainbow shaved ice' },
+            { name: 'Char kway teow', em: 'ckt', p: 6, what: 'fried flat noodles' }
           ],
           facts: ['S$1 is a coin, not a note.', 'Singapore and Brunei dollars are worth exactly the same — shops in both countries take both!', 'At hawker centres the price is fixed — no bargaining.'] },
     BN: { country: 'Brunei', cur: 'Brunei dollar', perUSD: 1.3, anchor: 1, place: 'Gadong night market',
           fmt: function (n) { return 'B$' + group(n, ','); }, write: 'B$2 — “B$” for Brunei dollar',
           vendor: { em: '🐒', name: 'Proboscis monkey' },
-          money: [{ v: 1, c: '#3E6FC0' }, { v: 5, c: '#3E9B5A' }, { v: 10, c: '#C8443B' }, { v: 50, c: '#9A6A3A' }, { v: 100, c: '#7B4FA8' }],
+          money: [{ v: 1, c: '#3F7CC4', c2: '#1A3C70', mo: 'house', poly: true }, { v: 5, c: '#4C9E58', c2: '#1F5228', mo: 'leaf', poly: true }, { v: 10, c: '#D04A3E', c2: '#7A1E1A', mo: 'flower', poly: true }, { v: 50, c: '#A6743E', c2: '#55361A', mo: 'bird', poly: true }, { v: 100, c: '#8456B0', c2: '#3E2066', mo: 'wave', poly: true }],
           items: [
-            { name: 'Nasi katok', em: '🍗', p: 2, what: 'rice with fried chicken and sambal' },
-            { name: 'Teh tarik', em: '🧋', p: 2, what: 'pulled milk tea' },
-            { name: 'Satay (10 sticks)', em: '🍢', p: 5, what: 'grilled skewers with peanut sauce' },
-            { name: 'Kuih (3 pieces)', em: '🍡', p: 1, what: 'little colorful sweet cakes' },
-            { name: 'Ambuyat set', em: '🥢', p: 15, what: 'sticky sago with dips, to share' }
+            { name: 'Nasi katok', em: 'nasikatok', p: 2, what: 'rice with fried chicken and sambal' },
+            { name: 'Teh tarik', em: 'tehtarik', p: 2, what: 'pulled milk tea' },
+            { name: 'Satay (10 sticks)', em: 'satay', p: 5, what: 'grilled skewers with peanut sauce' },
+            { name: 'Kuih (3 pieces)', em: 'kuih', p: 1, what: 'little colorful sweet cakes' },
+            { name: 'Ambuyat set', em: 'ambuyat', p: 15, what: 'sticky sago with dips, to share' }
           ],
           facts: ['Brunei and Singapore dollars are worth exactly the same — shops in both countries take both!', 'Nasi katok is famous for being cheap — only about B$1 to B$2.', 'Brunei notes are made of plastic (polymer).'] },
     TH: { country: 'Thailand', cur: 'baht', perUSD: 33, anchor: 100, place: 'Street food market',
           fmt: function (n) { return '฿' + group(n, ','); }, write: '฿60 — or “60 baht”',
           vendor: { em: '🐘', name: 'Elephant' },
-          money: [{ v: 1, c: '#B9B9B9', coin: true }, { v: 5, c: '#A7A7A7', coin: true }, { v: 10, c: '#C9A34A', coin: true }, { v: 20, c: '#3E9B5A' }, { v: 50, c: '#3E6FC0' }, { v: 100, c: '#C8443B' }, { v: 500, c: '#7B4FA8' }],
+          money: [{ v: 1, coin: true, metal: 'silver' }, { v: 5, coin: true, metal: 'silver' }, { v: 10, coin: true, metal: 'gold', ring: 'silver' }, { v: 20, c: '#4E9E5A', c2: '#1F5228', mo: 'star', poly: true }, { v: 50, c: '#3F7CC4', c2: '#1A3C70', mo: 'star' }, { v: 100, c: '#D04A3E', c2: '#7A1E1A', mo: 'star' }, { v: 500, c: '#8456B0', c2: '#3E2066', mo: 'star' }],
           items: [
-            { name: 'Thai iced tea', em: '🧋', p: 30, what: 'sweet orange milk tea' },
-            { name: 'Pad thai', em: '🍜', p: 60, what: 'fried rice noodles' },
-            { name: 'Mango sticky rice', em: '🥭', p: 100, what: 'mango with coconut sticky rice' },
-            { name: 'Moo ping (5 sticks)', em: '🍢', p: 50, what: 'grilled pork skewers' },
-            { name: 'Coconut', em: '🥥', p: 40, what: 'fresh coconut water' }
+            { name: 'Thai iced tea', em: 'thaitea', p: 30, what: 'sweet orange milk tea' },
+            { name: 'Pad thai', em: 'padthai', p: 60, what: 'fried rice noodles' },
+            { name: 'Mango sticky rice', em: 'mangorice', p: 100, what: 'mango with coconut sticky rice' },
+            { name: 'Moo ping (5 sticks)', em: 'mooping', p: 50, what: 'grilled pork skewers' },
+            { name: 'Coconut', em: 'coconut', p: 40, what: 'fresh coconut water' }
           ],
           facts: ['฿ is the baht sign. 100 satang = 1 baht.', 'Small amounts are coins: 1, 2, 5 and 10 baht.', 'Many street stalls now take QR code payments too.'] },
     KH: { country: 'Cambodia', cur: 'riel', perUSD: 4000, anchor: 1000, place: 'Riverside night market',
           fmt: function (n) { return group(n, ',') + '៛'; }, write: '5,000៛ — the riel sign ៛ comes after the number',
           vendor: { em: '🐂', name: 'Kouprey (wild ox)' },
-          money: [{ v: 500, c: '#B5853E' }, { v: 1000, c: '#3E9B5A' }, { v: 2000, c: '#C8443B' }, { v: 5000, c: '#7B4FA8' }, { v: 10000, c: '#3E6FC0' }, { v: 20000, c: '#C24E86' }],
+          money: [{ v: 500, c: '#C0604A', c2: '#6A2A1E', mo: 'temple' }, { v: 1000, c: '#4E9E7A', c2: '#1F5240', mo: 'temple' }, { v: 2000, c: '#C0504A', c2: '#6A221E', mo: 'temple' }, { v: 5000, c: '#7E5AA8', c2: '#3E2066', mo: 'temple' }, { v: 10000, c: '#3F7CC4', c2: '#1A3C70', mo: 'temple' }, { v: 20000, c: '#C85A8E', c2: '#6A1E44', mo: 'temple' }],
           items: [
-            { name: 'Nom banh chok', em: '🍜', p: 5000, what: 'rice noodles with green fish curry' },
-            { name: 'Bai sach chrouk', em: '🍚', p: 8000, what: 'grilled pork with rice, for breakfast' },
-            { name: 'Iced coffee', em: '🧋', p: 4000, what: 'strong coffee with sweet milk' },
-            { name: 'Sugarcane juice', em: '🥤', p: 2000, what: 'fresh-pressed sugarcane' },
-            { name: 'Fish amok', em: '🐟', p: 16000, what: 'fish curry steamed in a banana leaf' }
+            { name: 'Nom banh chok', em: 'nombanhchok', p: 5000, what: 'rice noodles with green fish curry' },
+            { name: 'Bai sach chrouk', em: 'baisach', p: 8000, what: 'grilled pork with rice, for breakfast' },
+            { name: 'Iced coffee', em: 'icedcoffee', p: 4000, what: 'strong coffee with sweet milk' },
+            { name: 'Sugarcane juice', em: 'sugarcane', p: 2000, what: 'fresh-pressed sugarcane' },
+            { name: 'Fish amok', em: 'amok', p: 16000, what: 'fish curry steamed in a banana leaf' }
           ],
           facts: ['People often pay in US dollars and get the change in riel. US$1 is about 4,000៛.', 'Coins are almost never used — even small change is paper riel.', '៛ is the riel sign.'] },
     VN: { country: 'Vietnam', cur: 'đồng', perUSD: 26000, anchor: 10000, place: 'Street food corner',
           fmt: function (n) { return group(n, '.') + '₫'; }, write: '50.000₫ — dots, not commas, and ₫ comes last',
           vendor: { em: '🐃', name: 'Water buffalo' },
-          money: [{ v: 5000, c: '#5E7FA8' }, { v: 10000, c: '#B5853E' }, { v: 20000, c: '#3E6FC0' }, { v: 50000, c: '#C24E86' }, { v: 100000, c: '#3E9B5A' }, { v: 200000, c: '#C8443B' }],
+          money: [{ v: 5000, c: '#5A70B8', c2: '#26346A', mo: 'wave' }, { v: 10000, c: '#C09A3E', c2: '#5E4614', mo: 'rig', poly: true }, { v: 20000, c: '#4A80C8', c2: '#1A3C70', mo: 'bridge', poly: true }, { v: 50000, c: '#D05A8E', c2: '#6A1E44', mo: 'gate', poly: true }, { v: 100000, c: '#4E9E5A', c2: '#1F5228', mo: 'pavilion', poly: true }, { v: 200000, c: '#D0703E', c2: '#6E3010', mo: 'islet', poly: true }],
           items: [
-            { name: 'Phở', em: '🍜', p: 50000, what: 'beef noodle soup' },
-            { name: 'Bánh mì', em: '🥖', p: 25000, what: 'crispy sandwich' },
-            { name: 'Iced milk coffee', em: '🧋', p: 25000, what: 'cà phê sữa đá' },
-            { name: 'Sugarcane juice', em: '🥤', p: 15000, what: 'fresh-pressed sugarcane' },
-            { name: 'Spring rolls (3)', em: '🌯', p: 30000, what: 'fresh rolls with herbs' }
+            { name: 'Phở', em: 'pho', p: 50000, what: 'beef noodle soup' },
+            { name: 'Bánh mì', em: 'banhmi', p: 25000, what: 'crispy sandwich' },
+            { name: 'Iced milk coffee', em: 'icedcoffee', p: 25000, what: 'cà phê sữa đá' },
+            { name: 'Sugarcane juice', em: 'sugarcane', p: 15000, what: 'fresh-pressed sugarcane' },
+            { name: 'Spring rolls (3)', em: 'goicuon', p: 30000, what: 'fresh rolls with herbs' }
           ],
           facts: ['No coins in daily use — even 1.000₫ is a note.', 'Most notes from 10.000₫ up are plastic, so they don’t tear in the rain.', 'People often say “50k” for 50.000₫.'] },
     ID: { country: 'Indonesia', cur: 'rupiah', perUSD: 16400, anchor: 10000, place: 'Warung (food stall)',
           fmt: function (n) { return 'Rp' + group(n, '.'); }, write: 'Rp20.000 — “Rp” first, dots between the zeros',
           vendor: { em: '🦎', name: 'Komodo dragon' },
-          money: [{ v: 2000, c: '#8A8A8A' }, { v: 5000, c: '#9A7A3E' }, { v: 10000, c: '#8A5BB5' }, { v: 20000, c: '#3E9B5A' }, { v: 50000, c: '#3E6FC0' }, { v: 100000, c: '#C8443B' }],
+          money: [{ v: 2000, c: '#8E9298', c2: '#3E4248', mo: 'mountain' }, { v: 5000, c: '#A4823E', c2: '#55401A', mo: 'leaf' }, { v: 10000, c: '#8456B0', c2: '#3E2066', mo: 'island' }, { v: 20000, c: '#4E9E5A', c2: '#1F5228', mo: 'flower' }, { v: 50000, c: '#3F7CC4', c2: '#1A3C70', mo: 'island' }, { v: 100000, c: '#D04A3E', c2: '#7A1E1A', mo: 'island' }],
           items: [
-            { name: 'Nasi goreng', em: '🍳', p: 20000, what: 'fried rice' },
-            { name: 'Sate (10 sticks)', em: '🍢', p: 25000, what: 'skewers with peanut sauce' },
-            { name: 'Es teh', em: '🧊', p: 5000, what: 'sweet iced tea' },
-            { name: 'Bakso', em: '🍲', p: 20000, what: 'meatball soup' },
-            { name: 'Martabak manis', em: '🥞', p: 40000, what: 'thick sweet pancake' }
+            { name: 'Nasi goreng', em: 'nasigoreng', p: 20000, what: 'fried rice' },
+            { name: 'Sate (10 sticks)', em: 'satay', p: 25000, what: 'skewers with peanut sauce' },
+            { name: 'Es teh', em: 'esteh', p: 5000, what: 'sweet iced tea' },
+            { name: 'Bakso', em: 'bakso', p: 20000, what: 'meatball soup' },
+            { name: 'Martabak manis', em: 'martabak', p: 40000, what: 'thick sweet pancake' }
           ],
           facts: ['The biggest note is Rp100.000.', 'Prices use dots: Rp20.000 means twenty thousand.', 'Shops often round prices to the nearest Rp500 or Rp1.000.'] },
     PH: { country: 'Philippines', cur: 'peso', perUSD: 57, anchor: 100, place: 'Street food stall',
           fmt: function (n) { return '₱' + group(n, ','); }, write: '₱100 — the peso sign has two lines',
           vendor: { em: '🦅', name: 'Philippine eagle' },
-          money: [{ v: 1, c: '#B9B9B9', coin: true }, { v: 5, c: '#C9A34A', coin: true }, { v: 10, c: '#A7A7A7', coin: true }, { v: 20, c: '#D08A3A', coin: true }, { v: 50, c: '#C8443B' }, { v: 100, c: '#8A5BB5' }, { v: 500, c: '#D8B23A' }],
+          money: [{ v: 1, coin: true, metal: 'silver' }, { v: 5, coin: true, metal: 'gold', shape: 'nonagon' }, { v: 10, coin: true, metal: 'silver' }, { v: 20, coin: true, metal: 'silver', ring: 'gold' }, { v: 50, c: '#D04A3E', c2: '#7A1E1A', mo: 'cat', poly: true }, { v: 100, c: '#8456B0', c2: '#3E2066', mo: 'bird', poly: true }, { v: 500, c: '#E0A63A', c2: '#7A5210', mo: 'deer', poly: true }],
           items: [
-            { name: 'Taho', em: '🥛', p: 20, what: 'warm soft tofu with syrup' },
-            { name: 'Turon', em: '🍌', p: 15, what: 'fried banana roll' },
-            { name: 'Halo-halo', em: '🍧', p: 80, what: 'mixed shaved ice dessert' },
-            { name: 'Silog meal', em: '🍳', p: 90, what: 'garlic rice with egg' },
-            { name: 'Buko juice', em: '🥥', p: 30, what: 'young coconut juice' }
+            { name: 'Taho', em: 'taho', p: 20, what: 'warm soft tofu with syrup' },
+            { name: 'Turon', em: 'turon', p: 15, what: 'fried banana roll' },
+            { name: 'Halo-halo', em: 'halohalo', p: 80, what: 'mixed shaved ice dessert' },
+            { name: 'Silog meal', em: 'silog', p: 90, what: 'garlic rice with egg' },
+            { name: 'Buko juice', em: 'coconut', p: 30, what: 'young coconut juice' }
           ],
           facts: ['₱ is the peso sign. 100 centavos = ₱1.', '₱1, ₱5, ₱10 and ₱20 are coins.', 'Jeepney rides cost only a few pesos.'] }
   };
@@ -522,13 +521,200 @@ svg.flag { display: block; border-radius: 2px; }
   // 地図(経度・緯度の点から作る、かんたんな絵本の地図。1度 = 20)
   // =====================================================================
 
+  // =====================================================================
+  // 屋台の料理の絵(こげ茶の輪郭・少ない色の絵本タッチ。100×100 の SVG)
+  //   FOOD[id] が中身を返す。foodSVG(id, cls) で <svg> にする。品の em はこの id。
+  // =====================================================================
+  var OL = 'stroke="#4A2E1A" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"';
+  var THIN = 'stroke="#4A2E1A" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"';
+  function plate(fill) { return '<ellipse cx="50" cy="72" rx="45" ry="15" fill="#E9E2D6" ' + OL + '/><ellipse cx="50" cy="69" rx="36" ry="10.5" fill="' + (fill || '#FFFFFF') + '" stroke="#D8CCB8" stroke-width="1.5"/>'; }
+  function leaf() { return '<path d="M4 72 Q50 50 96 70 Q50 92 4 72Z" fill="#5FA046" ' + OL + '/><path d="M8 72 Q50 66 92 70" fill="none" stroke="#3E7A2E" stroke-width="1.6"/>'; }
+  function bowl(body, inside) { return '<path d="M10 50 Q12 90 50 90 Q88 90 90 50Z" fill="' + body + '" ' + OL + '/><ellipse cx="50" cy="50" rx="40" ry="10" fill="' + inside + '" ' + OL + '/>'; }
+  // 背の高いコップ(上 x28〜72・下 x34〜66、y18〜90)。layers = [[y0, y1, 色], …]
+  function gx(y, side) { var k = (y - 18) / 72 * 6; return side < 0 ? 28 + k : 72 - k; }
+  function glass(layers, extra) {
+    var s = layers.map(function (L) { return '<path d="M' + gx(L[0], -1) + ' ' + L[0] + 'L' + gx(L[0], 1) + ' ' + L[0] + 'L' + gx(L[1], 1) + ' ' + L[1] + 'L' + gx(L[1], -1) + ' ' + L[1] + 'Z" fill="' + L[2] + '"/>'; }).join('');
+    return s + (extra || '') + '<path d="M28 18 L72 18 L66 90 L34 90Z" fill="rgba(255,255,255,0.18)" ' + OL + '/><path d="M33 26 L37 82" stroke="rgba(255,255,255,0.7)" stroke-width="3" stroke-linecap="round"/>';
+  }
+  function ice(n) { var s = ''; for (var i = 0; i < (n || 3); i++) s += '<rect x="' + (36 + i * 9) + '" y="' + (30 + (i % 2) * 9) + '" width="10" height="10" rx="2.5" fill="rgba(255,255,255,0.55)" stroke="rgba(255,255,255,0.9)" stroke-width="1.2"/>'; return s; }
+  function straw(c) { return '<path d="M58 4 L52 60" stroke="' + (c || '#E0607E') + '" stroke-width="5" stroke-linecap="round"/><path d="M58 4 L52 60" stroke="#4A2E1A" stroke-width="1" stroke-linecap="round" opacity="0.4"/>'; }
+  function rice(cx, cy, r, col) { return '<path d="M' + (cx - r) + ' ' + cy + ' Q' + (cx - r) + ' ' + (cy - r * 1.1) + ' ' + cx + ' ' + (cy - r * 1.1) + ' Q' + (cx + r) + ' ' + (cy - r * 1.1) + ' ' + (cx + r) + ' ' + cy + 'Z" fill="' + (col || '#FFFDF6') + '" ' + OL + '/>' +
+    '<g fill="#E6DCC6">' + [[-0.4, -0.5], [0.1, -0.8], [0.5, -0.4], [-0.1, -0.3], [0.3, -0.7]].map(function (p) { return '<ellipse cx="' + (cx + p[0] * r) + '" cy="' + (cy + p[1] * r) + '" rx="2" ry="1.1"/>'; }).join('') + '</g>'; }
+  function egg(cx, cy, s) { s = s || 1; return '<path d="M' + (cx - 14 * s) + ' ' + cy + ' q2 -10 12 -9 q10 -6 16 2 q6 10 -4 13 q-10 6 -20 1 q-6 -2 -4 -7Z" fill="#FFFFFF" ' + OL + '/><circle cx="' + (cx + 1 * s) + '" cy="' + (cy - 1) + '" r="' + 6 * s + '" fill="#F6B42E" ' + THIN + '/>'; }
+  function skewers(col, n, chunk) {
+    var s = '';
+    for (var i = 0; i < n; i++) {
+      var y = 34 + i * 12;
+      s += '<path d="M8 ' + (y + 16) + ' L90 ' + (y - 6) + '" stroke="#C9A06A" stroke-width="3" stroke-linecap="round"/>';
+      for (var k = 0; k < 4; k++) { var x = 24 + k * 14, yy = y + 12 - k * 3.8; s += chunk ? chunk(x, yy) : '<rect x="' + (x - 6) + '" y="' + (yy - 6) + '" width="12" height="11" rx="4" fill="' + col + '" ' + THIN + '/>'; }
+    }
+    return s;
+  }
+  var FOOD = {
+    tehtarik: function () { return glass([[22, 30, '#F4E4C8'], [30, 90, '#B87A3E']], '<path d="M72 34 q14 2 12 18 q-2 12 -14 12" fill="none" ' + OL + '/>'); },
+    kopi: function () { return '<ellipse cx="50" cy="82" rx="38" ry="9" fill="#FFFFFF" ' + OL + '/><path d="M24 44 Q26 82 50 82 Q74 82 76 44Z" fill="#FFFFFF" ' + OL + '/><ellipse cx="50" cy="44" rx="26" ry="7" fill="#5A3418" ' + OL + '/><path d="M76 52 q12 0 10 10 q-2 8 -12 8" fill="none" ' + OL + '/><path d="M44 30 q-4 -8 2 -14 M54 30 q-4 -8 2 -14" fill="none" stroke="#C9B9A0" stroke-width="2.4" stroke-linecap="round"/>'; },
+    nasilemak: function () { return leaf() + rice(40, 66, 20) + '<path d="M58 58 q8 -6 16 0 q4 6 -2 10 q-8 4 -14 -2Z" fill="#D8402E" ' + OL + '/>' +
+      '<ellipse cx="72" cy="72" rx="9" ry="6" fill="#FFFFFF" ' + OL + '/><circle cx="72" cy="72" r="3.6" fill="#F6B42E"/>' +
+      '<circle cx="24" cy="76" r="5" fill="#9BD770" ' + THIN + '/><circle cx="24" cy="76" r="2.4" fill="#E8F4D0"/><circle cx="33" cy="80" r="5" fill="#9BD770" ' + THIN + '/><circle cx="33" cy="80" r="2.4" fill="#E8F4D0"/>' +
+      '<g fill="#C9935A" ' + THIN + '><ellipse cx="54" cy="78" rx="3" ry="2"/><ellipse cx="60" cy="80" rx="3" ry="2"/><ellipse cx="57" cy="74" rx="3" ry="2"/></g>' +
+      '<g stroke="#8A5A2E" stroke-width="2.2" stroke-linecap="round"><path d="M44 80 l4 -2"/><path d="M47 84 l4 -1"/></g>'; },
+    roticanai: function () { return plate() + '<ellipse cx="42" cy="66" rx="26" ry="10" fill="#E8B860" ' + OL + '/><path d="M24 66 q18 -8 36 0 M28 70 q14 -5 28 0" fill="none" stroke="#B5803A" stroke-width="2"/>' +
+      '<path d="M64 56 Q66 74 76 74 Q86 74 88 56Z" fill="#FFFFFF" ' + OL + '/><ellipse cx="76" cy="56" rx="12" ry="4.5" fill="#E07A2E" ' + OL + '/>'; },
+    satay: function () { return plate() + skewers('#8A4E22', 3) + '<path d="M66 60 Q68 76 78 76 Q88 76 90 60Z" fill="#FFFFFF" ' + OL + '/><ellipse cx="78" cy="60" rx="12" ry="4.5" fill="#C9792E" ' + OL + '/>' +
+      '<g fill="#9BD770" ' + THIN + '><rect x="14" y="74" width="7" height="6" rx="1.5"/><rect x="22" y="77" width="7" height="6" rx="1.5"/></g>'; },
+    cendol: function () { return bowl('#F4F0E8', '#F4EEE0') + '<path d="M18 50 Q50 18 82 50Z" fill="#F7F3EA" ' + OL + '/>' +
+      '<g fill="none" stroke="#6CB84A" stroke-width="3.5" stroke-linecap="round"><path d="M30 44 q4 -4 8 0"/><path d="M44 36 q4 -4 8 0"/><path d="M56 42 q4 -4 8 0"/><path d="M38 48 q4 -4 8 0"/></g>' +
+      '<path d="M32 30 q6 6 2 14 M50 24 q4 8 -2 16 M66 32 q-2 8 4 12" fill="none" stroke="#7A4A22" stroke-width="4" stroke-linecap="round"/>' +
+      '<g fill="#8A2A24"><circle cx="46" cy="44" r="2.2"/><circle cx="62" cy="47" r="2.2"/></g>'; },
+    chickenrice: function () { return plate() + rice(36, 70, 18, '#F6E8B8') +
+      '<g ' + THIN + '>' + [0, 1, 2, 3].map(function (i) { return '<path d="M' + (54 + i * 7) + ' 58 q4 -4 8 0 l-2 14 q-4 3 -8 0Z" fill="#F4DEB4"/><path d="M' + (54 + i * 7) + ' 58 q4 -4 8 0" fill="none" stroke="#E0B060" stroke-width="3"/>'; }).join('') + '</g>' +
+      '<g fill="#9BD770" ' + THIN + '><ellipse cx="62" cy="76" rx="5" ry="3"/><ellipse cx="72" cy="76" rx="5" ry="3"/></g>' +
+      '<circle cx="84" cy="62" r="6" fill="#FFFFFF" ' + OL + '/><circle cx="84" cy="62" r="3.6" fill="#E0402E"/>'; },
+    kayatoast: function () { return plate() + '<path d="M16 72 L34 46 L52 72Z" fill="#E8C080" ' + OL + '/><path d="M22 68 L34 50 L46 68Z" fill="#A89A4A"/><rect x="27" y="58" width="12" height="5" rx="1.5" fill="#FFE68A" ' + THIN + '/>' +
+      '<path d="M40 74 L58 48 L76 74Z" fill="#E8C080" ' + OL + '/><path d="M46 70 L58 52 L70 70Z" fill="#A89A4A"/>' +
+      '<path d="M70 50 Q72 64 82 64 Q92 64 94 50Z" fill="#FFFFFF" ' + OL + '/><ellipse cx="82" cy="50" rx="12" ry="4" fill="#F7F3EA" ' + OL + '/><circle cx="79" cy="50" r="2.6" fill="#F6B42E"/><circle cx="86" cy="51" r="2.6" fill="#F6B42E"/>'; },
+    icekacang: function () { return plate() + '<path d="M20 68 Q50 6 80 68Z" fill="#F7F3EA" ' + OL + '/>' +
+      '<path d="M36 40 q10 -6 14 6 q4 14 -10 20Z" fill="#E86A8A" opacity="0.85"/><path d="M52 30 q12 4 12 20 q-2 12 -10 16Z" fill="#7AC86A" opacity="0.85"/><path d="M30 58 q14 -4 26 10 l-28 0Z" fill="#F6C83A" opacity="0.85"/>' +
+      '<g fill="#F6D24A" ' + THIN + '><circle cx="46" cy="22" r="2.6"/><circle cx="52" cy="20" r="2.6"/><circle cx="49" cy="25" r="2.6"/></g>'; },
+    ckt: function () { return plate() + '<g fill="none" stroke="#8A5226" stroke-width="5.5" stroke-linecap="round"><path d="M22 66 q10 -8 20 0 t20 0"/><path d="M26 60 q10 -8 20 0 t20 0"/><path d="M30 72 q10 -6 20 0 t16 0"/></g>' +
+      '<g fill="none" stroke="#3E7A2E" stroke-width="2.6" stroke-linecap="round"><path d="M30 56 l10 -4"/><path d="M58 70 l10 -3"/></g>' +
+      '<path d="M66 54 q8 -6 12 2 q-2 6 -8 6" fill="#F28C7A" ' + THIN + '/><path d="M36 74 q8 -6 12 2 q-2 6 -8 6" fill="#F28C7A" ' + THIN + '/>'; },
+    nasikatok: function () { return '<path d="M8 72 L28 46 L92 52 L76 84Z" fill="#D9B884" ' + OL + '/>' + rice(42, 70, 18) +
+      '<path d="M56 66 q4 -16 18 -16 q12 2 12 12 q0 10 -14 10 q-8 0 -10 4 q-4 4 -7 1 q-2 -4 1 -6Z" fill="#C9792E" ' + OL + '/><path d="M54 76 l-6 4" stroke="#F4E4C8" stroke-width="4" stroke-linecap="round"/>' +
+      '<path d="M26 74 q6 -4 12 0 q2 5 -4 6 q-6 1 -8 -6Z" fill="#D8402E" ' + THIN + '/>'; },
+    kuih: function () { return plate() + '<g ' + THIN + '><rect x="16" y="50" width="22" height="20" rx="2" fill="#F4E4C8"/><rect x="16" y="54" width="22" height="4" fill="#E86A8A"/><rect x="16" y="62" width="22" height="4" fill="#E86A8A"/></g>' +
+      '<g ' + THIN + '><rect x="42" y="50" width="20" height="20" rx="2" fill="#FFFDF6"/><rect x="42" y="50" width="20" height="9" rx="2" fill="#7AC86A"/></g>' +
+      '<g fill="#5FA046" ' + THIN + '><circle cx="74" cy="60" r="8"/><circle cx="82" cy="68" r="8"/></g><g fill="#FFFDF6"><circle cx="72" cy="57" r="1.4"/><circle cx="76" cy="61" r="1.4"/><circle cx="80" cy="66" r="1.4"/><circle cx="84" cy="70" r="1.4"/></g>'; },
+    ambuyat: function () { return bowl('#C9A06A', '#E9E4D0') + '<path d="M26 50 q10 -16 24 -10 q14 -8 22 8" fill="#EEE9D8" ' + OL + '/><path d="M36 44 q6 -6 12 0" fill="none" stroke="#FFFFFF" stroke-width="2.4"/>' +
+      '<path d="M66 8 L50 44 M72 10 L56 46" stroke="#C9A06A" stroke-width="4" stroke-linecap="round"/><path d="M66 8 L50 44 M72 10 L56 46" stroke="#4A2E1A" stroke-width="1" opacity="0.5"/>' +
+      '<path d="M48 40 q8 -6 12 2 q-4 6 -12 -2Z" fill="#EEE9D8" ' + THIN + '/>' +
+      '<path d="M78 74 Q80 88 88 88 Q96 88 98 74Z" fill="#FFFFFF" ' + OL + '/><ellipse cx="88" cy="74" rx="10" ry="3.6" fill="#E8C040" ' + THIN + '/>'; },
+    thaitea: function () { return glass([[24, 34, '#F7F0E2'], [34, 90, '#E8873A']], ice(3) + '<path d="M40 30 q8 8 18 2" fill="none" stroke="#F7F0E2" stroke-width="4"/>') + straw('#5AA9E6'); },
+    padthai: function () { return plate() + '<g fill="none" stroke="#D9A060" stroke-width="4.5" stroke-linecap="round"><path d="M20 68 q10 -10 20 0 t20 0 t16 -2"/><path d="M24 62 q10 -10 20 0 t20 0"/><path d="M28 74 q10 -6 20 0 t18 0"/></g>' +
+      '<path d="M40 54 q8 -8 14 0 q-2 6 -8 6" fill="#F28C7A" ' + THIN + '/><path d="M56 58 q8 -8 14 0 q-2 6 -8 6" fill="#F28C7A" ' + THIN + '/>' +
+      '<path d="M74 58 L88 66 L76 72Z" fill="#9BD770" ' + OL + '/><g fill="#C9935A"><circle cx="34" cy="60" r="1.8"/><circle cx="62" cy="68" r="1.8"/><circle cx="48" cy="72" r="1.8"/></g>' +
+      '<g stroke="#F4F0E0" stroke-width="2.4" stroke-linecap="round"><path d="M26 76 l8 -2"/><path d="M60 76 l8 -1"/></g>'; },
+    mangorice: function () { return plate() + rice(34, 70, 16) + '<path d="M40 62 q8 -4 14 2" fill="none" stroke="#FFFFFF" stroke-width="3"/>' +
+      [0, 1, 2, 3].map(function (i) { return '<path d="M' + (52 + i * 8) + ' 72 q-2 -16 6 -20 q6 6 4 20Z" fill="#F6C02E" ' + THIN + '/>'; }).join('') +
+      '<g fill="#F6E28A"><circle cx="30" cy="56" r="1.6"/><circle cx="36" cy="54" r="1.6"/><circle cx="33" cy="60" r="1.6"/></g>'; },
+    mooping: function () { return plate() + skewers('#7A3E1A', 3, function (x, y) { return '<path d="M' + (x - 7) + ' ' + (y - 4) + ' q7 -5 14 0 l0 8 q-7 5 -14 0Z" fill="#8A4A22" ' + THIN + '/><path d="M' + (x - 4) + ' ' + (y - 3) + ' l6 0" stroke="#C98A4A" stroke-width="1.6"/>'; }); },
+    coconut: function () { return '<ellipse cx="50" cy="62" rx="32" ry="30" fill="#7AB84A" ' + OL + '/><path d="M28 50 Q50 34 72 50 L66 40 Q50 30 34 40Z" fill="#F4F0E0" ' + OL + '/><ellipse cx="50" cy="42" rx="14" ry="5" fill="#E8F4F0" ' + THIN + '/>' +
+      '<path d="M36 70 q14 8 28 0" fill="none" stroke="#5A8A34" stroke-width="2.4"/><path d="M56 6 L50 44" stroke="#E0607E" stroke-width="5" stroke-linecap="round"/>'; },
+    nombanhchok: function () { return bowl('#F4F0E8', '#D8D070') + '<g fill="none" stroke="#FFFDF6" stroke-width="3.2" stroke-linecap="round"><path d="M24 50 q8 -6 16 0 t16 0 t16 0"/><path d="M28 54 q8 -5 16 0 t16 0 t12 0"/></g>' +
+      '<g fill="#7AC86A" ' + THIN + '><path d="M60 40 q8 -10 16 0 q-8 6 -16 0Z"/><path d="M30 42 q6 -8 12 0 q-6 5 -12 0Z"/></g><g stroke="#F4F0E0" stroke-width="2.4" stroke-linecap="round"><path d="M48 40 l6 -6"/><path d="M52 42 l8 -4"/></g>'; },
+    baisach: function () { return plate() + rice(34, 70, 17) + [0, 1, 2].map(function (i) { return '<rect x="' + (52 + i * 2) + '" y="' + (50 + i * 7) + '" width="28" height="7" rx="3" fill="#B8642E" ' + THIN + '/><path d="M' + (56 + i * 2) + ' ' + (53 + i * 7) + ' l20 0" stroke="#7A3E1A" stroke-width="1.6" stroke-dasharray="3 3"/>'; }).join('') +
+      '<g ' + THIN + '><rect x="18" y="76" width="10" height="4" rx="1.5" fill="#F28C3A"/><rect x="30" y="78" width="10" height="4" rx="1.5" fill="#9BD770"/></g>'; },
+    icedcoffee: function () { return glass([[24, 76, '#5A3418'], [76, 90, '#F4E8D0']], ice(3)) + straw('#3E9B5A'); },
+    sugarcane: function () { return glass([[22, 30, '#F4F0C8'], [30, 90, '#D8E08A']], ice(2)) + '<rect x="74" y="10" width="8" height="80" rx="3" fill="#9BC85A" ' + OL + '/><path d="M74 30 h8 M74 52 h8 M74 72 h8" stroke="#4A2E1A" stroke-width="2"/>'; },
+    amok: function () { return '<path d="M14 52 Q18 88 50 88 Q82 88 86 52Z" fill="#5FA046" ' + OL + '/><path d="M24 58 l4 26 M40 60 l2 28 M60 60 l-2 28 M76 58 l-4 26" stroke="#3E7A2E" stroke-width="1.8"/>' +
+      '<ellipse cx="50" cy="52" rx="36" ry="10" fill="#E8B040" ' + OL + '/><path d="M32 52 q10 -6 18 0 q8 6 18 0" fill="none" stroke="#FFF6DA" stroke-width="4" stroke-linecap="round"/>' +
+      '<g stroke="#D8402E" stroke-width="2.6" stroke-linecap="round"><path d="M40 48 l6 -2"/><path d="M58 50 l6 2"/></g><g stroke="#3E7A2E" stroke-width="2.4" stroke-linecap="round"><path d="M48 46 l8 0"/></g>'; },
+    pho: function () { return bowl('#FFFFFF', '#EAC88A') + '<path d="M14 62 Q50 76 86 62" fill="none" stroke="#5AA9E6" stroke-width="3"/>' +
+      '<g fill="none" stroke="#FFFDF6" stroke-width="3" stroke-linecap="round"><path d="M26 50 q8 -6 16 0 t16 0 t16 0"/></g>' +
+      '<g ' + THIN + '><path d="M34 44 q8 -6 14 0 q-6 6 -14 0Z" fill="#B8645A"/><path d="M50 46 q8 -6 14 0 q-6 6 -14 0Z" fill="#B8645A"/></g>' +
+      '<g fill="#5FA046"><circle cx="66" cy="44" r="3"/><circle cx="30" cy="52" r="2.4"/><circle cx="60" cy="54" r="2.4"/></g><path d="M72 44 L82 50 L72 54Z" fill="#9BD770" ' + THIN + '/>' +
+      '<path d="M60 6 L76 46 M66 4 L80 44" stroke="#C9A06A" stroke-width="3.5" stroke-linecap="round"/>'; },
+    banhmi: function () { return '<path d="M8 58 Q10 40 50 38 Q90 40 92 58 Q88 74 50 74 Q12 74 8 58Z" fill="#E8B060" ' + OL + '/>' +
+      '<path d="M14 56 Q50 48 86 56 Q50 62 14 56Z" fill="#FFF6DA" ' + THIN + '/><path d="M18 56 q10 -4 18 0 t18 0 t18 0" fill="none" stroke="#E86A6A" stroke-width="4"/>' +
+      '<g stroke="#F28C3A" stroke-width="2.4" stroke-linecap="round"><path d="M28 52 l8 -4"/><path d="M50 52 l8 -4"/></g><g fill="#5FA046"><circle cx="42" cy="50" r="3"/><circle cx="66" cy="50" r="3"/></g>' +
+      '<g stroke="#D8A050" stroke-width="2" stroke-linecap="round"><path d="M26 44 l6 -2"/><path d="M48 42 l6 -1"/><path d="M70 44 l6 1"/></g>'; },
+    goicuon: function () { return plate() + [0, 1, 2].map(function (i) { var x = 18 + i * 20; return '<rect x="' + x + '" y="50" width="18" height="24" rx="8" fill="rgba(255,255,255,0.75)" ' + OL + '/><path d="M' + (x + 4) + ' 58 q5 -4 10 0" fill="none" stroke="#F28C7A" stroke-width="3"/><path d="M' + (x + 4) + ' 66 l10 0" stroke="#7AC86A" stroke-width="3"/>'; }).join('') +
+      '<path d="M76 58 Q78 72 84 72 Q92 72 94 58Z" fill="#FFFFFF" ' + OL + '/><ellipse cx="85" cy="58" rx="9" ry="3.4" fill="#7A3E1A" ' + THIN + '/>'; },
+    nasigoreng: function () { return plate() + '<path d="M18 70 Q20 48 50 46 Q80 48 82 70Z" fill="#B57A3A" ' + OL + '/>' +
+      '<g fill="#E8A060"><circle cx="30" cy="62" r="1.8"/><circle cx="64" cy="60" r="1.8"/><circle cx="46" cy="66" r="1.8"/></g><g fill="#7AC86A"><circle cx="38" cy="58" r="1.8"/><circle cx="58" cy="66" r="1.8"/></g>' +
+      egg(44, 52, 0.9) + '<path d="M70 60 q6 -10 16 -6 q2 8 -4 12 q-8 2 -12 -6Z" fill="#F4E4C8" ' + THIN + '/><circle cx="16" cy="74" r="5" fill="#E86A5A" ' + THIN + '/>'; },
+    esteh: function () { return glass([[24, 90, '#C8803A']], ice(3)) + '<circle cx="66" cy="22" r="8" fill="#F6E04A" ' + OL + '/>' + straw('#E0607E'); },
+    bakso: function () { return bowl('#FFFFFF', '#E8D4A0') + '<g fill="none" stroke="#F2D24A" stroke-width="3" stroke-linecap="round"><path d="M26 52 q8 -5 16 0 t16 0"/></g>' +
+      '<g fill="#8A7A6A" ' + THIN + '><circle cx="38" cy="46" r="7"/><circle cx="56" cy="44" r="7"/><circle cx="66" cy="50" r="6"/></g>' +
+      '<path d="M22 46 q6 -10 14 -4 q-6 6 -14 4Z" fill="#5FA046" ' + THIN + '/><g fill="#C9792E"><circle cx="48" cy="52" r="1.6"/><circle cx="52" cy="50" r="1.6"/></g>'; },
+    martabak: function () { return plate() + [0, 1].map(function (i) { var y = 46 + i * 12, x = 22 + i * 6; return '<rect x="' + x + '" y="' + y + '" width="50" height="14" rx="3" fill="#C98A3E" ' + OL + '/><rect x="' + (x + 2) + '" y="' + (y + 5) + '" width="46" height="4" fill="#5A3418"/><rect x="' + (x + 2) + '" y="' + (y + 9) + '" width="46" height="2.4" fill="#F6D24A"/>'; }).join('') +
+      '<g fill="#C9935A"><circle cx="34" cy="46" r="1.8"/><circle cx="50" cy="45" r="1.8"/><circle cx="62" cy="47" r="1.8"/></g>'; },
+    taho: function () { return glass([[30, 90, '#FFFDF6']], '<path d="M36 40 q14 10 28 0 M38 60 q12 10 24 0" fill="none" stroke="#B8702E" stroke-width="4.5" stroke-linecap="round"/>' +
+      '<g fill="rgba(240,230,200,0.95)" ' + THIN + '><circle cx="44" cy="34" r="3"/><circle cx="54" cy="36" r="3"/><circle cx="48" cy="52" r="3"/><circle cx="58" cy="54" r="3"/></g>'); },
+    turon: function () { return plate() + '<rect x="16" y="50" width="46" height="16" rx="8" fill="#D9A050" ' + OL + '/><path d="M24 54 l6 8 M36 54 l6 8 M48 54 l6 8" stroke="#A86A2A" stroke-width="2"/>' +
+      '<rect x="40" y="60" width="44" height="16" rx="8" fill="#D9A050" ' + OL + '/><ellipse cx="84" cy="68" rx="6" ry="8" fill="#F6E28A" ' + THIN + '/><path d="M48 62 q10 4 20 0" fill="none" stroke="#8A4A1A" stroke-width="2.6"/>'; },
+    halohalo: function () { return glass([[22, 34, '#F7F3EA'], [34, 56, '#F7F3EA'], [56, 72, '#E86A8A'], [72, 90, '#8A3A2E']],
+      '<g ' + THIN + '><rect x="38" y="60" width="6" height="6" fill="#7AC86A"/><rect x="50" y="62" width="6" height="6" fill="#F6D24A"/><rect x="58" y="76" width="6" height="6" fill="#F28C3A"/></g>') +
+      '<path d="M32 22 Q50 2 68 22Z" fill="#8A5BB5" ' + OL + '/><rect x="56" y="10" width="14" height="10" rx="2" fill="#F6C83A" ' + THIN + '/><circle cx="40" cy="12" r="6" fill="#F7F3EA" ' + THIN + '/>'; },
+    silog: function () { return plate() + rice(32, 70, 16, '#FBF2D8') + '<g fill="#D9A050"><circle cx="26" cy="60" r="1.6"/><circle cx="34" cy="56" r="1.6"/><circle cx="38" cy="62" r="1.6"/></g>' +
+      egg(60, 58, 0.9) + '<path d="M50 74 q10 -8 30 -4 q4 6 -4 8 q-14 4 -26 -4Z" fill="#8A3A2E" ' + OL + '/><circle cx="86" cy="62" r="5" fill="#E86A5A" ' + THIN + '/>'; }
+  };
+  function foodSVG(id, cls) {
+    var f = FOOD[id];
+    return '<svg class="' + (cls || 'fd') + '" viewBox="0 0 100 100" aria-hidden="true">' + (f ? f() : '') + '</svg>';
+  }
+
   // ---------- money pieces ----------
+  // お札と硬貨は、今のシリーズの色・素材(ポリマーの透明な窓・2色の硬貨・9角形)と、裏の絵の題材に近づけた。
+  // 人の顔・中央銀行の紋章・王室・宗教の絵は描かない(題材の小さな絵だけ)。
+  var MOTIF = {
+    kite: 'M15 3 L25 13 L15 27 L5 13Z M5 13 L25 13 M15 3 L15 27 M15 27 q-4 3 -2 6',
+    hornbill: 'M6 18 q2 -10 12 -10 q6 0 8 4 l-6 2 q-2 -2 -4 0 q4 4 -2 10 q-6 2 -8 -6Z M18 8 q2 -5 8 -3 q-2 3 -8 3',
+    flower: 'M15 8 q5 -6 9 0 q6 4 0 9 q2 7 -5 7 q-4 6 -8 0 q-7 0 -5 -7 q-6 -5 0 -9 q4 -6 9 0Z M15 12 a4 4 0 1 0 0.1 0',
+    turtle: 'M6 16 q0 -9 9 -9 q9 0 9 9Z M24 13 q4 -1 5 2 q-2 2 -5 1 M8 16 l-3 4 M21 16 l3 4 M10 10 l10 0 M15 7 l0 9',
+    palm: 'M15 28 q1 -10 0 -16 M15 12 q-6 -6 -12 -2 M15 12 q6 -6 12 -2 M15 12 q-3 -8 -9 -9 M15 12 q3 -8 9 -9 M15 12 q0 -6 0 -9',
+    mountain: 'M2 26 L12 8 L17 16 L21 11 L28 26Z M12 8 l-3 6 l3 -2 l2 3',
+    cap: 'M3 13 L15 7 L27 13 L15 19Z M9 16 v6 q6 4 12 0 v-6 M27 13 v8',
+    tree: 'M15 28 v-8 M15 20 q-12 0 -10 -8 q-2 -8 10 -8 q12 0 10 8 q2 8 -10 8Z',
+    ball: 'M15 4 a11 11 0 1 0 0.1 0 M15 10 l5 4 l-2 6 h-6 l-2 -6Z M15 4 v6 M25 12 l-5 2 M22 24 l-4 -4 M8 24 l4 -4 M5 12 l5 2',
+    palette: 'M15 4 q12 0 12 10 q0 6 -6 5 q-4 0 -3 4 q1 5 -5 4 q-10 -2 -10 -12 q0 -11 12 -11Z M10 10 a2 2 0 1 0 .1 0 M17 8 a2 2 0 1 0 .1 0 M21 13 a2 2 0 1 0 .1 0',
+    house: 'M4 16 L15 7 L26 16 M7 15 v7 h16 v-7 M7 22 v5 M12 22 v5 M18 22 v5 M23 22 v5 M2 27 h26',
+    leaf: 'M5 25 q0 -20 20 -20 q0 20 -20 20Z M5 25 L20 10 M10 20 h5 M14 16 h4',
+    star: 'M15 3 l3 8 l9 0 l-7 5 l3 9 l-8 -6 l-8 6 l3 -9 l-7 -5 l9 0Z',
+    temple: 'M3 27 h24 M6 27 v-6 h18 v6 M10 21 v-6 h10 v6 M13 15 v-5 h4 v5 M15 10 v-6 M7 21 l2 -4 M23 21 l-2 -4',
+    bridge: 'M2 22 q13 -16 26 0 M2 22 h26 M6 16 h18 M8 22 v-6 M15 22 v-10 M22 22 v-6 M6 16 l2 -4 h14 l2 4',
+    gate: 'M3 27 h24 M5 27 v-9 h20 v9 M12 27 v-5 a3 3 0 0 1 6 0 v5 M4 18 l2 -4 h18 l2 4 M9 14 l1 -4 h10 l1 4',
+    pavilion: 'M3 27 h24 M7 27 v-9 M23 27 v-9 M3 18 q12 -3 24 0 l-3 -4 h-18Z M9 14 q6 -2 12 0 l-2 -4 h-8Z M12 27 v-6 h6 v6',
+    islet: 'M2 26 q6 -2 13 0 t13 0 M6 25 q0 -14 5 -14 q4 2 3 14 M18 25 q0 -10 4 -10 q3 2 3 10',
+    rig: 'M2 26 q6 -2 13 0 t13 0 M8 24 v-10 h14 v10 M10 14 l5 -10 l5 10 M15 4 v-2 M12 9 h6',
+    island: 'M2 24 q6 -3 13 0 t13 0 M8 22 q7 -6 14 0 M15 20 q0 -8 2 -12 M17 8 q-6 -1 -9 2 M17 8 q6 -2 9 2 M17 8 q0 -4 -3 -5',
+    wave: 'M2 12 q4 -4 8 0 t8 0 t8 0 M2 19 q4 -4 8 0 t8 0 t8 0 M2 26 q4 -4 8 0 t8 0 t8 0',
+    eagle: 'M3 14 q6 -6 12 0 q6 -6 12 0 q-6 0 -8 4 q-2 6 -4 8 q-2 -2 -4 -8 q-2 -4 -8 -4Z M15 9 a2.5 2.5 0 1 0 .1 0',
+    deer: 'M10 16 q6 -2 12 0 q2 4 0 8 M12 24 v4 M20 24 v4 M22 16 q3 -4 4 -8 M22 10 l-3 -4 M24 10 l3 -5 M10 16 q-4 0 -5 3',
+    cat: 'M8 26 q-2 -10 7 -12 q9 2 7 12Z M9 15 l1 -6 l4 4 M21 15 l-1 -6 l-4 4 M12 18 a1 1 0 1 0 .1 0 M18 18 a1 1 0 1 0 .1 0 M22 24 q6 0 6 -6',
+    bird: 'M5 18 q4 -10 14 -8 l6 -2 l-3 4 q2 6 -4 10 q-8 4 -13 -4Z M19 10 l2 -5 M14 22 l-2 5 M17 22 l2 5'
+  };
+  // 硬貨の色
+  var METAL = { silver: '#C9CED4', gold: '#D9B24E', copper: '#C27A4A' };
+  function noteSVG(m, mk) {
+    var c = m.c, d = m.c2 || 'rgba(0,0,0,0.35)', s = '';
+    s += '<rect x="1" y="1" width="118" height="58" rx="5" fill="' + c + '"/>';
+    s += '<rect x="1" y="1" width="60" height="58" rx="5" fill="rgba(255,255,255,0.16)"/>';
+    // 細かい地紋(ギョーシェ)
+    for (var i = 0; i < 5; i++) s += '<path d="M0 ' + (10 + i * 10) + ' q15 -7 30 0 t30 0 t30 0 t30 0" fill="none" stroke="rgba(255,255,255,' + (0.14 + (i % 2) * 0.06) + ')" stroke-width="1"/>';
+    s += '<path d="M0 58 q30 -16 60 -6 t60 -10 V60 H0Z" fill="' + d + '" opacity="0.35"/>';
+    // 題材の楕円
+    s += '<ellipse cx="25" cy="30" rx="19" ry="22" fill="rgba(255,255,255,0.55)" stroke="rgba(255,255,255,0.8)" stroke-width="1.5"/>';
+    s += '<g transform="translate(10 15)"><path d="' + (MOTIF[m.mo] || MOTIF.star) + '" fill="none" stroke="' + d + '" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></g>';
+    // ポリマーの透明な窓
+    if (m.poly) s += '<rect x="96" y="34" width="16" height="20" rx="4" fill="rgba(236,248,255,0.85)" stroke="rgba(255,255,255,0.95)" stroke-width="1.2"/><path d="M100 40 l6 8" stroke="rgba(140,180,200,0.6)" stroke-width="1.5"/>';
+    else s += '<rect x="100" y="4" width="3" height="52" fill="rgba(255,255,255,0.35)"/>';
+    s += '<rect x="2" y="2" width="116" height="56" rx="4.5" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="2"/>';
+    s += '<text x="' + (m.poly ? 92 : 96) + '" y="55" text-anchor="end" font-size="7.5" font-weight="700" fill="rgba(255,255,255,0.85)" font-family="sans-serif" letter-spacing="0.5">' + MARKETS[mk].country.toUpperCase() + '</text>';
+    return '<svg class="nart" viewBox="0 0 120 60" aria-hidden="true">' + s + '</svg>';
+  }
+  function coinSVG(m) {
+    var body = METAL[m.metal] || METAL.silver, ring = m.ring ? METAL[m.ring] : null, s = '';
+    var shape = function (r, fill, extra) {
+      if (m.shape === 'nonagon') {
+        var p = [];
+        for (var i = 0; i < 9; i++) { var a = -Math.PI / 2 + i * 2 * Math.PI / 9; p.push((30 + r * Math.cos(a)).toFixed(1) + ',' + (30 + r * Math.sin(a)).toFixed(1)); }
+        return '<polygon points="' + p.join(' ') + '" fill="' + fill + '" ' + (extra || '') + '/>';
+      }
+      return '<circle cx="30" cy="30" r="' + r + '" fill="' + fill + '" ' + (extra || '') + '/>';
+    };
+    s += shape(28, ring || body, 'stroke="rgba(60,40,20,0.45)" stroke-width="1.5"');
+    if (ring) s += shape(18, body, 'stroke="rgba(60,40,20,0.3)" stroke-width="1"');
+    else s += shape(23, 'none', 'stroke="rgba(255,255,255,0.55)" stroke-width="1.5"');
+    s += '<path d="M14 18 q8 -10 20 -8" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="3" stroke-linecap="round"/>';
+    return '<svg class="nart" viewBox="0 0 60 60" aria-hidden="true">' + s + '</svg>';
+  }
   function moneyHTML(m, mk, attr) {
     var label = MARKETS[mk].fmt(m.v).replace(/^(RM|S\$|Rp)/, '<small style="font-size:0.72em;opacity:0.9">$1</small>');
     if (mk === 'VN' || mk === 'ID') label = shortK(m.v, mk);
     if (mk === 'KH') label = group(m.v, ',') + '<small style="font-size:0.72em">៛</small>';
     if (mk === 'BN') label = '<small style="font-size:0.72em;opacity:0.9">B$</small>' + m.v;
-    return '<button class="money ' + (m.coin ? 'coin' : 'note') + '" style="--nc:' + m.c + '" ' + (attr || '') + '><span>' + label + '</span></button>';
+    return '<button class="money ' + (m.coin ? 'coin' : 'note') + '" ' + (attr || '') + '>' + (m.coin ? coinSVG(m) : noteSVG(m, mk)) + '<span>' + label + '</span></button>';
   }
   function shortK(v, mk) { return (mk === 'ID' ? '<small style="font-size:0.72em">Rp</small>' : '') + group(v, '.') + (mk === 'VN' ? '<small style="font-size:0.72em">₫</small>' : ''); }
 
@@ -641,7 +827,7 @@ svg.flag { display: block; border-radius: 2px; }
     h += '<div class="customer">' + avatar() + '</div>';
     if (said) h += '<div class="bubble">' + said + '</div>';
     h += '<div class="counter">' + (items || []).map(function (it) {
-      return '<div class="food"><span class="em">' + it.em + '</span>' + (it.q > 1 ? '<span class="qty">×' + it.q + '</span>' : '') + '<span class="pricetag">' + esc(m.fmt(it.p)) + '</span></div>';
+      return '<div class="food">' + foodSVG(it.em) + (it.q > 1 ? '<span class="qty">×' + it.q + '</span>' : '') + '<span class="pricetag">' + esc(m.fmt(it.p)) + '</span></div>';
     }).join('') + '</div>';
     scene.innerHTML = h;
   }
@@ -717,7 +903,7 @@ svg.flag { display: block; border-radius: 2px; }
     var dots = '<div class="dots">' + ORDER_SIZES.map(function (x, i) { return '<i class="' + (i < trip.i ? (trip.res[i] >= 2 ? 'ok' : 'no') : i === trip.i ? 'now' : '') + '"></i>'; }).join('') + '</div>';
     var h = '<div class="card">' + dots + '<div class="h">Customer ' + (trip.i + 1) + ' of 5</div>' +
       '<div class="list">' + cur.items.map(function (it) {
-        return '<div class="li"><span>' + it.em + ' ' + (it.q > 1 ? it.q + ' × ' : '') + esc(it.name) + '</span><span class="m">' + esc(m.fmt(it.p * it.q)) + '</span></div>';
+        return '<div class="li"><span class="lin">' + foodSVG(it.em, 'fd sm') + ' ' + (it.q > 1 ? it.q + ' × ' : '') + esc(it.name) + '</span><span class="m">' + esc(m.fmt(it.p * it.q)) + '</span></div>';
       }).join('') +
       '<div class="li tot"><span>Total</span><span class="m">' + (cur.step === 'add' ? '?' : esc(m.fmt(cur.total))) + '</span></div></div>';
     if (cur.step === 'add') {
@@ -882,7 +1068,7 @@ svg.flag { display: block; border-radius: 2px; }
       var card = function (side) {
         var s = q[side], mm = MARKETS[s.id];
         var cls = check.answered ? (q.ans === side ? ' right' : check.chosen === side ? ' miss' : '') : '';
-        return '<button class="ch' + cls + '" data-s="' + side + '"' + (check.answered ? ' disabled' : '') + '><span class="em">' + s.it.em + '</span><span>' + esc(s.it.name) + '</span><span class="m">' + esc(mm.fmt(s.it.p)) + '</span><small>' + flagSVG(s.id) + esc(mm.country) + '</small>' +
+        return '<button class="ch' + cls + '" data-s="' + side + '"' + (check.answered ? ' disabled' : '') + '>' + foodSVG(s.it.em) + '<span>' + esc(s.it.name) + '</span><span class="m">' + esc(mm.fmt(s.it.p)) + '</span><small>' + flagSVG(s.id) + esc(mm.country) + '</small>' +
           (check.answered ? '<small>≈ ' + esc(homeFmt(s.v)) + '</small>' : '') + '</button>';
       };
       h += '<div class="q">Which one costs more?</div><div class="vs">' + card('A') + card('B') + '</div>';
