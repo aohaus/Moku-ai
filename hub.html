@@ -2225,7 +2225,7 @@ html.me-open #ceoPeek { display: none; }
     return m && typeof m === 'object' ? Object.keys(m).filter(function (k) { return m[k] && (min <= 1 ? m[k].played > 0 : (m[k].best | 0) >= min); }).length : 0;
   }
   // Fact or Fib? Asia: 正解した話の数(ゲームの CLAIMS の数と合わせる)
-  var MFF_TOTAL = 56;
+  var MFF_TOTAL = 100;
   function mffKnown() {
     var p = readJSON('moku:moku-fact-or-fib:progress'), k = p && p.known;
     return k && typeof k === 'object' ? Math.min(MFF_TOTAL, Object.keys(k).length) : 0;
@@ -2937,7 +2937,7 @@ html.me-open #ceoPeek { display: none; }
       name: 'Fact or Fib? Asia',
       card: 'mff',
       gameId: 'moku-fact-or-fib',
-      // 完了 = 全部の話を一度は正解した(progress.known。今ある話の数は moku-fact-or-fib.html の CLAIMS = 56)
+      // 完了 = 全部の話を一度は正解した(progress.known。今ある話の数は moku-fact-or-fib.html の CLAIMS = 100)
       isCompleted: function () {
         if (isExplicitlyMarked('completed', 'mff')) return true;
         return mffKnown() >= MFF_TOTAL;

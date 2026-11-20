@@ -399,7 +399,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
   - Moint: 毎回(上限 500/日)= ⭐1つ +5(1回で最大 75)、⭐15 +25、Price Check 1問正解 +5・8問全部 +20。1回きり = その国の市場に初めて行った +30、8 か国全部 +200。受け取り済みは `mointClaims`(`m:<国のコード>` `all`)。
   - 記録は `moku:moku-money-market:progress` = `{ version: 1, gameId, markets: { 国: { played, best } }, totalStars, orders, checkRounds, checkBest, checkCorrect, played, mointClaims, updatedAt }`。音のオン/オフと My money は `moku:moku-money-market:settings`。
 - **Fact or Fib? Asia**(`moku-fact-or-fib.html`、2026-11-19〜、v0.1.0。ハブの Live in ASIA の棚): 東南アジア 11 か国の「うそみたいな本当の話(Fact)」と「本当っぽいうそ(Fib)」を見分ける。目標は CLAUDE.md §2。
-  - **話のデータ**はページ内の `CLAIMS`(今は 56: Fact 28・Fib 28。`{ id, c: 国, a: true=Fact / false=Fib, t: 話, why: 理由 }`)。どの話にも国旗と国の名前。うそは、まちがいがはっきりしている話だけ(本当は…を `why` に書く)。`id` はセーブのキー。数を変えたら `hub.html` の `MFF_TOTAL` もそろえる。
+  - **話のデータ**はページ内の `CLAIMS`(今は 100: Fact 50・Fib 50。v0.2.0 で 56 から増やした。`{ id, c: 国, a: true=Fact / false=Fib, t: 話, why: 理由 }`)。どの話にも国旗と国の名前。うそは、まちがいがはっきりしている話だけ(本当は…を `why` に書く)。`id` はセーブのキー。数を変えたら `hub.html` の `MFF_TOTAL` もそろえる。
   - **🎯 Quiz**(1人、10問): まだ正解していない話を先に、Fact と Fib を半分ずつ。答えるとすぐ FACT ✓ / FIB ✗ のスタンプと理由(Fib は「The truth: …」)。3問以上続けて正解で 🔥 Streak。結果画面にまちがえた話をもう一度。
   - **🎉 Party**(1台を回して 2〜4人、8問): 全員が自分の列で Fact / Fib を押す(押したことだけ「🔒 Locked」と出て中身は見えない。↺ で選び直し)→ 🥁 Reveal で答えと理由 → 当たった人に 1点。Moint はなし。プレイヤー名は `moku:moku-fact-or-fib:settings`。
   - **📚 Fact Book**: 一度でも正解した話が国ごとにたまる(まだの話は 🔒)。
