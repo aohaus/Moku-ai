@@ -323,7 +323,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
 - 他のタイトルで Moint を配る・使う場合も同じキーを読み書きする。`balance` は 0 未満にしない。
 - **他のゲームへの展開**(2026-10-25〜、1本ずつ): 相場は「1回遊ぶ(2〜3分)と 50〜150、毎日遊べば 300 Moint の物が1日1個買える」。
   - 配る時は `MokuMoint.earn(gameId, amount)`。毎回もらえる分(勝ち・クリアなど)は**1ゲーム1日 500 まで**(`DAILY_GAME_CAP`)。1回きりの実績は `{ capped: false }` で上限の外。今日の分は `moku:moint:earned` = `{ version: 1, day, games: { gameId: n }, updatedAt }`(クラウドセーブではこの端末の値を使う)。実績を受け取ったかどうかはそのゲーム自身のセーブに記録する(2台で食い違った時、ゲームごとに選ばせるため)。
-  - **ハブの印**: `hub.html` の `CATALOG` に `moint: { how, cap }` を書いたゲームは、タイルの左上に小さい金色のMコインが付き、詳細シートに「Earn Moints」(もらい方の説明。`cap` があれば今日の分 n / 500)が出る。今は Moku Fight / Moku Bridge / Moku Drop / Moyomoyo / MK Mobile / Moku Chess / Moku Word Riddles / Moku Dropper / Moku Rhythm Cafe / Moku Bento / Moku Future Run / Moku Mall / Sir CEO Moku / Where's Moku? / Moku Money Market / Fact or Fib? Asia / Moku Night Jungle / Moku Festival Lights。
+  - **ハブの印**: `hub.html` の `CATALOG` に `moint: { how, cap }` を書いたゲームは、タイルの左上に小さい金色のMコインが付き、詳細シートに「Earn Moints」(もらい方の説明。`cap` があれば今日の分 n / 500)が出る。今は Moku Fight / Moku Bridge / Moku Drop / Moyomoyo / MK Mobile / Moku Chess / Moku Word Riddles / Moku Dropper / Moku Rhythm Cafe / Moku Bento / Moku Future Run / Moku Mall / Sir CEO Moku / Where's Moku? / Moku Money Market / Fact or Fib? Asia / Moku Night Jungle / Moku Festival Lights / Moku Watch 6 Lazy。
   - 次の候補: Moku Kart(独自コインがあるので実績だけにするか要相談)など。
 - **Moku Drop**(2026-10-26〜): ビンがいっぱいになった(JAR FULL)時の画面に内訳と今日の分 n / 500。途中で 🔄 でやり直した回は払わない。
   - 毎回(上限 500/日): スコア 100 点ごとに 1(1回で最大 150。コンボで点が大きく伸びるので Moyomoyo より割る数を大きくした)。自己ベスト更新 +30(ベストが 0 の初回は除く)。
@@ -436,6 +436,9 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
   - **ゲームのアイデア**: 160 文字まで。キーワードでコメント(★4 か ★5。子どもの案を下げない)+考えを深める質問。最新 10 件を覚えていて、次に来た時に話題にする。
   - **寄付のおねだり**: ゲーム内の Moint 10 だけ。1日1回、残高 50 以上の時だけ。断っても何も起きない。
   - 記録は `moku:ceo-moku:memory` = `{ version: 1, gameId, visits, days, firstDay, lastDay, log: [{ at, who, text }](最新 40), ideas: [{ day, text }], quiz: { day, wins, tries, seen }, donate: { askedDay, count, total }, pick: { day, gameId, base, fp, paid }, chat: { day, n }(その日おしゃべりで話した回数), facts: { nick, likes }, bonusTotal, pokes, talks, updatedAt }`。音のオン/オフは `moku:ceo-moku:settings`。
+- **Moku Watch 6 Lazy の Moku Moku**(液晶ペット、2026-11-20〜、v0.6.0): 2010年代の電子ペットの「稼ぐ → 買う → 着せる」を Moint で。
+  - 毎回(上限 500/日): 💼 Work(30分、実際の時間)から帰ると +15(職場でずっと寝ていた)/ 25% で +40(少し働いた)/ 5% で +150(寝すぎて社長になった)。「どっちを向く?」に勝つ +20。
+  - 使い道: ペットの画面の 🛍 Shop で、液晶のドット絵の帽子 4・顔 3・ベッド 3(60〜300)。ベッドは寝ている時だけ見え、ごろごろ度のハートが増える間隔を 30 分 → 25 / 20 / 15 分にする。持ち物と着ている物は `moku:moku-watch-6-lazy:petcloset` = `{ version: 1, owned: [id], equipped: { head, face, bed }, updatedAt }`(世代が変わっても残る。ウォッチの Reset data でも Moint で買った物なので消さない)。ハブの Moku Closet とは別(液晶の 48×32 ドットに描くため)。
 - **Moku Fight**(2026-10-25〜): 結果画面に内訳(コインが数え上がる)。タイトル画面に残高と今日の分。負けても減らない。
   - 毎回(上限 500/日): 勝ち Easy 30 / Normal 60 / Hard 120。ノーダメージで取ったラウンドがあれば +20。連勝ボーナスは2連勝目から1つごとに +10(最大 +50)。
   - 1回きり: ライバルごと・CPUの難易度ごとの初勝利 100 / 200 / 300(ゲストのライバルも)。Goro への初勝利は 500(その時の難易度の初勝利も済みにする)。新しい技を覚えた 50。技の練習を初めて終えた 10。
