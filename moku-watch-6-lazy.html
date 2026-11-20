@@ -1461,6 +1461,7 @@ body.on-title #watchScreen { display: none; }
         return c;
       }
       function draw() {
+        reloadPetCloset();
         head.innerHTML = '🪙 <b>' + fmt(M.balance()) + '</b> Moints · earn them by sending Moku to work and winning “Which way?”.';
         list.innerHTML = '';
         SLOTS.forEach(function (sl) {
@@ -1473,6 +1474,9 @@ body.on-title #watchScreen { display: none; }
             var b = h('button', 'ink-btn shop-btn' + (on ? ' alt' : ''), on ? 'Take off' : owned ? 'Wear' : '🪙 ' + it.price);
             b.type = 'button';
             b.addEventListener('click', function () {
+              reloadPetCloset();
+              owned = petCloset.owned.indexOf(it.id) >= 0;
+              on = petCloset.equipped[it.slot] === it.id;
               if (!owned) {
                 if (M.balance() < it.price) { petBeep('no'); toast('Not enough Moints yet. Send Moku to work! 💼', 1800); return; }
                 M.add(-it.price);
@@ -1870,9 +1874,16 @@ body.on-title #watchScreen { display: none; }
       art: function (w) { var top = ''; while (top.length < w) top += '.##.'; return [top.slice(0, w), '#' + repeat('.', w - 2) + '#', repeat('#', w)]; } }
   ];
   var PETCLOSET_KEY = 'moku:' + GAME_ID + ':petcloset';
-  var petCloset = load(PETCLOSET_KEY, { version: 1, owned: [], equipped: { head: null, face: null, bed: null }, updatedAt: null });
-  if (!Array.isArray(petCloset.owned)) petCloset.owned = [];
-  if (!petCloset.equipped) petCloset.equipped = { head: null, face: null, bed: null };
+  var petCloset;
+  // Read the closet again before every change: another tab (or a cloud sync) may
+  // have bought something since, and saving an old copy would lose it.
+  function reloadPetCloset() {
+    petCloset = load(PETCLOSET_KEY, { version: 1, owned: [], equipped: { head: null, face: null, bed: null }, updatedAt: null });
+    if (!Array.isArray(petCloset.owned)) petCloset.owned = [];
+    if (!petCloset.equipped) petCloset.equipped = { head: null, face: null, bed: null };
+  }
+  reloadPetCloset();
+  window.addEventListener('storage', function (e) { if (e.key === PETCLOSET_KEY) reloadPetCloset(); });
   function savePetCloset() {
     petCloset.updatedAt = new Date().toISOString();
     try { localStorage.setItem(PETCLOSET_KEY, JSON.stringify(petCloset)); } catch (e) {}
