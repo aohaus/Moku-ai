@@ -370,6 +370,36 @@ body:not(.on-title) #soundBtn { display: none; }
 .score div { display: flex; justify-content: space-between; background: #fff; border-radius: 10px; padding: 7px 12px; font-weight: 800; font-size: 15px; border: 1.5px solid rgba(90,58,34,0.15); }
 .score div.lead { background: #FFF6DA; border-color: #E0B85A; }
 
+
+/* Moku passport (日本のパスポートの Moku 版) */
+.book { margin: 12px auto 0; width: min(100%, 340px); aspect-ratio: 0.71; perspective: 900px; }
+.pg { position: relative; width: 100%; height: 100%; border-radius: 6px 12px 12px 6px; overflow: hidden; box-shadow: 0 6px 0 rgba(90,58,34,0.25), 0 10px 22px rgba(0,0,0,0.18); animation: pgIn 0.35s ease-out; }
+@keyframes pgIn { from { transform: rotateY(-25deg); opacity: 0.4; } to { transform: none; opacity: 1; } }
+.cover { background: radial-gradient(circle at 30% 20%, #9A2A36, #6E1622 70%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; color: #D9B65A; border-left: 8px solid #561019; }
+.cover .emb { width: 46%; }
+.cvTop { font: 700 15px var(--round); letter-spacing: 0.35em; }
+.cvBot { font: 700 26px var(--round); letter-spacing: 0.3em; }
+.cvSmall { position: absolute; bottom: 14px; font-size: 11px; letter-spacing: 0.1em; opacity: 0.75; }
+.idp { background: repeating-linear-gradient(45deg, rgba(232,92,154,0.06) 0 2px, transparent 2px 8px), linear-gradient(#FDF3F1, #F3E6F0); padding: 14px 12px; display: flex; flex-direction: column; }
+.idHead { display: flex; justify-content: space-between; font: 700 11px var(--round); letter-spacing: 0.12em; color: #7A2050; border-bottom: 1.5px solid rgba(122,32,80,0.3); padding-bottom: 6px; }
+.idBody { display: flex; gap: 10px; margin-top: 12px; }
+.photo { width: 38%; aspect-ratio: 0.78; background: #E8EEF4; border: 1.5px solid rgba(0,0,0,0.2); display: flex; align-items: flex-end; justify-content: center; overflow: hidden; flex: none; }
+.photo { position: relative; }
+.photo .av { position: absolute; left: 4%; right: 4%; bottom: 0; height: 88%; }
+.photo .av img { object-fit: contain; object-position: center bottom; }
+.idp dl { display: grid; grid-template-columns: 1fr; gap: 1px; font-size: 10px; }
+.idp dt { color: #8A6A7A; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.idp dd { font: 700 13px 'Courier New', monospace; color: #2A1A22; margin-bottom: 4px; }
+.mrz { margin-top: auto; font: 700 11px/1.5 'Courier New', monospace; color: #2A1A22; letter-spacing: 0.04em; word-break: break-all; background: rgba(255,255,255,0.6); padding: 6px; border-radius: 4px; }
+.visa { background: repeating-radial-gradient(circle at 50% 50%, rgba(62,140,120,0.07) 0 2px, transparent 2px 9px), linear-gradient(#F4F7EC, #EAF1F2); padding: 12px; }
+.vHead { font: 700 11px var(--round); letter-spacing: 0.2em; color: rgba(46,90,80,0.55); text-align: center; }
+.stamps { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 6px; height: calc(100% - 40px); margin-top: 6px; }
+.st { background: none; border: 0; padding: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.st svg.stmp { width: 100%; height: auto; opacity: 0.95; mix-blend-mode: multiply; }
+.visa .empty { grid-column: 1 / -1; grid-row: 1 / -1; align-self: center; text-align: center; color: rgba(46,90,80,0.6); font-weight: 700; font-size: 13px; padding: 20px; }
+.pgNo { position: absolute; bottom: 8px; right: 12px; font: 700 11px var(--round); color: rgba(46,90,80,0.5); }
+.bookNav { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 10px; font-weight: 800; font-size: 13px; color: var(--ink-soft); }
+.bookNav .btn { padding: 6px 16px; min-width: 0; }
 /* passport grid */
 .stampGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; margin-top: 10px; }
 .sg {
@@ -426,7 +456,7 @@ body:not(.on-title) #soundBtn { display: none; }
 
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.2.0 · Updated Nov 20, 2026</div>
+<div id="buildInfo">v0.3.0 · Updated Nov 20, 2026</div>
 <button id="soundBtn" aria-label="Sound">🔊</button>
 
 <div id="titleScreen">
@@ -883,8 +913,15 @@ body:not(.on-title) #soundBtn { display: none; }
       totalStamps: p.totalStamps | 0, trips: p.trips | 0, bestTrip: p.bestTrip | 0,
       twinRounds: p.twinRounds | 0, twinBest: p.twinBest | 0, twinCorrect: p.twinCorrect | 0,
       guideGames: p.guideGames | 0, played: p.played | 0,
+      visits: Array.isArray(p.visits) ? p.visits : legacyVisits(p),
       mointClaims: p.mointClaims || {}, updatedAt: p.updatedAt || null
     };
+  }
+  // パスポートのスタンプ(visits)がない前のセーブは、見つけた国ごとに1つ(最後に保存した日)
+  function legacyVisits(p) {
+    var d = String(p.updatedAt || new Date().toISOString()).slice(0, 10), out = [];
+    Object.keys(p.found || {}).forEach(function (c) { if (p.found[c] > 0) out.push({ c: c, d: d, st: (p.stamps && p.stamps[c]) | 0, one: !!(p.master && p.master[c]) }); });
+    return out;
   }
   var progress = loadProgress();
   function save() { progress.updatedAt = new Date().toISOString(); writeJSON(SAVE_KEY, progress); }
@@ -1135,6 +1172,7 @@ body:not(.on-title) #soundBtn { display: none; }
       if (cur.shown === 1 && cur.wrong === 0) progress.master[id] = 1;
       progress.stamps[id] = (progress.stamps[id] | 0) + st;
       progress.totalStamps += st;
+      addVisit(id, st, cur.shown === 1 && cur.wrong === 0);
       var lines = [];
       if (first) lines.push(['First visit to ' + COUNTRIES[id].name + '!', claimOnce('c:' + id, 30)]);
       if (knownIds().length >= ORDER.length) lines.push(['All 11 countries found! 🎉', claimOnce('all', 300)]);
@@ -1494,6 +1532,95 @@ body:not(.on-title) #soundBtn { display: none; }
   // =====================================================================
   // 📕 Passport
   // =====================================================================
+  // =====================================================================
+  // 📕 Moku のパスポート(日本のパスポートの Moku 版)
+  //   visits = 当てた日ごとのスタンプ [{ c: 国, d: 'YYYY-MM-DD', st: 切手, one: 手がかり1枚 }]
+  //   同じ国でも日がちがえば、もう1つスタンプを押す。1ページに 4 つ
+  // =====================================================================
+  var STAMP_LOOK = {   // [インクの色, 形]
+    MM: ['#2E7D4F', 'oct'], TH: ['#6A3FA0', 'rect'], LA: ['#B03A5B', 'circle'], KH: ['#2E6E5E', 'oval'], VN: ['#C0392B', 'rect'],
+    MY: ['#1F4FA0', 'oval'], SG: ['#C8303F', 'circle'], BN: ['#7A5A10', 'oct'], ID: ['#8E2B2B', 'rect'], PH: ['#2A5DB0', 'circle'], TL: ['#5A3E8A', 'oval']
+  };
+  var MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  function today() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function stampDate(d) { var p = d.split('-'); return ('0' + (+p[2])).slice(-2) + ' ' + MONTHS[+p[1] - 1] + ' ' + p[0]; }
+  function hashN(s) { var h = 7; for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 100003; return h; }
+  // 当てた日を記録する(同じ国・同じ日は1つ。切手の多い方を残す)
+  function addVisit(id, st, one) {
+    var d = today(), v = progress.visits.filter(function (x) { return x.c === id && x.d === d; })[0];
+    if (v) { v.st = Math.max(v.st, st); v.one = v.one || one; }
+    else progress.visits.push({ c: id, d: d, st: st, one: one });
+  }
+  function stampSVG(v, k) {
+    var look = STAMP_LOOK[v.c] || ['#333', 'rect'], ink = look[0], name = COUNTRIES[v.c].name.toUpperCase(), fid = 'grain' + k;
+    var s = '<defs><filter id="' + fid + '"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="' + (hashN(v.c + v.d) % 50) + '" result="n"/>' +
+      '<feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.1 1.3" result="m"/><feComposite in="SourceGraphic" in2="m" operator="in"/></filter></defs>' +
+      '<g filter="url(#' + fid + ')" fill="none" stroke="' + ink + '" font-family="\'Courier New\', monospace" font-weight="700">';
+    var fs = name.length > 9 ? 12 : 15;
+    if (look[1] === 'circle') {
+      s += '<circle cx="80" cy="60" r="54" stroke-width="4"/><circle cx="80" cy="60" r="46" stroke-width="1.5"/>' +
+        '<path id="arc' + k + '" d="M42 62 a38 38 0 0 1 76 0"/><text fill="' + ink + '" stroke="none" font-size="' + Math.min(fs, 12) + '" letter-spacing="1"><textPath href="#arc' + k + '" startOffset="50%" text-anchor="middle">' + esc(name) + '</textPath></text>' +
+        '<text x="80" y="76" fill="' + ink + '" stroke="none" font-size="11" text-anchor="middle">' + stampDate(v.d) + '</text>' +
+        '<text x="80" y="94" fill="' + ink + '" stroke="none" font-size="10" text-anchor="middle" letter-spacing="1">✈ ARRIVAL</text>';
+    } else if (look[1] === 'oval') {
+      s += '<ellipse cx="80" cy="60" rx="74" ry="50" stroke-width="4"/><ellipse cx="80" cy="60" rx="66" ry="42" stroke-width="1.5"/>' +
+        '<text x="80" y="44" fill="' + ink + '" stroke="none" font-size="' + fs + '" text-anchor="middle" letter-spacing="2">' + esc(name) + '</text>' +
+        '<line x1="22" y1="52" x2="138" y2="52" stroke-width="1.5"/><text x="80" y="71" fill="' + ink + '" stroke="none" font-size="14" text-anchor="middle">' + stampDate(v.d) + '</text>' +
+        '<text x="80" y="88" fill="' + ink + '" stroke="none" font-size="10" text-anchor="middle" letter-spacing="1">ADMITTED</text>';
+    } else if (look[1] === 'oct') {
+      s += '<polygon points="40,8 120,8 152,38 152,82 120,112 40,112 8,82 8,38" stroke-width="4"/>' +
+        '<text x="80" y="36" fill="' + ink + '" stroke="none" font-size="' + fs + '" text-anchor="middle" letter-spacing="2">' + esc(name) + '</text>' +
+        '<rect x="26" y="46" width="108" height="26" stroke-width="1.5"/><text x="80" y="64" fill="' + ink + '" stroke="none" font-size="14" text-anchor="middle">' + stampDate(v.d) + '</text>' +
+        '<text x="80" y="92" fill="' + ink + '" stroke="none" font-size="10" text-anchor="middle" letter-spacing="1">ENTRY ✈ MOKU</text>';
+    } else {
+      s += '<rect x="8" y="10" width="144" height="100" rx="8" stroke-width="4"/><rect x="15" y="17" width="130" height="86" rx="4" stroke-width="1.5"/>' +
+        '<text x="80" y="40" fill="' + ink + '" stroke="none" font-size="' + fs + '" text-anchor="middle" letter-spacing="2">' + esc(name) + '</text>' +
+        '<text x="80" y="66" fill="' + ink + '" stroke="none" font-size="14" text-anchor="middle">' + stampDate(v.d) + '</text>' +
+        '<text x="80" y="90" fill="' + ink + '" stroke="none" font-size="10" text-anchor="middle" letter-spacing="1">ARRIVAL</text>';
+    }
+    if (v.one) s += '<text x="146" y="22" fill="' + ink + '" stroke="none" font-size="16" text-anchor="middle">★</text>';
+    s += '</g>';
+    return '<svg class="stmp" viewBox="0 0 160 120" aria-label="' + esc(COUNTRIES[v.c].name + ' ' + stampDate(v.d)) + '">' + s + '</svg>';
+  }
+  function playerName() {
+    var u = readJSON('moku:account:user'), n = u && (u.name || u.displayName);
+    return String(n || 'Moku').toUpperCase().replace(/[^A-Z0-9 ]/g, '').slice(0, 14) || 'MOKU';
+  }
+  function bookPages() {
+    var vs = progress.visits.slice().sort(function (a, b) { return a.d < b.d ? -1 : a.d > b.d ? 1 : 0; }), pages = [];
+    for (var i = 0; i < Math.max(1, vs.length); i += 4) pages.push(vs.slice(i, i + 4));
+    if (vs.length && vs.length % 4 === 0) pages.push([]);   // 次のスタンプ用の白いページ
+    return pages;
+  }
+  var EMBLEM = '<svg class="emb" viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="#D9B65A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">' +
+    '<circle cx="50" cy="50" r="44"/><circle cx="50" cy="50" r="38" stroke-width="1.5"/>' +
+    '<path d="M30 40 q0 -14 20 -14 q20 0 20 14 v14 q0 18 -20 22 q-20 -4 -20 -22z"/><path d="M30 32 l-6 -10 l12 6 M70 32 l6 -10 l-12 6"/>' +
+    '<circle cx="41" cy="44" r="6"/><circle cx="59" cy="44" r="6"/><path d="M50 50 l-4 6 h8z"/>' +
+    '<path d="M22 70 q-6 -12 2 -24 M78 70 q6 -12 -2 -24 M26 74 q-8 -2 -10 -10 M74 74 q8 -2 10 -10"/></g></svg>';
+  function bookHTML(page) {
+    var pages = bookPages(), total = pages.length + 2, h = '<div class="book">';
+    page = Math.max(0, Math.min(total - 1, page));
+    if (page === 0) {
+      h += '<div class="pg cover"><div class="cvTop">MOKU LAND</div>' + EMBLEM + '<div class="cvBot">PASSPORT</div><div class="cvSmall">✈ Southeast Asia travel book</div></div>';
+    } else if (page === 1) {
+      var first = progress.visits.length ? progress.visits.map(function (v) { return v.d; }).sort()[0] : today();
+      h += '<div class="pg idp"><div class="idHead"><span>PASSPORT</span><span>Type P · Code MKU</span></div><div class="idBody"><div class="photo">' + avatar() + '</div><dl>' +
+        '<dt>Surname</dt><dd>MOKU</dd><dt>Given name</dt><dd>' + esc(playerName()) + '</dd><dt>Nationality</dt><dd>MOKU LAND</dd>' +
+        '<dt>Date of issue</dt><dd>' + stampDate(first) + '</dd><dt>Countries</dt><dd>' + knownIds().length + ' / 11 · ' + progress.visits.length + (progress.visits.length === 1 ? ' stamp' : ' stamps') + '</dd></dl></div>' +
+        '<div class="mrz">P&lt;MKUMOKU&lt;&lt;' + esc(playerName().replace(/ /g, '&lt;')) + '&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;<br>MOKU' + knownIds().length + '&lt;&lt;ASEAN&lt;&lt;' + progress.visits.length + '&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;</div></div>';
+    } else {
+      var vs = pages[page - 2];
+      h += '<div class="pg visa"><div class="vHead">VISAS · STAMPS</div><div class="stamps">' +
+        (vs.length ? vs.map(function (v, i) {
+          var r = hashN(v.c + v.d + i), rot = (r % 21) - 10, dx = (r % 13) - 6, dy = ((r >> 3) % 11) - 5;
+          return '<button class="st" data-c="' + v.c + '" style="transform:translate(' + dx + 'px,' + dy + 'px) rotate(' + rot + 'deg)">' + stampSVG(v, page + '_' + i) + '</button>';
+        }).join('') : '<div class="empty">Find Moku on a postcard to get your next stamp here!</div>') +
+        '</div><div class="pgNo">' + (page - 1) + '</div></div>';
+    }
+    h += '</div><div class="bookNav"><button class="btn" id="pgPrev"' + (page === 0 ? ' disabled' : '') + '>◀</button><span>' +
+      (page === 0 ? 'Cover' : page === 1 ? 'Photo page' : 'Page ' + (page - 1) + ' of ' + pages.length) + '</span><button class="btn" id="pgNext"' + (page >= total - 1 ? ' disabled' : '') + '>▶</button></div>';
+    return { html: h, page: page, last: total - 1 };
+  }
   function openPassport(sel) {
     showPlay('📕 My Passport');
     var known = knownIds();
@@ -1502,11 +1629,15 @@ body:not(.on-title) #soundBtn { display: none; }
     setTappable(true);
     mapHandler = function (id) { if (progress.found[id]) { sfx.tap(); draw(id); } };
     setHint(known.length ? 'Tap a country you found' : '');
+    var bookPage = bookPages().length + 1;   // さいごのスタンプのページから
+    if (!progress.visits.length) bookPage = 0;
     function draw(open) {
       clearMap(); setLabels(known); setTappable(true);
+      var bk = bookHTML(bookPage); bookPage = bk.page;
       forCtry(function (el, id) { el.classList.toggle('dim', !progress.found[id]); });
       if (open) { ctryEl(open).classList.add('hl'); dropMoku(open); }
       var h = '<div class="postcard"><div class="pcHead">' + avatar() + '<div><h2>My Passport</h2><p>' + known.length + ' / 11 countries · 🔖 ' + progress.totalStamps + ' stamps' + (progress.twinBest ? ' · ⚖️ best ' + progress.twinBest + '/8' : '') + '</p></div></div>' +
+        bk.html + '<div class="sec">Countries</div>' +
         '<div class="stampGrid">' + ORDER.map(function (id) {
           if (!progress.found[id]) return '<div class="sg"><div class="q">?</div><span>???</span><small>not found</small></div>';
           return '<button class="sg got" data-c="' + id + '">' + (progress.master[id] ? '<span class="star">⭐</span>' : '') + flagSVG(id) + '<span>' + esc(COUNTRIES[id].name) + '</span><small>🔖 ' + (progress.stamps[id] | 0) + '</small></button>';
@@ -1515,6 +1646,9 @@ body:not(.on-title) #soundBtn { display: none; }
         '<div class="tip">⭐ = found with just one clue</div></div>' +
         (open ? passportHTML(open) : '');
       setPanel(h);
+      $('pgPrev').addEventListener('click', function () { sfx.tap(); bookPage--; draw(open); });
+      $('pgNext').addEventListener('click', function () { sfx.tap(); bookPage++; draw(open); });
+      panel.querySelectorAll('.st[data-c]').forEach(function (b) { b.addEventListener('click', function () { sfx.stamp(); draw(b.getAttribute('data-c')); var pp = panel.querySelector('.pp'); if (pp) pp.scrollIntoView({ behavior: 'smooth', block: 'start' }); }); });
       panel.querySelectorAll('.sg[data-c]').forEach(function (b) { b.addEventListener('click', function () { sfx.tap(); draw(b.getAttribute('data-c')); var pp = panel.querySelector('.pp'); if (pp) pp.scrollIntoView({ behavior: 'smooth', block: 'start' }); }); });
       if (!open) setHint(known.length ? 'Tap a country you found' : '');
     }
