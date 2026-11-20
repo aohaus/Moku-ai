@@ -491,6 +491,12 @@ body[data-band="morning"] #starsLayer { --star-opacity: 0.15; }
 .event-tag { font-size: 13px; font-weight: 600; color: rgba(237,238,246,0.75); }
 .event-go { flex: none; font-size: 14px; font-weight: 800; padding: 9px 14px; border-radius: 999px; background: rgba(255,255,255,0.16); white-space: nowrap; }
 @media (max-width: 420px) { .event-go { display: none; } }
+.tease-row { display: flex; gap: 8px; margin-top: 8px; }
+.tease-q { width: 38px; height: 38px; border-radius: 18%; display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 900; color: #FFD35A; background: rgba(255,255,255,0.12); border: 1.5px dashed rgba(255,211,90,0.6);
+  animation: teaseBob 2.2s ease-in-out infinite; }
+@keyframes teaseBob { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-4px) rotate(-4deg); } }
+@media (prefers-reduced-motion: reduce) { .tease-q { animation: none; } }
 
 /* Today's Pick: one featured game per day, shown with its real screenshot. */
 #todayPick {
@@ -1771,6 +1777,11 @@ html.me-open #ceoPeek { display: none; }
   <section class="game-section" id="eventsSection" aria-labelledby="eventsHead" hidden>
     <div class="section-head"><h2 id="eventsHead">⭐ Special Events</h2><span class="section-sub">Made for our family's big days</span></div>
     <div id="eventsList"></div>
+  </section>
+
+  <section class="game-section" id="teaseSection" aria-labelledby="teaseHead" hidden>
+    <div class="section-head"><h2 id="teaseHead">🎁 Coming Soon</h2><span class="section-sub">Something new is on its way…</span></div>
+    <div id="teaseCard"></div>
   </section>
 
   <section id="todayPick" aria-label="Today's pick">
@@ -3260,8 +3271,11 @@ html.me-open #ceoPeek { display: none; }
   };
   // 公開前のタイトルは CATALOG から外す(棚・詳細シート・My Games・Achievements に出ない)。
   // 公開の時刻にハブが開いていたら、見えている時に読み直して出す。
+  var SOON_AT = Infinity;   // 公開前のタイトルがある時、いちばん早い公開時刻(告知バナー用)
   (function () {
     var dev = location.protocol === 'file:' || /\.pages\.dev$/.test(location.hostname) || /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+    // 開発用: ?tease=1 で、プレビューやファイルでも公開前の見え方(告知バナーだけ)を試せる
+    if (/[?&]tease=1/.test(location.search)) dev = false;
     var next = Infinity;
     Object.keys(CATALOG).forEach(function (k) {
       var at = CATALOG[k].opensAt ? Date.parse(CATALOG[k].opensAt) : NaN;
@@ -3270,6 +3284,7 @@ html.me-open #ceoPeek { display: none; }
       next = Math.min(next, at);
     });
     if (next === Infinity) return;
+    SOON_AT = next;
     function reloadWhenSeen() {
       if (document.visibilityState === 'visible') location.reload();
       else document.addEventListener('visibilitychange', reloadWhenSeen, { once: true });
@@ -3496,6 +3511,40 @@ html.me-open #ceoPeek { display: none; }
     section.hidden = !shown;
   }
 
+  // 公開前の告知バナー(ゲームの名前と中身は内緒。5つの「?」とカウントダウンだけ)。公開の時刻に消える
+  function buildTease() {
+    var section = document.getElementById('teaseSection'), host = document.getElementById('teaseCard');
+    if (!section || !host || !isFinite(SOON_AT) || SOON_AT <= Date.now()) { if (section) section.hidden = true; return; }
+    var card = el('div', 'event-card tease-card');
+    card.style.setProperty('--hi', '#E85C9A');
+    card.style.setProperty('--lo', '#3F8FA0');
+    card.appendChild(el('span', 'event-flags', '🌏'));
+    var body = el('span', 'event-body');
+    var eyebrow = el('span', 'event-eyebrow');
+    var at = new Date(SOON_AT);
+    eyebrow.appendChild(el('span', null, at.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase() + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })));
+    var when = el('span', 'event-when', '');
+    eyebrow.appendChild(when);
+    body.appendChild(eyebrow);
+    body.appendChild(el('span', 'event-title', 'Live in ASIA'));
+    body.appendChild(el('span', 'event-tag', '5 brand-new games are on their way… what could they be? 🤫'));
+    var row = el('span', 'tease-row');
+    for (var i = 0; i < 5; i++) { var q = el('span', 'tease-q', '?'); q.style.animationDelay = (i * 0.18) + 's'; row.appendChild(q); }
+    body.appendChild(row);
+    card.appendChild(body);
+    host.textContent = '';
+    host.appendChild(card);
+    section.hidden = false;
+    function tick() {
+      var ms = SOON_AT - Date.now();
+      if (ms <= 0) { section.hidden = true; return; }
+      var h = Math.floor(ms / 3600000), m = Math.floor(ms % 3600000 / 60000), sec = Math.floor(ms % 60000 / 1000);
+      when.textContent = 'Opens in ' + (h ? h + 'h ' + ('0' + m).slice(-2) + 'm' : m + 'm ' + ('0' + sec).slice(-2) + 's');
+      setTimeout(tick, h ? 30000 : 1000);
+    }
+    tick();
+  }
+
   function buildShelves() {
     var host = document.getElementById('shelves');
     if (!host) return;
@@ -3697,6 +3746,7 @@ html.me-open #ceoPeek { display: none; }
   }
 
   buildEvents();
+  buildTease();
   buildShelves();
   setupTodayPick();
 
