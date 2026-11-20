@@ -3258,13 +3258,13 @@ html.me-open #ceoPeek { display: none; }
     return Object.keys(CATALOG).map(function (k) { return { page: CATALOG[k].gameId + '.html', name: CATALOG[k].name }; })
       .concat(liveEvents().map(function (ev) { return { page: ev.gameId + '.html', name: ev.name }; }));
   };
-  // Live in ASIA(2026-11-18〜): 東南アジアを事実で楽しく知るゲームの棚。5本の予定で、第1弾が Where's Moku?
+  // Live in ASIA(2026-11-18〜): 東南アジアを事実で楽しく知るゲームの棚(5本)。2026-11-20 に一番下へ
   var SHELVES = [
-    { title: 'Live in ASIA',    sub: 'Explore Southeast Asia',   cards: ['wm', 'mmm', 'mff', 'mnj', 'mfl'] },
     { title: 'Action & Sports', sub: 'Fling, kick, fight, race', cards: ['mdp', 'mfg', 'mfr', 'mkt', 'br', 'mk', 'am'] },
     { title: 'Puzzle & Brain',  sub: 'Think, match, merge',      cards: ['mwr', 'mch', 'md', 'so', 'mm'] },
     { title: 'Cozy & Create',   sub: 'Take it slow',             cards: ['ceo', 'mml', 'mw6', 'mrc', 'fm', 'mf', 'mb', 'mc'] },
-    { title: 'Party & Arcade',  sub: 'Play with friends',        cards: ['mbr', 'mw', 'mr'] }
+    { title: 'Party & Arcade',  sub: 'Play with friends',        cards: ['mbr', 'mw', 'mr'] },
+    { title: 'Live in ASIA',    sub: 'Explore Southeast Asia',   cards: ['wm', 'mmm', 'mff', 'mnj', 'mfl'] }
   ];
   // Today's Pick rotates daily through titles whose screenshot shows real gameplay.
   // Sir CEO Moku (ceo-moku.html PICKS) uses the same list and day formula as his CEO's Pick — change both together.

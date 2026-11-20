@@ -154,7 +154,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
 **ゲーム一覧のリデザイン(2026-10-13〜、`hub.html`)**: 旧来の「全タイトル同サイズのカードグリッド(枠線+絵文字+説明文)」を廃止し、以下の構成に変更した。
 - **Today's Pick**: 1日1本を大きなバナーで紹介(実際のゲーム画面スクリーンショット背景)。候補はプレイ画面が撮れているタイトルのみ(`FEATURED` 配列)。
 - **Continue**: `moku:played:<card>` のタイムスタンプが新しい順に最大3本。未プレイなら非表示。
-- **ジャンル棚**(`SHELVES` 配列): Live in ASIA(2026-11-18〜、先頭。東南アジアを事実で楽しく知るゲーム。CLAUDE.md §2)/ Action & Sports / Puzzle & Brain / Cozy & Create / Party & Arcade。各ゲームは「遊びの内容を想起させるモノ」のアイコン(`icons/games/<gameId>.svg`)をアクセントカラーの角丸タイルに載せて表示。Mokuのキャラ絵は並べない。
+- **ジャンル棚**(`SHELVES` 配列): Action & Sports / Puzzle & Brain / Cozy & Create / Party & Arcade / Live in ASIA(2026-11-18〜、東南アジアを事実で楽しく知るゲーム。CLAUDE.md §2。2026-11-20 に一番下へ)。各ゲームは「遊びの内容を想起させるモノ」のアイコン(`icons/games/<gameId>.svg`)をアクセントカラーの角丸タイルに載せて表示。Mokuのキャラ絵は並べない。
 - **詳細シート**: タイルを押すと開く。スクリーンショット(`screenshots/<gameId>.jpg`)・説明文・ローカル進捗(`GAMES[].badge()` / `progress()`)・Playボタン。
 - **NEW表示**は `CATALOG[].newUntil` の日付まで自動で出る(付けっぱなしにしない)。
 - **一斉公開**(2026-11-20〜): `CATALOG[].opensAt`(時刻とタイムゾーンつき)を書いたタイトルは、その時刻までハブの `CATALOG` から外す(棚・詳細シート・My Games・Achievements に出ない。中身が空の棚は出さない)。ハブを開いたまま時刻を過ぎたら、見えている時に読み直す。ゲームのページも同じ時刻まで「Coming soon」だけを出す(ページの `<head>` の `OPENS_AT`。**両方そろえる**)。プレビュー(`*.pages.dev`)・localhost・ファイルを直接開いた時はすぐ見える。Live in ASIA の5本は 2026-11-21 13:00 マレーシア時間(`hub.html` の `RELEASE_ASIA`)。
