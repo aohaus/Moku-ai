@@ -3121,6 +3121,10 @@ html.me-open #ceoPeek { display: none; }
   // `multi` marks games you can play with friends online (SPEC.md §14).
   // `moint` = the game hands out Moints (SPEC.md §13): a small coin on its
   // tile, and `how` (+ today's total when `cap` is set) in the detail sheet.
+  // `opensAt` (optional, an exact time with its zone) hides the title until then, so a set of
+  // games can be merged early and go live together. Preview (*.pages.dev), localhost and file:
+  // show them right away. Each game page has the same time in its own OPENS_AT — keep both in sync.
+  var RELEASE_ASIA = '2026-11-21T13:00:00+08:00'; // Live in ASIA の5本の一斉公開(マレーシア時間)
   var CATALOG = {
     am:  { name: 'Angry Mokumoku', gameId: 'angry-mokumoku', genre: 'Slingshot Action', cta: 'Play', hi: '#4CBE55', lo: '#1A5020',
            tag: 'Fling Moku. Topple the fort.',
@@ -3205,23 +3209,23 @@ html.me-open #ceoPeek { display: none; }
            tag: 'Build it. Guard it. Grow it!',
            desc: 'Open shops to earn coins, hire guards, and run around as Moku to stop robbers at the ATMs. Fill all 10 stores to unlock the next mall. Made by one of our young game designers!',
            moint: { cap: true, how: 'Catch a robber: +30. Catch a Super Robber: +50. Fill every store in a mall for the first time: +100 to +500.' } },
-    wm:  { name: "Where's Moku?", gameId: 'wheres-moku', genre: 'Map Quiz · Southeast Asia', cta: 'Travel', hi: '#E85C9A', lo: '#7A2050', newUntil: '2026-12-09',
+    wm:  { name: "Where's Moku?", gameId: 'wheres-moku', genre: 'Map Quiz · Southeast Asia', cta: 'Travel', hi: '#E85C9A', lo: '#7A2050', newUntil: '2026-12-09', opensAt: RELEASE_ASIA,
            tag: 'Moku is traveling. Find him!',
            desc: 'Moku sends postcards from Southeast Asia. Read the clues — hello, food, money, flags — and find him on the map! Compare countries in Twin or Not?, then explain a secret country to your friends in Be the Guide.',
            moint: { cap: true, how: 'Postcards: +5 for every stamp (up to +75 a trip), every postcard on clue 1: +25. Twin or Not?: +5 for each right answer, all 8 right: +20. First visit to each country: +30. All 11 countries: +300.' } },
-    mmm: { name: 'Moku Money Market', gameId: 'moku-money-market', genre: 'Market Math · Southeast Asia', cta: 'Shop', hi: '#E8A23A', lo: '#6E4510', newUntil: '2026-12-10',
+    mmm: { name: 'Moku Money Market', gameId: 'moku-money-market', genre: 'Market Math · Southeast Asia', cta: 'Shop', hi: '#E8A23A', lo: '#6E4510', newUntil: '2026-12-10', opensAt: RELEASE_ASIA,
            tag: 'Shop with real money from 8 countries!',
            desc: 'Buy street food at markets in Malaysia, Singapore, Brunei, Thailand, Cambodia, Vietnam, Indonesia and the Philippines. Add up the prices, pay with their notes and coins, and check your change. Then guess what things cost in your own money!',
            moint: { cap: true, how: 'Market Trip: +5 for every star (up to +75), all 15 stars: +25. Price Check: +5 for each right answer, all 8 right: +20. First visit to each market: +30. All 8 markets: +200.' } },
-    mff: { name: 'Fact or Fib? Asia', gameId: 'moku-fact-or-fib', genre: 'True or False · Southeast Asia', cta: 'Play', hi: '#9A4FA6', lo: '#42204A', newUntil: '2026-12-10',
+    mff: { name: 'Fact or Fib? Asia', gameId: 'moku-fact-or-fib', genre: 'True or False · Southeast Asia', cta: 'Play', hi: '#9A4FA6', lo: '#42204A', newUntil: '2026-12-10', opensAt: RELEASE_ASIA,
            tag: 'Weird but true… or made up?',
            desc: 'Chewing gum can’t be sold in Singapore. Thailand’s capital has the world’s longest name. True or made up? Spot the facts and the fibs from 11 Southeast Asian countries — alone, or as a party game on one phone!',
            moint: { cap: true, how: 'Quiz: +5 for each right answer, all 10 right: +25. Party mode is just for fun (no Moints).' } },
-    mnj: { name: 'Moku Night Jungle', gameId: 'moku-night-jungle', genre: 'Flashlight Explore · Rainforest', cta: 'Explore', hi: '#3F8FA0', lo: '#173F47', newUntil: '2026-12-10',
+    mnj: { name: 'Moku Night Jungle', gameId: 'moku-night-jungle', genre: 'Flashlight Explore · Rainforest', cta: 'Explore', hi: '#3F8FA0', lo: '#173F47', newUntil: '2026-12-10', opensAt: RELEASE_ASIA,
            tag: 'Shine your light. Who’s there?',
            desc: 'It’s night in the Southeast Asian rainforest. Use your flashlight, follow the glowing eyes and listen for calls to find real animals — a tarsier with giant eyes, a bearcat that smells like popcorn, the world’s biggest flower and more. Collect them all in your Junglepedia!',
            moint: { cap: true, how: 'Night Walk: +10 for each animal you find (up to +50), all 5 with battery left: +20. First time you find each one: +20. All 14: +200.' } },
-    mfl: { name: 'Moku Festival Lights', gameId: 'moku-festival-lights', genre: 'Trace & Craft · Festivals', cta: 'Make', hi: '#E0473B', lo: '#6E1C16', newUntil: '2026-12-10',
+    mfl: { name: 'Moku Festival Lights', gameId: 'moku-festival-lights', genre: 'Trace & Craft · Festivals', cta: 'Make', hi: '#E0473B', lo: '#6E1C16', newUntil: '2026-12-10', opensAt: RELEASE_ASIA,
            tag: 'Trace, color and light it up!',
            desc: 'Make festival crafts from Southeast Asia with your finger: batik from Indonesia, a kolam, a Hội An silk lantern, a Thai krathong, a Filipino parol and a mooncake. Trace the glowing dots, pick a color, and watch them all light up on Festival Night!',
            moint: { cap: true, how: 'Make a craft: +10 for each star (up to +30). First time you make each one: +30. All 6: +200.' } },
@@ -3230,6 +3234,24 @@ html.me-open #ceoPeek { display: none; }
            desc: 'Visit Sir CEO Moku in his office. He picks a game for you every day, gives surprise quizzes, and listens to your game ideas. He is a little silly… and a little greedy.',
            moint: { how: 'His pick is Today\'s Pick at the top of the hub. Play it, then come back to his office for a bonus: 20% of the Moints you earned there (or +30 for games without Moints). Chat with him and a Pop Quiz may pop up: type the answer for +100 (once a day).' } }
   };
+  // 公開前のタイトルは CATALOG から外す(棚・詳細シート・My Games・Achievements に出ない)。
+  // 公開の時刻にハブが開いていたら、見えている時に読み直して出す。
+  (function () {
+    var dev = location.protocol === 'file:' || /\.pages\.dev$/.test(location.hostname) || /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+    var next = Infinity;
+    Object.keys(CATALOG).forEach(function (k) {
+      var at = CATALOG[k].opensAt ? Date.parse(CATALOG[k].opensAt) : NaN;
+      if (dev || !(at > Date.now())) return;
+      delete CATALOG[k];
+      next = Math.min(next, at);
+    });
+    if (next === Infinity) return;
+    function reloadWhenSeen() {
+      if (document.visibilityState === 'visible') location.reload();
+      else document.addEventListener('visibilitychange', reloadWhenSeen, { once: true });
+    }
+    setTimeout(reloadWhenSeen, Math.min(next - Date.now() + 1000, 2147483000));
+  })();
   // For "Get the latest games & updates" (shared/moku-account.js): the games
   // this hub lists, so it can say which ones the last update didn't know about.
   window.MOKU_GAME_PAGES = function () {
@@ -3496,6 +3518,7 @@ html.me-open #ceoPeek { display: none; }
         row.appendChild(tile);
         tileNodes[key] = tile;
       });
+      if (!row.children.length) return; // 公開前のタイトルだけの棚は出さない
       section.appendChild(row);
       host.appendChild(section);
     });

@@ -4,6 +4,29 @@
 <meta charset="UTF-8">
 <script src="shared/moku-errors.js?v=20261119e"></script>
 <script src="shared/moku-gate.js?v=20261119e"></script>
+<script>
+// 一斉公開(2026-11-21 13:00 マレーシア時間)までは「Coming soon」だけを出す。hub.html の RELEASE_ASIA とそろえる。
+// プレビュー(*.pages.dev)・localhost・ファイルを直接開いた時は、すぐ遊べる。
+(function () {
+  var OPENS_AT = Date.parse('2026-11-21T13:00:00+08:00');
+  var dev = location.protocol === 'file:' || /\.pages\.dev$/.test(location.hostname) || /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+  if (dev || Date.now() >= OPENS_AT) return;
+  document.documentElement.className += ' moku-soon';
+  document.write('<style>html.moku-soon body > *:not(#mokuSoon) { display: none !important; }' +
+    '#mokuSoon { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 24px; text-align: center;' +
+    ' background: linear-gradient(#FFD9A8, #F7B98A); color: #4A2E1A; font: 700 16px/1.4 -apple-system, "Segoe UI", Roboto, sans-serif; }' +
+    '#mokuSoon .o { font-size: 64px; } #mokuSoon h1 { margin: 0; font-size: 28px; font-weight: 800; }' +
+    '#mokuSoon a { margin-top: 8px; padding: 10px 22px; border-radius: 999px; background: #4A2E1A; color: #FFF4DE; text-decoration: none; }</style>');
+  document.addEventListener('DOMContentLoaded', function () {
+    var when = new Date(OPENS_AT).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    var d = document.createElement('div');
+    d.id = 'mokuSoon';
+    d.innerHTML = '<div class="o">🦉</div><h1>Coming soon!</h1><p>This game opens on ' + when + '.</p><a href="hub.html">◀ Hub</a>';
+    document.body.appendChild(d);
+    setTimeout(function () { location.reload(); }, Math.min(OPENS_AT - Date.now() + 1000, 2147483000));
+  });
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>Moku Night Jungle</title>
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
