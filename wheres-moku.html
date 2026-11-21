@@ -242,13 +242,14 @@ body:not(.on-title) #soundBtn { display: none; }
 #mapBox { position: relative; flex: 1; min-width: 0; background: var(--sea1); overflow: hidden; }
 #mapBox .mapSvg { position: absolute; inset: 0; }
 #mapHint {
-  position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%);
+  position: absolute; left: 50%; top: 8px; transform: translateX(-50%); /* 上はタップしない中国の陸。下だと東ティモールに重なった */
   background: rgba(255,247,232,0.92); border: 2px solid rgba(90,58,34,0.25); border-radius: 999px;
   padding: 5px 14px; font-weight: 800; font-size: 13px; color: var(--ink); white-space: nowrap; pointer-events: none;
   transition: opacity 0.3s;
 }
 #mapHint:empty { opacity: 0; }
-#mapNote { position: absolute; right: 8px; top: 6px; font-size: 10px; color: rgba(35,95,120,0.6); pointer-events: none; }
+#mapNote { position: absolute; left: 8px; bottom: 6px; font-size: 10px; color: rgba(35,95,120,0.6); pointer-events: none; }
+@media (max-width: 560px) { #mapNote { display: none; } }
 #panel {
   flex: none; width: clamp(300px, 38vw, 430px);
   overflow-y: auto; -webkit-overflow-scrolling: touch;
@@ -458,7 +459,7 @@ body:not(.on-title) #soundBtn { display: none; }
 
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.3.0 · Updated Nov 20, 2026</div>
+<div id="buildInfo">v0.3.1 · Updated Nov 21, 2026</div>
 <button id="soundBtn" aria-label="Sound">🔊</button>
 
 <div id="titleScreen">
