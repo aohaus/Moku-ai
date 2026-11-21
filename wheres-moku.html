@@ -5,10 +5,10 @@
 <script src="shared/moku-errors.js?v=20261119e"></script>
 <script src="shared/moku-gate.js?v=20261119e"></script>
 <script>
-// 一斉公開(2026-11-21 13:00 マレーシア時間)までは「Coming soon」だけを出す。hub.html の RELEASE_ASIA とそろえる。
+// 一斉公開(2026-11-21 16:00 マレーシア時間)までは「Coming soon」だけを出す。hub.html の RELEASE_ASIA とそろえる。
 // プレビュー(*.pages.dev)・localhost・ファイルを直接開いた時は、すぐ遊べる。
 (function () {
-  var OPENS_AT = Date.parse('2026-11-21T13:00:00+08:00');
+  var OPENS_AT = Date.parse('2026-11-21T16:00:00+08:00');
   var dev = location.protocol === 'file:' || /\.pages\.dev$/.test(location.hostname) || /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
   if (dev || Date.now() >= OPENS_AT) return;
   document.documentElement.className += ' moku-soon';
