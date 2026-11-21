@@ -497,6 +497,16 @@ body[data-band="morning"] #starsLayer { --star-opacity: 0.15; }
   animation: teaseBob 2.2s ease-in-out infinite; }
 @keyframes teaseBob { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-4px) rotate(-4deg); } }
 @media (prefers-reduced-motion: reduce) { .tease-q { animation: none; } }
+.arrive-card { position: relative; cursor: default; }
+.arrive-row { display: flex; gap: 8px; margin-top: 8px; max-width: 270px; }
+.arrive-icon { flex: 1 1 0; min-width: 0; max-width: 46px; padding: 0; border: 0; background: none; cursor: pointer; border-radius: 18%; animation: arrivePop .5s cubic-bezier(.3,1.6,.5,1) both; }
+.arrive-icon .game-icon { width: 100%; height: auto; aspect-ratio: 1; box-shadow: 0 4px 10px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.18); }
+.arrive-icon:active .game-icon { transform: scale(.92); }
+@keyframes arrivePop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.arrive-go { margin-top: 10px; align-self: flex-start; font: inherit; font-size: 14px; font-weight: 800; color: #3A2500; background: #FFD35A; border: 0; padding: 8px 16px; border-radius: 999px; cursor: pointer; }
+.arrive-x { position: absolute; top: 6px; right: 8px; width: 30px; height: 30px; border: 0; border-radius: 50%; background: rgba(255,255,255,0.12); color: rgba(237,238,246,0.8); font-size: 15px; cursor: pointer; }
+.shelf-new { display: inline-block; vertical-align: middle; margin-left: 8px; font-size: 11px; font-weight: 900; letter-spacing: 0.08em; color: #3A2500; background: #FFD35A; padding: 2px 8px; border-radius: 999px; }
+@media (prefers-reduced-motion: reduce) { .arrive-icon { animation: none; } }
 
 /* Today's Pick: one featured game per day, shown with its real screenshot. */
 #todayPick {
@@ -3531,9 +3541,73 @@ html.me-open #ceoPeek { display: none; }
   }
 
   // 公開前の告知バナー(ゲームの名前と中身は内緒。5つの「?」とカウントダウンだけ)。公開の時刻に消える
+  // 公開のあと: 同じ場所に「🎉 Just Arrived!」のお知らせ(ARRIVE_UNTIL まで。✕ で消すとこの端末では出さない)
+  var ARRIVE_UNTIL = '2026-12-05';
+  var ARRIVE_KEYS = ['wm', 'mmm', 'mff', 'mnj', 'mfl'];
+  var ARRIVE_SEEN = 'moku:hub:arrive-asia';
+  function localDay() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function arriveOpen() {
+    if (localDay() > ARRIVE_UNTIL) return false;
+    if (!ARRIVE_KEYS.every(function (k) { return CATALOG[k]; })) return false;
+    try { if (localStorage.getItem(ARRIVE_SEEN)) return false; } catch (e) {}
+    return true;
+  }
+  function buildArrive(section, host) {
+    if (!arriveOpen()) { section.hidden = true; return; }
+    // 公開のあとは目に入るよう、Special Events より上へ
+    var ev = document.getElementById('eventsSection');
+    if (ev && ev.parentNode && section.nextElementSibling !== ev) ev.parentNode.insertBefore(section, ev);
+    section.querySelector('#teaseHead').textContent = '🎉 Just Arrived!';
+    section.querySelector('.section-sub').textContent = '5 new games are here';
+    var card = el('div', 'event-card tease-card arrive-card');
+    card.style.setProperty('--hi', '#E85C9A');
+    card.style.setProperty('--lo', '#3F8FA0');
+    card.appendChild(el('span', 'event-flags', '🌏'));
+    var body = el('span', 'event-body');
+    var eyebrow = el('span', 'event-eyebrow');
+    eyebrow.appendChild(el('span', null, 'NEW SHELF'));
+    eyebrow.appendChild(el('span', 'event-when', 'Open now!'));
+    body.appendChild(eyebrow);
+    body.appendChild(el('span', 'event-title', 'Live in ASIA'));
+    body.appendChild(el('span', 'event-tag', 'Travel, shop, explore and make things from Southeast Asia. Tap a game to start!'));
+    var row = el('span', 'arrive-row');
+    ARRIVE_KEYS.forEach(function (k, i) {
+      var b = el('button', 'arrive-icon');
+      b.type = 'button';
+      b.setAttribute('aria-label', CATALOG[k].name);
+      b.title = CATALOG[k].name;
+      b.style.animationDelay = (i * 0.12) + 's';
+      b.appendChild(makeIcon(CATALOG[k]));
+      b.addEventListener('click', function () { openSheet(k, b); });
+      row.appendChild(b);
+    });
+    body.appendChild(row);
+    var go = el('button', 'arrive-go', 'See the new shelf ›');
+    go.type = 'button';
+    go.addEventListener('click', function () {
+      var t = document.querySelector('.tile[data-game="wm"]');
+      var sec = t && t.closest('.game-section');
+      if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    body.appendChild(go);
+    card.appendChild(body);
+    var x = el('button', 'arrive-x', '✕');
+    x.type = 'button';
+    x.setAttribute('aria-label', 'Hide this news');
+    x.addEventListener('click', function () {
+      try { localStorage.setItem(ARRIVE_SEEN, localDay()); } catch (e) {}
+      section.hidden = true;
+    });
+    card.appendChild(x);
+    host.textContent = '';
+    host.appendChild(card);
+    section.hidden = false;
+  }
+
   function buildTease() {
     var section = document.getElementById('teaseSection'), host = document.getElementById('teaseCard');
-    if (!section || !host || !isFinite(SOON_AT) || SOON_AT <= Date.now()) { if (section) section.hidden = true; return; }
+    if (!section || !host) return;
+    if (!isFinite(SOON_AT) || SOON_AT <= Date.now()) { buildArrive(section, host); return; }
     var card = el('div', 'event-card tease-card');
     card.style.setProperty('--hi', '#E85C9A');
     card.style.setProperty('--lo', '#3F8FA0');
@@ -3572,6 +3646,9 @@ html.me-open #ceoPeek { display: none; }
       var head = el('div', 'section-head');
       var h = el('h2', null, shelf.title);
       h.id = 'shelfHead' + i;
+      // 新しい棚: 中のゲームがみんな NEW の間は見出しにも NEW
+      var cards = shelf.cards.filter(function (k) { return CATALOG[k]; });
+      if (cards.length > 1 && cards.every(function (k) { return isNewTitle(CATALOG[k]); })) h.appendChild(el('span', 'shelf-new', 'NEW'));
       section.setAttribute('aria-labelledby', h.id);
       head.appendChild(h);
       head.appendChild(el('span', 'section-sub', shelf.sub));
