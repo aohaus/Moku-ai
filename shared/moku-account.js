@@ -94,6 +94,18 @@
   var script = document.currentScript;
   var mode = (script && script.getAttribute('data-mode')) || 'full';
 
+  // Offline mode (SPEC.md §16): sw.js hands out the saved "offline pack" when
+  // there is no network. Online it only passes requests through, so it is
+  // registered on every page (http(s) only; a file opened directly has none).
+  var OFFLINE_CACHE = 'moku-offline-v1';   // same name as in sw.js
+  var OFFLINE_KEY = 'mokuhub:offline';     // this browser's pack: { at, bytes, files, failed }
+  try {
+    if (global.navigator && navigator.serviceWorker && /^https?:$/.test(location.protocol)) {
+      var swUrl = new URL('sw.js', script && script.src ? script.src.replace(/shared\/[^/]*$/, '') : location.href).href;
+      navigator.serviceWorker.register(swUrl).catch(function () {});
+    }
+  } catch (e) {}
+
   function resolveBase() {
     // Preview mode (*.pages.dev, see moku-gate.js): no login and no cloud save,
     // so trying a branch on a phone never touches the real accounts.
@@ -1095,13 +1107,16 @@
           (user.admin ? '<a class="mka-secondary is-wide" href="admin.html">🛠 Admin</a>' : '') + '</div>' +
           '<p class="mka-id">Player ID: ' + esc(user.loginId) + ' · keep it secret</p>' +
           '<button class="mka-refresh" type="button" data-act="refresh">↻ Get the latest games &amp; updates</button>' +
-          updateNoteHTML()
+          updateNoteHTML() +
+          (offlineSupported() ? '<button class="mka-refresh" type="button" data-act="offline">✈️ Get ready for offline</button>' +
+            '<p class="mka-update-note" data-moku-offline-note>' + offlineNoteHTML() + '</p>' : '')
         : '<button class="mka-wide" type="button" data-act="login">' +
           '<span class="mka-wide-icon" aria-hidden="true">☁️</span>' +
           '<span class="mka-wide-text"><span class="mka-wide-title"><span>Log In</span></span>' +
           '<span class="mka-wide-sub">Save your Moku on every device</span></span>' +
           '<span class="mka-wide-arrow" aria-hidden="true">›</span></button>';
     });
+    checkOfflinePack();
   }
 
   if (mode === 'full') {
@@ -1111,6 +1126,7 @@
       var act = b.getAttribute('data-act');
       if (act === 'sync') syncNow({ interactive: true });
       else if (act === 'refresh') forceRefresh(b);
+      else if (act === 'offline') prepareOffline(b);
       else if (act === 'login') openModal('login');
       else if (b.hasAttribute('data-go')) openModal(b.getAttribute('data-go'));
     });
@@ -1265,7 +1281,10 @@
     var pages = ['index.html', 'hollow.html'];
     if (here !== 'hub.html' && pages.indexOf(here) < 0) pages.push(here);
     var cleared = global.caches && caches.keys
-      ? caches.keys().then(function (keys) { return Promise.all(keys.map(function (k) { return caches.delete(k); })); }).catch(function () {})
+      ? caches.keys().then(function (keys) {
+          // The offline pack stays: its pages are refreshed by sw.js as they come back.
+          return Promise.all(keys.filter(function (k) { return !/^moku-offline-/.test(k); }).map(function (k) { return caches.delete(k); }));
+        }).catch(function () {})
       : null;
     reload('hub.html').then(function (hub) {
       // The games are the hub's CATALOG entries: name: 'Moku Bridge', gameId: 'moku-bridge' → moku-bridge.html
@@ -1284,6 +1303,142 @@
         });
       }));
     }).then(function () { return cleared; }).then(finish, finish);
+  }
+
+  // ---------- offline pack (SPEC.md §16) ----------
+  // "✈️ Get ready for offline" saves every page the hub lists, the pages they
+  // link to (Classic modes, events), the shared scripts, pictures, the riddles,
+  // three.js for the 3D games and the Google Fonts into the cache sw.js reads
+  // when there is no network.
+  function offlineSupported() {
+    return !!(global.caches && global.navigator && navigator.serviceWorker && /^https?:$/.test(location.protocol));
+  }
+  function offlineNoteHTML() {
+    var o = readJSONKey(OFFLINE_KEY);
+    if (!o || !o.at) return 'Saves every game on this device, so you can play on a plane. About 10 MB.';
+    return '✈️ Ready for offline: <b>' + esc(fmtWhen(o.at)) + '</b> · ' + esc(fmtBytes(o.bytes)) +
+      (o.failed ? ' · ' + o.failed + ' files missed (try again online)' : '');
+  }
+  // A pack the browser threw away (Safari does after a while unless the site
+  // is on the Home Screen) shouldn't still say "Ready".
+  function checkOfflinePack() {
+    if (!offlineSupported() || !readJSONKey(OFFLINE_KEY)) return;
+    caches.has(OFFLINE_CACHE).then(function (has) {
+      if (has) return;
+      try { localStorage.removeItem(OFFLINE_KEY); } catch (e) {}
+      Array.prototype.forEach.call(document.querySelectorAll('[data-moku-offline-note]'), function (el) {
+        el.innerHTML = 'Your offline games were cleared by the browser. Tap again while online.';
+      });
+    }).catch(function () {});
+  }
+
+  var ASSET_RE = /(?:^|["'(=\s])((?:shared|brand|icons|screenshots|backgrounds|events|data)\/[A-Za-z0-9_.\/-]+\.(?:js|css|png|jpe?g|svg|webp|gif|ico|md|json|woff2?)(?:\?v=[A-Za-z0-9]+)?)/g;
+  var PAGE_RE = /(?:href=|location\.(?:href|replace|assign)\s*\(?\s*=?\s*)["']([a-z0-9-]+\.html)(?:[?#][^"']*)?["']/g;
+  var CDN_RE = /https:\/\/cdnjs\.cloudflare\.com\/ajax\/libs\/[^"'\s)]+\.js/g;
+  var FONT_CSS_RE = /https:\/\/fonts\.googleapis\.com\/css2\?[^"'\s)]+/g;
+  var FONT_FILE_RE = /url\((https:\/\/fonts\.gstatic\.com\/[^)]+)\)/g;
+
+  function prepareOffline(btn) {
+    if (!offlineSupported()) return;
+    if (btn) { btn.disabled = true; btn.textContent = 'Getting ready…'; }
+    var TMP = OFFLINE_CACHE + '-tmp';
+    var bytes = 0, done = 0, failed = 0;
+    var queued = {}, list = [];
+    var add = function (u) {
+      if (!u) return;
+      var abs;
+      try { abs = new URL(u.replace(/&amp;/g, '&'), location.href).href; } catch (e) { return; }
+      if (queued[abs]) return;
+      queued[abs] = 1;
+      list.push(abs);
+    };
+    var label = function () {
+      if (btn) btn.textContent = 'Saving… ' + done + ' / ' + list.length + ' · ' + fmtBytes(bytes);
+    };
+    var tmp;
+    // Save one file; returns its text for pages, scripts, styles and data.
+    var save = function (url) {
+      var cross = new URL(url).origin !== location.origin;
+      var get = fetch(url, { cache: 'no-cache', mode: cross ? 'cors' : 'same-origin', credentials: 'omit' })
+        .catch(function () { return cross ? fetch(url, { mode: 'no-cors' }) : Promise.reject(); });
+      return get.then(function (res) {
+        if (res.type === 'opaque') return tmp.put(url, res).then(function () { return ''; });   // a no-cors copy is stored as it came
+        if (!res.ok) throw new Error('bad');
+        var textual = /\.(html|js|css|md|json)(\?|$)|fonts\.googleapis/.test(url);
+        return res.blob().then(function (body) {
+          bytes += body.size || 0;
+          var copy = new Response(body, { status: res.status, headers: res.headers });
+          return tmp.put(url, copy).then(function () { return textual ? body.text() : ''; });
+        });
+      }).catch(function () { failed++; return ''; })
+        .then(function (text) { done++; label(); return text; });
+    };
+    var scan = function (url, text, depth) {
+      if (!text) return [];
+      var next = [], m;
+      ASSET_RE.lastIndex = 0;
+      while ((m = ASSET_RE.exec(text))) add(m[1]);
+      CDN_RE.lastIndex = 0;
+      while ((m = CDN_RE.exec(text))) add(m[0]);
+      FONT_CSS_RE.lastIndex = 0;
+      while ((m = FONT_CSS_RE.exec(text))) { if (!queued[m[0]]) { add(m[0]); next.push(m[0]); } }
+      FONT_FILE_RE.lastIndex = 0;
+      while ((m = FONT_FILE_RE.exec(text))) add(m[1]);
+      // Pictures named from a game id or a place key (icons/games/<id>.svg …).
+      var g = /gameId:\s*'([a-z0-9-]+)'/g;
+      while ((m = g.exec(text))) { add('icons/games/' + m[1] + '.svg'); add('screenshots/' + m[1] + '.jpg'); }
+      var k = /\{\s*key:\s*'([a-z]+)',\s*name:/g;
+      while ((m = k.exec(text))) add('backgrounds/' + m[1] + '.jpg');
+      if (depth < 2 && /\.html(\?|$)/.test(url)) {
+        PAGE_RE.lastIndex = 0;
+        while ((m = PAGE_RE.exec(text))) if (m[1] !== 'admin.html') { if (!queued[new URL(m[1], location.href).href]) { add(m[1]); next.push(new URL(m[1], location.href).href); } }
+      }
+      return next;
+    };
+    var pages = ['hub.html', 'index.html', 'hollow.html', 'sw.js'];
+    try { (global.MOKU_GAME_PAGES ? global.MOKU_GAME_PAGES() : []).forEach(function (g) { pages.push(g.page); }); } catch (e) {}
+    pages.forEach(add);
+
+    // Pages and scripts first (they name the rest), a few at a time.
+    var cursor = 0;
+    var depthOf = {};
+    var worker = function () {
+      if (cursor >= list.length) return Promise.resolve();
+      var url = list[cursor++];
+      return save(url).then(function (text) {
+        var d = depthOf[url] || 0;
+        scan(url, text, d).forEach(function (u) { depthOf[u] = d + 1; });
+      }).then(worker);
+    };
+    var ready = navigator.serviceWorker.ready;
+    caches.delete(TMP).then(function () { return caches.open(TMP); }).then(function (c) {
+      tmp = c;
+      label();
+      return Promise.all([worker(), worker(), worker(), worker(), worker(), worker()]);
+    }).then(function () {
+      // Every worker may have stopped while the last pages were still adding
+      // files; run until the list is really done.
+      var more = function () { return cursor < list.length ? Promise.all([worker(), worker(), worker()]).then(more) : null; };
+      return more();
+    }).then(function () {
+      // Swap the new pack in only now, so a failed download keeps the old one.
+      return tmp.keys().then(function (reqs) {
+        return caches.delete(OFFLINE_CACHE).then(function () { return caches.open(OFFLINE_CACHE); }).then(function (main) {
+          return Promise.all(reqs.map(function (r) { return tmp.match(r).then(function (res) { return res && main.put(r, res); }); }));
+        });
+      });
+    }).then(function () { return caches.delete(TMP); }).then(function () {
+      return Promise.race([ready, new Promise(function (r) { setTimeout(r, 5000); })]);
+    }).then(function () {
+      writeJSONKey(OFFLINE_KEY, { at: new Date().toISOString(), bytes: bytes, files: list.length - failed, failed: failed });
+      if (btn) { btn.disabled = false; btn.textContent = '✈️ Get ready for offline'; }
+      Array.prototype.forEach.call(document.querySelectorAll('[data-moku-offline-note]'), function (el) { el.innerHTML = offlineNoteHTML(); });
+      toast(failed ? '✈️ Saved ' + (list.length - failed) + ' files · ' + failed + ' missed. Try again online.'
+        : '✈️ Ready for offline! ' + fmtBytes(bytes) + ' saved on this device');
+    }).catch(function () {
+      if (btn) { btn.disabled = false; btn.textContent = '✈️ Get ready for offline'; }
+      toast("Couldn't save the games. Check your connection and try again.");
+    });
   }
 
   // `keys` (optional) = the saves changed on both sides; everything else is

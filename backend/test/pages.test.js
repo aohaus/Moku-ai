@@ -20,3 +20,13 @@ test("pages: every #hub-link goes to hub.html", () => {
   }
   assert.deepEqual(wrong, []);
 });
+
+// Offline mode (SPEC.md §16): sw.js reads the pack that moku-account.js
+// fills, so both must use the same cache name.
+test("pages: the offline pack has the same cache name in sw.js and moku-account.js", () => {
+  const sw = fs.readFileSync(path.join(ROOT, "sw.js"), "utf8");
+  const account = fs.readFileSync(path.join(ROOT, "shared", "moku-account.js"), "utf8");
+  const name = (text) => (/OFFLINE_CACHE\s*=\s*'([^']+)'/.exec(text) || [])[1];
+  assert.ok(name(sw), "sw.js has OFFLINE_CACHE");
+  assert.equal(name(account), name(sw));
+});

@@ -522,6 +522,20 @@ Moku とは直接関係がないが、家族のイベント(試合を見に行�
   - **結果**(v1.3.0、2026-11-17): 試合は日本 1–2 パラグアイ(`FINAL`。負けたので結果の文の絵文字は 🎉 ではなく ⚽)。本当のスタメンを `ACTUAL_XI` に入れて結果発表を始めた(日本: 鈴木彩艶・菅原・板倉・渡辺剛・鈴木淳之介・相馬・鈴木唯人・佐野航大・佐野海舟・坂元・後藤啓介 / パラグアイ: Gill・Alderete・Cáceres・Gamarra・G.Gómez・D.Gómez・Almirón・Bobadilla・Cuenca・Allan Wlk・Enciso)。ハブのカードは「Final: Japan 1–2 Paraguay」、CEO のひょっこりは結果が出たことを知らせる。
   - ハブ: パラグアイ戦のカードを先に、ブラジル戦は「Japan won 3–2! 🎉」(`EVENTS[].result`。イベントの日を過ぎたら日付の横に出す)を付けて残す。CEO のひょっこりはパラグアイ戦を知らせる(まだ開いていない人に)。
 
+## 16. オフラインモード(2026-11-21〜)
+
+飛行機の中や海外でネットがない時も遊べるようにする仕組み。ゲームは単一 HTML・ログインの確認は端末の中(§10、トークンは90日)・進み具合は localStorage なので、**ページのファイルが端末にあれば**動く。それを取っておくのが Service Worker `sw.js`。
+
+- **`sw.js`**(リポジトリ直下、全ページが対象): ネットがある時は今までどおり**ネットを先に**使い、ない時(・6秒たっても返事がない時・機内 Wi-Fi のログイン画面のように別のサイトへ飛ばされた時)だけ「オフラインパック」(Cache `moku-offline-v1`)の写しを出す。ページは `?` の後ろ(`?join=` `?fresh=`)を無視しても探す。パックにないページは「✈️ You're offline」の画面(ハブへ戻るボタンつき)。扱うのは同じサイトの**静的ファイルとページ**(拡張子 html / js / css / 画像 / md / json / フォント)と、cdnjs の three.js・Google Fonts だけ。**API には触らない**(開発用サーバーのモックは同じサイトにあるので、`/save` などは拡張子がないことで外している。古いクラウドセーブを出すと同期が混乱するため)。パックがある端末では、ネットで取ったファイルでパックも新しくする(ページは `?` なしの1つだけ)。
+- **登録**: `shared/moku-account.js` が全ページで `sw.js` を登録する(http / https の時だけ)。
+- **ダウンロード**: My Moku の「↻ Get the latest games & updates」の下の **「✈️ Get ready for offline」**(ログイン中)。ハブ・`index.html`・`hollow.html`・`MOKU_GAME_PAGES()` の全ゲームとイベント、それらのページがリンクしているページ(Classic など、2段まで。`admin.html` は除く)、ページと共通スクリプトの中に書いてある `shared/` `brand/` `icons/` `screenshots/` `backgrounds/` `events/` `data/` のファイル、`gameId` から作るアイコンとスクリーンショット、`PLACES` の `key` から作る背景、cdnjs の three.js(3D の5本)、Google Fonts の CSS とフォントを、6本ずつ並べて取る(約 9〜10 MB、ボタンに「Saving… n / 全部 · 4.2 MB」)。一時的な Cache に全部入れてから入れ替えるので、途中で失敗しても前のパックは残る。結果は同期しないキー `mokuhub:offline` = `{ at, bytes, files, failed }` で、ボタンの下に「✈️ Ready for offline: Nov 21 at 8:20 PM · 9.5 MB」。ブラウザがパックを消していたら(Safari はホーム画面に追加していないサイトのデータをしばらくで消すことがある)「cleared by the browser」と出す。
+  - 文字列を組み立てて作る画像の名前(イベントの選手の顔など)は取れない。ネットで一度見たものはパックに入る。
+- **「Get the latest games & updates」**はブラウザのキャッシュを消す時に、オフラインパック(`moku-offline-*`)だけは残す(取り直したページは `sw.js` がパックにも入れる)。
+- **ハブの表示**: ネットがない時(`navigator.onLine === false`)、Home の一番上に「✈️ Offline」の帯(パックがあれば「Your games are saved on this device and upload when you're back online. Playing with friends needs the internet.」、なければ「Get ready for offline」を案内)。
+- **オフラインで動かないもの**: 友達と遊ぶ部分(Play a Friend / Challenge a Friend / Riddle Race / Moyomoyo・Moku Wolf の Multiplayer。各ゲームの「offline」のメッセージが出る)、Invites・Achievements・Hollow の友達、Flying Moku の Real-World(外の地図データ)、クラウドセーブ(戻ったら今までどおり同期する)。
+- **キャッシュの名前**を変える時は `sw.js` と `shared/moku-account.js` の `OFFLINE_CACHE` を両方変える(`backend/test/pages.test.js` が確かめる)。`sw.js` は古い名前のパックを消す。
+- **出発前の手順(保護者向け)**: ①ハブをホーム画面に追加する(iPhone / iPad では大事) ②1〜2日前にネットのある所でハブを開いて(ログインの期限90日も更新)My Moku の「✈️ Get ready for offline」 ③機内モードで遊ぶゲームを1回ずつ開いてみる ④旅行中はホーム画面のアイコンから ⑤帰ったらハブを開けばクラウドに保存される。
+
 ## 未決事項 / 次に決めること
 
 - [ ] `shared/moku-ui.css`・`shared/moku-save.js` の実ファイルを作成するか
