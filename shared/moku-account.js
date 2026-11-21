@@ -99,6 +99,10 @@
   // registered on every page (http(s) only; a file opened directly has none).
   var OFFLINE_CACHE = 'moku-offline-v1';   // same name as in sw.js
   var OFFLINE_KEY = 'mokuhub:offline';     // this browser's pack: { at, bytes, files, failed }
+  // Same entry as PACK_MARKER in sw.js: a finished download leaves it in the pack.
+  var PACK_MARKER = (function () {
+    try { return new URL('__moku-offline-pack__', script && script.src ? script.src.replace(/shared\/[^/]*$/, '') : location.href).href; } catch (e) { return ''; }
+  })();
   try {
     if (global.navigator && navigator.serviceWorker && /^https?:$/.test(location.protocol)) {
       var swUrl = new URL('sw.js', script && script.src ? script.src.replace(/shared\/[^/]*$/, '') : location.href).href;
@@ -1425,7 +1429,12 @@
       // A pack that already works is never traded for one missing games
       // (offline, or the device ran out of space while saving): keep it and
       // say so. With no pack yet, whatever was saved is better than nothing.
-      return Promise.all([tmp.keys(), caches.has(OFFLINE_CACHE)]).then(function (r) {
+      // "Had a pack" = one a finished download marked (an empty cache of that
+      // name, e.g. made by the first sw.js, is not a pack worth keeping).
+      var earlier = caches.has(OFFLINE_CACHE).then(function (has) {
+        return has ? caches.open(OFFLINE_CACHE).then(function (c) { return c.match(PACK_MARKER); }).then(function (m) { return !!m; }) : false;
+      });
+      return Promise.all([tmp.keys(), earlier]).then(function (r) {
         var reqs = r[0], hadPack = r[1];
         if (!reqs.length || (hadPack && (failedPages || failed > list.length * 0.1))) {
           var e = new Error('incomplete'); e.kept = hadPack; throw e;
@@ -1438,9 +1447,13 @@
             keep[req.url] = 1;
             return chain.then(function () { return tmp.match(req).then(function (res) { return res && main.put(req, res); }); });
           }, Promise.resolve()).then(function () {
+            keep[PACK_MARKER] = 1;
             return main.keys().then(function (old) {
               return Promise.all(old.filter(function (req) { return !keep[req.url]; }).map(function (req) { return main.delete(req); }));
             });
+          }).then(function () {
+            // Mark the pack as finished (sw.js keeps only a marked pack fresh).
+            return main.put(PACK_MARKER, new Response('ok', { headers: { 'Content-Type': 'text/plain' } }));
           });
         });
       });
