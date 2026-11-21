@@ -1342,7 +1342,7 @@
     if (!offlineSupported()) return;
     if (btn) { btn.disabled = true; btn.textContent = 'Getting ready…'; }
     var TMP = OFFLINE_CACHE + '-tmp';
-    var bytes = 0, done = 0, failed = 0;
+    var bytes = 0, done = 0, failed = 0, failedPages = 0;
     var queued = {}, list = [];
     var add = function (u) {
       if (!u) return;
@@ -1370,7 +1370,7 @@
           var copy = new Response(body, { status: res.status, headers: res.headers });
           return tmp.put(url, copy).then(function () { return textual ? body.text() : ''; });
         });
-      }).catch(function () { failed++; return ''; })
+      }).catch(function () { failed++; if (/\.html(\?|$)/.test(url)) failedPages++; return ''; })
         .then(function (text) { done++; label(); return text; });
     };
     var scan = function (url, text, depth) {
@@ -1422,9 +1422,26 @@
       return more();
     }).then(function () {
       // Swap the new pack in only now, so a failed download keeps the old one.
-      return tmp.keys().then(function (reqs) {
-        return caches.delete(OFFLINE_CACHE).then(function () { return caches.open(OFFLINE_CACHE); }).then(function (main) {
-          return Promise.all(reqs.map(function (r) { return tmp.match(r).then(function (res) { return res && main.put(r, res); }); }));
+      // A pack that already works is never traded for one missing games
+      // (offline, or the device ran out of space while saving): keep it and
+      // say so. With no pack yet, whatever was saved is better than nothing.
+      return Promise.all([tmp.keys(), caches.has(OFFLINE_CACHE)]).then(function (r) {
+        var reqs = r[0], hadPack = r[1];
+        if (!reqs.length || (hadPack && (failedPages || failed > list.length * 0.1))) {
+          var e = new Error('incomplete'); e.kept = hadPack; throw e;
+        }
+        // Write over the old pack first and only then drop files it no longer
+        // has, so a write that fails halfway still leaves a playable pack.
+        return caches.open(OFFLINE_CACHE).then(function (main) {
+          var keep = {};
+          return reqs.reduce(function (chain, req) {
+            keep[req.url] = 1;
+            return chain.then(function () { return tmp.match(req).then(function (res) { return res && main.put(req, res); }); });
+          }, Promise.resolve()).then(function () {
+            return main.keys().then(function (old) {
+              return Promise.all(old.filter(function (req) { return !keep[req.url]; }).map(function (req) { return main.delete(req); }));
+            });
+          });
         });
       });
     }).then(function () { return caches.delete(TMP); }).then(function () {
@@ -1435,9 +1452,12 @@
       Array.prototype.forEach.call(document.querySelectorAll('[data-moku-offline-note]'), function (el) { el.innerHTML = offlineNoteHTML(); });
       toast(failed ? '✈️ Saved ' + (list.length - failed) + ' files · ' + failed + ' missed. Try again online.'
         : '✈️ Ready for offline! ' + fmtBytes(bytes) + ' saved on this device');
-    }).catch(function () {
+    }).catch(function (e) {
+      caches.delete(TMP).catch(function () {});
       if (btn) { btn.disabled = false; btn.textContent = '✈️ Get ready for offline'; }
-      toast("Couldn't save the games. Check your connection and try again.");
+      toast(e && e.kept
+        ? "Couldn't save every game (" + failed + ' missed). Your earlier offline games are still here.'
+        : "Couldn't save the games. Check your connection and space, then try again.");
     });
   }
 
