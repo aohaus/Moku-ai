@@ -20,6 +20,15 @@
 var OFFLINE_CACHE = 'moku-offline-v1';
 var NET_TIMEOUT_MS = 6000;      // a hanging network (plane Wi-Fi) falls back to the pack
 var CDN_HOSTS = ['cdnjs.cloudflare.com', 'fonts.googleapis.com', 'fonts.gstatic.com'];
+// A finished "Get ready for offline" leaves this entry in the pack. A cache
+// without it (one an earlier sw.js created empty) is not a pack.
+var PACK_MARKER = new URL('__moku-offline-pack__', self.registration.scope).href;
+function packReady() {
+  return caches.has(OFFLINE_CACHE).then(function (has) {
+    if (!has) return false;
+    return caches.open(OFFLINE_CACHE).then(function (c) { return c.match(PACK_MARKER); }).then(function (m) { return !!m; });
+  });
+}
 
 self.addEventListener('install', function () { self.skipWaiting(); });
 self.addEventListener('activate', function (event) {
@@ -27,6 +36,10 @@ self.addEventListener('activate', function (event) {
     // Drop packs of an older format; "Get ready for offline" builds a new one.
     return Promise.all(keys.filter(function (k) { return /^moku-offline-/.test(k) && k !== OFFLINE_CACHE; })
       .map(function (k) { return caches.delete(k); }));
+  }).then(function () {
+    // The first sw.js (2026-11-21) could leave an empty or half-filled cache on
+    // devices that never saved a pack: drop it.
+    return packReady().then(function (ok) { if (!ok) return caches.delete(OFFLINE_CACHE); });
   }).then(function () { return self.clients.claim(); }));
 });
 
@@ -43,7 +56,12 @@ function handled(request, url) {
 // The pack's copy: the exact URL, else the same page without its query
 // (?join=…, ?fresh=…), else the folder's index.html.
 function fromPack(request) {
-  return caches.open(OFFLINE_CACHE).then(function (cache) {
+  // caches.open() would create an empty pack on a device that has none (and
+  // then everything looks "saved"): only look inside one that exists.
+  return caches.has(OFFLINE_CACHE).then(function (has) {
+    return has ? caches.open(OFFLINE_CACHE) : null;
+  }).then(function (cache) {
+    if (!cache) return null;
     return cache.match(request).then(function (hit) {
       if (hit) return hit;
       return cache.match(request, { ignoreSearch: true, ignoreVary: true }).then(function (hit2) {
@@ -67,7 +85,7 @@ function plain(res) {
 }
 
 function keep(request, res) {
-  return caches.has(OFFLINE_CACHE).then(function (has) {
+  return packReady().then(function (has) {
     if (!has) return;   // no pack on this device: cache nothing
     // A page is kept once, without its query (?fresh=…, ?join=…), so the
     // pack doesn't grow a new copy of the hub with every update.
