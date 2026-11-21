@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<script src="shared/moku-errors.js?v=20261119e"></script>
-<script src="shared/moku-gate.js?v=20261119e"></script>
+<script src="shared/moku-errors.js?v=20261121"></script>
+<script src="shared/moku-gate.js?v=20261121"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Moku Series</title>
 <!-- Icons: made by scripts/make-icons.py. Bump ?v= when they change so browsers refetch. -->
@@ -402,6 +402,18 @@ body[data-band="morning"] #starsLayer { --star-opacity: 0.15; }
    detail sheet with a real screenshot (screenshots/<gameId>.jpg), the
    player's local progress and the Play button. Colors come from CATALOG in
    the script below (--hi / --lo per game, SPEC.md §3 values where defined). */
+/* Offline mode (SPEC.md §16) */
+#offlineBanner {
+  display: flex; align-items: flex-start; gap: 10px;
+  max-width: 900px; margin: 10px auto 0; padding: 10px 14px; box-sizing: border-box;
+  border-radius: 14px; background: rgba(126, 200, 227, 0.14); border: 1px solid rgba(126, 200, 227, 0.35);
+  color: #EDEEF6; font-size: 12.5px; font-weight: 600; line-height: 1.45;
+}
+#offlineBanner[hidden] { display: none; }
+#offlineBanner .ob-icon { font-size: 18px; line-height: 1.2; }
+#offlineBanner b { font-weight: 800; color: #BFE6F5; margin-right: 2px; }
+#offlineBanner .ob-text span { color: rgba(237,238,246,0.72); }
+
 .game-section {
   display: flex;
   flex-direction: column;
@@ -1795,6 +1807,12 @@ html.me-open #ceoPeek { display: none; }
       <span id="placeLabel">···</span>
       <span id="clock">--:--</span>
     </div>
+  </div>
+
+  <!-- Offline mode (SPEC.md §16): shown while the device has no network. -->
+  <div id="offlineBanner" role="status" hidden>
+    <span class="ob-icon" aria-hidden="true">✈️</span>
+    <span class="ob-text"><b>Offline</b> <span id="offlineBannerSub">Your games are saved on this device and upload when you're back online. Playing with friends needs the internet.</span></span>
   </div>
 
   <section class="game-section" id="invitesSection" aria-labelledby="invitesHead" hidden>
@@ -3322,6 +3340,26 @@ html.me-open #ceoPeek { display: none; }
   })();
   // For "Get the latest games & updates" (shared/moku-account.js): the games
   // this hub lists, so it can say which ones the last update didn't know about.
+  // Offline mode (SPEC.md §16): say so at the top while there is no network.
+  (function () {
+    var banner = document.getElementById('offlineBanner');
+    var sub = document.getElementById('offlineBannerSub');
+    if (!banner) return;
+    var show = function () {
+      var off = navigator.onLine === false;
+      banner.hidden = !off;
+      if (!off) return;
+      var pack = null;
+      try { pack = JSON.parse(localStorage.getItem('mokuhub:offline') || 'null'); } catch (e) {}
+      sub.textContent = pack
+        ? "Your games are saved on this device and upload when you're back online. Playing with friends needs the internet."
+        : "Games you haven't opened here may not load. Next time you're online, tap “✈️ Get ready for offline” in My Moku.";
+    };
+    window.addEventListener('online', show);
+    window.addEventListener('offline', show);
+    show();
+  })();
+
   window.MOKU_GAME_PAGES = function () {
     return Object.keys(CATALOG).map(function (k) { return { page: CATALOG[k].gameId + '.html', name: CATALOG[k].name }; })
       .concat(liveEvents().map(function (ev) { return { page: ev.gameId + '.html', name: ev.name }; }));
@@ -4820,9 +4858,9 @@ html.me-open #ceoPeek { display: none; }
   };
 })();
 </script>
-<script src="shared/moku-account.js?v=20261119e"></script>
-<script src="shared/moku-transfer.js?v=20261119e"></script>
-<script src="shared/moku-moint.js?v=20261119e"></script>
+<script src="shared/moku-account.js?v=20261121"></script>
+<script src="shared/moku-transfer.js?v=20261121"></script>
+<script src="shared/moku-moint.js?v=20261121"></script>
 <script>
 // ---------- Invites (SPEC.md §7) ----------
 // Friends waiting for you in a multiplayer game, at the top of the hub:

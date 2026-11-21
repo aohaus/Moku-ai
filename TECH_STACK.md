@@ -43,7 +43,7 @@ AWS ap-southeast-5(スタック moku-backend)
 | 音 | 音源ファイルなし。**Web Audio API で合成**。iOS 対策で最初のタップで `AudioContext.resume()` |
 | 重い処理 | Moku Chess の CPU は Web Worker(関数を `toString()` して Worker に渡す) |
 | 保存 | `localStorage`(キーは `moku:<gameId>:<key>`、try-catch 必須)。ログイン中は自動でクラウドセーブ |
-| PWA | `manifest.json` / `hub-manifest.json`(ホーム画面追加用)。Service Worker はなし |
+| PWA | `manifest.json` / `hub-manifest.json`(ホーム画面追加用)。Service Worker `sw.js`(2026-11-21〜、オフラインモード。ネットがある時は素通しで、ない時だけ My Moku の「✈️ Get ready for offline」で保存したゲームを出す。SPEC.md §16) |
 | 言語(UI) | プレイヤー向けはすべてシンプルな英語。日本語はコメント・開発ドキュメント・`admin.html` のみ |
 | 対応端末 | モバイル優先・タッチ第一。`viewport-fit=cover` と `env(safe-area-inset-*)`、iPad 4:3、縦長スマホ |
 
