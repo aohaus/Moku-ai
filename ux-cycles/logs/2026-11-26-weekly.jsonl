@@ -1,3 +1,4 @@
 {"at":"2026-11-26T02:18:01.082Z","cycle":"2026-11-26-weekly","commit":"bd2174c","branch":"ux/2026-11-26-weekly","type":"cycle_start"}
 {"at":"2026-11-26T02:18:01.128Z","cycle":"2026-11-26-weekly","commit":"bd2174c","branch":"ux/2026-11-26-weekly","type":"note","text":"manual early run (parent asked before the Thursday schedule)"}
 {"at":"2026-11-26T02:18:15.503Z","cycle":"2026-11-26-weekly","commit":"bd2174c","branch":"ux/2026-11-26-weekly","type":"agent_start","agent":"moku-detective","agentId":"a581f6e5239f33a79","session":"17517551-cc45-558f-a6ad-bd2afc5d9814"}
+{"at":"2026-11-26T02:23:06.030Z","cycle":"2026-11-26-weekly","commit":"dc1440f","branch":"ux/2026-11-26-weekly","type":"agent_report","agent":"moku-detective","agentId":"a581f6e5239f33a79","session":"17517551-cc45-558f-a6ad-bd2afc5d9814","files":[],"report":""}
