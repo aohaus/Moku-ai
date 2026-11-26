@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<script src="shared/moku-errors.js?v=20261121b"></script>
-<script src="shared/moku-gate.js?v=20261121b"></script>
+<script src="shared/moku-errors.js?v=20261126b"></script>
+<script src="shared/moku-gate.js?v=20261126b"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>Moku Chess</title>
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
@@ -349,9 +349,9 @@ body:not(.on-title) #buildInfo { display: none; }
 .skin .btn { padding: 8px 12px; font-size: 13px; }
 .skin.using { box-shadow: 0 0 0 3px var(--hi), 0 2px 0 #E2CDB0; }
 </style>
-<script src="shared/moku-account.js?v=20261121b" data-mode="background"></script>
-<script src="shared/moku-moint.js?v=20261121b" data-mode="none"></script>
-<script src="shared/moku-chess-rules.js?v=20261121b"></script>
+<script src="shared/moku-account.js?v=20261126b" data-mode="background"></script>
+<script src="shared/moku-moint.js?v=20261126b" data-mode="none"></script>
+<script src="shared/moku-chess-rules.js?v=20261126b"></script>
 </head>
 <body class="on-title">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -362,7 +362,7 @@ body:not(.on-title) #buildInfo { display: none; }
 </svg>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.2.3 · Updated Nov 21, 2026</div>
+<div id="buildInfo">v0.2.4 · Updated Nov 26, 2026</div>
 
 <section id="titleScreen" class="screen on">
   <div id="titleArt">
@@ -2090,7 +2090,7 @@ body:not(.on-title) #buildInfo { display: none; }
 
   function onlineReady() {
     var A = window.MokuAccount;
-    return !!(A && A.isEnabled() && A.getUser());
+    return !!(A && A.isEnabled() && A.getUser() && !(A.offlineMode && A.offlineMode()));
   }
   // Rejects with { code, status, data }; code 'offline' when the request never got through
   function onlineApi(method, path, body) {

@@ -94,15 +94,43 @@
   var script = document.currentScript;
   var mode = (script && script.getAttribute('data-mode')) || 'full';
 
-  // Offline mode (SPEC.md §16): sw.js hands out the saved "offline pack" when
-  // there is no network. Online it only passes requests through, so it is
-  // registered on every page (http(s) only; a file opened directly has none).
+  // Offline Mode (SPEC.md §16): a switch in My Moku. While it is on, sw.js
+  // hands out every file from the "offline pack" saved on this device, and the
+  // cloud save and online games are paused. Off, sw.js just passes requests to
+  // the network. It is registered on every page (http(s) only).
   var OFFLINE_CACHE = 'moku-offline-v1';   // same name as in sw.js
   var OFFLINE_KEY = 'mokuhub:offline';     // this browser's pack: { at, bytes, files, failed }
   // Same entry as PACK_MARKER in sw.js: a finished download leaves it in the pack.
+  var SITE_ROOT = script && script.src ? script.src.replace(/shared\/[^/]*$/, '') : location.href;
   var PACK_MARKER = (function () {
-    try { return new URL('__moku-offline-pack__', script && script.src ? script.src.replace(/shared\/[^/]*$/, '') : location.href).href; } catch (e) { return ''; }
+    try { return new URL('__moku-offline-pack__', SITE_ROOT).href; } catch (e) { return ''; }
   })();
+  // Same entry as MODE_MARKER in sw.js: there while Offline Mode is on. The
+  // pages read the same switch from localStorage (OFFLINE_MODE_KEY, also read
+  // by moku-gate.js and moku-errors.js), so they know without waiting.
+  var MODE_MARKER = (function () {
+    try { return new URL('__moku-offline-mode__', SITE_ROOT).href; } catch (e) { return ''; }
+  })();
+  var OFFLINE_MODE_KEY = 'mokuhub:offline-mode';
+  function offlineMode() {
+    try { return localStorage.getItem(OFFLINE_MODE_KEY) === '1'; } catch (e) { return false; }
+  }
+  // Offline Mode belongs to a logged-in player: when the session ends (Log Out,
+  // an expired or refused token) it goes off, so the login page can reach the
+  // server again (its switch is only in My Moku, behind the login).
+  function clearOfflineMode() {
+    if (!offlineMode()) return;
+    try { localStorage.removeItem(OFFLINE_MODE_KEY); } catch (e) {}
+    try {
+      if (global.caches) {
+        caches.has(OFFLINE_CACHE).then(function (has) {
+          return has && caches.open(OFFLINE_CACHE).then(function (c) { return c.delete(MODE_MARKER); });
+        }).catch(function () {});
+      }
+      var w = global.navigator && navigator.serviceWorker && navigator.serviceWorker.controller;
+      if (w) w.postMessage({ type: 'moku-offline-mode', on: false });
+    } catch (e) {}
+  }
   try {
     if (global.navigator && navigator.serviceWorker && /^https?:$/.test(location.protocol)) {
       var swUrl = new URL('sw.js', script && script.src ? script.src.replace(/shared\/[^/]*$/, '') : location.href).href;
@@ -153,6 +181,23 @@
     return token && !tokenExpired(token) ? token : null;
   }
   function getUser() { return getToken() ? readJson(USER_KEY) : null; }
+  // Logged out or the token ran out while Offline Mode was on: turn it off
+  // (see clearOfflineMode), so the login page works when the network is back.
+  if (offlineMode() && !getToken()) clearOfflineMode();
+  // The switch is off but sw.js still has its "on" marker (the page moved on
+  // before clearOfflineMode finished): finish the job on this page.
+  try {
+    if (!offlineMode() && global.caches && MODE_MARKER) {
+      caches.has(OFFLINE_CACHE).then(function (has) {
+        return has && caches.open(OFFLINE_CACHE).then(function (c) {
+          return c.delete(MODE_MARKER).then(function (gone) {
+            var w = gone && navigator.serviceWorker && navigator.serviceWorker.controller;
+            if (w) w.postMessage({ type: 'moku-offline-mode', on: false });
+          });
+        });
+      }).catch(function () {});
+    }
+  } catch (e) {}
 
   function setSession(token, user) {
     lsSet(TOKEN_KEY, token);
@@ -161,6 +206,7 @@
   function clearSession() {
     lsRemove(TOKEN_KEY);
     lsRemove(USER_KEY);
+    clearOfflineMode();
   }
 
   function isSyncKey(key) {
@@ -353,6 +399,12 @@
   // ---------- API ----------
 
   function api(method, path, body, opts) {
+    if (offlineMode()) {
+      // Offline Mode: the cloud save, players and online games wait until it is off.
+      var off = new Error('Offline Mode is on.');
+      off.code = 'offline';
+      return Promise.reject(off);
+    }
     var headers = {};
     if (body) headers['content-type'] = 'application/json';
     var token = getToken();
@@ -727,6 +779,15 @@
     '.mka-refresh:disabled{text-decoration:none;cursor:default}',
     '.mka-update-note{margin:2px 4px 0;font-size:11px;font-weight:600;line-height:1.5;color:rgba(237,238,246,0.45);text-align:center;white-space:normal;overflow-wrap:anywhere}',
     '.mka-update-note b{color:rgba(237,238,246,0.7);font-weight:800}',
+    '.mka-offline-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:12px 2px 0;padding:9px 12px;border-radius:14px;background:rgba(126,200,227,0.10);border:1px solid rgba(126,200,227,0.28)}',
+    '.mka-offline-label{font-size:14px;font-weight:800;color:#EDEEF6}',
+    '.mka-switch{position:relative;flex:none;width:76px;height:32px;padding:0;border:0;border-radius:999px;background:rgba(237,238,246,0.16);color:rgba(237,238,246,0.8);font:inherit;font-size:11.5px;font-weight:800;letter-spacing:0.06em;cursor:pointer;transition:background .2s}',
+    '.mka-switch .mka-switch-text{position:absolute;top:0;bottom:0;right:12px;display:flex;align-items:center}',
+    '.mka-switch .mka-switch-knob{position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#EDEEF6;box-shadow:0 1px 3px rgba(0,0,0,0.3);transition:left .2s}',
+    '.mka-switch[aria-checked="true"]{background:linear-gradient(180deg,#7EC8E3,#3F8FA0);color:#0A1A22}',
+    '.mka-switch[aria-checked="true"] .mka-switch-text{right:auto;left:12px}',
+    '.mka-switch[aria-checked="true"] .mka-switch-knob{left:47px}',
+    '.mka-switch:disabled{opacity:0.6;cursor:default}',
     '.mka-actions{display:flex;flex-direction:column;gap:10px}',
     '.mka-choice{display:flex;align-items:center;gap:12px;width:100%;padding:14px;border-radius:14px;text-align:left;',
     'border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.05);color:#EDEEF6;font:inherit;cursor:pointer}',
@@ -771,7 +832,7 @@
     var st = getSyncState(getUser());
     switch (status) {
       case 'syncing': return '☁️ Saving…';
-      case 'offline': return "📴 Offline — we'll save when you're back online";
+      case 'offline': return offlineMode() ? '✈️ Offline Mode — saved on this device' : "📴 Offline — we'll save when you're back online";
       case 'conflict': return '⚠️ Choose which save to keep';
       case 'error': return '⚠️ Couldn’t save to the cloud';
       default: return st ? '☁️ Saved · ' + fmtDate(st.at) : '☁️ Not synced yet';
@@ -1105,15 +1166,20 @@
       el.innerHTML = user
         ? '<div class="mka-meta"><span class="mka-status"><span class="mka-dot" data-status="' + status + '"></span>' + esc(statusText()) + '</span></div>' +
           '<div class="mka-profile-actions">' +
-          '<button class="mka-secondary is-wide" type="button" data-act="sync">☁️ Save now</button>' +
+          (offlineMode() ? '' : '<button class="mka-secondary is-wide" type="button" data-act="sync">☁️ Save now</button>') +
           '<button class="mka-secondary" type="button" data-go="pin">🔑 Change PIN</button>' +
           '<button class="mka-secondary" type="button" data-go="logout">👋 Log Out</button>' +
           (user.admin ? '<a class="mka-secondary is-wide" href="admin.html">🛠 Admin</a>' : '') + '</div>' +
           '<p class="mka-id">Player ID: ' + esc(user.loginId) + ' · keep it secret</p>' +
-          '<button class="mka-refresh" type="button" data-act="refresh">↻ Get the latest games &amp; updates</button>' +
-          updateNoteHTML() +
-          (offlineSupported() ? '<button class="mka-refresh" type="button" data-act="offline">✈️ Get ready for offline</button>' +
-            '<p class="mka-update-note" data-moku-offline-note>' + offlineNoteHTML() + '</p>' : '')
+          (offlineSupported()
+            ? '<div class="mka-offline-row"><span class="mka-offline-label">✈️ Offline Mode</span>' +
+              '<button class="mka-switch" type="button" role="switch" data-act="offline" aria-checked="' + (offlineMode() ? 'true' : 'false') + '">' +
+              '<span class="mka-switch-text">' + (offlineMode() ? 'ON' : 'OFF') + '</span><span class="mka-switch-knob" aria-hidden="true"></span></button></div>' +
+              '<p class="mka-update-note" data-moku-offline-note>' + offlineNoteHTML() + '</p>'
+            : '') +
+          (offlineMode() ? '' :
+            '<button class="mka-refresh" type="button" data-act="refresh">↻ Get the latest games &amp; updates</button>' +
+            updateNoteHTML())
         : '<button class="mka-wide" type="button" data-act="login">' +
           '<span class="mka-wide-icon" aria-hidden="true">☁️</span>' +
           '<span class="mka-wide-text"><span class="mka-wide-title"><span>Log In</span></span>' +
@@ -1130,13 +1196,13 @@
       var act = b.getAttribute('data-act');
       if (act === 'sync') syncNow({ interactive: true });
       else if (act === 'refresh') forceRefresh(b);
-      else if (act === 'offline') prepareOffline(b);
+      else if (act === 'offline') toggleOffline(b);
       else if (act === 'login') openModal('login');
       else if (b.hasAttribute('data-go')) openModal(b.getAttribute('data-go'));
     });
     // After "Get the latest games & updates" reloads the page, say how it went.
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(announceUpdate, 600); });
-    else setTimeout(announceUpdate, 600);
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(announceUpdate, 600); setTimeout(announceOffline, 700); });
+    else { setTimeout(announceUpdate, 600); setTimeout(announceOffline, 700); }
   }
 
   // For when a new game or a game's update doesn't show up: the browser keeps
@@ -1319,21 +1385,75 @@
   }
   function offlineNoteHTML() {
     var o = readJSONKey(OFFLINE_KEY);
-    if (!o || !o.at) return 'Saves every game on this device, so you can play on a plane. About 10 MB.';
-    return '✈️ Ready for offline: <b>' + esc(fmtWhen(o.at)) + '</b> · ' + esc(fmtBytes(o.bytes)) +
-      (o.failed ? ' · ' + o.failed + ' files missed (try again online)' : '');
+    var saved = o && o.at ? 'Saved on this device: <b>' + esc(fmtWhen(o.at)) + '</b> · ' + esc(fmtBytes(o.bytes)) +
+      (o.failed ? ' · ' + o.failed + ' files missed' : '') : '';
+    if (offlineMode()) {
+      return 'Games come from this device. Online games and cloud save are paused; your progress uploads when you turn it off.' +
+        (saved ? '<br>' + saved : '');
+    }
+    return 'For planes and trips: turn it on while online and every game is saved on this device first (about 10 MB).' +
+      (saved ? '<br>' + saved : '');
+  }
+  function offlinePackReady() {
+    if (!offlineSupported()) return Promise.resolve(false);
+    return caches.has(OFFLINE_CACHE).then(function (has) {
+      return has ? caches.open(OFFLINE_CACHE).then(function (c) { return c.match(PACK_MARKER); }).then(function (m) { return !!m; }) : false;
+    }).catch(function () { return false; });
+  }
+  // Flips the switch: the marker for sw.js, the localStorage copy for the
+  // pages, a message so the running worker takes it at once, then a reload so
+  // every part of the page runs in the new mode.
+  function setOfflineMode(on, said) {
+    var write = on
+      ? caches.open(OFFLINE_CACHE).then(function (c) { return c.put(MODE_MARKER, new Response('on', { headers: { 'Content-Type': 'text/plain' } })); })
+      : caches.has(OFFLINE_CACHE).then(function (has) { return has && caches.open(OFFLINE_CACHE).then(function (c) { return c.delete(MODE_MARKER); }); });
+    return write.catch(function () {}).then(function () {
+      try {
+        if (on) localStorage.setItem(OFFLINE_MODE_KEY, '1'); else localStorage.removeItem(OFFLINE_MODE_KEY);
+        sessionStorage.setItem('mokuhub:offline-said', said || (on ? '✈️ Offline Mode is on' : '📶 Offline Mode is off. Saving your progress…'));
+      } catch (e) {}
+      var msg = { type: 'moku-offline-mode', on: !!on };
+      try { if (navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage(msg); } catch (e) {}
+      return Promise.race([
+        navigator.serviceWorker.ready.then(function (r) { if (r.active) r.active.postMessage(msg); }),
+        new Promise(function (r) { setTimeout(r, 1500); })
+      ]).catch(function () {});
+    }).then(function () { location.reload(); });
+  }
+  function toggleOffline(btn) {
+    if (!offlineSupported()) return;
+    if (offlineMode()) { if (btn) btn.disabled = true; setOfflineMode(false); return; }
+    if (navigator.onLine === false) {
+      // No network: switch on only if the games are already saved here.
+      offlinePackReady().then(function (ready) {
+        if (ready) setOfflineMode(true);
+        else toast('Connect to the internet once to save the games first.');
+      });
+      return;
+    }
+    // Online: save the newest games first, then switch on.
+    prepareOffline(btn, function (ok, msg) { if (ok) setOfflineMode(true, msg); });
+  }
+  // After the switch's reload: say which mode we're in, once.
+  function announceOffline() {
+    var said = null;
+    try { said = sessionStorage.getItem('mokuhub:offline-said'); sessionStorage.removeItem('mokuhub:offline-said'); } catch (e) {}
+    if (said) toast(said);
+    if (!offlineMode() && said) syncNow({ interactive: true });
   }
   // A pack the browser threw away (Safari does after a while unless the site
   // is on the Home Screen) shouldn't still say "Ready".
   function checkOfflinePack() {
-    if (!offlineSupported() || !readJSONKey(OFFLINE_KEY)) return;
-    caches.has(OFFLINE_CACHE).then(function (has) {
-      if (has) return;
-      try { localStorage.removeItem(OFFLINE_KEY); } catch (e) {}
+    if (!offlineSupported() || (!readJSONKey(OFFLINE_KEY) && !offlineMode())) return;
+    offlinePackReady().then(function (ready) {
+      if (ready) return;
+      var wasOn = offlineMode();
+      try { localStorage.removeItem(OFFLINE_KEY); localStorage.removeItem(OFFLINE_MODE_KEY); } catch (e) {}
+      if (wasOn) { renderProfile(); return; }
       Array.prototype.forEach.call(document.querySelectorAll('[data-moku-offline-note]'), function (el) {
-        el.innerHTML = 'Your offline games were cleared by the browser. Tap again while online.';
+        el.innerHTML = 'Your offline games were cleared by the browser. Turn Offline Mode on again while online.';
       });
-    }).catch(function () {});
+    });
   }
 
   var ASSET_RE = /(?:^|["'(=\s])((?:shared|brand|icons|screenshots|backgrounds|events|data)\/[A-Za-z0-9_.\/-]+\.(?:js|css|png|jpe?g|svg|webp|gif|ico|md|json|woff2?)(?:\?v=[A-Za-z0-9]+)?)/g;
@@ -1342,11 +1462,16 @@
   var FONT_CSS_RE = /https:\/\/fonts\.googleapis\.com\/css2\?[^"'\s)]+/g;
   var FONT_FILE_RE = /url\((https:\/\/fonts\.gstatic\.com\/[^)]+)\)/g;
 
-  function prepareOffline(btn) {
+  // done(ok, message): ok = there is a pack to use (the new one, or the earlier
+  // one when the new download fell short).
+  function prepareOffline(btn, done) {
     if (!offlineSupported()) return;
-    if (btn) { btn.disabled = true; btn.textContent = 'Getting ready…'; }
+    done = done || function () {};
+    var note = document.querySelector('[data-moku-offline-note]');
+    if (btn) btn.disabled = true;
+    if (note) note.textContent = 'Saving the games on this device…';
     var TMP = OFFLINE_CACHE + '-tmp';
-    var bytes = 0, done = 0, failed = 0, failedPages = 0;
+    var bytes = 0, saved = 0, failed = 0, failedPages = 0;
     var queued = {}, list = [];
     var add = function (u) {
       if (!u) return;
@@ -1357,7 +1482,7 @@
       list.push(abs);
     };
     var label = function () {
-      if (btn) btn.textContent = 'Saving… ' + done + ' / ' + list.length + ' · ' + fmtBytes(bytes);
+      if (note) note.textContent = 'Saving the games on this device… ' + saved + ' / ' + list.length + ' · ' + fmtBytes(bytes);
     };
     var tmp;
     // Save one file; returns its text for pages, scripts, styles and data.
@@ -1375,7 +1500,7 @@
           return tmp.put(url, copy).then(function () { return textual ? body.text() : ''; });
         });
       }).catch(function () { failed++; if (/\.html(\?|$)/.test(url)) failedPages++; return ''; })
-        .then(function (text) { done++; label(); return text; });
+        .then(function (text) { saved++; label(); return text; });
     };
     var scan = function (url, text, depth) {
       if (!text) return [];
@@ -1461,16 +1586,20 @@
       return Promise.race([ready, new Promise(function (r) { setTimeout(r, 5000); })]);
     }).then(function () {
       writeJSONKey(OFFLINE_KEY, { at: new Date().toISOString(), bytes: bytes, files: list.length - failed, failed: failed });
-      if (btn) { btn.disabled = false; btn.textContent = '✈️ Get ready for offline'; }
-      Array.prototype.forEach.call(document.querySelectorAll('[data-moku-offline-note]'), function (el) { el.innerHTML = offlineNoteHTML(); });
-      toast(failed ? '✈️ Saved ' + (list.length - failed) + ' files · ' + failed + ' missed. Try again online.'
-        : '✈️ Ready for offline! ' + fmtBytes(bytes) + ' saved on this device');
+      done(true, failed ? '✈️ Offline Mode is on · ' + failed + ' files missed'
+        : '✈️ Offline Mode is on · ' + fmtBytes(bytes) + ' saved on this device');
     }).catch(function (e) {
       caches.delete(TMP).catch(function () {});
-      if (btn) { btn.disabled = false; btn.textContent = '✈️ Get ready for offline'; }
-      toast(e && e.kept
-        ? "Couldn't save every game (" + failed + ' missed). Your earlier offline games are still here.'
-        : "Couldn't save the games. Check your connection and space, then try again.");
+      if (btn) btn.disabled = false;
+      if (note) note.innerHTML = offlineNoteHTML();
+      if (e && e.kept) {
+        // The new download fell short (no space, or the network dropped): the
+        // earlier saved games still work, so switch on with those.
+        done(true, '✈️ Offline Mode is on · using the games saved earlier (' + failed + ' missed this time)');
+        return;
+      }
+      toast("Couldn't save the games. Check your connection and space, then try again.");
+      done(false);
     });
   }
 
@@ -1551,6 +1680,11 @@
     },
     getPlayers: function () { return playersCache && playersCache.players ? { players: playersCache.players } : null; },
     syncNow: syncNow,
-    logout: logout
+    logout: logout,
+    // Offline Mode (SPEC.md §16). Online features check offlineMode() and hide.
+    offlineMode: offlineMode,
+    offlinePackReady: offlinePackReady,
+    setOfflineMode: function (on) { return offlineSupported() ? setOfflineMode(!!on) : Promise.resolve(); },
+    toggleOffline: function () { toggleOffline(null); }
   };
 })(window);

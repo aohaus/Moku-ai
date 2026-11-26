@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<script src="shared/moku-errors.js?v=20261121b"></script>
-<script src="shared/moku-gate.js?v=20261121b"></script>
-<script src="shared/moku-account.js?v=20261121b" data-mode="background"></script>
-<script src="shared/moku-moint.js?v=20261121b" data-mode="none"></script>
-<script src="shared/moku-random.js?v=20261121b"></script>
+<script src="shared/moku-errors.js?v=20261126b"></script>
+<script src="shared/moku-gate.js?v=20261126b"></script>
+<script src="shared/moku-account.js?v=20261126b" data-mode="background"></script>
+<script src="shared/moku-moint.js?v=20261126b" data-mode="none"></script>
+<script src="shared/moku-random.js?v=20261126b"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>Moyomoyo</title>
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
@@ -662,7 +662,7 @@ body.on-mp #mp-screen { display: flex; }
 </div>
 <div id="mp-toast"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v1.8.0 · Updated Nov 6, 2026</div>
+<div id="buildInfo">v1.8.1 · Updated Nov 26, 2026</div>
 <div id="game-layout">
   <div id="wrapper">
     <canvas id="c"></canvas>
@@ -3054,7 +3054,7 @@ mpHero.src = 'brand/mokumoku-hero.png';
 function $mp(id) { return document.getElementById(id); }
 function mpReady() {
   const A = window.MokuAccount;
-  return !!(A && A.isEnabled() && A.getUser());
+  return !!(A && A.isEnabled() && A.getUser() && !(A.offlineMode && A.offlineMode()));
 }
 let mpToastTimer = null;
 function mpToast(text) {

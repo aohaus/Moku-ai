@@ -30,3 +30,16 @@ test("pages: the offline pack has the same cache name in sw.js and moku-account.
   assert.ok(name(sw), "sw.js has OFFLINE_CACHE");
   assert.equal(name(account), name(sw));
 });
+
+test("pages: sw.js and moku-account.js use the same Offline Mode markers", () => {
+  const sw = fs.readFileSync(path.join(ROOT, "sw.js"), "utf8");
+  const account = fs.readFileSync(path.join(ROOT, "shared", "moku-account.js"), "utf8");
+  for (const marker of ["__moku-offline-pack__", "__moku-offline-mode__"]) {
+    assert.ok(sw.includes(marker), `sw.js has ${marker}`);
+    assert.ok(account.includes(marker), `moku-account.js has ${marker}`);
+  }
+  // moku-gate.js and moku-errors.js read the switch from the same localStorage key.
+  for (const f of ["shared/moku-account.js", "shared/moku-gate.js", "shared/moku-errors.js"]) {
+    assert.ok(fs.readFileSync(path.join(ROOT, f), "utf8").includes("mokuhub:offline-mode"), `${f} reads mokuhub:offline-mode`);
+  }
+});

@@ -65,6 +65,26 @@
 
   if (!hasSession()) return toLogin();
 
+  // Offline Mode (SPEC.md §16, the switch in My Moku): say so on every page.
+  // Same key as OFFLINE_MODE_KEY in shared/moku-account.js.
+  var offlineOn = false;
+  try { offlineOn = localStorage.getItem('mokuhub:offline-mode') === '1'; } catch (e) {}
+  if (offlineOn) {
+    (function () {
+      function add() {
+        if (document.getElementById('moku-offline-badge')) return;
+        var b = document.createElement('div');
+        b.id = 'moku-offline-badge';
+        b.textContent = '✈️ OFFLINE MODE';
+        b.style.cssText = 'position:fixed;left:50%;top:calc(env(safe-area-inset-top, 0px) + 2px);transform:translateX(-50%);' +
+          'z-index:2147483647;pointer-events:none;padding:2px 10px;border-radius:999px;background:rgba(63,143,160,0.92);' +
+          'color:#fff;font:800 10px/1.4 -apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:0.1em;box-shadow:0 1px 4px rgba(0,0,0,0.25)';
+        document.body.appendChild(b);
+      }
+      if (document.body) add(); else document.addEventListener('DOMContentLoaded', add);
+    })();
+  }
+
   // Session ended while the page is open: the server refused the token
   // (PIN or ID changed by the admin), or the player logged out in another tab.
   window.addEventListener('storage', function (e) {
