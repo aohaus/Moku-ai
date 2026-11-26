@@ -2310,6 +2310,12 @@ html.me-open #ceoPeek { display: none; }
     var p = readJSON('moku:moku-night-jungle:progress'), f = p && p.found;
     return f && typeof f === 'object' ? Math.min(MNJ_TOTAL, Object.keys(f).filter(function (k) { return f[k] > 0; }).length) : 0;
   }
+  // Moku Kata-Kata: 覚えた語(一度でも正解した語)の数(moku-kata.html の WORDS の数と合わせる)
+  var MKK_TOTAL = 200;
+  function mkkLearned() {
+    var p = readJSON('moku:moku-kata:progress'), w = p && p.words;
+    return w && typeof w === 'object' ? Math.min(MKK_TOTAL, Object.keys(w).filter(function (k) { return w[k] && w[k].r > 0; }).length) : 0;
+  }
   // Moku Festival Lights: 飾りごとのいちばん良い ⭐ の合計(6 つ × 3 = 18)
   function mflStars() {
     var p = readJSON('moku:moku-festival-lights:progress'), b = p && p.best;
@@ -3083,6 +3089,31 @@ html.me-open #ceoPeek { display: none; }
       }
     },
     {
+      name: 'Moku Kata-Kata',
+      card: 'mkk',
+      gameId: 'moku-kata',
+      // 完了 = 200 語を全部覚えた(一度でも正解した)
+      isCompleted: function () {
+        if (isExplicitlyMarked('completed', 'mkk')) return true;
+        return mkkLearned() >= MKK_TOTAL;
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'mkk')) return true;
+        var p = readJSON('moku:moku-kata:progress');
+        return Boolean(p && p.played > 0);
+      },
+      progress: function () {
+        if (this.isCompleted()) return 1;
+        return Math.min(1, mkkLearned() / MKK_TOTAL);
+      },
+      badge: function () {
+        var p = readJSON('moku:moku-kata:progress');
+        if (!p || !this.isPlayed()) return null;
+        var line = '📗 ' + mkkLearned() + ' / ' + MKK_TOTAL + ' words';
+        return p.best ? line + ' · 🎯 Best ' + p.best + '/10' : line;
+      }
+    },
+    {
       name: 'Sir CEO Moku',
       card: 'ceo',
       gameId: 'ceo-moku',
@@ -3169,6 +3200,7 @@ html.me-open #ceoPeek { display: none; }
     mff: { title: 'Facts Found', read: mffKnown, fmt: function (n) { return n + ' / ' + MFF_TOTAL + ' 📚'; } },
     mnj: { title: 'Critters Found', read: mnjFound, fmt: function (n) { return n + ' / ' + MNJ_TOTAL + ' 🔦'; } },
     mfl: { title: 'Festival Stars', read: mflStars, fmt: function (n) { return n + ' / 36 ⭐'; } },
+    mkk: { title: 'Words Learned', read: mkkLearned, fmt: function (n) { return n + ' / ' + MKK_TOTAL + ' 📗'; } },
     ceo: { title: 'Pop Quizzes Solved', read: function () { var m = readJSON('moku:ceo-moku:memory'); return m && m.quiz && m.quiz.wins; }, fmt: function (n) { return n + ' 🧩'; } }
   };
   function myRecords() {
@@ -3318,6 +3350,10 @@ html.me-open #ceoPeek { display: none; }
            tag: 'Trace, color and light it up!',
            desc: 'Make festival crafts from Southeast Asia with your finger: batik from Indonesia, a kolam, a Hội An silk lantern, a Thai krathong, a Filipino parol and a mooncake. Trace the glowing dots, pick a color, and watch them all light up on Festival Night!',
            moint: { cap: true, how: 'Make a craft: +10 for each star (up to +30). First time you make each one: +30. All 6: +200.' } },
+    mkk: { name: 'Moku Kata-Kata', gameId: 'moku-kata', genre: 'Picture Quiz · Malay Words', cta: 'Play', hi: '#2FA37A', lo: '#0F4A35', newUntil: '2026-12-17',
+           tag: 'Apa ini? Learn 200 Malay words!',
+           desc: 'See a picture and pick the right Malay word from four. 200 words that kids in Malaysia use every day — animals, food, colors, numbers, school and more. Hear how to say them, and fill your Word Book!',
+           moint: { cap: true, how: 'Quiz: +5 for each right answer, all 10 right: +20. Learn every word in a topic: +50. All 200 words: +300.' } },
     ceo: { name: 'Sir CEO Moku', gameId: 'ceo-moku', genre: 'Chat & Quiz', cta: 'Visit', hi: '#D9925A', lo: '#6A3A1C', newUntil: '2026-12-08',
            tag: 'Meet the boss of Moku games!',
            desc: 'Visit Sir CEO Moku in his office. He picks a game for you every day, gives surprise quizzes, and listens to your game ideas. He is a little silly… and a little greedy.',
@@ -3404,7 +3440,7 @@ html.me-open #ceoPeek { display: none; }
     { title: 'Puzzle & Brain',  sub: 'Think, match, merge',      cards: ['mwr', 'mch', 'md', 'so', 'mm'] },
     { title: 'Cozy & Create',   sub: 'Take it slow',             cards: ['ceo', 'mml', 'mw6', 'mrc', 'fm', 'mf', 'mb', 'mc'] },
     { title: 'Party & Arcade',  sub: 'Play with friends',        cards: ['mbr', 'mw', 'mr'] },
-    { title: 'Live in ASIA',    sub: 'Explore Southeast Asia',   cards: ['wm', 'mmm', 'mff', 'mnj', 'mfl'] }
+    { title: 'Live in ASIA',    sub: 'Explore Southeast Asia',   cards: ['wm', 'mmm', 'mff', 'mnj', 'mfl', 'mkk'] }
   ];
   // Today's Pick rotates daily through titles whose screenshot shows real gameplay.
   // Sir CEO Moku (ceo-moku.html PICKS) uses the same list and day formula as his CEO's Pick — change both together.

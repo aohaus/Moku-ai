@@ -567,7 +567,8 @@ body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
     { id: 'moku-money-market', name: 'Moku Money Market', icon: '🛒' },
     { id: 'moku-fact-or-fib', name: 'Fact or Fib? Asia', icon: '🤔' },
     { id: 'moku-night-jungle', name: 'Moku Night Jungle', icon: '🔦' },
-    { id: 'moku-festival-lights', name: 'Moku Festival Lights', icon: '🏮' }
+    { id: 'moku-festival-lights', name: 'Moku Festival Lights', icon: '🏮' },
+    { id: 'moku-kata', name: 'Moku Kata-Kata', icon: '📗' }
   ];
 
   // CEO の服(Moku Closet のアイテム)。表情は Moods から
@@ -1289,9 +1290,11 @@ body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
     { re: /money market|マネーマーケット|ringgit|baht|リンギット|バーツ/i, id: 'moku-money-market' },
     { re: /fact or fib|ほんと.?うそ|ファクト/i, id: 'moku-fact-or-fib' },
     { re: /night jungle|ジャングル|jungle/i, id: 'moku-night-jungle' },
-    { re: /festival|フェスティバル|お祭り|ランタン|lantern/i, id: 'moku-festival-lights' }
+    { re: /festival|フェスティバル|お祭り|ランタン|lantern/i, id: 'moku-festival-lights' },
+    { re: /kata.?kata|malay word|bahasa|マレー語/i, id: 'moku-kata' }
   ];
   var GAME_TALK = {
+    'moku-kata': ['Kata-Kata! I know a Malay word: "duit". It means money. My favorite word, moku!', 'Kata-Kata モク!ワタクシの知っているマレー語は「duit」。お金という意味モク。いちばん好きなことばモク!'],
     'moku-fight': ['Moku Fight! My secret move is… running away. Very fast, moku.', 'Moku Fight モク!ワタクシの必殺技は…にげること。すごく速いモク。'],
     'moku-bridge': ['Moku Bridge! I always pick left. Always. That is why I fall a lot, moku.', 'Moku Bridge モク!モクはいつも左を選ぶモク。だからよく落ちるモク。'],
     'moku-drop': ['Moku Drop! When the jar is full, my heart is full too, moku.', 'Moku Drop モク!ビンがいっぱいになると、モクのむねもいっぱいモク。'],
