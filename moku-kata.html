@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script src="shared/moku-errors.js?v=20261126c"></script>
+<script src="shared/moku-gate.js?v=20261126c"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Moku Kata-Kata</title>
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<!--
+  Moku Kata-Kata(v0.1.0、2026-11-26)— 棚「Live in ASIA」の第6弾。保護者の案:
+  「マレーシアにいるので、9歳くらいの子が知っておくとよい単語を、絵を出してマレーシア語の四択から選ぶ簡単なクイズ。最初は200問くらい」。
+  kata-kata = ことば。絵(絵文字)を見て、マレーシアのマレー語(Bahasa Melayu)の4つから選ぶ。
+  - 🎯 Quick Quiz: 10問。まだ覚えていない語・まちがえた語を先に出す。
+  - 🗂 Topics: 12 のテーマ(動物・食べ物・からだと気持ち…)から選んで 10問。
+  - 📗 Word Book: 覚えた語が集まる。押すと発音(端末にマレー語の声があれば)。
+  ほかの3つの選択肢は同じテーマから出す(「ねこ」の絵に「いぬ・とり・さかな」が並ぶので、絵だけで当てられない)。
+  答えると英語の意味と発音。言葉はマレーシアの言い方(kereta / basikal / teksi …。インドネシア語ではない)。
+  ほかの言い方がある語は also に書く(oren = jingga など)。
+  単語は下の WORDS。id はセーブのキーなので変えない。同じテーマの中で絵(絵文字)が重ならないこと・
+  1つの絵に2つの答えが当てはまらないこと(ねこの絵に「kucing」と「anak kucing」など)。数を変えたら hub.html の MKK_TOTAL もそろえる。
+  Moint: 正解 +5(1回で最大 50)、10問全部 +20(1日 500 の上限の中)。1回きり = テーマの語を全部覚えた +50、全部 +300。
+  記録は moku:moku-kata:progress、音は moku:moku-kata:settings。
+-->
+<style>
+:root {
+  --hi: #2FA37A; --lo: #0F4A35;               /* ジェード(パンダンのお菓子の緑) */
+  --ink: #3B2A20; --ink-soft: #8B6E57;
+  --paper: #FFF7E8; --paper2: #F7EBDD;
+  --wood: #7A4A2C; --wood-dark: #4E2C17; --line: #5A3A22;
+  --ok: #3E9B5A; --no: #E0607E;
+  --round: "Fredoka", -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { background: #F3DCC6; color: var(--ink); font-family: -apple-system, "Segoe UI", Roboto, sans-serif; overflow: hidden;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; touch-action: manipulation; }
+#hub-link { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 16px); right: calc(env(safe-area-inset-right, 0px) + 16px);
+  z-index: 41; font-size: 14px; font-weight: 800; color: var(--lo); text-decoration: none; text-shadow: 0 1px 0 rgba(255,255,255,0.6);
+  animation: hubLinkPulse 2.2s ease-in-out infinite; }
+@keyframes hubLinkPulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+#buildInfo { position: fixed; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); left: calc(env(safe-area-inset-left, 0px) + 18px);
+  z-index: 41; font-size: 10.5px; letter-spacing: 0.02em; color: rgba(255,255,255,0.28); text-shadow: 0 0 1px rgba(90,58,34,0.5); pointer-events: none; }
+body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo,
+body:not(.on-title) #titleScreen, body:not(.on-title) #soundBtn { display: none; }
+body.on-title #playScreen { display: none; }
+#soundBtn { position: fixed; z-index: 41; top: calc(env(safe-area-inset-top, 0px) + 12px); left: calc(env(safe-area-inset-left, 0px) + 22px);
+  width: 36px; height: 36px; border-radius: 50%; background: rgba(255,247,232,0.85); border: 2px solid rgba(90,58,34,0.3); font-size: 17px; }
+
+/* title */
+#titleScreen { position: fixed; inset: 0; overflow: hidden; background: linear-gradient(#FBE3C6, #EFD0A8 55%, #A9D6B4); }
+.bgw { position: absolute; font-size: 44px; opacity: 0.5; animation: drift 7s ease-in-out infinite; }
+@keyframes drift { 0%, 100% { transform: translateY(0) rotate(-8deg); } 50% { transform: translateY(-14px) rotate(8deg); } }
+#titleInner { position: absolute; inset: 0; display: flex; align-items: flex-start; justify-content: center; overflow-y: auto;
+  padding: calc(env(safe-area-inset-top, 0px) + 44px) 28px calc(env(safe-area-inset-bottom, 0px) + 36px); }
+#titleCard { margin: auto; position: relative; width: min(420px, 100%); background: var(--paper); border-radius: 18px; border: 3px solid var(--line);
+  box-shadow: 0 10px 0 rgba(90,58,34,0.25), 0 18px 40px rgba(90,58,34,0.25); padding: 16px 18px; text-align: center; }
+#titleHero { position: relative; width: 112px; height: 112px; margin: 0 auto; animation: heroFloat 3.2s ease-in-out infinite; }
+#titleHero img, #titleHero svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#titleHero img { object-fit: cover; object-position: center 30%; filter: drop-shadow(0 4px 8px rgba(15,74,53,0.35)); }
+@keyframes heroFloat { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-7px) rotate(2deg); } }
+.tag { position: absolute; top: 38px; padding: 4px 10px; border-radius: 10px; border: 3px solid var(--line); font: 700 15px var(--round); color: #fff;
+  box-shadow: 0 3px 0 rgba(0,0,0,0.2); background: var(--hi); animation: wave 1.6s ease-in-out infinite; }
+.tag.l { left: 4%; } .tag.r { right: 4%; animation-delay: -0.8s; background: #E8A23A; }
+@keyframes wave { 0%, 100% { transform: rotate(-10deg); } 50% { transform: rotate(10deg); } }
+#titleLogo { font: 700 34px/1.05 var(--round); color: var(--lo); margin-top: 6px; }
+#titleLogo span { color: var(--hi); }
+#titleSub { font: 600 12.5px var(--round); color: var(--ink-soft); letter-spacing: 0.14em; margin-top: 6px; text-transform: uppercase; }
+#titleMenu { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 10px; }
+.titleMenuItem { width: 100%; max-width: 300px; font-size: 19px; font-weight: 800; padding: 8px 18px; border-radius: 14px; background: #fff;
+  border: 2px solid rgba(90,58,34,0.25); color: var(--ink); display: flex; align-items: center; gap: 10px; text-align: left; transition: transform 0.12s; }
+.titleMenuItem .ic { font-size: 22px; width: 28px; text-align: center; }
+.titleMenuItem small { display: block; font-size: 11.5px; font-weight: 600; color: var(--ink-soft); margin-top: 1px; }
+.titleMenuItem.primary { background: var(--hi); border-color: var(--lo); color: #fff; box-shadow: 0 4px 0 var(--lo); }
+.titleMenuItem.primary small { color: rgba(255,255,255,0.9); }
+.titleMenuItem:active { transform: translateY(2px) scale(0.98); }
+#titleMoints { margin-top: 10px; font-size: 12.5px; font-weight: 700; color: var(--ink-soft); display: flex; align-items: center; justify-content: center; gap: 6px; }
+.mcoin { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #FFF2A8, #F2C230 55%, #C9901A); border: 1.5px solid #9A6A10; color: #7A4E00; font: 800 9.5px/1 var(--round); }
+@media (orientation: landscape) and (max-height: 560px) {
+  #titleInner { padding-top: calc(env(safe-area-inset-top, 0px) + 30px); padding-bottom: 20px; }
+  #titleCard { width: min(660px, 100%); display: grid; grid-template-columns: 210px 1fr; column-gap: 14px; align-items: center; padding: 12px 14px; }
+  #titleHead { grid-row: 1 / 3; position: relative; }
+  #titleHero { width: 96px; height: 96px; }
+  #titleLogo { font-size: 28px; }
+  #titleMenu, #titleMoints { grid-column: 2; }
+  #titleMenu { margin-top: 0; }
+}
+#titleHead { position: relative; }
+
+/* play */
+#playScreen { position: fixed; inset: 0; display: flex; flex-direction: column; background: var(--paper2); }
+#topbar { flex: none; display: flex; align-items: center; gap: 8px;
+  padding: calc(env(safe-area-inset-top, 0px) + 6px) calc(env(safe-area-inset-right, 0px) + 12px) 6px calc(env(safe-area-inset-left, 0px) + 10px);
+  background: linear-gradient(#8A5634, var(--wood)); border-bottom: 3px solid var(--wood-dark); color: #FFF4E0; }
+#menuBtn { padding: 6px 12px; border-radius: 10px; background: rgba(255,255,255,0.14); font-weight: 800; font-size: 14px; }
+#modeTitle { flex: 1; font: 700 17px var(--round); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#topInfo { font-weight: 800; font-size: 14px; white-space: nowrap; }
+#main { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 14px calc(env(safe-area-inset-right, 0px) + 14px) calc(env(safe-area-inset-bottom, 0px) + 18px) calc(env(safe-area-inset-left, 0px) + 14px); }
+#inner { max-width: 560px; margin: 0 auto; }
+.card { background: var(--paper); border: 2.5px solid var(--line); border-radius: 16px; padding: 14px; box-shadow: 0 5px 0 rgba(90,58,34,0.18); }
+.enter { animation: cardIn 0.4s cubic-bezier(.2,1.3,.5,1) both; }
+@keyframes cardIn { from { transform: translateY(16px) rotate(-1deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.dots { display: flex; justify-content: center; gap: 5px; margin-bottom: 8px; }
+.dots i { width: 10px; height: 10px; border-radius: 50%; background: #E3D3B8; }
+.dots i.ok { background: var(--ok); } .dots i.no { background: var(--no); } .dots i.now { background: var(--hi); }
+.topic { text-align: center; font: 700 12.5px var(--round); color: var(--ink-soft); letter-spacing: 0.06em; text-transform: uppercase; }
+.pic { width: 150px; height: 150px; margin: 8px auto 4px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #FFFFFF, #F4E8D3);
+  border: 3px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 86px; line-height: 1;
+  box-shadow: inset 0 -6px 0 rgba(90,58,34,0.08); }
+.pic.pop { animation: pop 0.45s cubic-bezier(.2,1.6,.5,1) both; }
+/* ときどき絵の中に Moku(着せ替えた姿)。peek = 右上から絵の後ろでのぞく / sit = 左下の前に座る / side = 左から絵の後ろでのぞく */
+.picWrap { position: relative; width: 150px; margin: 8px auto 4px; }
+.picWrap .pic { position: relative; z-index: 1; margin: 0; }
+.pm { position: absolute; width: 70px; height: 70px; z-index: 0; pointer-events: none; }
+.pm img, .pm svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.pm img { object-fit: cover; object-position: center 30%; filter: drop-shadow(0 3px 4px rgba(90,58,34,0.3)); }
+.pm.peek { right: -34px; top: -8px; transform: rotate(18deg); animation: pmPeek 0.7s 0.25s cubic-bezier(.2,1.5,.5,1) both; }
+.pm.side { left: -42px; top: 34px; transform: rotate(-22deg); animation: pmSide 0.7s 0.25s cubic-bezier(.2,1.5,.5,1) both; }
+.pm.sit { left: -30px; bottom: -12px; width: 62px; height: 62px; z-index: 2; animation: pmSit 0.6s 0.2s cubic-bezier(.2,1.6,.5,1) both, pmBob 2.4s 0.8s ease-in-out infinite; }
+@keyframes pmPeek { from { transform: translate(-26px, 26px) rotate(18deg); opacity: 0; } to { transform: rotate(18deg); opacity: 1; } }
+@keyframes pmSide { from { transform: translateX(30px) rotate(-22deg); opacity: 0; } to { transform: rotate(-22deg); opacity: 1; } }
+@keyframes pmSit { from { transform: scale(0.3); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes pmBob { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-5px) rotate(3deg); } }
+.pm.still { animation: none; }
+.pm.sit.still { animation: pmBob 2.4s ease-in-out infinite; }
+.pm.cheer { animation: pmCheer 0.7s cubic-bezier(.2,1.6,.5,1) both; }
+.pm.peek.cheer { --r: 18deg; } .pm.side.cheer { --r: -22deg; } .pm.sit.cheer { --r: 0deg; }
+@keyframes pmCheer { 0% { transform: rotate(var(--r)); } 40% { transform: translateY(-16px) rotate(var(--r)) scale(1.08); } 100% { transform: rotate(var(--r)); } }
+@keyframes pop { from { transform: scale(0.6); } to { transform: none; } }
+.ask { text-align: center; font: 600 15px var(--round); color: var(--ink-soft); margin-top: 4px; }
+.choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.ch { min-height: 62px; padding: 10px 8px; border-radius: 14px; background: #fff; border: 2.5px solid rgba(90,58,34,0.28); box-shadow: 0 4px 0 rgba(90,58,34,0.18);
+  font: 700 21px/1.15 var(--round); color: var(--ink); }
+.ch:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 rgba(90,58,34,0.18); }
+.ch.right { background: var(--ok); color: #fff; border-color: #2A6E3E; }
+.ch.wrong { background: var(--no); color: #fff; border-color: #A33B53; }
+.ch.dim { opacity: 0.45; }
+.verdict { margin-top: 14px; padding: 12px; border-radius: 14px; animation: cardIn 0.35s ease-out both; display: flex; align-items: center; gap: 10px; }
+.verdict.ok { background: #EAF7E6; border: 2px solid rgba(62,155,90,0.45); }
+.verdict.no { background: #FDECEF; border: 2px solid rgba(224,96,126,0.45); }
+.verdict .t { flex: 1; min-width: 0; }
+.verdict .t b { font: 700 22px var(--round); color: var(--lo); }
+.verdict .t .en { font-size: 15px; font-weight: 700; color: var(--ink); }
+.verdict .t .also { display: block; font-size: 12.5px; font-weight: 600; color: var(--ink-soft); margin-top: 2px; }
+.verdict .t .head { display: block; font: 700 15px var(--round); margin-bottom: 2px; }
+.say { flex: none; width: 46px; height: 46px; border-radius: 50%; background: var(--hi); color: #fff; font-size: 20px; border: 2px solid var(--lo); box-shadow: 0 3px 0 var(--lo); }
+.say:active { transform: translateY(2px); box-shadow: none; }
+.row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.btn { flex: 1; min-width: 120px; padding: 11px 14px; border-radius: 12px; font-weight: 800; font-size: 15.5px; background: #fff;
+  border: 2px solid rgba(90,58,34,0.3); box-shadow: 0 3px 0 rgba(90,58,34,0.2); }
+.btn.primary { background: var(--hi); color: #fff; border-color: var(--lo); box-shadow: 0 3px 0 var(--lo); }
+.btn:active { transform: translateY(2px); box-shadow: none; }
+.tip { margin-top: 8px; font-size: 12.5px; color: var(--ink-soft); font-weight: 600; text-align: center; }
+.h { font: 700 21px var(--round); color: var(--lo); }
+.sub { font-size: 13px; color: var(--ink-soft); font-weight: 700; margin-top: 2px; }
+.bigNum { font: 700 30px var(--round); color: var(--lo); text-align: center; margin-top: 6px; }
+.host { display: flex; align-items: flex-start; gap: 10px; }
+.av { position: relative; width: 58px; height: 58px; flex: none; }
+.av img, .av svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.av img { object-fit: cover; object-position: center 30%; }
+.bub { position: relative; flex: 1; background: #fff; border: 2.5px solid var(--line); border-radius: 14px; padding: 10px 12px; }
+.bub::before { content: ''; position: absolute; left: -10px; top: 18px; border: 8px solid transparent; border-right-color: var(--line); border-left: 0; }
+.moints { margin-top: 10px; background: #FFF6DA; border: 2px solid #E0B85A; border-radius: 12px; padding: 10px 12px; font-size: 14px; font-weight: 700; }
+.moints div { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; }
+.moints .tot { border-top: 1.5px dashed #E0B85A; margin-top: 4px; padding-top: 6px; font-size: 16px; font-weight: 800; color: #7A5200; }
+.review { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.rw { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: #fff; border: 2px solid rgba(90,58,34,0.12); text-align: left; width: 100%; }
+.rw .e { font-size: 30px; width: 40px; text-align: center; }
+.rw b { font: 700 18px var(--round); color: var(--lo); }
+.rw span { font-size: 14px; font-weight: 700; color: var(--ink-soft); }
+/* topics & book */
+.tgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 10px; }
+.tbtn { display: flex; align-items: center; gap: 8px; padding: 10px; border-radius: 12px; background: #fff; border: 2px solid rgba(90,58,34,0.2); text-align: left; font: 700 15px/1.15 var(--round); }
+.tbtn .e { font-size: 28px; flex: none; }
+.tbtn small { display: block; font-size: 11.5px; color: var(--ink-soft); margin-top: 2px; }
+.tbtn.on { border-color: var(--hi); background: #E9F6EF; }
+.tbtn.done small { color: var(--ok); }
+.bar { height: 6px; border-radius: 3px; background: #EADBC2; margin-top: 4px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--hi); }
+.chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; margin-top: 10px; }
+.chip { display: flex; align-items: center; gap: 5px; padding: 6px 8px; border-radius: 10px; background: #fff; border: 2px solid rgba(90,58,34,0.2); font: 700 13.5px var(--round); text-align: left; }
+.chip .e { font-size: 20px; flex: none; } .chip small { display: block; font-size: 11px; color: var(--ink-soft); line-height: 1.1; }
+.chip.on { border-color: var(--hi); background: #E9F6EF; }
+.wgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(98px, 1fr)); gap: 8px; margin-top: 12px; }
+.wc { padding: 8px 4px; border-radius: 12px; background: #fff; border: 2px solid rgba(90,58,34,0.15); text-align: center; }
+.wc .e { font-size: 34px; line-height: 1.1; }
+.wc b { display: block; font: 700 15px/1.15 var(--round); color: var(--lo); margin-top: 3px; }
+.wc span { display: block; font-size: 11.5px; font-weight: 700; color: var(--ink-soft); }
+.wc.locked { background: repeating-linear-gradient(-45deg, #F6EBD8 0 8px, #FBF3E5 8px 16px); }
+.wc.locked .e { filter: grayscale(1) brightness(1.3); opacity: 0.35; }
+.wc.locked b { color: #B9A88E; }
+@media (prefers-reduced-motion: reduce) { #titleHero, .tag, .bgw, .pm { animation: none !important; } }
+</style>
+</head>
+<body class="on-title">
+<script src="shared/moku-account.js?v=20261126c" data-mode="background"></script>
+<script src="shared/moku-moint.js?v=20261126c" data-mode="none"></script>
+
+<style>/* 外枠(#title-frame)は出さない(2026-11-26、保護者の声。SPEC.md §4) */ #title-frame { display: none !important; }</style>
+<div id="title-frame"></div>
+<a id="hub-link" href="hub.html">🦉 Home ▶</a>
+<div id="buildInfo">v0.1.0 · Updated Nov 26, 2026</div>
+<button id="soundBtn" aria-label="Sound">🔊</button>
+
+<div id="titleScreen">
+  <span class="bgw" style="left:6%;top:12%">🐱</span><span class="bgw" style="right:8%;top:26%;animation-delay:-2s">🍌</span>
+  <span class="bgw" style="left:10%;bottom:14%;animation-delay:-4s">🚲</span><span class="bgw" style="right:12%;bottom:20%;animation-delay:-1s">🌈</span>
+  <div id="titleInner">
+    <div id="titleCard">
+      <div id="titleHead">
+        <span class="tag l">Apa ini?</span><span class="tag r">Betul!</span>
+        <div id="titleHero"><img src="brand/mokumoku-hero.png" alt="Moku"><span id="titleOutfit"></span></div>
+        <div id="titleLogo">Moku <span>Kata-Kata</span></div>
+        <div id="titleSub">Live in Asia · Malay words</div>
+      </div>
+      <div id="titleMenu">
+        <button class="titleMenuItem primary" id="goQuiz"><span class="ic">🎯</span><span>Quick Quiz<small>See a picture. Pick the Malay word!</small></span></button>
+        <button class="titleMenuItem" id="goTopics"><span class="ic">🗂</span><span>Topics<small>Animals, food, colors and more</small></span></button>
+        <button class="titleMenuItem" id="goBook"><span class="ic">📗</span><span>Word Book<small id="bookCount">0 words</small></span></button>
+      </div>
+      <div id="titleMoints"><span class="mcoin">M</span><span id="titleBal">0</span><span id="titleToday"></span></div>
+    </div>
+  </div>
+</div>
+
+<div id="playScreen">
+  <div id="topbar"><button id="menuBtn">◀ Menu</button><div id="modeTitle"></div><div id="topInfo"></div></div>
+  <div id="main"><div id="inner"></div></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var GAME_ID = 'moku-kata';
+  var SAVE_KEY = 'moku:' + GAME_ID + ':progress', SET_KEY = 'moku:' + GAME_ID + ':settings';
+  var $ = function (id) { return document.getElementById(id); };
+  function readJSON(k) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+  function writeJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+
+  // =====================================================================
+  // テーマ(id はセーブのキー)
+  // =====================================================================
+  var TOPICS = [
+    { id: 'animals', short: 'Animals', name: 'Animals',            ms: 'Haiwan',      em: '🐯' },
+    { id: 'food', short: 'Food',    name: 'Food & Drinks',      ms: 'Makanan',     em: '🍚' },
+    { id: 'fruit', short: 'Fruits',   name: 'Fruits & Veggies',   ms: 'Buah & Sayur', em: '🍌' },
+    { id: 'body', short: 'Body',    name: 'Body & Feelings',    ms: 'Badan',       em: '👂' },
+    { id: 'people', short: 'People',  name: 'People',             ms: 'Orang',       em: '👵' },
+    { id: 'home', short: 'Home',    name: 'Home & School',      ms: 'Rumah & Sekolah', em: '🎒' },
+    { id: 'clothes', short: 'Clothes', name: 'Clothes',            ms: 'Pakaian',     em: '👕' },
+    { id: 'nature', short: 'Nature',  name: 'Nature & Places',    ms: 'Alam',        em: '🌈' },
+    { id: 'go', short: 'Travel',      name: 'Getting Around',     ms: 'Pengangkutan', em: '🚌' },
+    { id: 'colors', short: 'Colors',  name: 'Colors',             ms: 'Warna',       em: '🎨' },
+    { id: 'numbers', short: 'Numbers', name: 'Numbers',            ms: 'Nombor',      em: '🔢' },
+    { id: 'do', short: 'Actions',      name: 'Actions & Play',     ms: 'Aksi',        em: '🏸' }
+  ];
+  var TOPIC = {}; TOPICS.forEach(function (t) { TOPIC[t.id] = t; });
+
+  // =====================================================================
+  // 単語(マレーシアのマレー語)。[id, マレー語, 英語, 絵文字, ほかの言い方(なければ省く)]
+  // id はセーブのキーなので変えない。同じテーマの中で絵が重ならないように。
+  // =====================================================================
+  var RAW = {
+    animals: [
+      ['cat', 'kucing', 'cat', '🐱'], ['dog', 'anjing', 'dog', '🐶'], ['fish', 'ikan', 'fish', '🐟'], ['bird', 'burung', 'bird', '🐦'],
+      ['chicken', 'ayam', 'chicken', '🐔'], ['duck', 'itik', 'duck', '🦆'], ['cow', 'lembu', 'cow', '🐄'], ['goat', 'kambing', 'goat', '🐐'],
+      ['horse', 'kuda', 'horse', '🐴'], ['tiger', 'harimau', 'tiger', '🐯'], ['elephant', 'gajah', 'elephant', '🐘'], ['monkey', 'monyet', 'monkey', '🐒'],
+      ['snake', 'ular', 'snake', '🐍'], ['turtle', 'kura-kura', 'turtle', '🐢'], ['rabbit', 'arnab', 'rabbit', '🐰'], ['mouse', 'tikus', 'mouse', '🐭'],
+      ['butterfly', 'rama-rama', 'butterfly', '🦋'], ['bee', 'lebah', 'bee', '🐝'], ['frog', 'katak', 'frog', '🐸'], ['crocodile', 'buaya', 'crocodile', '🐊'],
+      ['owl', 'burung hantu', 'owl', '🦉'], ['crab', 'ketam', 'crab', '🦀']
+    ],
+    food: [
+      ['rice', 'nasi', 'rice', '🍚'], ['bread', 'roti', 'bread', '🍞'], ['egg', 'telur', 'egg', '🥚'], ['water', 'air', 'water', '💧'],
+      ['milk', 'susu', 'milk', '🥛'], ['coffee', 'kopi', 'coffee', '☕'], ['tea', 'teh', 'tea', '🍵'], ['noodles', 'mi', 'noodles', '🍜', 'also: mee'],
+      ['cake', 'kek', 'cake', '🎂'], ['icecream', 'aiskrim', 'ice cream', '🍦'], ['sweets', 'gula-gula', 'sweets / candy', '🍬'], ['chocolate', 'coklat', 'chocolate', '🍫'],
+      ['soup', 'sup', 'soup', '🍲'], ['friedchicken', 'ayam goreng', 'fried chicken', '🍗'], ['biscuit', 'biskut', 'biscuit / cookie', '🍪'], ['cheese', 'keju', 'cheese', '🧀'],
+      ['fries', 'kentang goreng', 'French fries', '🍟'], ['honey', 'madu', 'honey', '🍯'], ['salt', 'garam', 'salt', '🧂'], ['donut', 'donat', 'doughnut', '🍩']
+    ],
+    fruit: [
+      ['banana', 'pisang', 'banana', '🍌'], ['apple', 'epal', 'apple', '🍎'], ['orange', 'oren', 'orange', '🍊'], ['watermelon', 'tembikai', 'watermelon', '🍉'],
+      ['pineapple', 'nanas', 'pineapple', '🍍'], ['mango', 'mangga', 'mango', '🥭'], ['grapes', 'anggur', 'grapes', '🍇'], ['coconut', 'kelapa', 'coconut', '🥥'],
+      ['strawberry', 'strawberi', 'strawberry', '🍓'], ['cherry', 'ceri', 'cherry', '🍒'], ['pear', 'pir', 'pear', '🍐'], ['tomato', 'tomato', 'tomato', '🍅'],
+      ['carrot', 'lobak merah', 'carrot', '🥕'], ['potato', 'kentang', 'potato', '🥔'], ['chili', 'cili', 'chili', '🌶️'], ['onion', 'bawang', 'onion', '🧅'],
+      ['cucumber', 'timun', 'cucumber', '🥒'], ['mushroom', 'cendawan', 'mushroom', '🍄'], ['corn', 'jagung', 'corn', '🌽'], ['broccoli', 'brokoli', 'broccoli', '🥦']
+    ],
+    body: [
+      ['eye', 'mata', 'eye', '👁️'], ['ear', 'telinga', 'ear', '👂'], ['nose', 'hidung', 'nose', '👃'], ['mouth', 'mulut', 'mouth', '👄'],
+      ['tooth', 'gigi', 'tooth / teeth', '🦷'], ['hand', 'tangan', 'hand', '✋'], ['foot', 'kaki', 'foot / leg', '🦶'], ['tongue', 'lidah', 'tongue', '👅'],
+      ['brain', 'otak', 'brain', '🧠'], ['thumb', 'ibu jari', 'thumb', '👍'],
+      ['happy', 'gembira', 'happy', '😄'], ['sad', 'sedih', 'sad', '😢'], ['angry', 'marah', 'angry', '😠'], ['scared', 'takut', 'scared', '😨'],
+      ['sleepy', 'mengantuk', 'sleepy', '😪'], ['sick', 'sakit', 'sick', '🤒'], ['cold', 'sejuk', 'cold', '🥶'], ['hot', 'panas', 'hot', '🥵'],
+      ['love', 'sayang', 'love', '❤️'], ['strong', 'kuat', 'strong', '💪']
+    ],
+    people: [
+      ['baby', 'bayi', 'baby', '👶'], ['boy', 'budak lelaki', 'boy', '👦'], ['girl', 'budak perempuan', 'girl', '👧'], ['grandpa', 'datuk', 'grandpa', '👴', 'also: atuk'],
+      ['grandma', 'nenek', 'grandma', '👵'], ['family', 'keluarga', 'family', '👨‍👩‍👧'], ['teacher', 'guru', 'teacher', '🧑‍🏫', 'also: cikgu'], ['doctor', 'doktor', 'doctor', '🧑‍⚕️'],
+      ['police', 'polis', 'police officer', '👮'], ['firefighter', 'ahli bomba', 'firefighter', '🧑‍🚒'], ['cook', 'tukang masak', 'cook / chef', '🧑‍🍳'], ['farmer', 'petani', 'farmer', '🧑‍🌾'],
+      ['pilot', 'juruterbang', 'pilot', '🧑‍✈️'], ['king', 'raja', 'king', '🤴']
+    ],
+    home: [
+      ['house', 'rumah', 'house', '🏠'], ['door', 'pintu', 'door', '🚪'], ['bed', 'katil', 'bed', '🛏️'], ['chair', 'kerusi', 'chair', '🪑'],
+      ['book', 'buku', 'book', '📖'], ['pencil', 'pensel', 'pencil', '✏️'], ['schoolbag', 'beg sekolah', 'school bag', '🎒'], ['scissors', 'gunting', 'scissors', '✂️'],
+      ['ruler', 'pembaris', 'ruler', '📏'], ['clock', 'jam', 'clock', '🕐'], ['key', 'kunci', 'key', '🔑'], ['lamp', 'lampu', 'lamp / light', '💡'],
+      ['phone', 'telefon', 'phone', '📱'], ['computer', 'komputer', 'computer', '💻'], ['tv', 'televisyen', 'TV', '📺', 'also: TV'], ['spoon', 'sudu', 'spoon', '🥄'],
+      ['soap', 'sabun', 'soap', '🧼'], ['toothbrush', 'berus gigi', 'toothbrush', '🪥'], ['umbrella', 'payung', 'umbrella', '☂️'], ['school', 'sekolah', 'school', '🏫'],
+      ['present', 'hadiah', 'present / gift', '🎁'], ['balloon', 'belon', 'balloon', '🎈']
+    ],
+    clothes: [
+      ['shirt', 'baju', 'shirt / T-shirt', '👕'], ['trousers', 'seluar', 'trousers / pants', '👖'], ['shoes', 'kasut', 'shoes', '👟'], ['cap', 'topi', 'cap / hat', '🧢'],
+      ['socks', 'stokin', 'socks', '🧦'], ['dress', 'gaun', 'dress', '👗'], ['glasses', 'cermin mata', 'glasses', '👓'], ['watch', 'jam tangan', 'watch', '⌚'],
+      ['gloves', 'sarung tangan', 'gloves', '🧤'], ['dressshirt', 'kemeja', 'shirt with a collar', '👔'], ['crown', 'mahkota', 'crown', '👑'], ['ring', 'cincin', 'ring', '💍']
+    ],
+    nature: [
+      ['sun', 'matahari', 'sun', '☀️'], ['moon', 'bulan', 'moon', '🌙'], ['star', 'bintang', 'star', '⭐'], ['cloud', 'awan', 'cloud', '☁️'],
+      ['rain', 'hujan', 'rain', '🌧️'], ['rainbow', 'pelangi', 'rainbow', '🌈'], ['mountain', 'gunung', 'mountain', '⛰️'], ['sea', 'laut', 'sea', '🌊'],
+      ['beach', 'pantai', 'beach', '🏖️'], ['tree', 'pokok', 'tree', '🌳'], ['flower', 'bunga', 'flower', '🌸'], ['leaf', 'daun', 'leaf', '🍃'],
+      ['fire', 'api', 'fire', '🔥'], ['snow', 'salji', 'snow', '❄️'], ['lightning', 'kilat', 'lightning', '⚡'], ['island', 'pulau', 'island', '🏝️'],
+      ['volcano', 'gunung berapi', 'volcano', '🌋'], ['earth', 'bumi', 'Earth', '🌍'], ['hospital', 'hospital', 'hospital', '🏥'], ['shop', 'kedai', 'shop', '🏪'],
+      ['palace', 'istana', 'palace / castle', '🏰']
+    ],
+    go: [
+      ['car', 'kereta', 'car', '🚗'], ['bus', 'bas', 'bus', '🚌'], ['bicycle', 'basikal', 'bicycle', '🚲'], ['motorcycle', 'motosikal', 'motorcycle', '🏍️'],
+      ['airplane', 'kapal terbang', 'airplane', '✈️'], ['ship', 'kapal', 'ship', '🚢'], ['boat', 'bot', 'boat', '🚤'], ['train', 'kereta api', 'train', '🚆', 'also: tren'],
+      ['taxi', 'teksi', 'taxi', '🚕'], ['lorry', 'lori', 'lorry / truck', '🚚'], ['helicopter', 'helikopter', 'helicopter', '🚁'], ['rocket', 'roket', 'rocket', '🚀'],
+      ['firetruck', 'kereta bomba', 'fire engine', '🚒'], ['ambulance', 'ambulans', 'ambulance', '🚑'], ['cablecar', 'kereta kabel', 'cable car', '🚡']
+    ],
+    colors: [
+      ['red', 'merah', 'red', '🔴'], ['blue', 'biru', 'blue', '🔵'], ['yellow', 'kuning', 'yellow', '🟡'], ['green', 'hijau', 'green', '🟢'],
+      ['black', 'hitam', 'black', '⚫'], ['white', 'putih', 'white', '⚪'], ['orangec', 'oren', 'orange', '🟠', 'also: jingga'], ['purple', 'ungu', 'purple', '🟣'],
+      ['brown', 'coklat', 'brown', '🟤']
+    ],
+    numbers: [
+      ['n1', 'satu', 'one', '1️⃣'], ['n2', 'dua', 'two', '2️⃣'], ['n3', 'tiga', 'three', '3️⃣'], ['n4', 'empat', 'four', '4️⃣'], ['n5', 'lima', 'five', '5️⃣'],
+      ['n6', 'enam', 'six', '6️⃣'], ['n7', 'tujuh', 'seven', '7️⃣'], ['n8', 'lapan', 'eight', '8️⃣'], ['n9', 'sembilan', 'nine', '9️⃣'], ['n10', 'sepuluh', 'ten', '🔟']
+    ],
+    'do': [
+      ['sleep', 'tidur', 'sleep', '🛌'], ['run', 'berlari', 'run', '🏃'], ['swim', 'berenang', 'swim', '🏊'], ['write', 'menulis', 'write', '✍️'],
+      ['dance', 'menari', 'dance', '💃'], ['sing', 'menyanyi', 'sing', '🎤'], ['walk', 'berjalan', 'walk', '🚶'], ['shower', 'mandi', 'take a bath / shower', '🚿'],
+      ['fish2', 'memancing', 'go fishing', '🎣'], ['cycle', 'berbasikal', 'ride a bicycle', '🚴'], ['draw', 'melukis', 'draw / paint', '🎨'], ['clap', 'bertepuk tangan', 'clap your hands', '👏'],
+      ['football', 'bola sepak', 'football', '⚽'], ['badminton', 'badminton', 'badminton', '🏸'], ['kite', 'layang-layang', 'kite', '🪁', 'also: wau (a Malaysian kite)']
+    ]
+  };
+  var WORDS = [], BY_ID = {};
+  TOPICS.forEach(function (t) {
+    RAW[t.id].forEach(function (w) {
+      var o = { id: w[0], ms: w[1], en: w[2], em: w[3], also: w[4] || '', t: t.id };
+      WORDS.push(o); BY_ID[o.id] = o;
+    });
+  });
+  // 開発用: 同じテーマの中で絵・答えが重なっていないか
+  (function () {
+    TOPICS.forEach(function (t) {
+      var seenE = {}, seenM = {};
+      RAW[t.id].forEach(function (w) {
+        if (seenE[w[3]] || seenM[w[1]]) console.warn('[moku-kata] duplicate in ' + t.id + ': ' + w[1] + ' ' + w[3]);
+        seenE[w[3]] = 1; seenM[w[1]] = 1;
+      });
+    });
+    if (Object.keys(BY_ID).length !== WORDS.length) console.warn('[moku-kata] duplicate ids');
+  })();
+
+  // ---------- save / settings / Moint / sound ----------
+  function loadProgress() {
+    var p = readJSON(SAVE_KEY);
+    if (!p || p.version !== 1) p = {};
+    return { version: 1, gameId: GAME_ID, words: p.words || {}, quizzes: p.quizzes | 0, best: p.best | 0, perfect: p.perfect | 0,
+      correct: p.correct | 0, played: p.played | 0, mointClaims: p.mointClaims || {}, learned: p.learned | 0, total: WORDS.length, updatedAt: p.updatedAt || null };
+  }
+  var progress = loadProgress();
+  function isLearned(id) { var w = progress.words[id]; return !!(w && w.r > 0); }
+  function learnedCount(topicId) { return WORDS.filter(function (w) { return (!topicId || w.t === topicId) && isLearned(w.id); }).length; }
+  function topicSize(topicId) { return RAW[topicId].length; }
+  function save() {
+    progress.learned = learnedCount(); progress.total = WORDS.length;   // ハブ用(Word Book の数)
+    progress.updatedAt = new Date().toISOString(); writeJSON(SAVE_KEY, progress);
+  }
+  var settings = readJSON(SET_KEY) || {};
+  if (settings.sound === undefined) settings.sound = true;
+  function saveSettings() { writeJSON(SET_KEY, settings); }
+
+  function balance() { if (window.MokuMoint) return MokuMoint.balance(); var w = readJSON('moku:moint:wallet'); return w && w.balance > 0 ? w.balance : 0; }
+  function earn(n, capped) {
+    if (!n) return 0;
+    if (window.MokuMoint) return MokuMoint.earn(GAME_ID, n, capped === false ? { capped: false } : undefined);
+    writeJSON('moku:moint:wallet', { version: 1, balance: Math.max(0, balance() + n), updatedAt: new Date().toISOString() });
+    return n;
+  }
+  function earnedToday() { return window.MokuMoint ? MokuMoint.earnedToday(GAME_ID) : 0; }
+  function dailyCap() { return window.MokuMoint ? MokuMoint.DAILY_GAME_CAP : 500; }
+  function mointBox(lines) {
+    var got = lines.filter(function (l) { return l[1] > 0; });
+    if (!got.length) return '';
+    var tot = got.reduce(function (a, l) { return a + l[1]; }, 0);
+    return '<div class="moints">' + got.map(function (l) { return '<div><span>' + esc(l[0]) + '</span><span>+' + l[1] + '</span></div>'; }).join('') +
+      '<div class="tot"><span><span class="mcoin">M</span> Moints</span><span>+' + tot + '</span></div>' +
+      '<div style="font-size:12px;color:#9A7420;justify-content:flex-start">Today: ' + earnedToday() + ' / ' + dailyCap() + '</div></div>';
+  }
+  var actx = null, gestured = false;
+  function audio() {
+    if (!settings.sound || !gestured) return null;
+    if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
+    if (actx.state === 'suspended') actx.resume();
+    return actx;
+  }
+  document.addEventListener('pointerdown', function () { gestured = true; if (settings.sound) audio(); }, { passive: true });
+  function tone(f, t0, dur, type, vol) {
+    var a = audio(); if (!a) return;
+    var o = a.createOscillator(), g = a.createGain(), t = a.currentTime + (t0 || 0);
+    o.type = type || 'sine'; o.frequency.setValueAtTime(f, t);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol || 0.15, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + dur + 0.05);
+  }
+  var sfx = {
+    tap: function () { tone(660, 0, 0.08, 'triangle', 0.08); },
+    good: function () { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, i * 0.08, 0.22, 'triangle', 0.13); }); },
+    bad: function () { tone(330, 0, 0.16, 'sine', 0.12); tone(262, 0.12, 0.22, 'sine', 0.12); },
+    fanfare: function () { [392, 523, 659, 784, 659, 784, 1047].forEach(function (f, i) { tone(f, i * 0.11, 0.25, 'triangle', 0.12); }); }
+  };
+  function syncSoundBtn() { $('soundBtn').textContent = settings.sound ? '🔊' : '🔇'; }
+  $('soundBtn').addEventListener('click', function () { settings.sound = !settings.sound; saveSettings(); syncSoundBtn(); if (settings.sound) sfx.tap(); });
+
+  // ---------- 発音(端末の読み上げ。マレー語の声がなければインドネシア語の声。どちらもなければボタンを出さない) ----------
+  var voice = null;
+  function findVoice() {
+    if (!('speechSynthesis' in window)) return null;
+    var vs = [];
+    try { vs = speechSynthesis.getVoices() || []; } catch (e) {}
+    var pick = function (re) { for (var i = 0; i < vs.length; i++) if (re.test((vs[i].lang || '').replace('_', '-'))) return vs[i]; return null; };
+    return pick(/^ms(-|$)/i) || pick(/^id(-|$)/i) || pick(/^in(-|$)/i);
+  }
+  voice = findVoice();
+  if ('speechSynthesis' in window) {
+    try { speechSynthesis.addEventListener('voiceschanged', function () { var had = !!voice; voice = findVoice(); if (!had && voice && !document.body.classList.contains('on-title')) redraw(); }); } catch (e) {}
+  }
+  function canSpeak() { return !!voice; }
+  function speak(text) {
+    if (!voice || !settings.sound) return;
+    try {
+      speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(text);
+      u.voice = voice; u.lang = voice.lang; u.rate = 0.85;
+      speechSynthesis.speak(u);
+    } catch (e) {}
+  }
+  function sayBtn(w) { return canSpeak() ? '<button class="say" data-say="' + esc(w.id) + '" aria-label="Say it">🔊</button>' : ''; }
+  function wireSay() {
+    inner.querySelectorAll('[data-say]').forEach(function (b) {
+      b.addEventListener('click', function (e) { e.stopPropagation(); var w = BY_ID[b.getAttribute('data-say')]; if (w) speak(w.ms); });
+    });
+  }
+
+  // ---------- screens ----------
+  var inner = $('inner'), fresh = false, redraw = function () {};
+  function setInner(h) {
+    inner.innerHTML = h;
+    if (fresh) { var c = inner.querySelector('.card'); if (c) c.classList.add('enter'); $('main').scrollTop = 0; }
+    fresh = false;
+    wireSay();
+  }
+  // ときどき(約3割)出題の絵に Moku が出る。フクロウ・鳥の問題では答えとまぎらわしいので出さない
+  var MOKU_ODDS = 0.32, NO_MOKU = { owl: 1, bird: 1 };
+  var FORCE_MOKU = (location.search.match(/[?&]moku=(peek|sit|side)\b/) || [])[1];   // 開発用: ?moku=sit で毎回その姿
+  function mokuPose(w) {
+    if (NO_MOKU[w.id]) return '';
+    if (FORCE_MOKU) return FORCE_MOKU;
+    return Math.random() < MOKU_ODDS ? ['peek', 'sit', 'side'][Math.floor(Math.random() * 3)] : '';
+  }
+  function mokuHTML(pose, extra) {
+    if (!pose) return '';
+    var o = '';
+    if (window.MokuMoint) { try { o = MokuMoint.outfitSVG(MokuMoint.closet().equipped); } catch (e) {} }
+    return '<span class="pm ' + pose + (extra || '') + '"><img src="brand/mokumoku-hero.png" alt="">' + o + '</span>';
+  }
+  function avatar() {
+    var o = '';
+    if (window.MokuMoint) { try { o = MokuMoint.outfitSVG(MokuMoint.closet().equipped); } catch (e) {} }
+    return '<span class="av"><img src="brand/mokumoku-hero.png" alt="">' + o + '</span>';
+  }
+  function showTitle() {
+    document.body.classList.add('on-title');
+    $('bookCount').textContent = learnedCount() + ' / ' + WORDS.length + ' words learned';
+    $('titleBal').textContent = Math.round(balance()).toLocaleString('en-US');
+    $('titleToday').textContent = '· Today ' + earnedToday() + ' / ' + dailyCap();
+    try { if (window.MokuMoint) $('titleOutfit').innerHTML = MokuMoint.outfitSVG(MokuMoint.closet().equipped); } catch (e) {}
+    redraw = function () {};
+  }
+  function showPlay(title) { document.body.classList.remove('on-title'); $('modeTitle').textContent = title; $('topInfo').textContent = ''; fresh = true; }
+  $('menuBtn').addEventListener('click', function () { sfx.tap(); try { speechSynthesis.cancel(); } catch (e) {} showTitle(); });
+
+  // 出す語: まちがえた語 → まだ見ていない語 → 覚えた語(正解の少ない順)。それぞれの中はシャッフル。
+  function pickWords(pool, n) {
+    var missed = [], unseen = [], known = [];
+    shuffle(pool).forEach(function (w) {
+      var s = progress.words[w.id];
+      if (!s) unseen.push(w); else if (!(s.r > 0) || s.lastWrong) missed.push(w); else known.push(w);
+    });
+    known.sort(function (a, b) { return progress.words[a.id].r - progress.words[b.id].r; });
+    // まちがえた語は最大3つ、残りは新しい語を優先
+    var out = missed.slice(0, 3);
+    unseen.concat(missed.slice(3), known).forEach(function (w) { if (out.length < n) out.push(w); });
+    return shuffle(out);
+  }
+  // ほかの3つ: 同じテーマから、答えと同じ綴り・同じ絵でないもの
+  function choicesFor(w) {
+    var others = shuffle(RAW[w.t].map(function (r) { return BY_ID[r[0]]; }).filter(function (x) { return x.id !== w.id && x.ms !== w.ms && x.em !== w.em; })).slice(0, 3);
+    return shuffle([w].concat(others));
+  }
+
+  // =====================================================================
+  // 🎯 Quiz(Quick Quiz と Topics は同じ流れ。topic があればそのテーマだけ)
+  // =====================================================================
+  var QUIZ_LEN = 10, quiz = null;
+  function startQuiz(topicId) {
+    progress.played++; save();
+    var pool = topicId ? WORDS.filter(function (w) { return w.t === topicId; }) : WORDS;
+    var list = pickWords(pool, Math.min(QUIZ_LEN, pool.length));
+    quiz = { topic: topicId || null, list: list, opts: list.map(choicesFor), moku: list.map(mokuPose), i: 0, res: [], picked: null };
+    showPlay(topicId ? TOPIC[topicId].em + ' ' + TOPIC[topicId].name : '🎯 Quick Quiz');
+    renderQuiz();
+  }
+  function renderQuiz() {
+    redraw = renderQuiz;
+    var w = quiz.list[quiz.i], opts = quiz.opts[quiz.i], n = quiz.list.length;
+    $('topInfo').textContent = (quiz.i + 1) + '/' + n + ' · ✓ ' + quiz.res.filter(Boolean).length;
+    var dots = '<div class="dots">' + quiz.list.map(function (x, i) { return '<i class="' + (i < quiz.res.length ? (quiz.res[i] ? 'ok' : 'no') : i === quiz.i ? 'now' : '') + '"></i>'; }).join('') + '</div>';
+    var h = '<div class="card">' + dots + '<div class="topic">' + TOPIC[w.t].em + ' ' + esc(TOPIC[w.t].name) + ' · ' + esc(TOPIC[w.t].ms) + '</div>' +
+      '<div class="picWrap">' + mokuHTML(quiz.moku[quiz.i], quiz.picked === null ? '' : quiz.res[quiz.i] ? ' cheer' : ' still') +
+      '<div class="pic' + (quiz.picked === null ? ' pop' : '') + '">' + w.em + '</div></div>' +
+      '<div class="ask">' + (quiz.picked === null ? 'Apa ini? <span style="opacity:.7">(What is this?)</span>' : '&nbsp;') + '</div><div class="choices">';
+    opts.forEach(function (o, k) {
+      var cls = '';
+      if (quiz.picked !== null) cls = o.id === w.id ? ' right' : k === quiz.picked ? ' wrong' : ' dim';
+      h += '<button class="ch' + cls + '" data-k="' + k + '"' + (quiz.picked !== null ? ' disabled' : '') + '>' + esc(o.ms) + '</button>';
+    });
+    h += '</div>';
+    if (quiz.picked !== null) {
+      var ok = quiz.res[quiz.i];
+      h += '<div class="verdict ' + (ok ? 'ok' : 'no') + '"><div class="t"><span class="head">' + (ok ? 'Betul! ✓ <span style="font-weight:600;opacity:.75">(Correct!)</span>' : 'Oops! The answer is:') + '</span>' +
+        '<b>' + esc(w.ms) + '</b> <span class="en">= ' + esc(w.en) + '</span>' + (w.also ? '<span class="also">' + esc(w.also) + '</span>' : '') + '</div>' + sayBtn(w) + '</div>' +
+        '<div class="row"><button class="btn primary" id="qNext">' + (quiz.i + 1 >= n ? 'See results ▶' : 'Next ▶') + '</button></div>';
+    } else {
+      h += '<div class="tip">Pick the Malay word for the picture.</div>';
+    }
+    h += '</div>';
+    setInner(h);
+    inner.querySelectorAll('.ch[data-k]').forEach(function (b) { b.addEventListener('click', function () { answer(+b.getAttribute('data-k')); }); });
+    if ($('qNext')) $('qNext').addEventListener('click', function () {
+      sfx.tap(); quiz.i++; quiz.picked = null; fresh = true;
+      if (quiz.i >= quiz.list.length) endQuiz(); else renderQuiz();
+    });
+  }
+  function answer(k) {
+    if (quiz.picked !== null) return;
+    var w = quiz.list[quiz.i], ok = quiz.opts[quiz.i][k].id === w.id;
+    quiz.picked = k; quiz.res.push(ok);
+    var s = progress.words[w.id] || { r: 0, w: 0 };
+    if (ok) { s.r++; s.lastWrong = 0; progress.correct++; sfx.good(); }
+    else { s.w++; s.lastWrong = 1; sfx.bad(); }
+    progress.words[w.id] = s;
+    save();
+    renderQuiz();
+    setTimeout(function () { speak(w.ms); }, ok ? 350 : 500);
+  }
+  function endQuiz() {
+    redraw = function () {};
+    var n = quiz.res.filter(Boolean).length, len = quiz.list.length;
+    progress.quizzes++; progress.best = Math.max(progress.best, len === QUIZ_LEN ? n : 0);
+    var lines = [['Right answers: ' + n + ' × 5', earn(n * 5)]];
+    if (n === len && len === QUIZ_LEN) { progress.perfect++; lines.push(['All 10 right! ⭐', earn(20)]); }
+    // 1回きり: テーマの語を全部覚えた / 全部の語を覚えた
+    TOPICS.forEach(function (t) {
+      var key = 't:' + t.id;
+      if (!progress.mointClaims[key] && learnedCount(t.id) >= topicSize(t.id)) {
+        progress.mointClaims[key] = 1; lines.push(['Learned every ' + t.name + ' word! ' + t.em, earn(50, false)]);
+      }
+    });
+    if (!progress.mointClaims.all && learnedCount() >= WORDS.length) { progress.mointClaims.all = 1; lines.push(['Learned all ' + WORDS.length + ' words! 🏆', earn(300, false)]); }
+    save(); sfx.fanfare();
+    $('topInfo').textContent = '✓ ' + n + '/' + len;
+    fresh = true;
+    var missed = quiz.list.filter(function (w, i) { return !quiz.res[i]; });
+    var msg = n === len ? 'Hebat! (Amazing!)' : n >= len * 0.7 ? 'Bagus! (Great job!)' : 'Cuba lagi! (Try again!)';
+    setInner('<div class="card"><div class="host">' + avatar() + '<div class="bub"><div class="h">' + msg + '</div>' +
+      '<div class="sub">📗 ' + learnedCount() + ' / ' + WORDS.length + ' words in your Word Book</div></div></div>' +
+      '<div class="bigNum">' + n + ' / ' + len + '</div>' + mointBox(lines) +
+      (missed.length ? '<div class="sub" style="margin-top:12px">Practice these:</div><div class="review">' + missed.map(function (w) {
+        return '<div class="rw"><span class="e">' + w.em + '</span><div style="flex:1;min-width:0"><b>' + esc(w.ms) + '</b><br><span>' + esc(w.en) + '</span></div>' + sayBtn(w) + '</div>';
+      }).join('') + '</div>' : '') +
+      '<div class="row"><button class="btn primary" id="again">' + (quiz.topic ? TOPIC[quiz.topic].em : '🎯') + ' Play again</button><button class="btn" id="toMenu">Menu</button></div></div>');
+    var topic = quiz.topic;
+    $('again').addEventListener('click', function () { sfx.tap(); startQuiz(topic); });
+    $('toMenu').addEventListener('click', function () { sfx.tap(); showTitle(); });
+  }
+
+  // =====================================================================
+  // 🗂 Topics
+  // =====================================================================
+  function topicButtons(sel, compact) {
+    return TOPICS.map(function (t) {
+      var got = learnedCount(t.id), all = topicSize(t.id);
+      if (compact) return '<button class="chip' + (t.id === sel ? ' on' : '') + '" data-t="' + t.id + '"><span class="e">' + t.em + '</span><span>' + esc(t.short) + '<small>' + got + ' / ' + all + '</small></span></button>';
+      return '<button class="tbtn' + (t.id === sel ? ' on' : '') + (got >= all ? ' done' : '') + '" data-t="' + t.id + '"><span class="e">' + t.em + '</span><span style="flex:1;min-width:0">' +
+        esc(t.name) + '<small>' + esc(t.ms) + ' · ' + got + ' / ' + all + (got >= all ? ' ✓' : '') + '</small><span class="bar"><i style="width:' + Math.round(got / all * 100) + '%"></i></span></span></button>';
+    }).join('');
+  }
+  function openTopics() {
+    showPlay('🗂 Topics');
+    redraw = openTopics;
+    $('topInfo').textContent = learnedCount() + '/' + WORDS.length;
+    setInner('<div class="card"><div class="h">Pick a topic</div><div class="sub">10 pictures from one topic. Learn every word in a topic for a bonus!</div>' +
+      '<div class="tgrid">' + topicButtons() + '</div></div>');
+    inner.querySelectorAll('[data-t]').forEach(function (b) { b.addEventListener('click', function () { sfx.tap(); startQuiz(b.getAttribute('data-t')); }); });
+  }
+
+  // =====================================================================
+  // 📗 Word Book
+  // =====================================================================
+  function openBook() {
+    showPlay('📗 Word Book');
+    var sel = TOPIC[settings.bookT] ? settings.bookT : 'animals';
+    function draw() {
+      redraw = draw;
+      $('topInfo').textContent = learnedCount() + '/' + WORDS.length;
+      var h = '<div class="card"><div class="h">Word Book</div><div class="sub">Words you got right are saved here.' + (canSpeak() ? ' Tap a word to hear it.' : '') + '</div>' +
+        '<div class="chips">' + topicButtons(sel, true) + '</div><div class="h" style="margin-top:12px;font-size:18px">' + TOPIC[sel].em + ' ' + esc(TOPIC[sel].name) + ' <span style="font-size:14px;color:var(--ink-soft)">· ' + esc(TOPIC[sel].ms) + '</span></div><div class="wgrid">' +
+        WORDS.filter(function (w) { return w.t === sel; }).map(function (w) {
+          if (!isLearned(w.id)) return '<div class="wc locked"><div class="e">' + w.em + '</div><b>?</b><span>' + esc(w.en) + '</span></div>';
+          return '<button class="wc" data-say="' + esc(w.id) + '"><div class="e">' + w.em + '</div><b>' + esc(w.ms) + '</b><span>' + esc(w.en) + '</span></button>';
+        }).join('') + '</div><div class="row"><button class="btn primary" id="bookPlay">' + TOPIC[sel].em + ' Play ' + esc(TOPIC[sel].name) + '</button></div></div>';
+      setInner(h);
+      inner.querySelectorAll('[data-t]').forEach(function (b) { b.addEventListener('click', function () { sel = b.getAttribute('data-t'); settings.bookT = sel; saveSettings(); sfx.tap(); draw(); }); });
+      $('bookPlay').addEventListener('click', function () { sfx.tap(); startQuiz(sel); });
+    }
+    draw();
+  }
+
+  // ---------- start ----------
+  syncSoundBtn();
+  $('goQuiz').addEventListener('click', function () { sfx.tap(); startQuiz(null); });
+  $('goTopics').addEventListener('click', function () { sfx.tap(); openTopics(); });
+  $('goBook').addEventListener('click', function () { sfx.tap(); openBook(); });
+  window.addEventListener('moku:moint', function () { if (document.body.classList.contains('on-title')) showTitle(); });
+  showTitle();
+  try {
+    var scr = new URLSearchParams(location.search).get('screen');
+    if (scr === 'quiz') startQuiz(null); else if (scr === 'topics') openTopics(); else if (scr === 'book') openBook();
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>

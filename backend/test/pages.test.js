@@ -43,3 +43,25 @@ test("pages: sw.js and moku-account.js use the same Offline Mode markers", () =>
     assert.ok(fs.readFileSync(path.join(ROOT, f), "utf8").includes("mokuhub:offline-mode"), `${f} reads mokuhub:offline-mode`);
   }
 });
+
+// The double-line frame around title screens (#title-frame) is hidden on every
+// game (2026-11-26, a parent asked). The Classic pages stay frozen as they were.
+test("pages: #title-frame is hidden on every game except the Classic pages", () => {
+  const shown = [];
+  for (const file of fs.readdirSync(ROOT).filter((f) => f.endsWith(".html") && !f.endsWith("-classic.html"))) {
+    const html = fs.readFileSync(path.join(ROOT, file), "utf8");
+    if (!html.includes('id="title-frame"')) continue;
+    if (!/#title-frame\s*\{\s*display:\s*none\s*!important;?\s*\}/.test(html)) shown.push(file);
+  }
+  assert.deepEqual(shown, []);
+});
+
+// The top-right link says "🦉 Home ▶" (2026-11-26, a parent asked; it was
+// "🦉 Moku Series ▶"). The Classic pages stay frozen as they were.
+test("pages: #hub-link says Home on every game except the Classic pages", () => {
+  const old = [];
+  for (const file of fs.readdirSync(ROOT).filter((f) => f.endsWith(".html") && !f.endsWith("-classic.html"))) {
+    if (fs.readFileSync(path.join(ROOT, file), "utf8").includes("Moku Series ▶")) old.push(file);
+  }
+  assert.deepEqual(old, []);
+});

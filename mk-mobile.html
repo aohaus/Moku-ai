@@ -2,10 +2,10 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<script src="shared/moku-errors.js?v=20261126b"></script>
-<script src="shared/moku-gate.js?v=20261126b"></script>
-<script src="shared/moku-account.js?v=20261126b" data-mode="background"></script>
-<script src="shared/moku-moint.js?v=20261126b" data-mode="none"></script>
+<script src="shared/moku-errors.js?v=20261126c"></script>
+<script src="shared/moku-gate.js?v=20261126c"></script>
+<script src="shared/moku-account.js?v=20261126c" data-mode="background"></script>
+<script src="shared/moku-moint.js?v=20261126c" data-mode="none"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>MK Mobile</title>
 <style>
@@ -287,10 +287,11 @@ canvas {
 </style>
 </head>
 <body>
+<style>/* 外枠(#title-frame)は出さない(2026-11-26、保護者の声。SPEC.md §4) */ #title-frame { display: none !important; }</style>
 <div id="title-frame"></div>
-<a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
+<a id="hub-link" href="hub.html">🦉 Home ▶</a>
 <button id="lang-toggle" type="button">EN</button>
-<div id="buildInfo">v1.2.0 · Updated Oct 26, 2026</div>
+<div id="buildInfo">v1.2.1 · Updated Nov 26, 2026</div>
 <div id="game-layout">
   <div id="wrapper">
     <div id="canvasBox">
@@ -412,7 +413,7 @@ function defaultProfile() {
 // need an entry here.
 const STRINGS = {
   ja: {
-    homeLinkText: '🦉 Moku Series ▶',
+    homeLinkText: '🦉 Home ▶',
     pauseTitle: '一時停止',
     joystickLabel: '移動スティック',
     shootLabel: 'シュート',
@@ -465,7 +466,7 @@ const STRINGS = {
     concededMsg: '😵 失点...',
   },
   en: {
-    homeLinkText: '🦉 Moku Series ▶',
+    homeLinkText: '🦉 Home ▶',
     pauseTitle: 'Pause',
     joystickLabel: 'Move stick',
     shootLabel: 'SHOOT',
