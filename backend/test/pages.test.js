@@ -65,3 +65,17 @@ test("pages: #hub-link says Home on every game except the Classic pages", () => 
   }
   assert.deepEqual(old, []);
 });
+
+// "🎉 Just Arrived!" on the hub (SPEC.md §7): a new title shows there for 7 days
+// from CATALOG[].arrived (or the day of opensAt). A title that still has its NEW
+// badge must say when it arrived, or it never shows up there (2026-11-26).
+const BEFORE_ARRIVED = ["mfg", "mfr", "mw6", "mbr", "mch", "mwr", "mdp", "mml", "ceo"];
+test("pages: every NEW title in the hub CATALOG has arrived or opensAt", () => {
+  const hub = fs.readFileSync(path.join(ROOT, "hub.html"), "utf8");
+  const missing = [];
+  for (const m of hub.matchAll(/^\s{4}(\w+):\s*\{ name: [^\n]*newUntil: '(\d{4}-\d{2}-\d{2})'[^\n]*$/gm)) {
+    if (BEFORE_ARRIVED.includes(m[1])) continue; // titles from before the rule
+    if (!/\barrived: '\d{4}-\d{2}-\d{2}'|\bopensAt:/.test(m[0])) missing.push(m[1]);
+  }
+  assert.deepEqual(missing, []);
+});
