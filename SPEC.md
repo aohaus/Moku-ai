@@ -103,7 +103,7 @@ Mokuball は実装済みだがハブ未公開(準備中)。
 
 **この章は実装済みパターンに合わせて更新済み(2026-08-11)。** 当初案の丸ボタン(`.moku-back`)は採用されず、実際には全タイトルが以下の3点セット(HTML固定要素、canvas描画ではない)をタイトル画面にのみ表示する方式に収束している。
 
-- **`#title-frame`**(例外: Sir CEO Moku `ceo-moku.html` には出さない。2026-11-10、社長室の絵をじゃましないように): 画面全体を囲む二重線枠。`position: fixed; inset: 14px;` の外枠(3px, `var(--hi)`)+ `::after` による内枠(inset 5px, 1px, `var(--lo)`)。角丸10px/8px。全タイトル共通・固定値、変更しない。
+- **`#title-frame`**(**2026-11-26 から全ゲームで出さない**。保護者の声「外側を囲む線をなくせる?」。要素とスタイルは残し、各ページの `<div id="title-frame">` の直前の `<style>` の `#title-frame { display: none !important; }` で隠す。新しいゲームも同じ。Classic の2本(`*-classic.html`)は凍結なので枠が残る。`backend/test/pages.test.js` が確かめる): 以前は画面全体を囲む二重線枠だった。`position: fixed; inset: 14px;` の外枠(3px, `var(--hi)`)+ `::after` による内枠(inset 5px, 1px, `var(--lo)`)。角丸10px/8px。
 - **`#hub-link`**: 右上に固定配置する `<a href="hub.html">🦉 Moku Series ▶</a>`(2026-08-14〜英語表記に統一)。行き先はゲーム一覧の `hub.html`(2026-11-21〜。`index.html` はログイン後は「Welcome back」の入口の画面なので、タイトルに戻ったように見えた。Sir CEO Moku / Moku Bridge / Moku Chess / Moku Watch 6 Lazy がそうなっていた。`backend/test/pages.test.js` が全ページを確かめる)。ゲームごとの `--hi` を文字色に使い、2.2sの緩いパルスアニメーションを掛ける。
 - **`#buildInfo`**: 左下に固定配置するバージョン表記。詳細は5章。
 - **表示タイミング**: 3要素とも「タイトル画面でのみ表示」。`body.on-title` のようなクラス、または各ゲームの画面遷移関数内で `style.display` を直接切り替える方式のいずれでもよい。プレイ中は必ず非表示にする。

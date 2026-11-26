@@ -613,9 +613,10 @@ canvas#c.dragging { cursor: grabbing; }
 </head>
 <body>
 <div id="rotate-hint"><span>📱</span><p>MokuCity is played in landscape.<br>Please rotate your device.</p></div>
+<style>/* 外枠(#title-frame)は出さない(2026-11-26、保護者の声。SPEC.md §4) */ #title-frame { display: none !important; }</style>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v2.9.0 · Updated Nov 15, 2026</div>
+<div id="buildInfo">v2.9.1 · Updated Nov 26, 2026</div>
 
 <section class="screen active" id="titleScreen">
   <img id="titleMascot" src="brand/mokumoku-hero.png" alt="Mokumoku">

@@ -621,6 +621,7 @@ body.on-mp #mp-screen { display: flex; }
     </div>
   </div>
 </div>
+<style>/* 外枠(#title-frame)は出さない(2026-11-26、保護者の声。SPEC.md §4) */ #title-frame { display: none !important; }</style>
 <div id="title-frame"></div>
 <!-- Moyomoyo Multiplayer: menu / lobby / final results (the games themselves are on the canvas) -->
 <div id="mp-screen" aria-live="polite">
@@ -662,7 +663,7 @@ body.on-mp #mp-screen { display: flex; }
 </div>
 <div id="mp-toast"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v1.8.1 · Updated Nov 26, 2026</div>
+<div id="buildInfo">v1.8.2 · Updated Nov 26, 2026</div>
 <div id="game-layout">
   <div id="wrapper">
     <canvas id="c"></canvas>
