@@ -15,7 +15,7 @@
  *     Game pages. No UI — only the API below (e.g. Moku Bridge draws the
  *     hat Moku is wearing with MokuMoint.layerImage('head')).
  *
- * Save keys (all synced by cloud save / transfer codes, SPEC.md §10–11):
+ * Save keys (all synced by cloud save, SPEC.md §10):
  *   moku:moint:wallet  { version, balance, updatedAt }  — never below 0
  *   moku:moint:daily   { version, last: 'YYYY-MM-DD', days, updatedAt }
  *   moku:moint:earned  { version, day: 'YYYY-MM-DD', games: { gameId: n }, updatedAt }

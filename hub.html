@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<script src="shared/moku-errors.js?v=20261126c"></script>
-<script src="shared/moku-gate.js?v=20261126c"></script>
+<script src="shared/moku-errors.js?v=20261126d"></script>
+<script src="shared/moku-gate.js?v=20261126d"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Moku Series</title>
 <!-- Icons: made by scripts/make-icons.py. Bump ?v= when they change so browsers refetch. -->
@@ -319,6 +319,30 @@ body[data-band="morning"] #starsLayer { --star-opacity: 0.15; }
   padding: 20px;
 }
 #a2hsOverlay.open { display: flex; }
+/* 🔗 Share a Game(⋯ メニュー)。見た目は Add to Home Screen と同じ箱 */
+#shareOverlay { display: none; position: fixed; inset: 0; z-index: 50; background: rgba(5,5,10,0.68); backdrop-filter: blur(3px);
+  align-items: center; justify-content: center; padding: 20px; }
+#shareOverlay.open { display: flex; }
+#shareModal { position: relative; width: min(420px, 100%); max-height: 86vh; overflow-y: auto; background: #16171F;
+  border: 1px solid rgba(255,255,255,0.12); border-radius: 20px; padding: 24px 18px 18px; box-shadow: 0 24px 60px rgba(0,0,0,0.5); }
+#shareModal h2 { font-size: 19px; font-weight: 800; margin-bottom: 4px; padding: 0 30px 0 6px; }
+#shareModal .share-sub { font-size: 13.5px; color: rgba(237,238,246,0.65); margin: 0 6px 12px; line-height: 1.45; }
+#shareClose { position: absolute; top: 14px; right: 14px; width: 30px; height: 30px; border-radius: 50%; border: none;
+  background: rgba(255,255,255,0.08); color: #EDEEF6; font-size: 14px; cursor: pointer; }
+.share-list { display: flex; flex-direction: column; gap: 6px; }
+.share-shelf { font-size: 11.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(237,238,246,0.5); margin: 10px 6px 2px; }
+.share-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px 10px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04); color: #EDEEF6; font: inherit; text-align: left; cursor: pointer; }
+.share-row:active { transform: scale(0.98); }
+.share-row .game-icon { width: 42px; height: 42px; flex: none; }
+.share-row .share-hub { width: 42px; height: 42px; flex: none; border-radius: 18%; display: flex; align-items: center; justify-content: center; font-size: 24px;
+  background: linear-gradient(135deg, #6E7BFF, #E85C9A); }
+.share-row b { display: block; font-size: 15px; font-weight: 800; }
+.share-row small { display: block; font-size: 12px; color: rgba(237,238,246,0.55); margin-top: 1px; }
+.share-row .share-go { margin-left: auto; font-size: 13px; font-weight: 800; color: #FFD35A; white-space: nowrap; }
+#shareToast { position: sticky; bottom: 0; margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: #2A2E4A; color: #EDEEF6;
+  font-size: 13.5px; font-weight: 700; text-align: center; word-break: break-all; }
+#shareToast[hidden] { display: none; }
 #a2hsModal {
   position: relative;
   width: min(420px, 100%);
@@ -1787,7 +1811,7 @@ html.me-open #ceoPeek { display: none; }
         <button class="icon-btn" id="settingsBtn" type="button" aria-haspopup="true" aria-expanded="false">⋯</button>
         <div id="settingsMenu">
           <button id="a2hsBtn" type="button">📲 Add to Home Screen</button>
-          <button id="transferBtn" type="button" data-moku-transfer>🔁 Transfer Progress</button>
+          <button id="shareGameBtn" type="button">🔗 Share a Game</button>
         </div>
       </div>
     </div>
@@ -2020,6 +2044,15 @@ html.me-open #ceoPeek { display: none; }
   </div>
 </section>
 
+<div id="shareOverlay">
+  <div id="shareModal" role="dialog" aria-modal="true" aria-labelledby="shareTitle">
+    <button id="shareClose" type="button" aria-label="Close">✕</button>
+    <h2 id="shareTitle">🔗 Share a Game</h2>
+    <p class="share-sub">Send a game link to a friend. After they log in, the game opens right away.</p>
+    <div class="share-list" id="shareList"></div>
+    <div id="shareToast" role="status" hidden></div>
+  </div>
+</div>
 <div id="a2hsOverlay">
   <div id="a2hsModal" role="dialog" aria-modal="true" aria-labelledby="a2hsTitle">
     <button id="a2hsClose" type="button" aria-label="Close">✕</button>
@@ -3975,6 +4008,65 @@ html.me-open #ceoPeek { display: none; }
     if (sheetOpenKey) fillSheet(sheetOpenKey);
   }
 
+  // 🔗 Share a Game(⋯ メニュー、2026-11-26〜。前の Transfer Progress の場所)。ゲームのページのリンクを
+  // 共有シート(LINE・AirDrop…)で送る。共有シートがなければコピー。友達はログインのあと、そのゲームが開く(moku-gate.js の next)。
+  (function () {
+    var overlay = document.getElementById('shareOverlay'), list = document.getElementById('shareList'), toast = document.getElementById('shareToast');
+    var btn = document.getElementById('shareGameBtn');
+    if (!overlay || !list || !btn) return;
+    var toastTimer = null;
+    function say(msg) { toast.textContent = msg; toast.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(function () { toast.hidden = true; }, 3200); }
+    function linkTo(page) { try { return new URL(page, location.href).href.replace(/[?#].*$/, ''); } catch (e) { return page; } }
+    function copy(url, what) {
+      function fallback() {
+        var ta = document.createElement('textarea'); ta.value = url; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.top = '-9999px';
+        document.body.appendChild(ta); ta.select(); var ok = false; try { ok = document.execCommand('copy'); } catch (e) {} document.body.removeChild(ta);
+        say(ok ? '✅ ' + what + ' link copied! Paste it to a friend.' : url);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(function () { say('✅ ' + what + ' link copied! Paste it to a friend.'); }, fallback);
+      else fallback();
+    }
+    function share(title, text, url) {
+      if (navigator.share) {
+        navigator.share({ title: title, text: text, url: url }).catch(function (err) { if (!err || err.name !== 'AbortError') copy(url, title); });
+      } else copy(url, title);
+    }
+    function row(icon, title, sub, onClick) {
+      var b = el('button', 'share-row'); b.type = 'button';
+      b.appendChild(icon);
+      var t = el('span'); t.appendChild(el('b', null, title)); if (sub) t.appendChild(el('small', null, sub)); b.appendChild(t);
+      b.appendChild(el('span', 'share-go', 'Share ›'));
+      b.addEventListener('click', onClick);
+      return b;
+    }
+    function fill() {
+      list.textContent = '';
+      list.appendChild(row(el('span', 'share-hub', '🦉'), 'Moku Series', 'All the games', function () {
+        share('Moku Series', 'Play mini-games with Moku the owl!', linkTo('hub.html'));
+      }));
+      SHELVES.forEach(function (shelf) {
+        var keys = shelf.cards.filter(function (k) { return CATALOG[k]; });
+        if (!keys.length) return;
+        list.appendChild(el('div', 'share-shelf', shelf.title));
+        keys.forEach(function (k) {
+          var c = CATALOG[k];
+          list.appendChild(row(makeIcon(c), c.name, c.tag || c.genre, function () {
+            share(c.name, c.name + ' — ' + (c.tag || 'Play it with me in Moku Series!'), linkTo(c.gameId + '.html'));
+          }));
+        });
+      });
+    }
+    function open() {
+      if (window.__closeSettingsMenu) window.__closeSettingsMenu();
+      fill(); toast.hidden = true; overlay.classList.add('open'); document.getElementById('shareModal').scrollTop = 0;
+    }
+    function close() { overlay.classList.remove('open'); }
+    btn.addEventListener('click', open);
+    document.getElementById('shareClose').addEventListener('click', close);
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && overlay.classList.contains('open')) close(); });
+  })();
+
   buildEvents();
   buildTease();
   buildShelves();
@@ -4954,9 +5046,8 @@ html.me-open #ceoPeek { display: none; }
   };
 })();
 </script>
-<script src="shared/moku-account.js?v=20261126c"></script>
-<script src="shared/moku-transfer.js?v=20261126c"></script>
-<script src="shared/moku-moint.js?v=20261126c"></script>
+<script src="shared/moku-account.js?v=20261126d"></script>
+<script src="shared/moku-moint.js?v=20261126d"></script>
 <script>
 // ---------- Invites (SPEC.md §7) ----------
 // Friends waiting for you in a multiplayer game, at the top of the hub:

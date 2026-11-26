@@ -133,7 +133,7 @@ cd backend && npm test   # アカウントAPIのテスト(AWS不要)
 - **すべてのページ**(新しいゲームも)は `<head>` の先頭(`<meta charset>` の直後)に `<script src="shared/moku-errors.js"></script>` を入れる。エラーが管理画面に届く(SPEC.md §12)。
 - **ゲームとハブはログインした人だけ**(2026-10-25〜)。新しいゲームも `moku-errors.js` の直後に `<script src="shared/moku-gate.js"></script>` を入れる。未ログインなら `index.html` のログインへ送られる(SPEC.md §10)。
 - **時間・回数・上限などの「決まりの数字」はハードコーディングしない**(2026-11-01〜)。サーバーで決める値は `backend/src/settings.js` の `SCHEMA` に初期値と範囲つきで足し、管理画面の「⚙️ 設定」から保護者が変えられるようにする(SPEC.md §12)。既存のハードコーディングは、さわる機会に順に移す。
-- 進捗の端末間の移動は2通り: ログインしてのクラウドセーブ(SPEC.md §10)と、サーバー不要の引き継ぎコード `shared/moku-transfer.js`(SPEC.md §11)。どちらも同じ同期対象キーを使う。
+- 進捗の端末間の移動はログインしてのクラウドセーブ(SPEC.md §10)だけ。サーバー不要の引き継ぎコード(`shared/moku-transfer.js`)は 2026-11-26 に廃止した(ログインしないと遊べないので使い道がない。SPEC.md §11)。
 
 ## 8. 定期コードレビュー(Semi-Auto Code Review & Health Check、2026-11-01〜)
 
