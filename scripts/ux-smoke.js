@@ -22,6 +22,12 @@
  * If nothing is listening on http://localhost:3000 it starts server.js itself
  * and stops it at the end. The page must be on port 3000 so the login gate
  * and the account mock behave the same as for players.
+ *
+ * The 3D games load three.js r128 from cdnjs, which the cloud sandbox cannot
+ * reach. LOCAL_LIBS answers those requests from node_modules (the same
+ * version, a devDependency), so the 3D games are checked like the others.
+ * Headless Chromium draws WebGL in software: layout and errors are real,
+ * speed is not.
  */
 'use strict';
 
@@ -41,6 +47,22 @@ const DEVICES = {
     userAgent: 'Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' },
   desktop: { label: 'Desktop', viewport: { width: 1440, height: 900 } },
 };
+
+// CDN files served from node_modules instead (same version as the pages ask for).
+const LOCAL_LIBS = [
+  { url: /^https:\/\/cdnjs\.cloudflare\.com\/ajax\/libs\/three\.js\/r128\/three\.min\.js(\?.*)?$/,
+    file: 'node_modules/three/build/three.min.js', type: 'application/javascript' },
+];
+
+async function useLocalLibs(context) {
+  for (const lib of LOCAL_LIBS) {
+    const file = path.join(ROOT, lib.file);
+    if (!fs.existsSync(file)) continue; // not installed: the page is reported as "could not check here"
+    const body = fs.readFileSync(file);
+    await context.route(lib.url, (route) => route.fulfill({ status: 200, contentType: lib.type, body,
+      headers: { 'access-control-allow-origin': '*' } }));
+  }
+}
 
 // Games come from the hub's CATALOG (the source of truth, CLAUDE.md §2).
 function pageList() {
@@ -62,7 +84,10 @@ async function isUp() {
 // A fresh checkout (e.g. the weekly scheduled run) may not have run
 // `npm install` yet; server.js needs express. Install once if it's missing.
 function ensureDeps() {
-  try { require.resolve('express', { paths: [ROOT] }); return; } catch (e) { /* install below */ }
+  try {
+    require.resolve('express', { paths: [ROOT] });
+    if (LOCAL_LIBS.every((lib) => fs.existsSync(path.join(ROOT, lib.file)))) return;
+  } catch (e) { /* install below */ }
   console.log('node_modules missing: running npm install …');
   require('child_process').execSync('npm install --no-audit --no-fund --silent', { cwd: ROOT, stdio: 'inherit' });
 }
@@ -222,6 +247,7 @@ async function main() {
           }
         } catch (e) { /* ignore */ }
       }, [session.token, JSON.stringify(session.user)]);
+      await useLocalLibs(context);
       for (const id of pages) {
         const r = await checkPage(context, id, key, shotsDir);
         results.push(r);
