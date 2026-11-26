@@ -55,3 +55,13 @@ test("pages: #title-frame is hidden on every game except the Classic pages", () 
   }
   assert.deepEqual(shown, []);
 });
+
+// The top-right link says "🦉 Home ▶" (2026-11-26, a parent asked; it was
+// "🦉 Moku Series ▶"). The Classic pages stay frozen as they were.
+test("pages: #hub-link says Home on every game except the Classic pages", () => {
+  const old = [];
+  for (const file of fs.readdirSync(ROOT).filter((f) => f.endsWith(".html") && !f.endsWith("-classic.html"))) {
+    if (fs.readFileSync(path.join(ROOT, file), "utf8").includes("Moku Series ▶")) old.push(file);
+  }
+  assert.deepEqual(old, []);
+});
