@@ -149,6 +149,15 @@
   .hud-btn:hover { transform: scale(1.08); background: rgba(35, 42, 74, 0.9); }
   .hud-btn:active { transform: scale(0.94); }
 
+  /* Phones held upright: the 3 pills + 4 buttons do not fit on one line
+     (🎁 and ⚙️ went off the right edge). Pills fill the first line,
+     the buttons sit on a second line on the right. */
+  @media (max-width: 600px) {
+    #game-hud { flex-wrap: wrap; justify-content: flex-end; row-gap: 8px; }
+    #game-hud > :first-child { width: 100%; justify-content: space-between; gap: 6px !important; }
+    .hud-pill { padding: 5px 10px; font-size: 12px; gap: 5px; white-space: nowrap; }
+  }
+
   /* ---------- Camera Switcher Bar ---------- */
   #camera-bar {
     position: absolute;
@@ -177,6 +186,10 @@
     border-color: var(--accent-cyan);
     background: rgba(34, 211, 238, 0.2);
     box-shadow: 0 0 12px rgba(34, 211, 238, 0.35);
+  }
+  /* Below the second line of HUD buttons on phones held upright */
+  @media (max-width: 600px) {
+    #camera-bar { top: calc(env(safe-area-inset-top, 0px) + 96px); }
   }
 
   /* ---------- Bottom Arcade Controller Deck ---------- */
@@ -694,7 +707,7 @@
 <style>/* 外枠(#title-frame)は出さない(2026-11-26、保護者の声。SPEC.md §4) */ #title-frame { display: none !important; }</style>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Home ▶</a>
-<div id="buildInfo">v1.0.1 · Updated Nov 26, 2026</div>
+<div id="buildInfo">v1.0.2 · Updated Nov 26, 2026</div>
 
 <canvas id="confetti-canvas"></canvas>
 
