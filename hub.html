@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<script src="shared/moku-errors.js?v=20261121b"></script>
-<script src="shared/moku-gate.js?v=20261121b"></script>
+<script src="shared/moku-errors.js?v=20261126"></script>
+<script src="shared/moku-gate.js?v=20261126"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Moku Series</title>
 <!-- Icons: made by scripts/make-icons.py. Bump ?v= when they change so browsers refetch. -->
@@ -412,7 +412,13 @@ body[data-band="morning"] #starsLayer { --star-opacity: 0.15; }
 #offlineBanner[hidden] { display: none; }
 #offlineBanner .ob-icon { font-size: 18px; line-height: 1.2; }
 #offlineBanner b { font-weight: 800; color: #BFE6F5; margin-right: 2px; }
+#offlineBanner .ob-text { flex: 1; min-width: 0; }
 #offlineBanner .ob-text span { color: rgba(237,238,246,0.72); }
+#offlineBanner .ob-btn {
+  flex: none; align-self: center; padding: 7px 12px; border: 0; border-radius: 999px; cursor: pointer;
+  background: linear-gradient(180deg, #7EC8E3, #3F8FA0); color: #0A1A22; font: inherit; font-size: 12px; font-weight: 800;
+}
+#offlineBanner .ob-btn[hidden] { display: none; }
 
 .game-section {
   display: flex;
@@ -1812,7 +1818,8 @@ html.me-open #ceoPeek { display: none; }
   <!-- Offline mode (SPEC.md §16): shown while the device has no network. -->
   <div id="offlineBanner" role="status" hidden>
     <span class="ob-icon" aria-hidden="true">✈️</span>
-    <span class="ob-text"><b>Offline</b> <span id="offlineBannerSub">Your games are saved on this device and upload when you're back online. Playing with friends needs the internet.</span></span>
+    <span class="ob-text"><b id="offlineBannerTitle">Offline Mode is on</b> <span id="offlineBannerSub"></span></span>
+    <button type="button" id="offlineBannerBtn" class="ob-btn">Turn off</button>
   </div>
 
   <section class="game-section" id="invitesSection" aria-labelledby="invitesHead" hidden>
@@ -3340,24 +3347,51 @@ html.me-open #ceoPeek { display: none; }
   })();
   // For "Get the latest games & updates" (shared/moku-account.js): the games
   // this hub lists, so it can say which ones the last update didn't know about.
-  // Offline mode (SPEC.md §16): say so at the top while there is no network.
+  // Offline Mode (SPEC.md §16): while the switch is on, say so at the top with
+  // a "Turn off" button. Switch off but no network: offer to turn it on.
   (function () {
     var banner = document.getElementById('offlineBanner');
+    var title = document.getElementById('offlineBannerTitle');
     var sub = document.getElementById('offlineBannerSub');
+    var btn = document.getElementById('offlineBannerBtn');
     if (!banner) return;
+    var A = function () { return window.MokuAccount; };
+    // Same key as OFFLINE_MODE_KEY in shared/moku-account.js (read directly:
+    // that script loads after this one).
+    var modeOn = function () { try { return localStorage.getItem('mokuhub:offline-mode') === '1'; } catch (e) { return false; } };
+    btn.addEventListener('click', function () {
+      var a = A();
+      if (!a || !a.setOfflineMode) return;
+      btn.disabled = true;
+      a.setOfflineMode(!modeOn());
+    });
     var show = function () {
-      var off = navigator.onLine === false;
-      banner.hidden = !off;
-      if (!off) return;
-      var pack = null;
-      try { pack = JSON.parse(localStorage.getItem('mokuhub:offline') || 'null'); } catch (e) {}
-      sub.textContent = pack
-        ? "Your games are saved on this device and upload when you're back online. Playing with friends needs the internet."
-        : "Games you haven't opened here may not load. Next time you're online, tap “✈️ Get ready for offline” in My Moku.";
+      if (modeOn()) {
+        banner.hidden = false;
+        title.textContent = 'Offline Mode is on';
+        sub.textContent = 'Your games come from this device. Playing with friends and cloud save wait until you turn it off.';
+        btn.textContent = 'Turn off';
+        btn.hidden = false;
+        return;
+      }
+      if (navigator.onLine !== false) { banner.hidden = true; return; }
+      banner.hidden = false;
+      title.textContent = 'No internet';
+      btn.hidden = true;
+      sub.textContent = 'Checking for saved games…';
+      var a = A();
+      (a && a.offlinePackReady ? a.offlinePackReady() : Promise.resolve(false)).then(function (ready) {
+        sub.textContent = ready
+          ? 'Your games are saved on this device. Turn on Offline Mode to play them.'
+          : 'Your games aren\u2019t saved on this device yet. Next time you\u2019re online, turn on ✈️ Offline Mode in My Moku.';
+        btn.textContent = '✈️ Turn on';
+        btn.hidden = !ready;
+      });
     };
     window.addEventListener('online', show);
     window.addEventListener('offline', show);
     show();
+    window.addEventListener('load', show);   // MokuAccount is there by now (the saved-games check)
   })();
 
   window.MOKU_GAME_PAGES = function () {
@@ -4858,9 +4892,9 @@ html.me-open #ceoPeek { display: none; }
   };
 })();
 </script>
-<script src="shared/moku-account.js?v=20261121b"></script>
-<script src="shared/moku-transfer.js?v=20261121b"></script>
-<script src="shared/moku-moint.js?v=20261121b"></script>
+<script src="shared/moku-account.js?v=20261126"></script>
+<script src="shared/moku-transfer.js?v=20261126"></script>
+<script src="shared/moku-moint.js?v=20261126"></script>
 <script>
 // ---------- Invites (SPEC.md §7) ----------
 // Friends waiting for you in a multiplayer game, at the top of the hub:
@@ -4890,7 +4924,7 @@ html.me-open #ceoPeek { display: none; }
 
   function ready() {
     var A = window.MokuAccount;
-    return !!(A && A.isEnabled() && A.getUser() && A.getToken());
+    return !!(A && A.isEnabled() && A.getUser() && A.getToken() && !(A.offlineMode && A.offlineMode()));
   }
   function api(path) {
     var A = window.MokuAccount;

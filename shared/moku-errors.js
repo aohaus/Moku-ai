@@ -30,6 +30,8 @@
   }
   var base = resolveBase();
   if (base === null || typeof fetch !== 'function') return;
+  // Offline Mode (SPEC.md §16): nothing is sent while it is on.
+  try { if (localStorage.getItem('mokuhub:offline-mode') === '1') return; } catch (e) {}
 
   var sent = 0;
   var seen = {};
