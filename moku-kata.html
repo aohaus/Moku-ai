@@ -113,6 +113,24 @@ body.on-title #playScreen { display: none; }
   border: 3px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 86px; line-height: 1;
   box-shadow: inset 0 -6px 0 rgba(90,58,34,0.08); }
 .pic.pop { animation: pop 0.45s cubic-bezier(.2,1.6,.5,1) both; }
+/* ときどき絵の中に Moku(着せ替えた姿)。peek = 右上から絵の後ろでのぞく / sit = 左下の前に座る / side = 左から絵の後ろでのぞく */
+.picWrap { position: relative; width: 150px; margin: 8px auto 4px; }
+.picWrap .pic { position: relative; z-index: 1; margin: 0; }
+.pm { position: absolute; width: 70px; height: 70px; z-index: 0; pointer-events: none; }
+.pm img, .pm svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.pm img { object-fit: cover; object-position: center 30%; filter: drop-shadow(0 3px 4px rgba(90,58,34,0.3)); }
+.pm.peek { right: -34px; top: -8px; transform: rotate(18deg); animation: pmPeek 0.7s 0.25s cubic-bezier(.2,1.5,.5,1) both; }
+.pm.side { left: -42px; top: 34px; transform: rotate(-22deg); animation: pmSide 0.7s 0.25s cubic-bezier(.2,1.5,.5,1) both; }
+.pm.sit { left: -30px; bottom: -12px; width: 62px; height: 62px; z-index: 2; animation: pmSit 0.6s 0.2s cubic-bezier(.2,1.6,.5,1) both, pmBob 2.4s 0.8s ease-in-out infinite; }
+@keyframes pmPeek { from { transform: translate(-26px, 26px) rotate(18deg); opacity: 0; } to { transform: rotate(18deg); opacity: 1; } }
+@keyframes pmSide { from { transform: translateX(30px) rotate(-22deg); opacity: 0; } to { transform: rotate(-22deg); opacity: 1; } }
+@keyframes pmSit { from { transform: scale(0.3); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes pmBob { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-5px) rotate(3deg); } }
+.pm.still { animation: none; }
+.pm.sit.still { animation: pmBob 2.4s ease-in-out infinite; }
+.pm.cheer { animation: pmCheer 0.7s cubic-bezier(.2,1.6,.5,1) both; }
+.pm.peek.cheer { --r: 18deg; } .pm.side.cheer { --r: -22deg; } .pm.sit.cheer { --r: 0deg; }
+@keyframes pmCheer { 0% { transform: rotate(var(--r)); } 40% { transform: translateY(-16px) rotate(var(--r)) scale(1.08); } 100% { transform: rotate(var(--r)); } }
 @keyframes pop { from { transform: scale(0.6); } to { transform: none; } }
 .ask { text-align: center; font: 600 15px var(--round); color: var(--ink-soft); margin-top: 4px; }
 .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
@@ -176,7 +194,7 @@ body.on-title #playScreen { display: none; }
 .wc.locked { background: repeating-linear-gradient(-45deg, #F6EBD8 0 8px, #FBF3E5 8px 16px); }
 .wc.locked .e { filter: grayscale(1) brightness(1.3); opacity: 0.35; }
 .wc.locked b { color: #B9A88E; }
-@media (prefers-reduced-motion: reduce) { #titleHero, .tag, .bgw { animation: none; } }
+@media (prefers-reduced-motion: reduce) { #titleHero, .tag, .bgw, .pm { animation: none !important; } }
 </style>
 </head>
 <body class="on-title">
@@ -446,6 +464,20 @@ body.on-title #playScreen { display: none; }
     fresh = false;
     wireSay();
   }
+  // ときどき(約3割)出題の絵に Moku が出る。フクロウ・鳥の問題では答えとまぎらわしいので出さない
+  var MOKU_ODDS = 0.32, NO_MOKU = { owl: 1, bird: 1 };
+  var FORCE_MOKU = (location.search.match(/[?&]moku=(peek|sit|side)\b/) || [])[1];   // 開発用: ?moku=sit で毎回その姿
+  function mokuPose(w) {
+    if (NO_MOKU[w.id]) return '';
+    if (FORCE_MOKU) return FORCE_MOKU;
+    return Math.random() < MOKU_ODDS ? ['peek', 'sit', 'side'][Math.floor(Math.random() * 3)] : '';
+  }
+  function mokuHTML(pose, extra) {
+    if (!pose) return '';
+    var o = '';
+    if (window.MokuMoint) { try { o = MokuMoint.outfitSVG(MokuMoint.closet().equipped); } catch (e) {} }
+    return '<span class="pm ' + pose + (extra || '') + '"><img src="brand/mokumoku-hero.png" alt="">' + o + '</span>';
+  }
   function avatar() {
     var o = '';
     if (window.MokuMoint) { try { o = MokuMoint.outfitSVG(MokuMoint.closet().equipped); } catch (e) {} }
@@ -489,7 +521,7 @@ body.on-title #playScreen { display: none; }
     progress.played++; save();
     var pool = topicId ? WORDS.filter(function (w) { return w.t === topicId; }) : WORDS;
     var list = pickWords(pool, Math.min(QUIZ_LEN, pool.length));
-    quiz = { topic: topicId || null, list: list, opts: list.map(choicesFor), i: 0, res: [], picked: null };
+    quiz = { topic: topicId || null, list: list, opts: list.map(choicesFor), moku: list.map(mokuPose), i: 0, res: [], picked: null };
     showPlay(topicId ? TOPIC[topicId].em + ' ' + TOPIC[topicId].name : '🎯 Quick Quiz');
     renderQuiz();
   }
@@ -499,7 +531,8 @@ body.on-title #playScreen { display: none; }
     $('topInfo').textContent = (quiz.i + 1) + '/' + n + ' · ✓ ' + quiz.res.filter(Boolean).length;
     var dots = '<div class="dots">' + quiz.list.map(function (x, i) { return '<i class="' + (i < quiz.res.length ? (quiz.res[i] ? 'ok' : 'no') : i === quiz.i ? 'now' : '') + '"></i>'; }).join('') + '</div>';
     var h = '<div class="card">' + dots + '<div class="topic">' + TOPIC[w.t].em + ' ' + esc(TOPIC[w.t].name) + ' · ' + esc(TOPIC[w.t].ms) + '</div>' +
-      '<div class="pic' + (quiz.picked === null ? ' pop' : '') + '">' + w.em + '</div>' +
+      '<div class="picWrap">' + mokuHTML(quiz.moku[quiz.i], quiz.picked === null ? '' : quiz.res[quiz.i] ? ' cheer' : ' still') +
+      '<div class="pic' + (quiz.picked === null ? ' pop' : '') + '">' + w.em + '</div></div>' +
       '<div class="ask">' + (quiz.picked === null ? 'Apa ini? <span style="opacity:.7">(What is this?)</span>' : '&nbsp;') + '</div><div class="choices">';
     opts.forEach(function (o, k) {
       var cls = '';
