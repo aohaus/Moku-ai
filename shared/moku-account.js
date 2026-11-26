@@ -115,6 +115,22 @@
   function offlineMode() {
     try { return localStorage.getItem(OFFLINE_MODE_KEY) === '1'; } catch (e) { return false; }
   }
+  // Offline Mode belongs to a logged-in player: when the session ends (Log Out,
+  // an expired or refused token) it goes off, so the login page can reach the
+  // server again (its switch is only in My Moku, behind the login).
+  function clearOfflineMode() {
+    if (!offlineMode()) return;
+    try { localStorage.removeItem(OFFLINE_MODE_KEY); } catch (e) {}
+    try {
+      if (global.caches) {
+        caches.has(OFFLINE_CACHE).then(function (has) {
+          return has && caches.open(OFFLINE_CACHE).then(function (c) { return c.delete(MODE_MARKER); });
+        }).catch(function () {});
+      }
+      var w = global.navigator && navigator.serviceWorker && navigator.serviceWorker.controller;
+      if (w) w.postMessage({ type: 'moku-offline-mode', on: false });
+    } catch (e) {}
+  }
   try {
     if (global.navigator && navigator.serviceWorker && /^https?:$/.test(location.protocol)) {
       var swUrl = new URL('sw.js', script && script.src ? script.src.replace(/shared\/[^/]*$/, '') : location.href).href;
@@ -165,6 +181,23 @@
     return token && !tokenExpired(token) ? token : null;
   }
   function getUser() { return getToken() ? readJson(USER_KEY) : null; }
+  // Logged out or the token ran out while Offline Mode was on: turn it off
+  // (see clearOfflineMode), so the login page works when the network is back.
+  if (offlineMode() && !getToken()) clearOfflineMode();
+  // The switch is off but sw.js still has its "on" marker (the page moved on
+  // before clearOfflineMode finished): finish the job on this page.
+  try {
+    if (!offlineMode() && global.caches && MODE_MARKER) {
+      caches.has(OFFLINE_CACHE).then(function (has) {
+        return has && caches.open(OFFLINE_CACHE).then(function (c) {
+          return c.delete(MODE_MARKER).then(function (gone) {
+            var w = gone && navigator.serviceWorker && navigator.serviceWorker.controller;
+            if (w) w.postMessage({ type: 'moku-offline-mode', on: false });
+          });
+        });
+      }).catch(function () {});
+    }
+  } catch (e) {}
 
   function setSession(token, user) {
     lsSet(TOKEN_KEY, token);
@@ -173,6 +206,7 @@
   function clearSession() {
     lsRemove(TOKEN_KEY);
     lsRemove(USER_KEY);
+    clearOfflineMode();
   }
 
   function isSyncKey(key) {
