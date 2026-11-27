@@ -214,7 +214,14 @@ body.ov #hub-link, body.ov #buildInfo, body:not(.on-title) #title-frame, body:no
 .lbars { width:100%; margin:8px auto 2px; text-align:left; }
 .lbHead { font-size:11px; font-weight:800; opacity:.6; margin-bottom:4px; }
 /* レッスンのカード: アイコンと名前・動くお手本(ミニコート)・小さいバー。レッスンが 10 になっても並ぶグリッド */
-.lgrid { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:8px; } /* 10 のレッスンが 5 × 2 段 */
+.lpages { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; -webkit-overflow-scrolling:touch; padding-top:10px; }
+.lpages::-webkit-scrollbar { display:none; }
+.lgrid { flex:0 0 100%; scroll-snap-align:start; display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:10px; padding:0 2px; } /* 5 つで1ページ */
+.ltabs { display:flex; gap:6px; justify-content:center; }
+.ltab { border:2px solid var(--ink); background:#fff; color:var(--ink); border-radius:999px; padding:3px 14px; font-weight:800; font-size:13px; }
+.ltab small { font-size:10.5px; opacity:.6; } .ltab.on { background:var(--hi); color:#fff; } .ltab.on small { opacity:.85; }
+.ltile canvas { margin-left:auto !important; margin-right:auto !important; max-width:240px; }
+.ltile .ls { font-size:10.5px; font-weight:700; color:#2F6B2C; line-height:1.25; min-height:2.5em; margin-top:2px; }
 .ltile { position:relative; background:#fff; border:2px solid var(--ink); border-radius:12px; padding:5px 6px 6px; cursor:pointer; text-align:center; }
 .ltile:hover, .ltile.sel { box-shadow:0 0 0 3px var(--hi); }
 .ltile.weak { border-color:#E2573C; background:#FFF0EA; }
@@ -233,7 +240,7 @@ body.ov #hub-link, body.ov #buildInfo, body:not(.on-title) #title-frame, body:no
 .ldetail { margin-top:8px; min-height:36px; font-size:12.5px; font-weight:700; line-height:1.35; padding:6px 10px; border-radius:10px; background:rgba(79,163,224,.08); }
 .ldetail b { font-weight:800; } .ldetail i { font-style:normal; color:#2F7D32; font-weight:800; margin-left:6px; }
 .ldetail.hint { opacity:.6; text-align:center; background:none; }
-@media (max-height:400px) { .lgrid { gap:5px; } .ltile canvas { width:74%; margin:2px auto 3px; } .ltile .lt { min-height:0; } .ltile { padding:3px 4px 4px; } .ltile .lt { font-size:10.5px; } .ltile canvas { margin:2px 0 3px; } .ldetail { margin-top:5px; font-size:11.5px; padding:4px 8px; min-height:0; } }
+@media (max-height:400px) { .lpages { padding-top:8px; } .ltab { padding:1px 10px; font-size:11.5px; } .ltile .ls { font-size:9.5px; min-height:0; } .lgrid { gap:6px; } .ltile canvas { width:74%; margin:2px auto 3px; } .ltile .lt { min-height:0; } .ltile { padding:3px 4px 4px; } .ltile .lt { font-size:10.5px; } .ltile canvas { margin:2px 0 3px; } .ldetail { margin-top:5px; font-size:11.5px; padding:4px 8px; min-height:0; } }
 #bkTabs { display:flex; gap:6px; justify-content:center; margin:6px 0 2px; flex-wrap:wrap; }
 #bkTabs button { border:2px solid var(--ink); background:#fff; border-radius:12px; padding:3px 9px; font-weight:800; font-size:13px; color:var(--ink); min-width:52px; }
 #bkTabs button small { display:block; font-size:9px; letter-spacing:-.5px; color:#E0A21B; height:11px; }
@@ -248,6 +255,7 @@ body.ov #hub-link, body.ov #buildInfo, body:not(.on-title) #title-frame, body:no
 .review-btn { background:linear-gradient(#B59CF0,#7C5CD6) !important; }
 .review-btn small { font-size:12px; opacity:.9; }
 .rv { max-width:760px; text-align:left; }
+#review .rv { max-width:none; width:min(1180px, 95vw); }
 .rvHead { display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
 .rvHead b { font-size:17px; } .rvHead span { font-size:12px; font-weight:800; opacity:.6; }
 .rvBody { display:flex; gap:14px; align-items:center; margin-top:6px; }
@@ -262,7 +270,7 @@ body.ov #hub-link, body.ov #buildInfo, body:not(.on-title) #title-frame, body:no
 #records { padding:calc(var(--sat) + 2.5vh) calc(var(--sar) + 2.5vw) calc(var(--sab) + 2.5vh) calc(var(--sal) + 2.5vw); }
 #records .card { width:95vw; max-width:100%; max-height:95vh; }
 #records .lbars { width:100%; }
-#rvSummary { width:min(720px, 86vw); }
+#rvSummary { width:100%; }
 #records .stats { grid-template-columns:repeat(4, minmax(0,1fr)); }
 #resultSub { font-size:13px; font-weight:700; opacity:.75; }
 
@@ -308,7 +316,7 @@ body.playing.serving.you-serve #serves { display:flex; }
   background:rgba(255,246,230,.92); border:2px solid var(--ink); border-radius:999px; padding:4px 14px; font-size:12.5px; font-weight:800;
   display:none; white-space:nowrap; }
 #hint.show { display:block; }
-#banner { position:fixed; left:0; right:0; top:34%; z-index:330; text-align:center; pointer-events:none; display:none; }
+#banner { position:fixed; left:0; right:0; top:34%; z-index:650; text-align:center; pointer-events:none; display:none; }
 #banner.show { display:block; animation:pop .35s cubic-bezier(.2,1.6,.4,1); }
 #banner .big { display:inline-block; font-size:clamp(24px, 8vh, 40px); font-weight:800; color:#fff; -webkit-text-stroke:2px var(--ink);
   text-shadow:0 4px 0 var(--ink); letter-spacing:.04em; }
@@ -337,7 +345,7 @@ body.playing.serving.you-serve #serves { display:flex; }
 </head>
 <body class="on-title">
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
-<div id="buildInfo">v0.10.2 · Updated Nov 27, 2026</div>
+<div id="buildInfo">v0.10.6 · Updated Nov 27, 2026</div>
 
 <canvas id="cv"></canvas>
 
@@ -450,7 +458,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     koro:  { name: 'KORO',      pref: { smash: 0.9, drop: 1.2, clear: 0.9, net: 1.4 }, spd: 0.45, sm: 1,    racket: '#8FD16A' }
   };
   // 大会と会場の街(窓から街の景色がのぞく)。名前は Moku の大会としてもじる(Night Jungle の Moku Night Safari と同じ考え方)
-  // fast = ゲームの速さ(2026-11-27、保護者と決定: Match 1〜3 は Slow、4 からは Normal)
+  // fast = ⚡ の印(いちばん速い最後の大会)
   var STAGES = [
     { cup: 'Moku Malaysia Masters', city: 'kl', pair: ['kon', 'ponta'],  speed: 3.4, react: 0.34, q: [0.18, 0.52, 0.30], fault: 0.16, smashMul: 0.78, leave: 0.15 },
     { cup: 'Moku Singapore Masters', city: 'sg', pair: ['chef', 'ninja'], speed: 3.9, react: 0.28, q: [0.26, 0.54, 0.20], fault: 0.14, smashMul: 0.86, leave: 0.4 },
@@ -458,8 +466,10 @@ body.playing.serving.you-serve #serves { display:flex; }
     { cup: 'Moku Indonesia Masters', city: 'jkt', pair: ['goro', 'koro'],  speed: 5.0, react: 0.15, q: [0.50, 0.44, 0.06], fault: 0.09, smashMul: 1.05, leave: 0.85, boss: true, fast: true }
   ];
   function pairName(i) { return RIVALS[STAGES[i].pair[0]].name + ' & ' + RIVALS[STAGES[i].pair[1]].name; }
-  var SPEED_SLOW = 0.72, SPEED_NORMAL = 0.9;
-  function gameSpeed() { return STAGES[settings.stage].fast ? SPEED_NORMAL : SPEED_SLOW; }
+  // ゲームの速さ(2026-11-27 に変更、保護者の依頼): 最初から前の Slow(0.72)より約3割速く、大会が進むごとに約1割ずつ速く。
+  // Match 1 0.94 → 2 1.03 → 3 1.13 → 4 1.25(シャトルも選手も同じ倍率なので、届く・届かないの計算は変わらない)
+  var SPEED_BASE = 0.72 * 1.3, SPEED_STEP = 1.1;
+  function gameSpeed() { return SPEED_BASE * Math.pow(SPEED_STEP, settings.stage); }
   var settings = { stage: 0 };
   try { var st = JSON.parse(localStorage.getItem(SET_KEY) || 'null'); if (st) { if (STAGES[st.stage]) settings.stage = st.stage; } } catch (e) {}
   function saveSettings() { try { localStorage.setItem(SET_KEY, JSON.stringify(settings)); } catch (e) {} }
@@ -684,12 +694,17 @@ body.playing.serving.you-serve #serves { display:flex; }
         v = solveSpeed(from, r * dx, tz, ang);
       }
     } else if (type === 'push') {
-      // プッシュ: ネット前から、速く低い弾道で相手の中ほど〜奥の横へ押し込む(高い所で取るほど下向きに打てる)
-      dx = q === 'perfect' ? 4.4 : q === 'good' ? 3.8 + rnd(-0.3, 0.3) : 2.7;
-      if (q !== 'late') tz = sign(tz || 1) * 2.3;
-      ang = (y >= 1.45 ? -6 : y >= 1.1 ? 3 : 9) * D2R + (q === 'late' ? 8 * D2R : 0);
-      v = solveSpeed(from, r * dx, tz, ang);
-      for (var pi = 0; pi < 10 && netHeight(from, v) < NET_H + 0.1; pi++) { ang += 4 * D2R; v = solveSpeed(from, r * dx, tz, ang); }
+      // プッシュ(2026-11-27 に変更): 奥ではなく、相手コートの真ん中より手前(ネットから 2〜3m)へ、速く下向きに刺す。
+      // ネットを越えられる一番低い角度で、決まった速さで打つ。Late は遅く、少し奥にふわっと浮く(返されやすい)
+      var pspd = q === 'perfect' ? 19 : q === 'good' ? 16 : 10;
+      dx = q === 'perfect' ? 2.2 : q === 'good' ? 2.6 + rnd(-0.2, 0.2) : 3.6;
+      if (q !== 'late') tz = sign(tz || 1) * 1.7;
+      // 低い所で取った時は、ネットを越えて手前に落とせる速さまで落とす(それでもだめなら少し奥へ)
+      var pok = false;
+      for (var pd = 0; pd < 4 && !pok; pd++) {
+        for (var sp2 = pspd; sp2 >= 7 && !pok; sp2 -= 2) { v = solveAngle(from, r * (dx + pd * 0.4), tz, sp2); pok = netHeight(from, v) >= NET_H + 0.08 && range(from, v) < dx + pd * 0.4 + Math.abs(from[0]) + 1.2; }
+      }
+      if (!pok) v = solveSpeed(from, r * (dx + 0.8), tz, 28 * D2R);
     } else if (type === 'smash') {
       var spd = (q === 'perfect' ? 34 : q === 'good' ? 27 : 19) * (ch.ai ? ch.ai.smashMul : 1);
       dx = q === 'perfect' ? 3.1 : q === 'good' ? 3.8 : 4.9;
@@ -715,7 +730,7 @@ body.playing.serving.you-serve #serves { display:flex; }
   function canSmash(y) { return y >= 1.85; }
   function canNet(ch) { return Math.abs(ch.x) < 2.9; }
   function canNetAt(x) { return Math.abs(x) < 2.9; }
-  function canPush(ch, y) { return Math.abs(ch.x) < 3.2 && y >= 0.9; } // プッシュはネット前で、ある程度の高さの球だけ
+  function canPush(ch, y) { return Math.abs(ch.x) < 3.2 && y >= 1.1; } // プッシュはネット前で、ある程度の高さの球だけ
   function doHit(ch, type, q, fault) {
     var y = shuttle.p[1];
     shuttle.v = makeShot(ch, type, q, fault);
@@ -734,7 +749,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     if (serve) { lastServe = type; document.body.classList.remove('serving', 'you-serve'); hideHint(); phase = 'rally'; }
     ch.wait = 0.22;
     plan();
-    if (window.__bdLog && predicted) window.__bdLog.push({ who: ch.id, type: type, q: q, f: !!fault, y: +y.toFixed(2), x: +shuttle.p[0].toFixed(2), apex: +Math.max.apply(null, predicted.pts.map(function (o) { return o.y; }).concat([0])).toFixed(1), end: predicted.end && [+predicted.end.x.toFixed(1), +predicted.end.z.toFixed(1)], net: predicted.net });
+    if (window.__bdLog && predicted) window.__bdLog.push({ who: ch.id, type: type, spd: +Math.hypot(shuttle.v[0], shuttle.v[1], shuttle.v[2]).toFixed(1), q: q, f: !!fault, y: +y.toFixed(2), x: +shuttle.p[0].toFixed(2), apex: +Math.max.apply(null, predicted.pts.map(function (o) { return o.y; }).concat([0])).toFixed(1), end: predicted.end && [+predicted.end.x.toFixed(1), +predicted.end.z.toFixed(1)], net: predicted.net });
   }
   function aiQuality(ai) { return ['perfect', 'good', 'late'][pickW(ai.q)]; }
   function aiShot(ch) {
@@ -823,16 +838,21 @@ body.playing.serving.you-serve #serves { display:flex; }
   function lessonTiles(before) {
     var weak = null; // Your habit! = 最近の正しく選べた割合がいちばん低いレッスン(80% 未満、4 回以上)
     FIVE.forEach(function (k) { var pt = lessonParts(k), r = ((progress.lessonRecent || {})[k] || ''); if (pt && r.length >= 4 && pt.acc < MASTER_ACC && (!weak || pt.acc < weak.acc)) weak = { k: k, acc: pt.acc }; });
-    return '<div class="lgrid">' + FIVE.map(function (k) {
+    // 5 つずつ 2 ページ(Basics / Rally smarts)を横にスクロール。各カードに、何のレッスンかを短い1行で(2026-11-27)
+    function tile(k) {
       var L = LESSONS[k], pt = lessonParts(k), m = pt ? pt.mastery : null;
       var d = before && pt && before[k] != null ? m - before[k] : before && pt ? m : null;
       return '<div class="ltile' + (weak && weak.k === k ? ' weak' : '') + (m >= 100 ? ' master' : '') + '" data-k="' + k + '" tabindex="0">' +
         (weak && weak.k === k ? '<em>Your habit!</em>' : m >= 100 ? '<em class="gold">⭐ Master</em>' : '') +
-        '<div class="lt">' + L.icon + ' ' + L.title + '</div>' +
+        '<div class="lt">' + L.icon + ' ' + L.title + '</div><div class="ls">' + NEXT_TIP[k] + '</div>' +
         '<canvas class="lanim" data-k="' + k + '" width="320" height="180"></canvas>' +
         '<div class="lrow"><span class="bar"><i style="width:' + (m || 0) + '%"></i></span>' +
         '<span class="lp">' + (m == null ? '–' : m + '%') + (d ? '<small class="' + (d > 0 ? 'up' : 'down') + '">' + (d > 0 ? '+' : '') + d + '</small>' : '') + '</span></div></div>';
-    }).join('') + '</div><div class="ldetail hint">% = Mastery: how well you know and use each lesson. Tap one to learn more.</div>';
+    }
+    var pages = [['Basics', FIVE.slice(0, 5)], ['Rally smarts', FIVE.slice(5)]];
+    return '<div class="ltabs">' + pages.map(function (pg, i) { return '<button class="ltab' + (i ? '' : ' on') + '" data-page="' + i + '">' + (i + 1) + '. ' + pg[0] + ' <small>' + (i * 5 + 1) + '–' + (i * 5 + pg[1].length) + '</small></button>'; }).join('') + '</div>' +
+      '<div class="lpages">' + pages.map(function (pg) { return '<div class="lgrid">' + pg[1].map(tile).join('') + '</div>'; }).join('') + '</div>' +
+      '<div class="ldetail hint">% = Mastery: how well you know and use each lesson. Tap one to learn more.</div>';
   }
   function masterySnapshot() { var o = {}; FIVE.forEach(function (k) { var pt = lessonParts(k); o[k] = pt ? pt.mastery : null; }); return o; }
   // お手本のアニメーション(GIF のようにくり返す): 相手から球が来る → YOU が打つ → 緑の正しいショットで落ちる。赤の点線と ✗ はよくあるまちがい
@@ -892,6 +912,15 @@ body.playing.serving.you-serve #serves { display:flex; }
   // レッスンのカード: タップ / マウスを乗せると、下にくわしい説明
   document.addEventListener('click', function (e) { var t = e.target.closest && e.target.closest('.ltile'); if (t) lessonDetail(t); });
   document.addEventListener('mouseover', function (e) { var t = e.target.closest && e.target.closest('.ltile'); if (t) lessonDetail(t); });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('.ltab'); if (!b) return;
+    var box = b.closest('.lbars').querySelector('.lpages'); box.scrollTo({ left: +b.getAttribute('data-page') * box.clientWidth, behavior: 'smooth' });
+  });
+  document.addEventListener('scroll', function (e) { // 横にスワイプした時、上のタブも切りかえる
+    var box = e.target; if (!box.classList || !box.classList.contains('lpages')) return;
+    var i = Math.round(box.scrollLeft / Math.max(1, box.clientWidth));
+    Array.prototype.forEach.call(box.parentNode.querySelectorAll('.ltab'), function (t, j) { t.classList.toggle('on', j === i); });
+  }, true);
   // Lesson 6〜10 の文(LESSONS / BOOK / NEXT_TIP に足す)。判定はルール(newLessonSits)
   var NEW_LESSONS = {
     keepattack: { icon: '🔥', title: 'Keep attacking', why: 'You were attacking and they sent back a weak, low shot. Don\'t lift it — keep hitting down!', tip: 'Keep the attack going, moku!' },
@@ -1157,7 +1186,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     badges.forEach(function (b) { progress.badges[b[0]] = (progress.badges[b[0]] || 0) + 1; });
     if (w === 0) {
       var key = STAGES[st].pair.join('-'); progress.beaten[key] = (progress.beaten[key] || 0) + 1;
-      if (st + 1 < STAGES.length && progress.unlocked < st + 2) { progress.unlocked = st + 2; opened = true; }
+      if (st + 1 < STAGES.length && progress.unlocked < st + 2) { progress.unlocked = st + 2; opened = true; pendingFly = { from: st, to: st + 1 }; }
     }
     saveProgress();
     if (w === 0) sfx.fanfare();
@@ -1173,7 +1202,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     document.getElementById('resultBadges').innerHTML = badges.map(function (b) { return '<span class="badge"><b>' + b[1] + '</b> ' + b[2] + '</span>'; }).join('');
     // 勝って次の相手が開いていれば、次は次の相手
     nextStage = w === 0 && st + 1 < STAGES.length ? st + 1 : st;
-    document.getElementById('againBtn').textContent = nextStage !== st ? '▶ Next Match' : w === 0 ? '▶ Play Again' : '▶ Try Again';
+    document.getElementById('againBtn').textContent = nextStage !== st ? '✈️ Fly to the next city' : w === 0 ? '▶ Play Again' : '▶ Try Again';
     var rb = document.getElementById('reviewBtn'); rb.style.display = review.cards.length ? '' : 'none';
     rb.innerHTML = '🧠 Review <small>Tactics ' + review.tactics + '%</small>';
     setTimeout(function () { show('result', true); }, 700);
@@ -1854,7 +1883,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     var o = tourBase, pts = STAGES.map(function (d) { var pl = PLACES_T[d.city], m = MP(pl.at[0], pl.at[1]); return [m[0] + pl.off[0], m[1] + pl.off[1]]; });
     for (var i = 0; i < pts.length - 1; i++) { // 道すじ: 勝った所までは実線、その先は点線
       var c0 = MP(ROUTE_CTRL[i][0], ROUTE_CTRL[i][1]), done = won(i) && i + 1 < progress.unlocked;
-      o += '<path d="M' + pts[i].join(' ') + ' Q' + c0.join(' ') + ' ' + pts[i + 1].join(' ') + '" fill="none" stroke="' + (done ? '#E0A21B' : '#4A2E1A') + '" stroke-width="' + (done ? 7 : 4) + '" stroke-dasharray="' + (done ? '0' : '4 12') + '" stroke-linecap="round" opacity="' + (done ? 1 : .6) + '"/>';
+      o += '<path id="tseg' + i + '" d="M' + pts[i].join(' ') + ' Q' + c0.join(' ') + ' ' + pts[i + 1].join(' ') + '" fill="none" stroke="' + (done ? '#E0A21B' : '#4A2E1A') + '" stroke-width="' + (done ? 7 : 4) + '" stroke-dasharray="' + (done ? '0' : '4 12') + '" stroke-linecap="round" opacity="' + (done ? 1 : .6) + '"/>';
     }
     STAGES.forEach(function (d, i) {
       var pl = PLACES_T[d.city], m = pts[i], open = i < progress.unlocked, w = won(i), sel = i === settings.stage;
@@ -1871,8 +1900,8 @@ body.playing.serving.you-serve #serves { display:flex; }
       o += '</g>';
     });
     // YOU & MOKU の印(いまいる所)
-    var hm = pts[here];
-    o += '<g pointer-events="none" transform="translate(' + hm[0] + ' ' + (hm[1] - 40) + ')"><g class="token"><rect x="-58" y="-34" width="116" height="30" rx="15" fill="#4FA3E0" stroke="#4A2E1A" stroke-width="3"/>' +
+    var hm = pts[here]; tourPts = pts;
+    o += '<g id="tourToken" pointer-events="none" transform="translate(' + hm[0] + ' ' + (hm[1] - 40) + ')"><g class="token"><rect x="-58" y="-34" width="116" height="30" rx="15" fill="#4FA3E0" stroke="#4A2E1A" stroke-width="3"/>' +
       '<text y="-13" font-size="15" font-weight="800" text-anchor="middle" fill="#fff">🏸 YOU &amp; MOKU</text><path d="M-7 -5 L0 6 L7 -5 Z" fill="#4FA3E0" stroke="#4A2E1A" stroke-width="3" stroke-linejoin="round"/></g></g>';
     document.getElementById('tourSvg').innerHTML = o;
     document.getElementById('tourCount').textContent = nWon + ' / ' + STAGES.length;
@@ -1916,11 +1945,42 @@ body.playing.serving.you-serve #serves { display:flex; }
     introBanner = true; setTimeout(function () { if (introBanner) hideBanner(); introBanner = false; umpCall('Love all, play!');
       var tl = LESSONS[progress.tipLesson]; if (tl && !demo) { say(MOKU, tl.tip); MOKU.sayT = 3.5; } }, 1800);
   }
+  // ── 勝って次の街が開いた時: 地図の上を YOU & MOKU が次の街へ飛ぶ(2026-11-27)──
+  var pendingFly = null, tourPts = null;
+  function flyToNext(f) {
+    var tok = document.getElementById('tourToken'), seg = document.getElementById('tseg' + f.from), svg = document.getElementById('tourSvg');
+    if (!tok || !tourPts) return;
+    var a = tourPts[f.from], b = tourPts[f.to], cp = ROUTE_CTRL[f.from], c0 = MP(cp[0], cp[1]);
+    var len = seg ? seg.getTotalLength() : 0;
+    if (seg) { seg.style.strokeDasharray = len; seg.style.strokeDashoffset = len; }
+    var plane = document.createElementNS('http://www.w3.org/2000/svg', 'text'); // 飛んでいる間だけ ✈️
+    plane.setAttribute('font-size', '34'); plane.setAttribute('text-anchor', 'middle'); plane.textContent = '✈️'; svg.appendChild(plane);
+    document.getElementById('playBtn').disabled = true;
+    setTimeout(function () { tone(520, 880, 0.5, 0.08, 'triangle'); }, 500); // ひゅーん
+    var t0 = performance.now() + 500, DUR = 2200; // 地図を見せてから 0.5 秒後に飛び立つ
+    function step(now2) {
+      var u = Math.max(0, Math.min(1, (now2 - t0) / DUR)), e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2, k = 1 - e;
+      var x = k * k * a[0] + 2 * k * e * c0[0] + e * e * b[0], y = k * k * a[1] + 2 * k * e * c0[1] + e * e * b[1];
+      var lift = Math.sin(u * Math.PI) * 70; // 弧をえがいて少し高く
+      tok.setAttribute('transform', 'translate(' + x + ' ' + (y - 40 - lift) + ') scale(' + (1 + Math.sin(u * Math.PI) * 0.25) + ')');
+      var dx = 2 * k * (c0[0] - a[0]) + 2 * e * (b[0] - c0[0]), dy = 2 * k * (c0[1] - a[1]) + 2 * e * (b[1] - c0[1]);
+      plane.setAttribute('transform', 'translate(' + (x + 70) + ' ' + (y - 70 - lift) + ') rotate(' + (Math.atan2(dy, dx) * 180 / Math.PI + 45) + ')');
+      if (seg) seg.style.strokeDashoffset = len * (1 - e);
+      if (u < 1) requestAnimationFrame(step);
+      else {
+        plane.remove(); sfx.fanfare(); renderTour();
+        var nm = PLACES_T[STAGES[f.to].city].city;
+        showBanner('NEXT STOP!', '✈️ Welcome to ' + nm + '!'); setTimeout(hideBanner, 1800);
+      }
+    }
+    requestAnimationFrame(step);
+  }
   function toTitle() {
     demo = true; paused = false; phase = 'title';
     show('result', false); show('pause', false); show('title', true); hideBanner(); hideHint();
     document.body.classList.add('on-title'); document.body.classList.remove('playing', 'serving', 'you-serve');
     syncOpts(); resetMatch(); setupServe();
+    if (pendingFly) { var f = pendingFly; pendingFly = null; settings.stage = f.to; saveSettings(); setRivals(); renderTour(); flyToNext(f); }
   }
   function setPause(on) {
     if (on && (phase === 'title' || phase === 'over' || demo)) return;
@@ -2068,7 +2128,10 @@ body.playing.serving.you-serve #serves { display:flex; }
     var b = progress.book || {}; bookShow(BOOK_ORDER.filter(function (x) { return b[x]; })[0] || 'attack'); show('book', true);
   });
   document.getElementById('bookClose').addEventListener('click', function () { show('book', false); });
-  document.getElementById('againBtn').addEventListener('click', function () { settings.stage = nextStage; saveSettings(); startMatch(); });
+  document.getElementById('againBtn').addEventListener('click', function () {
+    if (pendingFly) { toTitle(); return; } // 次の街が開いた時は、まず地図で飛ぶのを見せる
+    settings.stage = nextStage; saveSettings(); startMatch();
+  });
   document.getElementById('menuBtn').addEventListener('click', toTitle);
   document.getElementById('resumeBtn').addEventListener('click', function () { setPause(false); });
   document.getElementById('quitBtn').addEventListener('click', toTitle);
