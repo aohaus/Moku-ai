@@ -314,7 +314,7 @@ body.playing.serving.you-serve #serves { display:flex; }
 </head>
 <body class="on-title">
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
-<div id="buildInfo">v0.10.0 · Updated Nov 27, 2026</div>
+<div id="buildInfo">v0.10.1 · Updated Nov 27, 2026</div>
 
 <canvas id="cv"></canvas>
 
@@ -1233,7 +1233,8 @@ body.playing.serving.you-serve #serves { display:flex; }
   function drawCrowd(rdt) {
     crowd.t += rdt;
     var by = crowd.by, T = crowd.t, act = T < 1.8, decay = act ? 1 - T / 1.8 : 0;
-    c.strokeStyle = INK; c.lineWidth = 2;
+    // ギャラリーは背景: 半透明で、線も細くうすい色に(2026-11-27、保護者の声)
+    c.save(); c.globalAlpha = 0.42; c.strokeStyle = '#7A6A5C'; c.lineWidth = 1.2;
     for (var i = 0; i < crowd.list.length; i++) {
       var a = crowd.list[i], r = a.r, x = a.x, dy = Math.sin(now * 2 + i) * 0.6, arms = 0, mouth = 0, sad = false;
       if (act && crowd.mood === 'cheer' && crowd.wave) { // ウェーブ: 波が来た仲間だけバンザイして立ち上がる
@@ -1257,6 +1258,7 @@ body.playing.serving.you-serve #serves { display:flex; }
       else { c.beginPath(); c.arc(x - r * 0.3, y - r * 1.8, 1.7, 0, TAU); c.arc(x + r * 0.3, y - r * 1.8, 1.7, 0, TAU); c.fill(); }
       if (mouth) { c.fillStyle = '#5E5A56'; c.beginPath(); c.ellipse(x, y - r * 1.45, r * 0.2, r * 0.17, 0, 0, TAU); c.fill(); }
     }
+    c.restore(); c.strokeStyle = INK; c.lineWidth = 2;
     c.fillStyle = '#8A5A33'; c.fillRect(0, by - 2, W, 8); c.strokeRect(-2, by - 2, W + 4, 8); // 手すり
     for (var k = crowd.confetti.length - 1; k >= 0; k--) { // 紙ふぶき
       var f = crowd.confetti[k]; f.t += rdt; if (f.t > 2) { crowd.confetti.splice(k, 1); continue; }
