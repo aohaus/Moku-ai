@@ -164,7 +164,7 @@ body.playing.serving.you-serve #serves { display:flex; }
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.3.0 · Updated Nov 27, 2026</div>
+<div id="buildInfo">v0.3.1 · Updated Nov 27, 2026</div>
 
 <canvas id="cv"></canvas>
 
@@ -333,6 +333,18 @@ body.playing.serving.you-serve #serves { display:flex; }
     for (var i = 0; i < 20; i++) { var m = (lo + hi) / 2; if (range(from, velFor(from, tx, tz, m, spd)) < d) lo = m; else hi = m; }
     return velFor(from, tx, tz, (lo + hi) / 2, spd);
   }
+  // 高い球は画面の上のはしギリギリを飛ぶ(画面から消えない。2026-11-27、保護者の声)。
+  // スコアの板の下の線(画面の上から約 60px)より上に出るなら、角度を下げて低い弾道にする
+  function topRoom(x, z) { return (GY + TILT * z * S - (safe.t + 60)) / S; }
+  function fitsScreen(from, v) {
+    var r = simulate(from, v, 5, true);
+    for (var i = 0; i < r.pts.length; i += 3) { var q = r.pts[i]; if (q.y > topRoom(q.x, q.z)) return false; }
+    return true;
+  }
+  function lowerToFit(from, tx, tz, ang, v) {
+    for (var i = 0; i < 12 && ang > 14 * D2R && !fitsScreen(from, v); i++) { ang -= 2.5 * D2R; v = solveSpeed(from, tx, tz, ang); }
+    return v;
+  }
   function netHeight(from, v) {
     var p = from.slice(), w = v.slice(), t = 0;
     while (t < 4) { var px = p[0]; integ(p, w, DT); t += DT; if ((px < 0) !== (p[0] < 0)) return p[1]; if (p[1] <= 0) return -1; }
@@ -427,7 +439,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     if (type === 'clear') {
       dx = q === 'perfect' ? 6.15 : q === 'good' ? 5.75 + rnd(-0.25, 0.25) : 4.2 + rnd(-0.5, 0.5);
       ang = (y < 1.3 ? 40 : 33) * D2R + (q === 'late' ? 6 * D2R : 0); // 少し低め(2026-11-27)
-      v = solveSpeed(from, r * dx, tz, ang);
+      v = lowerToFit(from, r * dx, tz, ang, solveSpeed(from, r * dx, tz, ang));
     } else if (type === 'drop' || type === 'net' || type === 'short') {
       if (type === 'drop') { dx = q === 'perfect' ? 1.3 : q === 'good' ? 1.7 + rnd(-0.2, 0.2) : 2.9; ang = (y > 1.8 ? (q === 'late' ? 22 : 4) : 30) * D2R; }
       else if (type === 'net') { dx = q === 'perfect' ? 0.75 : q === 'good' ? 1.05 : 1.8; ang = 50 * D2R; }
@@ -445,7 +457,7 @@ body.playing.serving.you-serve #serves { display:flex; }
       v = solveAngle(from, r * dx, tz, spd);
       for (var j = 0; j < 8 && netHeight(from, v) < NET_H + 0.08; j++) { dx += 0.45; v = solveAngle(from, r * dx, tz, spd); }
     } else { // long serve
-      dx = LSL - 0.35; ang = 44 * D2R; v = solveSpeed(from, r * dx, tz, ang);
+      dx = LSL - 0.35; ang = 44 * D2R; v = lowerToFit(from, r * dx, tz, ang, solveSpeed(from, r * dx, tz, ang));
     }
     if (fault) { // ミス: ネットか、外へ
       if (Math.random() < 0.5) v = solveSpeed(from, r * 0.35, tz, -0.25);
@@ -586,7 +598,9 @@ body.playing.serving.you-serve #serves { display:flex; }
     if (!netHit && inB && hits === 1) word = 'ACE!';
     pointTo(w, word);
   }
+  var introBanner = false;
   function pointTo(w, word) {
+    introBanner = false;
     phase = 'point'; pointTimer = 1.7; assigned = null; contact = null;
     if (w === servingTeam) { var m = teamOf(w); rightCourt[w] = rightCourt[w] === m[0] ? m[1] : m[0]; }
     else servingTeam = w;
@@ -1141,7 +1155,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     resetMatch(); setupServe();
     showHint(server === YOU ? 'Your serve! Tap SHORT or LONG' : 'You run by yourself — tap a glowing button!', 3);
     showBanner(STAGES[settings.stage].cup.replace('Moku ', '').toUpperCase(), (STAGES[settings.stage].boss ? 'FINAL · ' : 'MATCH ' + (settings.stage + 1) + ' · ') + 'VS ' + pairName(settings.stage));
-    setTimeout(function () { if (phase === 'serve' && !demo) hideBanner(); }, 1800);
+    introBanner = true; setTimeout(function () { if (introBanner) hideBanner(); introBanner = false; }, 1800);
   }
   function toTitle() {
     demo = true; paused = false; phase = 'title';
@@ -1186,7 +1200,7 @@ body.playing.serving.you-serve #serves { display:flex; }
   resetMatch(); setupServe();
   requestAnimationFrame(frame);
   // 開発・確認用(ブラウザのコンソールから): 試合の状態を見る
-  window.MOKU_BADMINTON = { state: function () { return { phase: phase, score: score.slice(), rally: rally, shuttle: shuttle.p.slice(), assigned: assigned && assigned.id }; }, hit: playerShot };
+  window.MOKU_BADMINTON = { screenY: function () { return P(shuttle.p[0], shuttle.p[1], shuttle.p[2])[1]; }, state: function () { return { phase: phase, score: score.slice(), rally: rally, shuttle: shuttle.p.slice(), assigned: assigned && assigned.id }; }, hit: playerShot };
 })();
 </script>
 </body>
