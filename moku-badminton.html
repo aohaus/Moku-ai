@@ -283,15 +283,15 @@ body.playing #pauseBtn { display:block; }
 
 /* ── ショットのボタン(右の列) ── */
 #shots, #serves { position:fixed; right:calc(10px + var(--sar)); top:50%; transform:translateY(-50%); z-index:320;
-  display:none; flex-direction:column; gap:9px; }
+  display:none; flex-direction:column; gap:16px; } /* ボタンは前より約3割大きく、間も広く(2026-11-27) */
 body.playing #shots { display:flex; }
 body.playing.serving #shots { display:none; }
 body.playing.serving.you-serve #serves { display:flex; }
-.shot { position:relative; width:68px; height:62px; border-radius:16px; border:3px solid var(--ink); background:rgba(255,246,230,.92);
+.shot { position:relative; width:88px; height:80px; border-radius:16px; border:3px solid var(--ink); background:rgba(255,246,230,.92);
   color:var(--ink); font-size:11px; font-weight:800; letter-spacing:.03em; display:flex; flex-direction:column; align-items:center;
   justify-content:center; gap:1px; box-shadow:0 3px 0 rgba(74,46,26,.45); transition:transform .08s, background .12s, opacity .12s;
   touch-action:manipulation; }
-.shot svg { width:40px; height:26px; }
+.shot svg { width:52px; height:34px; }
 .shot .key { position:absolute; top:2px; right:5px; font-size:9px; opacity:.45; display:none; }
 @media (hover:hover) and (pointer:fine) { .shot .key { display:block; } }
 .shot.dim { opacity:.32; }
@@ -303,7 +303,7 @@ body.playing.serving.you-serve #serves { display:flex; }
 .shot.charging.full { box-shadow:0 3px 0 rgba(74,46,26,.45), 0 0 16px 6px rgba(255,140,60,.9); }
 .shot .hold { font-size:8.5px; font-weight:800; opacity:.6; letter-spacing:0; }
 .shot:active, .shot.hit { transform:scale(.94) translateY(2px); }
-.serve { width:96px; height:70px; font-size:13px; }
+.serve { width:124px; height:90px; font-size:15px; }
 #hint { position:fixed; left:50%; bottom:calc(14px + var(--sab)); transform:translateX(-50%); z-index:310;
   background:rgba(255,246,230,.92); border:2px solid var(--ink); border-radius:999px; padding:4px 14px; font-size:12.5px; font-weight:800;
   display:none; white-space:nowrap; }
@@ -316,12 +316,12 @@ body.playing.serving.you-serve #serves { display:flex; }
 @keyframes pop { from { transform:scale(.5); opacity:0; } to { transform:scale(1); opacity:1; } }
 
 @media (min-height:600px) {
-  .shot { width:82px; height:74px; font-size:12.5px; } .shot svg { width:48px; height:30px; }
-  .serve { width:110px; height:82px; font-size:14px; }
+  .shot { width:106px; height:96px; font-size:14px; } .shot svg { width:60px; height:38px; }
+  .serve { width:140px; height:104px; font-size:16px; } #shots, #serves { gap:20px; }
   #board { font-size:15px; } #board .num { font-size:26px; }
 }
-@media (max-height:440px) { #shots { gap:6px; } #shots .shot { width:64px; height:54px; font-size:10.5px; } #shots .shot svg { height:22px; } }
-@media (max-height:360px) { #shots .shot { width:58px; height:48px; font-size:10px; } #shots .shot svg { height:18px; } #shots { gap:5px; } }
+@media (max-height:440px) { #shots { gap:12px; } #shots .shot { width:84px; height:70px; font-size:12px; } #shots .shot svg { height:28px; } }
+@media (max-height:360px) { #shots .shot { width:76px; height:19vh; font-size:11px; } #shots .shot svg { height:7vh; } #shots { gap:4vh; } }
 
 /* 横向き専用(SPEC.md §4): 縦持ちのスマホ・タブレットでは回転をお願いする */
 #rotate-hint { display:none; position:fixed; inset:0; z-index:2000; background:#F3D9A8; color:var(--ink);
@@ -337,7 +337,7 @@ body.playing.serving.you-serve #serves { display:flex; }
 </head>
 <body class="on-title">
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
-<div id="buildInfo">v0.10.1 · Updated Nov 27, 2026</div>
+<div id="buildInfo">v0.10.2 · Updated Nov 27, 2026</div>
 
 <canvas id="cv"></canvas>
 
@@ -1222,7 +1222,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     W = window.innerWidth; H = window.innerHeight; DPR = Math.min(2, window.devicePixelRatio || 1);
     cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
     readSafe();
-    var left = safe.l + 8, right = W - safe.r - (H >= 600 ? 104 : 88);
+    var left = safe.l + 8, right = W - safe.r - (H >= 600 ? 128 : H > 440 ? 108 : 100); // 大きくしたボタンの分をあける
     var spanX = 2 * (HL + 0.9) + 2 * SHEAR * HW;
     S = (right - left) / spanX;
     var vis = H - safe.b - 22 - (safe.t + 56);
