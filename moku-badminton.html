@@ -214,7 +214,14 @@ body.ov #hub-link, body.ov #buildInfo, body:not(.on-title) #title-frame, body:no
 .lbars { width:100%; margin:8px auto 2px; text-align:left; }
 .lbHead { font-size:11px; font-weight:800; opacity:.6; margin-bottom:4px; }
 /* レッスンのカード: アイコンと名前・動くお手本(ミニコート)・小さいバー。レッスンが 10 になっても並ぶグリッド */
-.lgrid { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:8px; } /* 10 のレッスンが 5 × 2 段 */
+.lpages { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; -webkit-overflow-scrolling:touch; padding-top:10px; }
+.lpages::-webkit-scrollbar { display:none; }
+.lgrid { flex:0 0 100%; scroll-snap-align:start; display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:10px; padding:0 2px; } /* 5 つで1ページ */
+.ltabs { display:flex; gap:6px; justify-content:center; }
+.ltab { border:2px solid var(--ink); background:#fff; color:var(--ink); border-radius:999px; padding:3px 14px; font-weight:800; font-size:13px; }
+.ltab small { font-size:10.5px; opacity:.6; } .ltab.on { background:var(--hi); color:#fff; } .ltab.on small { opacity:.85; }
+.ltile canvas { margin-left:auto !important; margin-right:auto !important; max-width:240px; }
+.ltile .ls { font-size:10.5px; font-weight:700; color:#2F6B2C; line-height:1.25; min-height:2.5em; margin-top:2px; }
 .ltile { position:relative; background:#fff; border:2px solid var(--ink); border-radius:12px; padding:5px 6px 6px; cursor:pointer; text-align:center; }
 .ltile:hover, .ltile.sel { box-shadow:0 0 0 3px var(--hi); }
 .ltile.weak { border-color:#E2573C; background:#FFF0EA; }
@@ -233,7 +240,7 @@ body.ov #hub-link, body.ov #buildInfo, body:not(.on-title) #title-frame, body:no
 .ldetail { margin-top:8px; min-height:36px; font-size:12.5px; font-weight:700; line-height:1.35; padding:6px 10px; border-radius:10px; background:rgba(79,163,224,.08); }
 .ldetail b { font-weight:800; } .ldetail i { font-style:normal; color:#2F7D32; font-weight:800; margin-left:6px; }
 .ldetail.hint { opacity:.6; text-align:center; background:none; }
-@media (max-height:400px) { .lgrid { gap:5px; } .ltile canvas { width:74%; margin:2px auto 3px; } .ltile .lt { min-height:0; } .ltile { padding:3px 4px 4px; } .ltile .lt { font-size:10.5px; } .ltile canvas { margin:2px 0 3px; } .ldetail { margin-top:5px; font-size:11.5px; padding:4px 8px; min-height:0; } }
+@media (max-height:400px) { .lpages { padding-top:8px; } .ltab { padding:1px 10px; font-size:11.5px; } .ltile .ls { font-size:9.5px; min-height:0; } .lgrid { gap:6px; } .ltile canvas { width:74%; margin:2px auto 3px; } .ltile .lt { min-height:0; } .ltile { padding:3px 4px 4px; } .ltile .lt { font-size:10.5px; } .ltile canvas { margin:2px 0 3px; } .ldetail { margin-top:5px; font-size:11.5px; padding:4px 8px; min-height:0; } }
 #bkTabs { display:flex; gap:6px; justify-content:center; margin:6px 0 2px; flex-wrap:wrap; }
 #bkTabs button { border:2px solid var(--ink); background:#fff; border-radius:12px; padding:3px 9px; font-weight:800; font-size:13px; color:var(--ink); min-width:52px; }
 #bkTabs button small { display:block; font-size:9px; letter-spacing:-.5px; color:#E0A21B; height:11px; }
@@ -248,6 +255,7 @@ body.ov #hub-link, body.ov #buildInfo, body:not(.on-title) #title-frame, body:no
 .review-btn { background:linear-gradient(#B59CF0,#7C5CD6) !important; }
 .review-btn small { font-size:12px; opacity:.9; }
 .rv { max-width:760px; text-align:left; }
+#review .rv { max-width:none; width:min(1180px, 95vw); }
 .rvHead { display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
 .rvHead b { font-size:17px; } .rvHead span { font-size:12px; font-weight:800; opacity:.6; }
 .rvBody { display:flex; gap:14px; align-items:center; margin-top:6px; }
@@ -262,7 +270,7 @@ body.ov #hub-link, body.ov #buildInfo, body:not(.on-title) #title-frame, body:no
 #records { padding:calc(var(--sat) + 2.5vh) calc(var(--sar) + 2.5vw) calc(var(--sab) + 2.5vh) calc(var(--sal) + 2.5vw); }
 #records .card { width:95vw; max-width:100%; max-height:95vh; }
 #records .lbars { width:100%; }
-#rvSummary { width:min(720px, 86vw); }
+#rvSummary { width:100%; }
 #records .stats { grid-template-columns:repeat(4, minmax(0,1fr)); }
 #resultSub { font-size:13px; font-weight:700; opacity:.75; }
 
@@ -337,7 +345,7 @@ body.playing.serving.you-serve #serves { display:flex; }
 </head>
 <body class="on-title">
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
-<div id="buildInfo">v0.10.3 · Updated Nov 27, 2026</div>
+<div id="buildInfo">v0.10.4 · Updated Nov 27, 2026</div>
 
 <canvas id="cv"></canvas>
 
@@ -828,16 +836,21 @@ body.playing.serving.you-serve #serves { display:flex; }
   function lessonTiles(before) {
     var weak = null; // Your habit! = 最近の正しく選べた割合がいちばん低いレッスン(80% 未満、4 回以上)
     FIVE.forEach(function (k) { var pt = lessonParts(k), r = ((progress.lessonRecent || {})[k] || ''); if (pt && r.length >= 4 && pt.acc < MASTER_ACC && (!weak || pt.acc < weak.acc)) weak = { k: k, acc: pt.acc }; });
-    return '<div class="lgrid">' + FIVE.map(function (k) {
+    // 5 つずつ 2 ページ(Basics / Rally smarts)を横にスクロール。各カードに、何のレッスンかを短い1行で(2026-11-27)
+    function tile(k) {
       var L = LESSONS[k], pt = lessonParts(k), m = pt ? pt.mastery : null;
       var d = before && pt && before[k] != null ? m - before[k] : before && pt ? m : null;
       return '<div class="ltile' + (weak && weak.k === k ? ' weak' : '') + (m >= 100 ? ' master' : '') + '" data-k="' + k + '" tabindex="0">' +
         (weak && weak.k === k ? '<em>Your habit!</em>' : m >= 100 ? '<em class="gold">⭐ Master</em>' : '') +
-        '<div class="lt">' + L.icon + ' ' + L.title + '</div>' +
+        '<div class="lt">' + L.icon + ' ' + L.title + '</div><div class="ls">' + NEXT_TIP[k] + '</div>' +
         '<canvas class="lanim" data-k="' + k + '" width="320" height="180"></canvas>' +
         '<div class="lrow"><span class="bar"><i style="width:' + (m || 0) + '%"></i></span>' +
         '<span class="lp">' + (m == null ? '–' : m + '%') + (d ? '<small class="' + (d > 0 ? 'up' : 'down') + '">' + (d > 0 ? '+' : '') + d + '</small>' : '') + '</span></div></div>';
-    }).join('') + '</div><div class="ldetail hint">% = Mastery: how well you know and use each lesson. Tap one to learn more.</div>';
+    }
+    var pages = [['Basics', FIVE.slice(0, 5)], ['Rally smarts', FIVE.slice(5)]];
+    return '<div class="ltabs">' + pages.map(function (pg, i) { return '<button class="ltab' + (i ? '' : ' on') + '" data-page="' + i + '">' + (i + 1) + '. ' + pg[0] + ' <small>' + (i * 5 + 1) + '–' + (i * 5 + pg[1].length) + '</small></button>'; }).join('') + '</div>' +
+      '<div class="lpages">' + pages.map(function (pg) { return '<div class="lgrid">' + pg[1].map(tile).join('') + '</div>'; }).join('') + '</div>' +
+      '<div class="ldetail hint">% = Mastery: how well you know and use each lesson. Tap one to learn more.</div>';
   }
   function masterySnapshot() { var o = {}; FIVE.forEach(function (k) { var pt = lessonParts(k); o[k] = pt ? pt.mastery : null; }); return o; }
   // お手本のアニメーション(GIF のようにくり返す): 相手から球が来る → YOU が打つ → 緑の正しいショットで落ちる。赤の点線と ✗ はよくあるまちがい
@@ -897,6 +910,15 @@ body.playing.serving.you-serve #serves { display:flex; }
   // レッスンのカード: タップ / マウスを乗せると、下にくわしい説明
   document.addEventListener('click', function (e) { var t = e.target.closest && e.target.closest('.ltile'); if (t) lessonDetail(t); });
   document.addEventListener('mouseover', function (e) { var t = e.target.closest && e.target.closest('.ltile'); if (t) lessonDetail(t); });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('.ltab'); if (!b) return;
+    var box = b.closest('.lbars').querySelector('.lpages'); box.scrollTo({ left: +b.getAttribute('data-page') * box.clientWidth, behavior: 'smooth' });
+  });
+  document.addEventListener('scroll', function (e) { // 横にスワイプした時、上のタブも切りかえる
+    var box = e.target; if (!box.classList || !box.classList.contains('lpages')) return;
+    var i = Math.round(box.scrollLeft / Math.max(1, box.clientWidth));
+    Array.prototype.forEach.call(box.parentNode.querySelectorAll('.ltab'), function (t, j) { t.classList.toggle('on', j === i); });
+  }, true);
   // Lesson 6〜10 の文(LESSONS / BOOK / NEXT_TIP に足す)。判定はルール(newLessonSits)
   var NEW_LESSONS = {
     keepattack: { icon: '🔥', title: 'Keep attacking', why: 'You were attacking and they sent back a weak, low shot. Don\'t lift it — keep hitting down!', tip: 'Keep the attack going, moku!' },
