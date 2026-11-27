@@ -709,7 +709,7 @@ footer.page-footer {
 })();
 
 (function () {
-  // Share the hub link: the share sheet (LINE, AirDrop…) where there is one,
+  // Share the Moku Series link (dechatgpt.com/Moku-ai/): the share sheet (LINE, AirDrop…) where there is one,
   // otherwise copy it to the clipboard.
   var shareBtn = document.getElementById('shareHubBtn');
   var shareToast = document.getElementById('shareToast');
@@ -728,13 +728,9 @@ footer.page-footer {
     }, 2600);
   }
 
-  function getHubShareUrl() {
-    try {
-      return new URL('hub.html', window.location.href).href;
-    } catch (e) {
-      return window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/hub.html');
-    }
-  }
+  // 保護者と決めた公開アドレス(hub.html の Share Moku Series とそろえる)
+  function getHubShareUrl() { return 'https://dechatgpt.com/Moku-ai/'; }
+
 
   function copyTextFallback(text) {
     var textArea = document.createElement('textarea');
@@ -758,12 +754,12 @@ footer.page-footer {
   function copyLink(hubUrl) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(hubUrl).then(function () {
-        showShareFeedback('Moku Series hub link copied!');
+        showShareFeedback('Moku Series link copied!');
       }).catch(function () {
-        showShareFeedback(copyTextFallback(hubUrl) ? 'Moku Series hub link copied!' : 'Hub link: ' + hubUrl);
+        showShareFeedback(copyTextFallback(hubUrl) ? 'Moku Series link copied!' : 'Link: ' + hubUrl);
       });
     } else {
-      showShareFeedback(copyTextFallback(hubUrl) ? 'Moku Series hub link copied!' : 'Hub link: ' + hubUrl);
+      showShareFeedback(copyTextFallback(hubUrl) ? 'Moku Series link copied!' : 'Link: ' + hubUrl);
     }
   }
 
