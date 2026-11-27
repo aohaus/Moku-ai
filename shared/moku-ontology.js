@@ -129,6 +129,7 @@
     'moku-night-jungle':       { name: 'Night Jungle',      traits: { nature: 1, explorer: 0.8, collector: 0.4 } },
     'moku-festival-lights':    { name: 'Festival Lights',   traits: { style: 0.8, calm: 0.6, travel: 0.5 } },
     'moku-kata':               { name: 'Kata-Kata',         traits: { words: 1, travel: 0.6, collector: 0.4 } },
+    'moku-badminton':          { name: 'Badminton',         traits: { action: 0.9, strategy: 0.7, party: 0.4 } },
     'mokuball':                { name: 'Mokuball',          traits: { action: 0.5, luck: 0.4 } }
   };
 

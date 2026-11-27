@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<script src="shared/moku-errors.js?v=20261126d"></script>
-<script src="shared/moku-gate.js?v=20261126d"></script>
+<script src="shared/moku-errors.js?v=20261127"></script>
+<script src="shared/moku-gate.js?v=20261127"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>Sir CEO Moku</title>
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
@@ -471,10 +471,10 @@ body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
 <a id="hub-link" href="hub.html">🦉 Home ▶</a>
 <div id="buildInfo">v0.5.7 · Updated Nov 26, 2026</div>
 
-<script src="shared/moku-account.js?v=20261126d" data-mode="background"></script>
-<script src="shared/moku-moint.js?v=20261126d" data-mode="none"></script>
-<script src="shared/moku-random.js?v=20261126d"></script>
-<script src="shared/moku-riddles.js?v=20261126d"></script>
+<script src="shared/moku-account.js?v=20261127" data-mode="background"></script>
+<script src="shared/moku-moint.js?v=20261127" data-mode="none"></script>
+<script src="shared/moku-random.js?v=20261127"></script>
+<script src="shared/moku-riddles.js?v=20261127"></script>
 <script>
 (function () {
   'use strict';
@@ -568,7 +568,8 @@ body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
     { id: 'moku-fact-or-fib', name: 'Fact or Fib? Asia', icon: '🤔' },
     { id: 'moku-night-jungle', name: 'Moku Night Jungle', icon: '🔦' },
     { id: 'moku-festival-lights', name: 'Moku Festival Lights', icon: '🏮' },
-    { id: 'moku-kata', name: 'Moku Kata-Kata', icon: '📗' }
+    { id: 'moku-kata', name: 'Moku Kata-Kata', icon: '📗' },
+    { id: 'moku-badminton', name: 'Moku Badminton', icon: '🏸' }
   ];
 
   // CEO の服(Moku Closet のアイテム)。表情は Moods から
@@ -1291,9 +1292,11 @@ body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display: none; }
     { re: /fact or fib|ほんと.?うそ|ファクト/i, id: 'moku-fact-or-fib' },
     { re: /night jungle|ジャングル|jungle/i, id: 'moku-night-jungle' },
     { re: /festival|フェスティバル|お祭り|ランタン|lantern/i, id: 'moku-festival-lights' },
-    { re: /kata.?kata|malay word|bahasa|マレー語/i, id: 'moku-kata' }
+    { re: /kata.?kata|malay word|bahasa|マレー語/i, id: 'moku-kata' },
+    { re: /badminton|バドミントン|shuttle|シャトル/i, id: 'moku-badminton' }
   ];
   var GAME_TALK = {
+    'moku-badminton': ['Badminton! YOU and Moku, the best doubles team. I am the coach. My tip: smash the high ones, moku!', 'バドミントンモク!キミと Moku は最高のダブルスモク。ワタクシはコーチモク。高い球はスマッシュモク!'],
     'moku-kata': ['Kata-Kata! I know a Malay word: "duit". It means money. My favorite word, moku!', 'Kata-Kata モク!ワタクシの知っているマレー語は「duit」。お金という意味モク。いちばん好きなことばモク!'],
     'moku-fight': ['Moku Fight! My secret move is… running away. Very fast, moku.', 'Moku Fight モク!ワタクシの必殺技は…にげること。すごく速いモク。'],
     'moku-bridge': ['Moku Bridge! I always pick left. Always. That is why I fall a lot, moku.', 'Moku Bridge モク!モクはいつも左を選ぶモク。だからよく落ちるモク。'],
