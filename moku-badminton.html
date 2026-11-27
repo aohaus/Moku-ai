@@ -51,6 +51,8 @@
     Try it(その場面をもう一度打つ練習)は保留(2026-11-27、保護者)。
   - v0.8.5: NET を HAIRPIN(ネットのすぐ向こうにふわっと。内部の種類は 'net' のまま)と PUSH(ネット前から速く低く相手の横へ
     押し込む。高さ 0.9m 以上の球だけ)に分けた(保護者の依頼)。ボタンは 5 つ。キーは L / O。
+  - v0.8.7: 相手のレシーバーは 45% で後ろ(3.8m)、ほかは前(2.4m)で待つ。前なら LONG、後ろなら SHORT が正解(Serve smart は
+    物理ではなくこの決まりで判定)。逆をつかれたレシーバーは苦しい返球(Late が多い)。
   - v0.8.6: レッスンの % は達成度(Mastery)。半分は最近 20 回の場面で正しく選べた割合(80% で満点、場面 10 回で満額)、
     半分は良い判断の回数(30 回で満点)。100% = Master(Book の ⭐⭐⭐、⭐⭐ は 50%)。Review では試合での伸び(+5 など)。
   - v0.8.4: レッスンは文字のバーではなくカードのグリッドに(Lesson 6〜10 が増えても並ぶ)。カードはアイコンと名前・動くお手本
@@ -276,7 +278,7 @@ body.playing.serving.you-serve #serves { display:flex; }
 <body class="on-title">
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
 <a id="hub-link" href="hub.html">🏠 Home</a>
-<div id="buildInfo">v0.8.6 · Updated Nov 27, 2026</div>
+<div id="buildInfo">v0.8.7 · Updated Nov 27, 2026</div>
 
 <canvas id="cv"></canvas>
 
@@ -555,6 +557,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     server = chars[0];
     setRivals(); updateBoard();
   }
+  var recvStance = 'front', lastServe = null;
   function setupServe() {
     phase = 'serve'; shuttle.live = false; shuttle.trail = []; netHit = false; hits = 0; lastSide = 0; lastHitter = null;
     assigned = null; contact = null; predicted = null; rally = 0;
@@ -564,7 +567,10 @@ body.playing.serving.you-serve #serves { display:flex; }
     chars.forEach(function (ch) {
       var inRight = ch === rightCourt[ch.team], zs = courtSign(ch.team, inRight), s = ch.side;
       if (ch === server) { ch.tx = s * 2.35; ch.tz = zs * 0.75; }
-      else if (ch === receiver) { ch.tx = s * 2.55; ch.tz = zs * 1.2; }
+      else if (ch === receiver) { // 相手のレシーバーは、ときどき後ろで待つ(前なら LONG、後ろなら SHORT が効く。2026-11-27)
+        recvStance = ch.team === 1 && Math.random() < 0.45 ? 'back' : 'front';
+        ch.tx = s * (recvStance === 'back' ? 3.8 : 2.4); ch.tz = zs * 1.2;
+      }
       else if (ch.team === sT) { ch.tx = s * 4.4; ch.tz = zs * 1.1; }
       else { ch.tx = s * 4.3; ch.tz = zs * 1.4; }
       ch.x = ch.tx; ch.z = ch.tz; ch.wait = 0; ch.swing = 0; ch.jump = 0;
@@ -660,7 +666,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     var down = type === 'smash' || type === 'drop' || type === 'net' || type === 'push' || type === 'short';
     mode[ch.team] = down ? 'attack' : 'defend'; mode[1 - ch.team] = down ? 'defend' : 'attack';
     if (jumpNow) sfx.jumpSmash(q === 'perfect'); else if (type === 'smash') sfx.smash(); else sfx.hit(type === 'clear' || type === 'long' ? 0.8 : 0.3);
-    if (serve) { document.body.classList.remove('serving', 'you-serve'); hideHint(); phase = 'rally'; }
+    if (serve) { lastServe = type; document.body.classList.remove('serving', 'you-serve'); hideHint(); phase = 'rally'; }
     ch.wait = 0.22;
     plan();
     if (window.__bdLog && predicted) window.__bdLog.push({ who: ch.id, type: type, q: q, f: !!fault, y: +y.toFixed(2), x: +shuttle.p[0].toFixed(2), apex: +Math.max.apply(null, predicted.pts.map(function (o) { return o.y; }).concat([0])).toFixed(1), end: predicted.end && [+predicted.end.x.toFixed(1), +predicted.end.z.toFixed(1)], net: predicted.net });
@@ -675,7 +681,10 @@ body.playing.serving.you-serve #serves { display:flex; }
     return types[pickW(ws)];
   }
   function aiHit(ch) {
-    var q = aiQuality(ch.ai), f = q === 'late' ? Math.random() < Math.min(0.6, ch.ai.fault * 3) : q === 'good' ? Math.random() < ch.ai.fault * 0.4 : false;
+    var q = aiQuality(ch.ai);
+    // サーブの返球: 立ち位置の逆をつかれたら(前にいて LONG / 後ろにいて SHORT)、苦しい返球になりやすい
+    if (hits === 1 && ch === receiver && ((recvStance === 'front' && lastServe === 'long') || (recvStance === 'back' && lastServe === 'short'))) q = ['perfect', 'good', 'late'][pickW([0.05, 0.35, 0.6])];
+    var f = q === 'late' ? Math.random() < Math.min(0.6, ch.ai.fault * 3) : q === 'good' ? Math.random() < ch.ai.fault * 0.4 : false;
     var type = aiShot(ch);
     if (ch === MOKU && !demo && Math.random() < 0.25) say(MOKU, ['Mine!', 'Got it!', 'Hoo!'][Math.floor(Math.random() * 3)]);
     doHit(ch, type, q, f);
@@ -820,7 +829,7 @@ body.playing.serving.you-serve #serves { display:flex; }
   var SHOT_NAME = { smash: 'SMASH', clear: 'CLEAR', drop: 'DROP', net: 'HAIRPIN', push: 'PUSH', short: 'SHORT SERVE', long: 'LONG SERVE' };
   function noteDecision(type, q, serve, jump) {
     if (demo) return;
-    decisions.push({ type: type, q: q, serve: serve, jump: jump, p: shuttle.p.slice(), pos: chars.map(function (c0) { return [c0.x, c0.z]; }),
+    decisions.push({ type: type, q: q, serve: serve, jump: jump, stance: serve ? recvStance : null, p: shuttle.p.slice(), pos: chars.map(function (c0) { return [c0.x, c0.z]; }),
       score: score.slice(), st: servingTeam, pointNo: score[0] + score[1], result: null });
   }
   // そのショットで、相手(Kon など)がどれだけ余裕をもって返せるか。値が大きいほど良いショット
@@ -857,6 +866,9 @@ body.playing.serving.you-serve #serves { display:flex; }
     shuttle.p = keep.p; score = keep.score; servingTeam = keep.st; chars.forEach(function (c0, i) { c0.x = keep.pos[i][0]; c0.z = keep.pos[i][1]; });
     var bestT = d.type; types.forEach(function (t) { if (res[t].val > res[bestT].val + 0.001) bestT = t; });
     d.res = res; d.best = bestT; d.gap = res[bestT].val - res[d.type].val; d.good = d.gap < 0.25;
+    if (d.serve) { // サーブは立ち位置で決める(物理では分からない「待ち方」なので): 前で待つ → LONG、後ろで待つ → SHORT
+      d.best = d.stance === 'back' ? 'short' : 'long'; d.good = d.type === d.best; d.gap = d.good ? 0 : 1;
+    }
     // どのレッスンか
     var oppFront = Math.min(Math.abs(d.pos[2][0]), Math.abs(d.pos[3][0])) < 2.6, x = Math.abs(d.p[0]);
     // レッスンごとの Tactics score 用: その場面がどのレッスンの「出番」だったか(1つの場面が2つに入ることもある)
@@ -1764,7 +1776,7 @@ body.playing.serving.you-serve #serves { display:flex; }
       var ls = LESSONS[d.lesson]; L.className = ''; L.textContent = ls.icon + ' ' + ls.title + (d.newLesson ? '  · 📖 NEW in your Book!' : '');
       document.getElementById('rvPlayed').innerHTML = 'You played: <b>' + (d.jump ? 'JUMP ' : '') + SHOT_NAME[d.type] + '</b>' + (d.res[d.type].net ? ' (into the net)' : d.res[d.type].out ? ' (out)' : '');
       document.getElementById('rvBetter').innerHTML = 'Better: <b>' + SHOT_NAME[d.best] + '</b>';
-      document.getElementById('rvWhy').textContent = ls.why;
+      document.getElementById('rvWhy').textContent = d.lesson === 'serve' ? (d.stance === 'back' ? 'The receiver was waiting far back. A SHORT serve lands where they are not.' : 'The receiver was standing close to the net. A LONG serve makes them run back.') : ls.why;
     }
     rvDraw(d);
   }
@@ -1868,7 +1880,7 @@ body.playing.serving.you-serve #serves { display:flex; }
   resetMatch(); setupServe();
   requestAnimationFrame(frame);
   // 開発・確認用(ブラウザのコンソールから): 試合の状態を見る
-  window.MOKU_BADMINTON = { cheer: function (wave) { crowdReact('cheer', 1.8); crowd.wave = wave; if (wave) crowd.confetti = []; }, screenY: function () { return P(shuttle.p[0], shuttle.p[1], shuttle.p[2])[1]; }, state: function () { return { phase: phase, score: score.slice(), rally: rally, shuttle: shuttle.p.slice(), assigned: assigned && assigned.id }; }, hit: playerShot };
+  window.MOKU_BADMINTON = { cheer: function (wave) { crowdReact('cheer', 1.8); crowd.wave = wave; if (wave) crowd.confetti = []; }, screenY: function () { return P(shuttle.p[0], shuttle.p[1], shuttle.p[2])[1]; }, state: function () { return { stance: recvStance, phase: phase, score: score.slice(), rally: rally, shuttle: shuttle.p.slice(), assigned: assigned && assigned.id }; }, hit: playerShot };
 })();
 </script>
 </body>
