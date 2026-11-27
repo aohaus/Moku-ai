@@ -51,6 +51,8 @@
     Try it(その場面をもう一度打つ練習)は保留(2026-11-27、保護者)。
   - v0.8.5: NET を HAIRPIN(ネットのすぐ向こうにふわっと。内部の種類は 'net' のまま)と PUSH(ネット前から速く低く相手の横へ
     押し込む。高さ 0.9m 以上の球だけ)に分けた(保護者の依頼)。ボタンは 5 つ。キーは L / O。
+  - v0.8.6: レッスンの % は達成度(Mastery)。半分は最近 20 回の場面で正しく選べた割合(80% で満点、場面 10 回で満額)、
+    半分は良い判断の回数(30 回で満点)。100% = Master(Book の ⭐⭐⭐、⭐⭐ は 50%)。Review では試合での伸び(+5 など)。
   - v0.8.4: レッスンは文字のバーではなくカードのグリッドに(Lesson 6〜10 が増えても並ぶ)。カードはアイコンと名前・動くお手本
     (ミニコートで相手から球が来て、YOU が緑の正しいショットを打つ。赤の点線と ✗ はよくあるまちがい)・小さいバーと %。
     タップ / マウスで下にくわしい説明。
@@ -158,8 +160,12 @@ body.ov #hub-link, body.ov #buildInfo, body:not(.on-title) #title-frame, body:no
 .ltile canvas { position:static; inset:auto; display:block; width:100%; height:auto; margin:3px 0 4px; border-radius:6px; }
 .ltile .lrow { display:flex; align-items:center; justify-content:center; gap:6px; }
 .ltile .bar { width:52px; height:8px; background:#EFE6D6; border:1.5px solid var(--ink); border-radius:999px; overflow:hidden; flex:none; }
-.ltile .bar i { display:block; height:100%; border-radius:999px; }
-.ltile .lp { font-size:13px; font-weight:800; } .ltile .lp small { font-size:9.5px; opacity:.55; margin-left:2px; }
+.ltile .bar i { display:block; height:100%; border-radius:999px; background:linear-gradient(90deg,#7CC0EE,#3E8FCC); }
+.ltile.master .bar i { background:linear-gradient(90deg,#FFE08A,#E0A21B); }
+.ltile .lp small { font-size:10px; font-weight:800; margin-left:3px; } .ltile .lp small.up { color:#2F9E44; } .ltile .lp small.down { color:#E2573C; }
+.ltile em.gold { background:#E0A21B; }
+.ldetail .lmx { margin-top:4px; font-size:11.5px; opacity:.8; } .ldetail .lmx b { color:var(--lo); }
+.ltile .lp { font-size:13px; font-weight:800; }
 .ltile em { position:absolute; left:50%; transform:translateX(-50%); top:-10px; background:#E2573C; color:#fff; font-style:normal; font-size:9.5px; font-weight:800;
   padding:1px 7px; border-radius:999px; border:1.5px solid var(--ink); white-space:nowrap; }
 .ldetail { margin-top:8px; min-height:36px; font-size:12.5px; font-weight:700; line-height:1.35; padding:6px 10px; border-radius:10px; background:rgba(79,163,224,.08); }
@@ -270,7 +276,7 @@ body.playing.serving.you-serve #serves { display:flex; }
 <body class="on-title">
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
 <a id="hub-link" href="hub.html">🏠 Home</a>
-<div id="buildInfo">v0.8.5 · Updated Nov 27, 2026</div>
+<div id="buildInfo">v0.8.6 · Updated Nov 27, 2026</div>
 
 <canvas id="cv"></canvas>
 
@@ -726,21 +732,34 @@ body.playing.serving.you-serve #serves { display:flex; }
   var FIVE = ['attack', 'back', 'net', 'space', 'serve']; // レッスンごとの Tactics score を出す5つ
   // バーの一覧(弱いレッスン = いちばん低い % に「Your habit」)
   // レッスンのカード(5 つ。Lesson 6〜10 もこの LESSON_LIST に足せば同じように並ぶ)
-  function lessonTiles(per, minN) {
-    var weak = null;
-    FIVE.forEach(function (k) { var q = per[k]; if (q && q.n >= minN) { var r = q.g / q.n; if (!weak || r < weak.r) weak = { k: k, r: r }; } });
-    if (weak && weak.r >= 0.8) weak = null;
+  // ── 達成度(Mastery): そのレッスンをどれだけ理解して、実践できているか(2026-11-27、保護者と決定)──
+  // 半分は「最近 20 回の場面で正しく選べた割合」(80% で満点 = 理解)、半分は「良い判断の回数」(30 回で満点 = 実践)。
+  // 100% = Master(Tactics Book の ⭐⭐⭐)。最近の割合を使うので、上達するとすぐ上がる
+  var RECENT_N = 20, MASTER_GOOD = 30, MASTER_ACC = 0.8;
+  function lessonParts(k) {
+    var q = (progress.lessonStats || {})[k], r = (progress.lessonRecent || {})[k] || '';
+    if (!q || !q.n) return null;
+    var acc = r.length ? r.split('').filter(function (c0) { return c0 === '1'; }).length / r.length : q.g / q.n;
+    // 場面が少ないうちは「理解」も控えめに(10 回の場面で満額)
+    var seen = r.length || q.n, und = Math.min(1, acc / MASTER_ACC) * Math.min(1, seen / 10), prac = Math.min(1, q.g / MASTER_GOOD);
+    return { acc: acc, good: q.g, und: und, prac: prac, mastery: Math.round(100 * (0.5 * und + 0.5 * prac)) };
+  }
+  // before: 試合の前の達成度(Review では、この試合でどれだけ上がったかを出す)
+  function lessonTiles(before) {
+    var weak = null; // Your habit! = 最近の正しく選べた割合がいちばん低いレッスン(80% 未満、4 回以上)
+    FIVE.forEach(function (k) { var pt = lessonParts(k), r = ((progress.lessonRecent || {})[k] || ''); if (pt && r.length >= 4 && pt.acc < MASTER_ACC && (!weak || pt.acc < weak.acc)) weak = { k: k, acc: pt.acc }; });
     return '<div class="lgrid">' + FIVE.map(function (k) {
-      var q = per[k] || { n: 0, g: 0 }, L = LESSONS[k], pc = q.n ? Math.round(q.g / q.n * 100) : null;
-      var col = pc == null ? '#CFCCC7' : pc >= 80 ? '#4E9A4A' : pc >= 50 ? '#E0A21B' : '#E2573C';
-      return '<div class="ltile' + (weak && weak.k === k ? ' weak' : '') + '" data-k="' + k + '" tabindex="0">' +
-        (weak && weak.k === k ? '<em>Your habit!</em>' : '') +
+      var L = LESSONS[k], pt = lessonParts(k), m = pt ? pt.mastery : null;
+      var d = before && pt && before[k] != null ? m - before[k] : before && pt ? m : null;
+      return '<div class="ltile' + (weak && weak.k === k ? ' weak' : '') + (m >= 100 ? ' master' : '') + '" data-k="' + k + '" tabindex="0">' +
+        (weak && weak.k === k ? '<em>Your habit!</em>' : m >= 100 ? '<em class="gold">⭐ Master</em>' : '') +
         '<div class="lt">' + L.icon + ' ' + L.title + '</div>' +
         '<canvas class="lanim" data-k="' + k + '" width="320" height="180"></canvas>' +
-        '<div class="lrow"><span class="bar"><i style="width:' + (pc || 0) + '%;background:' + col + '"></i></span>' +
-        '<span class="lp" title="' + (q.n ? q.g + ' good / ' + q.n : '') + '">' + (pc == null ? '–' : pc + '%') + '</span></div></div>';
-    }).join('') + '</div><div class="ldetail hint">Tap a lesson to learn more</div>';
+        '<div class="lrow"><span class="bar"><i style="width:' + (m || 0) + '%"></i></span>' +
+        '<span class="lp">' + (m == null ? '–' : m + '%') + (d ? '<small class="' + (d > 0 ? 'up' : 'down') + '">' + (d > 0 ? '+' : '') + d + '</small>' : '') + '</span></div></div>';
+    }).join('') + '</div><div class="ldetail hint">% = Mastery: how well you know and use each lesson. Tap one to learn more.</div>';
   }
+  function masterySnapshot() { var o = {}; FIVE.forEach(function (k) { var pt = lessonParts(k); o[k] = pt ? pt.mastery : null; }); return o; }
   // お手本のアニメーション(GIF のようにくり返す): 相手から球が来る → YOU が打つ → 緑の正しいショットで落ちる。赤の点線と ✗ はよくあるまちがい
   function drawLessonAnim(cv2, k, t) {
     var g = cv2.getContext('2d'), Wd = 320, Hd = 180, ex = BOOK[k].ex, T = t % 2.8;
@@ -784,7 +803,9 @@ body.playing.serving.you-serve #serves { display:flex; }
   function lessonDetail(tile) {
     var box = tile.closest('.lbars').querySelector('.ldetail'), k = tile.getAttribute('data-k'), L = LESSONS[k];
     Array.prototype.forEach.call(tile.parentNode.children, function (t) { t.classList.toggle('sel', t === tile); });
-    box.className = 'ldetail'; box.innerHTML = '<b>' + L.icon + ' ' + L.title + ':</b> ' + BOOK[k].how + '<i>✔ ' + BOOK[k].remember + '</i>';
+    var pt = lessonParts(k);
+    box.className = 'ldetail'; box.innerHTML = '<b>' + L.icon + ' ' + L.title + ':</b> ' + BOOK[k].how + '<i>✔ ' + BOOK[k].remember + '</i>' +
+      (pt ? '<div class="lmx">Mastery ' + pt.mastery + '% = right choice lately <b>' + Math.round(pt.acc * 100) + '%</b> (goal 80%) + practice <b>' + Math.min(pt.good, MASTER_GOOD) + ' / ' + MASTER_GOOD + '</b> good shots</div>' : '');
   }
   var NEXT_TIP = { // 次にどうするか(短く)
     attack: 'High ball in the middle → SMASH',
@@ -1004,7 +1025,10 @@ body.playing.serving.you-serve #serves { display:flex; }
       progress.book = progress.book || {}; // Tactics Book: Review のカードに出たレッスンを「覚えた」にする
       review.cards.forEach(function (d) { if (d.lesson && !progress.book[d.lesson]) { progress.book[d.lesson] = { at: new Date().toISOString().slice(0, 10) }; d.newLesson = true; } });
       progress.lessonStats = progress.lessonStats || {};
-      FIVE.forEach(function (k) { var a = progress.lessonStats[k] = progress.lessonStats[k] || { n: 0, g: 0 }; a.n += review.per[k].n; a.g += review.per[k].g; }); // 次の試合の前に Moku が言うひとこと
+      review.before = masterySnapshot();
+      FIVE.forEach(function (k) { var a = progress.lessonStats[k] = progress.lessonStats[k] || { n: 0, g: 0 }; a.n += review.per[k].n; a.g += review.per[k].g; });
+      progress.lessonRecent = progress.lessonRecent || {}; // 最近 20 回の場面の結果(1 = 良い判断)
+      decisions.forEach(function (d) { (d.sits || []).forEach(function (k) { var r = (progress.lessonRecent[k] || '') + (d.good ? '1' : '0'); progress.lessonRecent[k] = r.slice(-RECENT_N); }); }); // 次の試合の前に Moku が言うひとこと
     }
     var badges = [];
     if (w === 0 && score[1] === 0) badges.push(['shutout', '🛡️ SHUTOUT!', 'Won without losing a point']);
@@ -1724,7 +1748,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     document.getElementById('rvCount').textContent = (rvIdx + 1) + ' / ' + cards.length;
     if (d.summary) { // 1枚目: 全体とレッスンごとの Tactics score
       document.getElementById('rvTitle').textContent = 'Tactics ' + review.tactics + '% · this match';
-      sum.innerHTML = lessonTiles(review.per, 2); sum.style.display = ''; body.style.display = 'none'; startLessonAnims();
+      sum.innerHTML = lessonTiles(review.before || {}); sum.style.display = ''; body.style.display = 'none'; startLessonAnims();
       return;
     }
     sum.style.display = 'none'; body.style.display = '';
@@ -1760,7 +1784,7 @@ body.playing.serving.you-serve #serves { display:flex; }
       tile('Matches', pr.played, pr.wins + ' won · ' + pr.losses + ' lost') +
       tile('Masters won', Object.keys(pr.beaten).length + ' / ' + STAGES.length, 'tournaments') +
       tile('Tactics', pr.tacticsBest != null ? pr.tacticsBest + '%' : '–', pr.tacticsLast != null ? 'last match ' + pr.tacticsLast + '%' : 'see 🧠 Review after a match');
-    document.getElementById('recordsLessons').innerHTML = pr.lessonStats ? '<div class="lbHead">Tactics by lesson (all matches)</div>' + lessonTiles(pr.lessonStats, 3) : '';
+    document.getElementById('recordsLessons').innerHTML = pr.lessonStats ? '<div class="lbHead">Tactics Mastery by lesson</div>' + lessonTiles(null) : '';
     var B = [['shutout', '🛡️ SHUTOUT', 'Win 15–0'], ['comeback', '🔥 COMEBACK', 'Win from 5+ points behind']];
     document.getElementById('recordsBadges').innerHTML = B.map(function (b) { var n = pr.badges[b[0]] || 0; return '<span class="badge" style="' + (n ? '' : 'opacity:.45;border-style:dashed') + '"><b>' + b[1] + '</b> ' + (n ? '×' + n : b[2]) + '</span>'; }).join('');
     show('records', true); startLessonAnims();
@@ -1783,10 +1807,10 @@ body.playing.serving.you-serve #serves { display:flex; }
     hurry: { how: 'Choose the shot that gives your rivals the least time. A shot they can reach easily lets them attack you.', remember: 'Make them run, make them rush.',
       ex: { p: [-3.3, 1.4, -1], pos: [[-3.5, -1], [-1.5, 1.2], [3.0, 0], [4.5, 1]], type: 'clear', best: 'drop', land: { clear: [6.0, 1.0], drop: [1.5, -2.2] } } }
   };
-  function bookStars(k) { // ⭐ 覚えた / ⭐⭐ 良い判断 10 回以上で 60% 以上 / ⭐⭐⭐ 30 回以上で 80% 以上
+  function bookStars(k) { // ⭐ 覚えた / ⭐⭐ 達成度 50% 以上 / ⭐⭐⭐ 達成度 100%(Master)
     var b = progress.book || {}; if (!b[k]) return 0;
-    var q = (progress.lessonStats || {})[k]; if (!q || !q.n) return 1;
-    var r = q.g / q.n; return q.g >= 30 && r >= 0.8 ? 3 : q.g >= 10 && r >= 0.6 ? 2 : 1;
+    var pt = lessonParts(k); if (!pt) return 1;
+    return pt.mastery >= 100 ? 3 : pt.mastery >= 50 ? 2 : 1;
   }
   var bkSel = 'attack';
   function bookShow(k) {
@@ -1802,8 +1826,9 @@ body.playing.serving.you-serve #serves { display:flex; }
     document.getElementById('bkHow').textContent = learned ? P.how : 'Play matches and open 🧠 Review. When Moku spots this lesson in your game, it is added here.';
     document.getElementById('bkRemember').innerHTML = learned ? '✔ ' + P.remember + '<div style="font-size:10.5px;opacity:.7;color:var(--ink);margin-top:2px">Green = ' + SHOT_NAME[ex.best] + ' (do this) · Red dashes = ' + SHOT_NAME[ex.type] + ' (common mistake)</div>' : '';
     var q = (progress.lessonStats || {})[k], st = bookStars(k);
-    document.getElementById('bkStats').textContent = !learned ? '' : (q && q.n ? 'Your score: ' + Math.round(q.g / q.n * 100) + '% (' + q.g + ' good / ' + q.n + ')' : 'Your score: see it grow in matches') +
-      ' · ' + '⭐'.repeat(st) + (st < 3 ? '  Next ⭐: ' + (st === 1 ? '10 good choices at 60%' : '30 good choices at 80%') : '  Master!');
+    var pt = lessonParts(k); void q;
+    document.getElementById('bkStats').textContent = !learned ? '' : (pt ? 'Mastery ' + pt.mastery + '%' : 'Mastery: see it grow in matches') +
+      ' · ' + '⭐'.repeat(st) + (st < 3 ? '  Next ⭐ at ' + (st === 1 ? '50%' : '100%') : '  Master!');
   }
   document.getElementById('bkTabs').addEventListener('click', function (e) { var b = e.target.closest('[data-bk]'); if (b) bookShow(b.getAttribute('data-bk')); });
   document.getElementById('bookBtn').addEventListener('click', function () {
