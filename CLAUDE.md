@@ -42,6 +42,7 @@
 | Moku Dropper | `moku-dropper.html` | 3Dドロッパー(大きな木の幹の中を落ちてポータルへ。ライバルとレース) |
 | Moku Mall | `moku-mall.html` | モール経営+泥棒退治(店を開いて稼ぎ、ATM をねらう泥棒をつかまえる。4つのモール) |
 | Mokuball | `mokuball.html` | サッカー/ピンボール風(ハブ未公開) |
+| Moku Badminton | `moku-badminton.html` | ダブルスのバドミントン(遊んでいる子どもが YOU として初登場し、Moku とペア。東南アジアの Masters を勝ち進む。戦術の振り返りと Tactics Book。MVP 制作中・ハブ未公開) |
 | Where's Moku? | `wheres-moku.html` | 東南アジアの地図クイズ(Moku からの絵はがきの手がかりで国を当てる+2つの国を比べる Twin or Not?+秘密の国を説明する Be the Guide。ハブの新しい棚「Live in ASIA」の第1弾) |
 | Moku Money Market | `moku-money-market.html` | 東南アジア 8 か国の屋台で、その国のお金で買い物(合計・払う・おつり)+自分のお金でだいたいいくら? の Price Check。Live in ASIA の第2弾 |
 | Fact or Fib? Asia | `moku-fact-or-fib.html` | 東南アジア 11 か国の「うそみたいな本当の話」と「本当っぽいうそ」を見分ける(1人の Quiz+1台を回す Party+Fact Book)。Live in ASIA の第3弾 |

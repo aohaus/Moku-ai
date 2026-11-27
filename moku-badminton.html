@@ -69,12 +69,10 @@ canvas { display:block; position:fixed; inset:0; width:100%; height:100%; touch-
 button { font-family:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; }
 
 /* ── Moku Series 共通(SPEC.md §4・§5): タイトル画面だけの枠・ハブへのリンク・バージョン ── */
-#title-frame { position:fixed; inset:14px; border:3px solid var(--hi); border-radius:10px; pointer-events:none; z-index:710; }
-#title-frame::after { content:''; position:absolute; inset:5px; border:1px solid var(--lo); border-radius:8px; }
-#hub-link { position:fixed; top:calc(22px + var(--sat)); right:calc(26px + var(--sar)); z-index:720; color:var(--hi);
-  font-weight:800; font-size:13px; text-decoration:none; letter-spacing:.02em; animation:hubPulse 2.2s ease-in-out infinite;
-  text-shadow:0 1px 2px rgba(74,46,26,.5); }
-@keyframes hubPulse { 0%,100%{opacity:.75} 50%{opacity:1} }
+/* 外枠(#title-frame)はこのゲームでは出さない。右上は「Home」(2026-11-27、保護者。SPEC.md §4 の例外) */
+#hub-link { position:fixed; top:calc(12px + var(--sat)); right:calc(14px + var(--sar)); z-index:720; color:var(--ink);
+  font-weight:800; font-size:14px; text-decoration:none; letter-spacing:.02em; background:var(--paper); border:3px solid var(--ink);
+  border-radius:999px; padding:5px 14px; box-shadow:0 3px 0 rgba(74,46,26,.35); }
 #buildInfo { position:fixed; left:calc(24px + var(--sal)); bottom:calc(20px + var(--sab)); z-index:720;
   color:rgba(255,255,255,.28); font-size:10.5px; pointer-events:none; }
 body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display:none; }
@@ -158,7 +156,7 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
   font-size:10px; opacity:.45; margin-left:2px; vertical-align:1px; }
 .lb .nx { grid-column:1 / -1; font-size:11px; font-weight:700; color:#2F6B2C; margin-top:-2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .lb.weak .nx { color:#B4361F; }
-.lb .pop { display:none; position:absolute; left:8px; right:8px; top:calc(100% + 4px); z-index:5; background:#fff; border:2px solid var(--ink);
+.lb .pop { display:none; pointer-events:none; position:absolute; left:8px; right:8px; top:calc(100% + 4px); z-index:5; background:#fff; border:2px solid var(--ink);
   border-radius:12px; padding:8px 10px; font-size:12.5px; font-weight:700; line-height:1.35; box-shadow:0 6px 16px rgba(74,46,26,.25); text-align:left; }
 .lb .pop b { display:block; margin-bottom:3px; } .lb .pop i { display:block; margin-top:4px; font-style:normal; color:#2F7D32; font-weight:800; }
 .lb:nth-last-child(-n+2) .pop { top:auto; bottom:calc(100% + 4px); }
@@ -191,6 +189,11 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
 #rvPlayed, #rvBetter { margin:2px 0; } #rvPlayed b { color:#C2410C; } #rvBetter b { color:#2F7D32; }
 #rvWhy { margin-top:6px; opacity:.85; }
 @media (max-height:400px) { .rvBody { margin-top:3px; } #rvCanvas { width:42%; } .rvText { font-size:12px; } .rvHead b { font-size:15px; } }
+/* My Records は画面の 95% まで広げる(2026-11-27) */
+#records { padding:calc(var(--sat) + 2.5vh) calc(var(--sar) + 2.5vw) calc(var(--sab) + 2.5vh) calc(var(--sal) + 2.5vw); }
+#records .card { width:95vw; max-width:100%; max-height:95vh; }
+#records .lbars { width:100%; }
+#records .stats { grid-template-columns:repeat(4, minmax(0,1fr)); }
 #resultSub { font-size:13px; font-weight:700; opacity:.75; }
 
 /* ── HUD ── */
@@ -263,9 +266,8 @@ body.playing.serving.you-serve #serves { display:flex; }
 </head>
 <body class="on-title">
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
-<div id="title-frame"></div>
-<a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.8.1 · Updated Nov 27, 2026</div>
+<a id="hub-link" href="hub.html">🏠 Home</a>
+<div id="buildInfo">v0.8.2 · Updated Nov 27, 2026</div>
 
 <canvas id="cv"></canvas>
 
