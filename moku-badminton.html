@@ -155,7 +155,7 @@ body.playing.serving.you-serve #serves { display:flex; }
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.2.0 · Updated Nov 27, 2026</div>
+<div id="buildInfo">v0.2.1 · Updated Nov 27, 2026</div>
 
 <canvas id="cv"></canvas>
 
@@ -677,28 +677,60 @@ body.playing.serving.you-serve #serves { display:flex; }
     if (fill) { g.fillStyle = fill; g.fill(); } if (stroke) { g.strokeStyle = stroke; g.lineWidth = lw || 2; g.stroke(); }
   }
   // 背景(森の体育館)は大きさが変わった時だけ描く
+  // 昼(6〜18時)と夜。?sky=day / ?sky=night で確かめられる
+  var skyQ = (location.search.match(/[?&]sky=(day|night)/) || [])[1];
+  function skyMode() { if (skyQ) return skyQ; var h = new Date().getHours(); return h >= 6 && h < 18 ? 'day' : 'night'; }
+  var builtSky = '';
+  setInterval(function () { if (skyMode() !== builtSky) buildBg(); }, 60000);
   function buildBg() {
+    builtSky = skyMode();
     bg = document.createElement('canvas'); bg.width = Math.round(W * DPR); bg.height = Math.round((H + BGPAD) * DPR);
     var g = bg.getContext('2d'); g.scale(DPR, DPR); g.translate(0, BGPAD);
     var saveCam = camY; camY = 0;
     var horizon = P(0, 0, -HW - 2.4)[1];
     // 壁(木の板)
-    var wg = g.createLinearGradient(0, -BGPAD, 0, horizon); wg.addColorStop(0, '#E8B97A'); wg.addColorStop(1, '#F3D9A8');
+    var wg = g.createLinearGradient(0, -BGPAD, 0, horizon), dark = skyMode() === 'night';
+    wg.addColorStop(0, dark ? '#C8925E' : '#E8B97A'); wg.addColorStop(1, dark ? '#E6C08A' : '#F3D9A8');
     g.fillStyle = wg; g.fillRect(0, -BGPAD, W, horizon + BGPAD);
     g.strokeStyle = 'rgba(160,100,50,.18)'; g.lineWidth = 1;
     for (var px = 0; px < W; px += 34) { g.beginPath(); g.moveTo(px, -BGPAD); g.lineTo(px, horizon); g.stroke(); }
-    // 夕焼けの窓
+    // 窓: 外の景色は1枚の空(太陽・月は1つだけ。どれか1つの窓から見える)。昼と夜の2つ(端末の時計、skyMode())
+    var night = skyMode() === 'night';
     var wn = Math.max(3, Math.round(W / 230)), ww = W / wn * 0.56, wh = Math.min(200, (horizon + BGPAD) * 0.5), wy = horizon - wh - Math.max(48, S * 1.6);
-    for (var i = 0; i < wn; i++) {
-      var wx = (i + 0.5) * W / wn - ww / 2;
-      var sky = g.createLinearGradient(0, wy, 0, wy + wh); sky.addColorStop(0, '#FFD08A'); sky.addColorStop(0.55, '#FF9F6E'); sky.addColorStop(1, '#C97BA8');
-      g.beginPath(); g.moveTo(wx, wy + wh); g.lineTo(wx, wy + ww / 2); g.arc(wx + ww / 2, wy + ww / 2, ww / 2, Math.PI, 0); g.lineTo(wx + ww, wy + wh); g.closePath();
-      g.fillStyle = sky; g.fill();
-      g.fillStyle = 'rgba(255,240,190,.9)'; g.beginPath(); g.arc(wx + ww * 0.65, wy + wh * 0.62, ww * 0.12, 0, TAU); g.fill();
-      g.fillStyle = 'rgba(90,120,70,.55)'; // 窓の外の木
-      for (var t = 0; t < 4; t++) { g.beginPath(); g.arc(wx + ww * (0.1 + t * 0.27), wy + wh * 0.95, ww * 0.16, 0, TAU); g.fill(); }
-      g.lineWidth = 4; g.strokeStyle = INK; g.beginPath(); g.moveTo(wx, wy + wh); g.lineTo(wx, wy + ww / 2); g.arc(wx + ww / 2, wy + ww / 2, ww / 2, Math.PI, 0); g.lineTo(wx + ww, wy + wh); g.closePath(); g.stroke();
+    function winPath(wx) { g.beginPath(); g.moveTo(wx, wy + wh); g.lineTo(wx, wy + ww / 2); g.arc(wx + ww / 2, wy + ww / 2, ww / 2, Math.PI, 0); g.lineTo(wx + ww, wy + wh); g.closePath(); }
+    g.save(); g.beginPath();
+    for (var i = 0; i < wn; i++) { var wx0 = (i + 0.5) * W / wn - ww / 2; g.moveTo(wx0, wy + wh); g.lineTo(wx0, wy + ww / 2); g.arc(wx0 + ww / 2, wy + ww / 2, ww / 2, Math.PI, 0); g.lineTo(wx0 + ww, wy + wh); g.closePath(); }
+    g.clip();
+    var sky = g.createLinearGradient(0, wy, 0, wy + wh);
+    if (night) { sky.addColorStop(0, '#2B3A6B'); sky.addColorStop(1, '#5B5A8E'); } else { sky.addColorStop(0, '#7CC6F0'); sky.addColorStop(1, '#CDEBF7'); }
+    g.fillStyle = sky; g.fillRect(0, wy, W, wh);
+    var sr = Math.min(ww * 0.16, 30), sx = (wn - 0.5) * W / wn - ww * 0.12, sy = clamp(64 + sr, wy + wh * 0.3, wy + wh * 0.62); // 右はしの窓(スコアの板に隠れない)
+    if (night) {
+      g.fillStyle = '#FFF4C2'; for (var st2 = 0; st2 < 46; st2++) { var x0 = (st2 * 97.3) % W, y0 = wy + ((st2 * 53.7) % (wh * 0.75)); g.beginPath(); g.arc(x0, y0, st2 % 5 ? 1.2 : 2, 0, TAU); g.fill(); }
+      g.fillStyle = '#FFE9A8'; g.beginPath(); g.arc(sx, sy, sr, 0, TAU); g.fill(); // 三日月
+      g.fillStyle = sky; g.beginPath(); g.arc(sx + sr * 0.45, sy - sr * 0.25, sr * 0.9, 0, TAU); g.fill();
+    } else {
+      g.fillStyle = 'rgba(255,236,150,.45)'; g.beginPath(); g.arc(sx, sy, sr * 1.6, 0, TAU); g.fill();
+      g.fillStyle = '#FFE066'; g.beginPath(); g.arc(sx, sy, sr, 0, TAU); g.fill();
+      g.fillStyle = 'rgba(255,255,255,.95)'; // 雲
+      for (var cl = 0; cl < 4; cl++) { var cx0 = ((cl * 0.29 + 0.07) % 1) * W, cy0 = wy + wh * (0.42 + (cl % 2) * 0.12); [[0, 0, 22], [20, -8, 18], [38, 0, 20]].forEach(function (q) { g.beginPath(); g.arc(cx0 + q[0], cy0 + q[1], q[2] * ww / 130, 0, TAU); g.fill(); }); }
+    }
+    g.fillStyle = night ? '#3E4F5E' : '#6FA65C'; // 窓の外の森(1列につながっている)
+    for (var tx0 = -20; tx0 < W + 40; tx0 += ww * 0.27) { g.beginPath(); g.arc(tx0, wy + wh * 0.96, ww * 0.17, 0, TAU); g.fill(); }
+    g.restore();
+    for (var j = 0; j < wn; j++) {
+      var wx = (j + 0.5) * W / wn - ww / 2;
+      g.lineWidth = 4; g.strokeStyle = INK; winPath(wx); g.stroke();
       g.lineWidth = 3; g.beginPath(); g.moveTo(wx + ww / 2, wy); g.lineTo(wx + ww / 2, wy + wh); g.moveTo(wx, wy + wh * 0.55); g.lineTo(wx + ww, wy + wh * 0.55); g.stroke();
+    }
+    if (night) { // 夜は天井のランプで部屋をあたたかく
+      for (var l = 0; l < wn - 1; l++) {
+        var lx = (l + 1) * W / wn, ly = wy - 10;
+        var glow = g.createRadialGradient(lx, ly, 2, lx, ly, 90); glow.addColorStop(0, 'rgba(255,214,120,.55)'); glow.addColorStop(1, 'rgba(255,214,120,0)');
+        g.fillStyle = glow; g.fillRect(lx - 90, ly - 90, 180, 180);
+        g.strokeStyle = INK; g.lineWidth = 1.5; g.beginPath(); g.moveTo(lx, -BGPAD); g.lineTo(lx, ly - 8); g.stroke();
+        g.fillStyle = '#FFD878'; g.lineWidth = 2; g.beginPath(); g.arc(lx, ly, 9, Math.PI, 0); g.closePath(); g.fill(); g.stroke();
+      }
     }
     // 葉っぱの旗
     var fy = wy - 26;
