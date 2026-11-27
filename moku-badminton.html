@@ -23,6 +23,12 @@
   - YOU と Moku は後ろ姿(顔を無理に見せない。横からの顔は少し違和感があった)。Moku は横幅そのままで高さを約 7 割に。
   - 難易度は選ばない。Moku Fight 風に、勝つと次のもっと強いペアが開く(STAGES):
     ① Kon & Ponta → ② Chef Rat & Ninja Rat → ③ Moyo & Nox → ④ Goro & Koro(Final)。
+  2026-11-27 の2回目の声で変えたこと(v0.3.0):
+  - 画面は動かさない(以前はシャトルが高い時に上へずれた)。高い球を少し低くし、画面の上に出たシャトルは上のはしに印。
+    Android の Chrome で下が切れていたのは canvas の 100vh のせい(見えている枠に合わせた)。
+  - 速さは選ばない: Match 1〜3 は Slow、4 からは Normal(STAGES の fast)。
+  - 試合は東南アジアの大会(Moku Malaysia / Singapore / Thailand / Indonesia Masters)。窓からその街の目じるし
+    (ペトロナスツインタワーと KL タワー / マリーナベイ・サンズとフライヤー / ワット・アルン / モナス)がのぞく。
   - ルールは新しい 15 点制の1ゲームだけ(14-14 からは2点差、21 点で終わり)。サーブのコートは本物どおり。
   作る順番: ①コートとシャトル ②自動で走る・ボタン ③ルール ④CPU ⑤キャラを作る画面・タイトル・結果 ⑥ハブ・SPEC。
   v0.1.0 は ①〜④ と仮のタイトル・結果(子どもたちにスマホで手ざわりを試してもらう版)。
@@ -36,7 +42,8 @@
 html, body { width:100%; height:100%; overflow:hidden; background:#E8B97A; }
 body { font-family:-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--ink);
   user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; }
-canvas { display:block; position:fixed; inset:0; width:100vw; height:100vh; touch-action:none; }
+/* 100vh だと Android の Chrome でツールバーの分だけ下が切れるので、見えている枠(inset:0)に合わせる */
+canvas { display:block; position:fixed; inset:0; width:100%; height:100%; touch-action:none; }
 button { font-family:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; }
 
 /* ── Moku Series 共通(SPEC.md §4・§5): タイトル画面だけの枠・ハブへのリンク・バージョン ── */
@@ -78,6 +85,8 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
 .rival .n { flex:none; width:22px; height:22px; border-radius:50%; background:var(--paper); border:2px solid var(--ink); font-size:12px; font-weight:800;
   display:flex; align-items:center; justify-content:center; }
 .rival .t { min-width:0; } .rival .nm { font-size:12.5px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.rival .cup { font-size:10px; font-weight:800; color:var(--lo); letter-spacing:.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.rival.on .cup { color:#fff; opacity:.85; }
 .rival .st { font-size:10.5px; font-weight:700; opacity:.7; }
 .rival.on { background:var(--hi); color:#fff; } .rival.on .n { color:var(--ink); } .rival.on .st { opacity:.9; }
 .rival.locked { border-style:dashed; opacity:.55; cursor:default; }
@@ -127,9 +136,9 @@ body.playing.serving.you-serve #serves { display:flex; }
 #hint.show { display:block; }
 #banner { position:fixed; left:0; right:0; top:34%; z-index:330; text-align:center; pointer-events:none; display:none; }
 #banner.show { display:block; animation:pop .35s cubic-bezier(.2,1.6,.4,1); }
-#banner .big { display:inline-block; font-size:40px; font-weight:800; color:#fff; -webkit-text-stroke:2px var(--ink);
+#banner .big { display:inline-block; font-size:clamp(24px, 8vh, 40px); font-weight:800; color:#fff; -webkit-text-stroke:2px var(--ink);
   text-shadow:0 4px 0 var(--ink); letter-spacing:.04em; }
-#banner .small { font-size:15px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(74,46,26,.9); margin-top:4px; }
+#banner .small { font-size:clamp(12px, 3.6vh, 15px); font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(74,46,26,.9); margin-top:4px; }
 @keyframes pop { from { transform:scale(.5); opacity:0; } to { transform:scale(1); opacity:1; } }
 
 @media (min-height:600px) {
@@ -155,7 +164,7 @@ body.playing.serving.you-serve #serves { display:flex; }
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.2.1 · Updated Nov 27, 2026</div>
+<div id="buildInfo">v0.3.0 · Updated Nov 27, 2026</div>
 
 <canvas id="cv"></canvas>
 
@@ -188,7 +197,6 @@ body.playing.serving.you-serve #serves { display:flex; }
   <div class="logo">Moku <span>Badminton</span></div>
   <div class="sub">You &amp; Moku · Doubles · 15 points</div>
   <div id="ladder"></div>
-  <div class="opt"><span>Speed</span><button data-speed="slow">Slow</button><button data-speed="normal">Normal</button></div>
   <div class="titleMenu"><button class="titleMenuItem" id="playBtn">▶ Play</button></div>
   <div class="how">You run by yourself! Tap a glowing button — on the gold ring for PERFECT.</div>
 </div></div>
@@ -235,16 +243,19 @@ body.playing.serving.you-serve #serves { display:flex; }
     goro:  { name: 'GORO',      pref: { smash: 2.2, drop: 0.6, clear: 1,   net: 0.6 }, spd: 0,    sm: 1.2,  racket: '#FFAE00' },
     koro:  { name: 'KORO',      pref: { smash: 0.9, drop: 1.2, clear: 0.9, net: 1.4 }, spd: 0.45, sm: 1,    racket: '#8FD16A' }
   };
+  // 大会と会場の街(窓から街の景色がのぞく)。名前は Moku の大会としてもじる(Night Jungle の Moku Night Safari と同じ考え方)
+  // fast = ゲームの速さ(2026-11-27、保護者と決定: Match 1〜3 は Slow、4 からは Normal)
   var STAGES = [
-    { pair: ['kon', 'ponta'],  speed: 3.4, react: 0.34, q: [0.18, 0.52, 0.30], fault: 0.16, smashMul: 0.78, leave: 0.15 },
-    { pair: ['chef', 'ninja'], speed: 3.9, react: 0.28, q: [0.26, 0.54, 0.20], fault: 0.14, smashMul: 0.86, leave: 0.4 },
-    { pair: ['moyo', 'nox'],   speed: 4.4, react: 0.22, q: [0.36, 0.52, 0.12], fault: 0.11, smashMul: 0.95, leave: 0.6 },
-    { pair: ['goro', 'koro'],  speed: 5.0, react: 0.15, q: [0.50, 0.44, 0.06], fault: 0.09, smashMul: 1.05, leave: 0.85, boss: true }
+    { cup: 'Moku Malaysia Masters', city: 'kl', pair: ['kon', 'ponta'],  speed: 3.4, react: 0.34, q: [0.18, 0.52, 0.30], fault: 0.16, smashMul: 0.78, leave: 0.15 },
+    { cup: 'Moku Singapore Masters', city: 'sg', pair: ['chef', 'ninja'], speed: 3.9, react: 0.28, q: [0.26, 0.54, 0.20], fault: 0.14, smashMul: 0.86, leave: 0.4 },
+    { cup: 'Moku Thailand Masters', city: 'bkk', pair: ['moyo', 'nox'],   speed: 4.4, react: 0.22, q: [0.36, 0.52, 0.12], fault: 0.11, smashMul: 0.95, leave: 0.6 },
+    { cup: 'Moku Indonesia Masters', city: 'jkt', pair: ['goro', 'koro'],  speed: 5.0, react: 0.15, q: [0.50, 0.44, 0.06], fault: 0.09, smashMul: 1.05, leave: 0.85, boss: true, fast: true }
   ];
   function pairName(i) { return RIVALS[STAGES[i].pair[0]].name + ' & ' + RIVALS[STAGES[i].pair[1]].name; }
-  var SPEEDS = { slow: 0.72, normal: 0.9 };
-  var settings = { stage: 0, speed: 'slow' };
-  try { var st = JSON.parse(localStorage.getItem(SET_KEY) || 'null'); if (st) { if (STAGES[st.stage]) settings.stage = st.stage; if (SPEEDS[st.speed]) settings.speed = st.speed; } } catch (e) {}
+  var SPEED_SLOW = 0.72, SPEED_NORMAL = 0.9;
+  function gameSpeed() { return STAGES[settings.stage].fast ? SPEED_NORMAL : SPEED_SLOW; }
+  var settings = { stage: 0 };
+  try { var st = JSON.parse(localStorage.getItem(SET_KEY) || 'null'); if (st) { if (STAGES[st.stage]) settings.stage = st.stage; } } catch (e) {}
   function saveSettings() { try { localStorage.setItem(SET_KEY, JSON.stringify(settings)); } catch (e) {} }
 
   // unlocked = 開いている相手の数(1〜4)、beaten = 相手ごとの勝った回数
@@ -349,6 +360,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     });
     YOU.ai = demo ? MOKU_AI : null;
     document.getElementById('team1').textContent = pairName(settings.stage);
+    if (bg && builtCity !== d.city) buildBg();
   }
   function speedOf(ch) { return ch.ai ? ch.ai.speed : ch.speed; }
   function reactOf(ch) { return ch.ai ? ch.ai.react : ch.react; }
@@ -414,7 +426,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     if (q === 'late') tz *= 0.4;
     if (type === 'clear') {
       dx = q === 'perfect' ? 6.15 : q === 'good' ? 5.75 + rnd(-0.25, 0.25) : 4.2 + rnd(-0.5, 0.5);
-      ang = (y < 1.3 ? 44 : 38) * D2R + (q === 'late' ? 7 * D2R : 0);
+      ang = (y < 1.3 ? 40 : 33) * D2R + (q === 'late' ? 6 * D2R : 0); // 少し低め(2026-11-27)
       v = solveSpeed(from, r * dx, tz, ang);
     } else if (type === 'drop' || type === 'net' || type === 'short') {
       if (type === 'drop') { dx = q === 'perfect' ? 1.3 : q === 'good' ? 1.7 + rnd(-0.2, 0.2) : 2.9; ang = (y > 1.8 ? (q === 'late' ? 22 : 4) : 30) * D2R; }
@@ -433,7 +445,7 @@ body.playing.serving.you-serve #serves { display:flex; }
       v = solveAngle(from, r * dx, tz, spd);
       for (var j = 0; j < 8 && netHeight(from, v) < NET_H + 0.08; j++) { dx += 0.45; v = solveAngle(from, r * dx, tz, spd); }
     } else { // long serve
-      dx = LSL - 0.35; ang = 50 * D2R; v = solveSpeed(from, r * dx, tz, ang);
+      dx = LSL - 0.35; ang = 44 * D2R; v = solveSpeed(from, r * dx, tz, ang);
     }
     if (fault) { // ミス: ネットか、外へ
       if (Math.random() < 0.5) v = solveSpeed(from, r * 0.35, tz, -0.25);
@@ -668,7 +680,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     var spanX = 2 * (HL + 0.9) + 2 * SHEAR * HW;
     S = (right - left) / spanX;
     var vis = H - safe.b - 22 - (safe.t + 56);
-    S = Math.min(S, vis / (2 * HW * TILT + 3.4));
+    S = Math.min(S, vis / (2 * HW * TILT + 3.6));
     OX = (left + right) / 2; GY = H - safe.b - 20 - HW * TILT * S;
     buildBg();
   }
@@ -682,8 +694,42 @@ body.playing.serving.you-serve #serves { display:flex; }
   function skyMode() { if (skyQ) return skyQ; var h = new Date().getHours(); return h >= 6 && h < 18 ? 'day' : 'night'; }
   var builtSky = '';
   setInterval(function () { if (skyMode() !== builtSky) buildBg(); }, 60000);
+  // 窓の外の街: 大会ごとに、その街の目じるしを2つ目と3つ目の窓に、ほかはふつうのビル
+  function drawSkyline(g, city, night, wy, wh, wn, ww) {
+    // 背の低い画面では窓の上が画面の外なので、見えている高さ(avail)に収める
+    var base = wy + wh * 0.93, avail = base - Math.max(wy, safe.t + 50), U = Math.min(wh, avail * 1.4) / 100, col = night ? '#33406A' : '#A9C4DA', ink = night ? '#232C4E' : '#7E9CB8';
+    var lit = night ? '#FFE08A' : null;
+    function box(x, y, w, h) { g.fillStyle = col; g.fillRect(x, y, w, h); g.strokeStyle = ink; g.lineWidth = 1.5; g.strokeRect(x, y, w, h);
+      if (lit) { g.fillStyle = lit; for (var yy = y + 6; yy < base - 8; yy += 9) for (var xx = x + 4; xx < x + w - 4; xx += 8) if (((xx * 7 + yy * 3) | 0) % 5 === 0) g.fillRect(xx, yy, 3, 4); } }
+    function shape(pts) { g.beginPath(); g.moveTo(pts[0][0], pts[0][1]); for (var i = 1; i < pts.length; i++) g.lineTo(pts[i][0], pts[i][1]); g.closePath(); g.fillStyle = col; g.fill(); g.strokeStyle = ink; g.lineWidth = 1.5; g.stroke(); }
+    for (var i = 0, x = -10; x < W + 20; i++) { var w = 16 + (i * 37) % 22, h = (14 + (i * 53) % 26) * U; box(x, base - h, w, h); x += w + 4 + (i * 11) % 9; }
+    var c1 = 1.5 * W / wn, c2 = 2.5 * W / wn, s = Math.min(ww / 60, avail / 80);
+    if (city === 'kl') { // ペトロナスツインタワーと KL タワー
+      [-14, 14].forEach(function (dx) { var x0 = c1 + dx * s; shape([[x0 - 7 * s, base], [x0 - 7 * s, base - 46 * s], [x0 - 5 * s, base - 54 * s], [x0 - 3 * s, base - 60 * s], [x0, base - 72 * s], [x0 + 3 * s, base - 60 * s], [x0 + 5 * s, base - 54 * s], [x0 + 7 * s, base - 46 * s], [x0 + 7 * s, base]]); });
+      g.fillStyle = col; g.fillRect(c1 - 8 * s, base - 34 * s, 16 * s, 3 * s); g.strokeRect(c1 - 8 * s, base - 34 * s, 16 * s, 3 * s);
+      shape([[c2 - 2 * s, base], [c2 - 1.5 * s, base - 40 * s], [c2 + 1.5 * s, base - 40 * s], [c2 + 2 * s, base]]);
+      g.beginPath(); g.ellipse(c2, base - 42 * s, 7 * s, 4 * s, 0, 0, TAU); g.fillStyle = col; g.fill(); g.stroke();
+      shape([[c2 - 0.6 * s, base - 46 * s], [c2, base - 60 * s], [c2 + 0.6 * s, base - 46 * s]]);
+    } else if (city === 'sg') { // マリーナベイ・サンズとシンガポール・フライヤー
+      [-12, 0, 12].forEach(function (dx) { var x0 = c1 + dx * s; shape([[x0 - 4 * s, base], [x0 - 3 * s, base - 42 * s], [x0 + 3 * s, base - 42 * s], [x0 + 4 * s, base]]); });
+      shape([[c1 - 20 * s, base - 42 * s], [c1 + 22 * s, base - 44 * s], [c1 + 20 * s, base - 47 * s], [c1 - 18 * s, base - 46 * s]]);
+      g.strokeStyle = ink; g.lineWidth = 2; g.beginPath(); g.arc(c2, base - 22 * s, 18 * s, 0, TAU); g.stroke();
+      for (var k = 0; k < 8; k++) { var a = k * Math.PI / 4; g.beginPath(); g.moveTo(c2, base - 22 * s); g.lineTo(c2 + Math.cos(a) * 18 * s, base - 22 * s + Math.sin(a) * 18 * s); g.stroke(); }
+      shape([[c2 - 6 * s, base], [c2, base - 22 * s], [c2 + 6 * s, base]]);
+    } else if (city === 'bkk') { // ワット・アルン
+      var tier = function (x0, h0, w0) { var pts = [], n = 5; for (var t = 0; t <= n; t++) { var yy = base - h0 * t / n, ww2 = w0 * (1 - t / n * 0.85); pts.push([x0 - ww2, yy]); if (t < n) pts.push([x0 - ww2 * 0.88, yy - h0 / n * 0.4]); } var r = pts.slice().reverse().map(function (q) { return [2 * x0 - q[0], q[1]]; }); shape(pts.concat([[x0, base - h0 - 10 * s]]).concat(r)); };
+      tier(c1, 52 * s, 13 * s); tier(c1 - 24 * s, 30 * s, 8 * s); tier(c1 + 24 * s, 30 * s, 8 * s);
+      shape([[c2 - 16 * s, base], [c2 - 16 * s, base - 14 * s], [c2, base - 24 * s], [c2 + 16 * s, base - 14 * s], [c2 + 16 * s, base]]);
+    } else { // ジャカルタのモナス(独立記念塔)
+      shape([[c1 - 22 * s, base], [c1 - 22 * s, base - 8 * s], [c1 + 22 * s, base - 8 * s], [c1 + 22 * s, base]]);
+      shape([[c1 - 5 * s, base - 8 * s], [c1 - 2.5 * s, base - 58 * s], [c1 + 2.5 * s, base - 58 * s], [c1 + 5 * s, base - 8 * s]]);
+      g.fillStyle = '#F2C14E'; g.beginPath(); g.moveTo(c1 - 3 * s, base - 59 * s); g.quadraticCurveTo(c1 - 4 * s, base - 66 * s, c1, base - 72 * s); g.quadraticCurveTo(c1 + 4 * s, base - 66 * s, c1 + 3 * s, base - 59 * s); g.closePath(); g.fill(); g.strokeStyle = ink; g.stroke();
+      box(c2 - 10 * s, base - 40 * s, 20 * s, 40 * s);
+    }
+  }
+  var builtCity = '';
   function buildBg() {
-    builtSky = skyMode();
+    builtSky = skyMode(); builtCity = STAGES[settings.stage].city;
     bg = document.createElement('canvas'); bg.width = Math.round(W * DPR); bg.height = Math.round((H + BGPAD) * DPR);
     var g = bg.getContext('2d'); g.scale(DPR, DPR); g.translate(0, BGPAD);
     var saveCam = camY; camY = 0;
@@ -715,6 +761,7 @@ body.playing.serving.you-serve #serves { display:flex; }
       g.fillStyle = 'rgba(255,255,255,.95)'; // 雲
       for (var cl = 0; cl < 4; cl++) { var cx0 = ((cl * 0.29 + 0.07) % 1) * W, cy0 = wy + wh * (0.42 + (cl % 2) * 0.12); [[0, 0, 22], [20, -8, 18], [38, 0, 20]].forEach(function (q) { g.beginPath(); g.arc(cx0 + q[0], cy0 + q[1], q[2] * ww / 130, 0, TAU); g.fill(); }); }
     }
+    drawSkyline(g, STAGES[settings.stage].city, night, wy, wh, wn, ww);
     g.fillStyle = night ? '#3E4F5E' : '#6FA65C'; // 窓の外の森(1列につながっている)
     for (var tx0 = -20; tx0 < W + 40; tx0 += ww * 0.27) { g.beginPath(); g.arc(tx0, wy + wh * 0.96, ww * 0.17, 0, TAU); g.fill(); }
     g.restore();
@@ -1001,10 +1048,7 @@ body.playing.serving.you-serve #serves { display:flex; }
   function say(ch, text) { ch.say = text; ch.sayT = 1.5; }
 
   function draw(rdt) {
-    // カメラ: シャトルが高く上がった時だけ少し上を見る
-    var target = 0;
-    if (shuttle.live || phase === 'serve') { var sy = GY + (TILT * shuttle.p[2] - shuttle.p[1]) * S, top = safe.t + 64; if (sy < top) target = Math.min(BGPAD - 20, top - sy); }
-    camY += (target - camY) * Math.min(1, rdt * 5);
+    // 画面は動かさない(2026-11-27、保護者の声: 上にずれると見づらい)。camY はいつも 0
     c.setTransform(DPR, 0, 0, DPR, 0, 0);
     c.drawImage(bg, 0, (BGPAD - camY) * DPR, bg.width, H * DPR, 0, 0, W, H);
     // ここから下は camY を P() の中で足している
@@ -1019,6 +1063,18 @@ body.playing.serving.you-serve #serves { display:flex; }
     if (shuttle.p[0] <= 0) drawShuttle();
     drawRing();
     drawFloats(rdt);
+    drawAbove();
+  }
+  // シャトルが画面の上に出ている時は、上のはしに印(どこにあるか)
+  function drawAbove() {
+    if (!shuttle.live) return;
+    var p = P(shuttle.p[0], shuttle.p[1], shuttle.p[2]), top = safe.t + 6;
+    if (p[1] > top) return;
+    var x = clamp(p[0], 20, W - 20), y = safe.t + 62, k = Math.min(1, (top - p[1]) / 200);
+    c.fillStyle = 'rgba(255,246,230,.92)'; c.strokeStyle = INK; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(x, y - 18); c.lineTo(x - 9, y - 6); c.lineTo(x + 9, y - 6); c.closePath(); c.fill(); c.stroke();
+    c.beginPath(); c.arc(x, y + 6, 11 - k * 3, 0, TAU); c.fill(); c.stroke();
+    c.fillStyle = '#F2A03D'; c.beginPath(); c.arc(x, y + 6, 4, 0, TAU); c.fill();
   }
 
   // ── HUD とボタン ──
@@ -1070,14 +1126,12 @@ body.playing.serving.you-serve #serves { display:flex; }
       var open = i < progress.unlocked, won = progress.beaten[d.pair.join('-')];
       var stt = !open ? '🔒 Win match ' + i : won ? '✓ Won' + (won > 1 ? ' ×' + won : '') : d.boss ? '👑 Final match!' : '✨ New!';
       return '<button class="rival' + (i === settings.stage ? ' on' : '') + (open ? '' : ' locked') + '" data-stage="' + i + '"><span class="n">' + (i + 1) +
-        '</span><span class="t"><div class="nm">' + (open ? pairName(i) : '? & ?') + '</div><div class="st">' + stt + '</div></span></button>';
+        '</span><span class="t"><div class="cup">' + d.cup.replace('Moku ', '') + (d.fast ? ' ⚡' : '') + '</div><div class="nm">' + (open ? pairName(i) : '? & ?') + '</div><div class="st">' + stt + '</div></span></button>';
     }).join('');
-    Array.prototype.forEach.call(document.querySelectorAll('[data-speed]'), function (b) { b.classList.toggle('on', b.getAttribute('data-speed') === settings.speed); });
   }
   document.getElementById('title').addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b) return; audio();
     if (b.hasAttribute('data-stage')) { var i = +b.getAttribute('data-stage'); if (i >= progress.unlocked) return; settings.stage = i; setRivals(); }
-    if (b.hasAttribute('data-speed')) settings.speed = b.getAttribute('data-speed');
     saveSettings(); syncOpts();
   });
   function startMatch() {
@@ -1086,7 +1140,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     document.body.classList.remove('on-title'); document.body.classList.add('playing');
     resetMatch(); setupServe();
     showHint(server === YOU ? 'Your serve! Tap SHORT or LONG' : 'You run by yourself — tap a glowing button!', 3);
-    showBanner(STAGES[settings.stage].boss ? 'FINAL MATCH' : 'MATCH ' + (settings.stage + 1), 'VS ' + pairName(settings.stage));
+    showBanner(STAGES[settings.stage].cup.replace('Moku ', '').toUpperCase(), (STAGES[settings.stage].boss ? 'FINAL · ' : 'MATCH ' + (settings.stage + 1) + ' · ') + 'VS ' + pairName(settings.stage));
     setTimeout(function () { if (phase === 'serve' && !demo) hideBanner(); }, 1800);
   }
   function toTitle() {
@@ -1116,7 +1170,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     requestAnimationFrame(frame);
     var rdt = Math.min(0.05, last ? (ts - last) / 1000 : 0.016); last = ts;
     if (!paused) {
-      acc += rdt * SPEEDS[settings.speed];
+      acc += rdt * gameSpeed();
       var n = 0; while (acc >= DT && n < 14) { tick(DT); acc -= DT; n++; }
       if (shuttle.live) { trailT += rdt; if (trailT > 0.025) { trailT = 0; shuttle.trail.push(shuttle.p.slice()); if (shuttle.trail.length > 9) shuttle.trail.shift(); } }
       else shuttle.trail = [];
