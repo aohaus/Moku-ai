@@ -43,6 +43,8 @@
     ベストとする(タイミングとは分けて、種類の判断だけ)。理由は 5 つのレッスン(Attack the high ball / Not from the back /
     Stay low at the net / Use the space / Serve smart)+ Make them hurry。失点の場面を先に・同じレッスンは1回・1枚はほめる。
     Tactics score(良い判断の割合)を Records に、いちばん多かったミスを次の試合の前に Moku がひとこと。
+    v0.7.1: 5 つのレッスンごとにも Tactics score(その場面で良い判断をした割合。クセが分かる)。Review の1枚目と Records に
+    バーで出し、いちばん低いレッスン(80% 未満)に「Your habit!」。
     次: Tactics Book(学んだレッスンの図鑑)→ Try it(その場面をもう一度打つ練習)。
   - ルールは新しい 15 点制の1ゲームだけ(14-14 からは2点差、21 点で終わり)。サーブのコートは本物どおり。
   作る順番: ①コートとシャトル ②自動で走る・ボタン ③ルール ④CPU ⑤キャラを作る画面・タイトル・結果 ⑥ハブ・SPEC。
@@ -137,6 +139,18 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
   #resultTitle { font-size:20px; } #resultScore { font-size:28px; margin:0; }
   .stats { margin:9px 0 0; gap:5px; } .stat { padding:3px 5px 2px; } .stat.new { padding-top:8px; } .stat i { top:-8px; font-size:8.5px; } .stat b { font-size:15px; } .stat span, .stat small { font-size:9.5px; }
 }
+.lbars { width:min(560px, 78vw); margin:8px auto 2px; display:flex; flex-direction:column; gap:4px; text-align:left; }
+.lbHead { font-size:11px; font-weight:800; opacity:.6; margin-bottom:1px; }
+.lb { display:grid; grid-template-columns:minmax(0,190px) 1fr 70px; align-items:center; gap:8px; position:relative;
+  padding:3px 8px; border-radius:10px; border:2px solid transparent; }
+.lb.weak { border-color:#E2573C; background:#FFF0EA; }
+.lb .lt { font-size:12.5px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.lb .bar { height:12px; background:#EFE6D6; border:2px solid var(--ink); border-radius:999px; overflow:hidden; }
+.lb .bar i { display:block; height:100%; border-radius:999px; }
+.lb .lp { font-size:14px; font-weight:800; text-align:right; } .lb .lp small { font-size:10px; opacity:.55; margin-left:4px; }
+.lb em { position:absolute; left:50%; transform:translateX(-50%); top:-10px; background:#E2573C; color:#fff; font-style:normal; font-size:9.5px; font-weight:800;
+  padding:1px 7px; border-radius:999px; border:1.5px solid var(--ink); }
+@media (max-height:400px) { .lbars { gap:2px; margin:4px 0 0; } .lb { padding:1px 8px; } .lb .lt { font-size:11.5px; } .lb .bar { height:10px; } .lb .lp { font-size:12.5px; } }
 .review-btn { background:linear-gradient(#B59CF0,#7C5CD6) !important; }
 .review-btn small { font-size:12px; opacity:.9; }
 .rv { max-width:760px; text-align:left; }
@@ -224,7 +238,7 @@ body.playing.serving.you-serve #serves { display:flex; }
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.7.0 · Updated Nov 27, 2026</div>
+<div id="buildInfo">v0.7.1 · Updated Nov 27, 2026</div>
 
 <canvas id="cv"></canvas>
 
@@ -264,12 +278,14 @@ body.playing.serving.you-serve #serves { display:flex; }
 <div class="overlay dim" id="records"><div class="card">
   <div class="logo">My <span>Records</span></div>
   <div id="recordsBody" class="stats"></div>
+  <div id="recordsLessons" class="lbars"></div>
   <div id="recordsBadges"></div>
   <div class="titleMenu"><button class="titleMenuItem plain" id="recordsClose">Close</button></div>
 </div></div>
 
 <div class="overlay dim" id="review"><div class="card rv">
   <div class="rvHead"><b id="rvTitle"></b><span id="rvCount"></span></div>
+  <div id="rvSummary" class="lbars"></div>
   <div class="rvBody"><canvas id="rvCanvas" width="520" height="270"></canvas>
     <div class="rvText"><div id="rvLesson"></div><div id="rvPlayed"></div><div id="rvBetter"></div><div id="rvWhy"></div></div></div>
   <div class="titleMenu row"><button class="titleMenuItem plain small" id="rvPrev">◀</button><button class="titleMenuItem" id="rvNext">Next ▶</button></div>
@@ -573,6 +589,7 @@ body.playing.serving.you-serve #serves { display:flex; }
   }
   function canSmash(y) { return y >= 1.85; }
   function canNet(ch) { return Math.abs(ch.x) < 2.9; }
+  function canNetAt(x) { return Math.abs(x) < 2.9; }
   function doHit(ch, type, q, fault) {
     var y = shuttle.p[1];
     shuttle.v = makeShot(ch, type, q, fault);
@@ -654,6 +671,21 @@ body.playing.serving.you-serve #serves { display:flex; }
     serve:  { icon: '🎯', title: 'Serve smart', why: 'The receiver was ready for that serve. Surprise them with the other one.', tip: 'Watch the receiver before you serve, moku!' },
     hurry:  { icon: '⏱️', title: 'Make them hurry', why: 'That shot gave them lots of time. The better shot makes them rush.', tip: 'Make them hurry, moku!' }
   };
+  var FIVE = ['attack', 'back', 'net', 'space', 'serve']; // レッスンごとの Tactics score を出す5つ
+  // バーの一覧(弱いレッスン = いちばん低い % に「Your habit」)
+  function lessonBars(per, minN) {
+    var weak = null;
+    FIVE.forEach(function (k) { var q = per[k]; if (q && q.n >= minN) { var r = q.g / q.n; if (!weak || r < weak.r) weak = { k: k, r: r }; } });
+    if (weak && weak.r >= 0.8) weak = null;
+    return FIVE.map(function (k) {
+      var q = per[k] || { n: 0, g: 0 }, L = LESSONS[k], pc = q.n ? Math.round(q.g / q.n * 100) : null;
+      var col = pc == null ? '#CFCCC7' : pc >= 80 ? '#4E9A4A' : pc >= 50 ? '#E0A21B' : '#E2573C';
+      return '<div class="lb' + (weak && weak.k === k ? ' weak' : '') + '"><span class="lt">' + L.icon + ' ' + L.title + '</span>' +
+        '<span class="bar"><i style="width:' + (pc || 0) + '%;background:' + col + '"></i></span>' +
+        '<span class="lp">' + (pc == null ? '–' : pc + '%') + '<small>' + (q.n ? q.g + '/' + q.n : '') + '</small></span>' +
+        (weak && weak.k === k ? '<em>Your habit!</em>' : '') + '</div>';
+    }).join('');
+  }
   var SHOT_NAME = { smash: 'SMASH', clear: 'CLEAR', drop: 'DROP', net: 'NET', short: 'SHORT SERVE', long: 'LONG SERVE' };
   function noteDecision(type, q, serve, jump) {
     if (demo) return;
@@ -695,6 +727,15 @@ body.playing.serving.you-serve #serves { display:flex; }
     d.res = res; d.best = bestT; d.gap = res[bestT].val - res[d.type].val; d.good = d.gap < 0.25;
     // どのレッスンか
     var oppFront = Math.min(Math.abs(d.pos[2][0]), Math.abs(d.pos[3][0])) < 2.6, x = Math.abs(d.p[0]);
+    // レッスンごとの Tactics score 用: その場面がどのレッスンの「出番」だったか(1つの場面が2つに入ることもある)
+    d.sits = [];
+    if (d.serve) d.sits.push('serve');
+    else {
+      if (y >= 1.85 && x <= 5.0) d.sits.push('attack');
+      if (y >= 1.55 && x > 5.0) d.sits.push('back');
+      if (canNetAt(d.p[0]) && y < 1.6) d.sits.push('net');
+      if (oppFront) d.sits.push('space');
+    }
     if (d.good) d.lesson = null;
     else if (d.serve) d.lesson = 'serve';
     else if (d.best === 'smash' && y >= 1.85) d.lesson = 'attack';
@@ -716,7 +757,10 @@ body.playing.serving.you-serve #serves { display:flex; }
     var nPraise = cards.length ? 1 : 2;
     praise.slice(0, nPraise).forEach(function (d) { d.praise = true; cards.push(d); });
     var miss = {}; bad.forEach(function (d) { miss[d.lesson] = (miss[d.lesson] || 0) + 1; });
-    return { tactics: tactics, total: n, cards: cards, miss: miss };
+    var per = {}; FIVE.forEach(function (k) { per[k] = { n: 0, g: 0 }; });
+    decisions.forEach(function (d) { d.sits.forEach(function (k) { per[k].n++; if (d.good) per[k].g++; }); });
+    if (n) cards.unshift({ summary: true });
+    return { tactics: tactics, total: n, cards: cards, miss: miss, per: per };
   }
 
   // ── だれがシャトルを取るか(打つたびに先の動きを計算して決める)──
@@ -845,7 +889,9 @@ body.playing.serving.you-serve #serves { display:flex; }
       progress.lessons = progress.lessons || {};
       Object.keys(review.miss).forEach(function (k) { (progress.lessons[k] = progress.lessons[k] || { miss: 0 }).miss += review.miss[k]; });
       var top = Object.keys(review.miss).sort(function (a, b) { return review.miss[b] - review.miss[a]; })[0];
-      progress.tipLesson = top || null; // 次の試合の前に Moku が言うひとこと
+      progress.tipLesson = top || null;
+      progress.lessonStats = progress.lessonStats || {};
+      FIVE.forEach(function (k) { var a = progress.lessonStats[k] = progress.lessonStats[k] || { n: 0, g: 0 }; a.n += review.per[k].n; a.g += review.per[k].g; }); // 次の試合の前に Moku が言うひとこと
     }
     var badges = [];
     if (w === 0 && score[1] === 0) badges.push(['shutout', '🛡️ SHUTOUT!', 'Won without losing a point']);
@@ -1554,6 +1600,16 @@ body.playing.serving.you-serve #serves { display:flex; }
   }
   function rvShow(i) {
     var cards = review.cards; rvIdx = clamp(i, 0, cards.length - 1); var d = cards[rvIdx];
+    var sum = document.getElementById('rvSummary'), body = document.querySelector('.rvBody');
+    document.getElementById('rvPrev').style.visibility = rvIdx ? '' : 'hidden';
+    document.getElementById('rvNext').textContent = rvIdx < cards.length - 1 ? 'Next ▶' : 'Got it!';
+    document.getElementById('rvCount').textContent = (rvIdx + 1) + ' / ' + cards.length;
+    if (d.summary) { // 1枚目: 全体とレッスンごとの Tactics score
+      document.getElementById('rvTitle').textContent = 'Tactics ' + review.tactics + '% · this match';
+      sum.innerHTML = lessonBars(review.per, 2); sum.style.display = ''; body.style.display = 'none';
+      return;
+    }
+    sum.style.display = 'none'; body.style.display = '';
     document.getElementById('rvTitle').textContent = 'Point ' + (d.pointNo + 1) + ' (' + d.score[0] + '–' + d.score[1] + ')';
     document.getElementById('rvCount').textContent = (rvIdx + 1) + ' / ' + cards.length;
     var L = document.getElementById('rvLesson');
@@ -1569,8 +1625,6 @@ body.playing.serving.you-serve #serves { display:flex; }
       document.getElementById('rvWhy').textContent = ls.why;
     }
     rvDraw(d);
-    document.getElementById('rvPrev').style.visibility = rvIdx ? '' : 'hidden';
-    document.getElementById('rvNext').textContent = rvIdx < cards.length - 1 ? 'Next ▶' : 'Got it!';
   }
   document.getElementById('reviewBtn').addEventListener('click', function () { show('result', false); show('review', true); rvShow(0); });
   document.getElementById('rvPrev').addEventListener('click', function () { rvShow(rvIdx - 1); });
@@ -1588,6 +1642,7 @@ body.playing.serving.you-serve #serves { display:flex; }
       tile('Matches', pr.played, pr.wins + ' won · ' + pr.losses + ' lost') +
       tile('Masters won', Object.keys(pr.beaten).length + ' / ' + STAGES.length, 'tournaments') +
       tile('Tactics', pr.tacticsBest != null ? pr.tacticsBest + '%' : '–', pr.tacticsLast != null ? 'last match ' + pr.tacticsLast + '%' : 'see 🧠 Review after a match');
+    document.getElementById('recordsLessons').innerHTML = pr.lessonStats ? '<div class="lbHead">Tactics by lesson (all matches)</div>' + lessonBars(pr.lessonStats, 3) : '';
     var B = [['shutout', '🛡️ SHUTOUT', 'Win 15–0'], ['comeback', '🔥 COMEBACK', 'Win from 5+ points behind']];
     document.getElementById('recordsBadges').innerHTML = B.map(function (b) { var n = pr.badges[b[0]] || 0; return '<span class="badge" style="' + (n ? '' : 'opacity:.45;border-style:dashed') + '"><b>' + b[1] + '</b> ' + (n ? '×' + n : b[2]) + '</span>'; }).join('');
     show('records', true);
