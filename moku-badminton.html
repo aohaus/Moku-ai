@@ -337,7 +337,7 @@ body.playing.serving.you-serve #serves { display:flex; }
 </head>
 <body class="on-title">
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
-<div id="buildInfo">v0.10.2 · Updated Nov 27, 2026</div>
+<div id="buildInfo">v0.10.3 · Updated Nov 27, 2026</div>
 
 <canvas id="cv"></canvas>
 
@@ -684,12 +684,17 @@ body.playing.serving.you-serve #serves { display:flex; }
         v = solveSpeed(from, r * dx, tz, ang);
       }
     } else if (type === 'push') {
-      // プッシュ: ネット前から、速く低い弾道で相手の中ほど〜奥の横へ押し込む(高い所で取るほど下向きに打てる)
-      dx = q === 'perfect' ? 4.4 : q === 'good' ? 3.8 + rnd(-0.3, 0.3) : 2.7;
-      if (q !== 'late') tz = sign(tz || 1) * 2.3;
-      ang = (y >= 1.45 ? -6 : y >= 1.1 ? 3 : 9) * D2R + (q === 'late' ? 8 * D2R : 0);
-      v = solveSpeed(from, r * dx, tz, ang);
-      for (var pi = 0; pi < 10 && netHeight(from, v) < NET_H + 0.1; pi++) { ang += 4 * D2R; v = solveSpeed(from, r * dx, tz, ang); }
+      // プッシュ(2026-11-27 に変更): 奥ではなく、相手コートの真ん中より手前(ネットから 2〜3m)へ、速く下向きに刺す。
+      // ネットを越えられる一番低い角度で、決まった速さで打つ。Late は遅く、少し奥にふわっと浮く(返されやすい)
+      var pspd = q === 'perfect' ? 19 : q === 'good' ? 16 : 10;
+      dx = q === 'perfect' ? 2.2 : q === 'good' ? 2.6 + rnd(-0.2, 0.2) : 3.6;
+      if (q !== 'late') tz = sign(tz || 1) * 1.7;
+      // 低い所で取った時は、ネットを越えて手前に落とせる速さまで落とす(それでもだめなら少し奥へ)
+      var pok = false;
+      for (var pd = 0; pd < 4 && !pok; pd++) {
+        for (var sp2 = pspd; sp2 >= 7 && !pok; sp2 -= 2) { v = solveAngle(from, r * (dx + pd * 0.4), tz, sp2); pok = netHeight(from, v) >= NET_H + 0.08 && range(from, v) < dx + pd * 0.4 + Math.abs(from[0]) + 1.2; }
+      }
+      if (!pok) v = solveSpeed(from, r * (dx + 0.8), tz, 28 * D2R);
     } else if (type === 'smash') {
       var spd = (q === 'perfect' ? 34 : q === 'good' ? 27 : 19) * (ch.ai ? ch.ai.smashMul : 1);
       dx = q === 'perfect' ? 3.1 : q === 'good' ? 3.8 : 4.9;
@@ -715,7 +720,7 @@ body.playing.serving.you-serve #serves { display:flex; }
   function canSmash(y) { return y >= 1.85; }
   function canNet(ch) { return Math.abs(ch.x) < 2.9; }
   function canNetAt(x) { return Math.abs(x) < 2.9; }
-  function canPush(ch, y) { return Math.abs(ch.x) < 3.2 && y >= 0.9; } // プッシュはネット前で、ある程度の高さの球だけ
+  function canPush(ch, y) { return Math.abs(ch.x) < 3.2 && y >= 1.1; } // プッシュはネット前で、ある程度の高さの球だけ
   function doHit(ch, type, q, fault) {
     var y = shuttle.p[1];
     shuttle.v = makeShot(ch, type, q, fault);
@@ -734,7 +739,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     if (serve) { lastServe = type; document.body.classList.remove('serving', 'you-serve'); hideHint(); phase = 'rally'; }
     ch.wait = 0.22;
     plan();
-    if (window.__bdLog && predicted) window.__bdLog.push({ who: ch.id, type: type, q: q, f: !!fault, y: +y.toFixed(2), x: +shuttle.p[0].toFixed(2), apex: +Math.max.apply(null, predicted.pts.map(function (o) { return o.y; }).concat([0])).toFixed(1), end: predicted.end && [+predicted.end.x.toFixed(1), +predicted.end.z.toFixed(1)], net: predicted.net });
+    if (window.__bdLog && predicted) window.__bdLog.push({ who: ch.id, type: type, spd: +Math.hypot(shuttle.v[0], shuttle.v[1], shuttle.v[2]).toFixed(1), q: q, f: !!fault, y: +y.toFixed(2), x: +shuttle.p[0].toFixed(2), apex: +Math.max.apply(null, predicted.pts.map(function (o) { return o.y; }).concat([0])).toFixed(1), end: predicted.end && [+predicted.end.x.toFixed(1), +predicted.end.z.toFixed(1)], net: predicted.net });
   }
   function aiQuality(ai) { return ['perfect', 'good', 'late'][pickW(ai.q)]; }
   function aiShot(ch) {
