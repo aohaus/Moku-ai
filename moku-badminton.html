@@ -51,6 +51,9 @@
     Try it(その場面をもう一度打つ練習)は保留(2026-11-27、保護者)。
   - v0.8.5: NET を HAIRPIN(ネットのすぐ向こうにふわっと。内部の種類は 'net' のまま)と PUSH(ネット前から速く低く相手の横へ
     押し込む。高さ 0.9m 以上の球だけ)に分けた(保護者の依頼)。ボタンは 5 つ。キーは L / O。
+  - v0.10.0: ホーム画面を「Moku World Tour」に(保護者の案)。東南アジアの絵本の地図に4つの大会の道すじ(勝った所までは金の実線)、
+    勝った所に 🏆、次の所が光り、いまいる所に「🏸 YOU & MOKU」。大会を押すと右に国旗・大会・相手の絵・状態と Play。
+    Home のボタンは地図のカードの右上(固定の位置ではなくカードの中)。
   - v0.9.0: ボタンを 4 つに戻した。NET は短く押すと PUSH、長押しで HAIRPIN(PUSH できない低い球は HAIRPIN)。
     Lesson 6〜10 を追加(子どもたちが候補 8 つからおすすめの 5 つに決定): 🔥 Keep attacking / ↕️ Front and back / 🧱 Block the smash /
     ⬇️ No lifts at the front / 🔀 Mix it up。ラリーの流れ(rallyShots)をルールで判定し、Review のカードは物理でもミスだった時だけ出す。
@@ -83,7 +86,7 @@ button { font-family:inherit; cursor:pointer; -webkit-tap-highlight-color:transp
 
 /* ── Moku Series 共通(SPEC.md §4・§5): タイトル画面だけの枠・ハブへのリンク・バージョン ── */
 /* 外枠(#title-frame)はこのゲームでは出さない。右上は「Home」(2026-11-27、保護者。SPEC.md §4 の例外) */
-#hub-link { position:fixed; top:calc(12px + var(--sat)); right:calc(14px + var(--sar)); z-index:720; color:var(--ink);
+#hub-link { flex:none; align-self:flex-start; color:var(--ink);
   font-weight:800; font-size:14px; text-decoration:none; letter-spacing:.02em; background:var(--paper); border:3px solid var(--ink);
   border-radius:999px; padding:5px 14px; box-shadow:0 3px 0 rgba(74,46,26,.35); }
 #buildInfo { position:fixed; left:calc(24px + var(--sal)); bottom:calc(20px + var(--sab)); z-index:720;
@@ -112,6 +115,36 @@ body.ov #hub-link, body.ov #buildInfo, body:not(.on-title) #title-frame, body:no
 .titleMenuItem:active { transform:translateY(3px); box-shadow:0 1px 0 var(--ink); }
 .titleMenuItem.plain { background:#fff; color:var(--ink); text-shadow:none; }
 .how { font-size:11.5px; font-weight:700; opacity:.7; margin-top:9px; line-height:1.35; }
+/* ── ホーム画面: Moku World Tour ── */
+#title.overlay { padding:calc(var(--sat) + 10px) calc(var(--sar) + 12px) calc(var(--sab) + 10px) calc(var(--sal) + 12px); }
+.tour { display:grid; grid-template-columns:minmax(0, 1.65fr) minmax(220px, 1fr); gap:12px; width:min(1200px, 100%); height:min(100%, 720px); }
+.tourMap { display:flex; flex-direction:column; padding:10px 14px 8px; min-height:0; text-align:left; }
+.tourHead { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+.tourHead .logo { font-size:26px; } .tourHead .sub { margin:2px 0 0; }
+#tourSvg { flex:1; width:100%; min-height:0; margin-top:4px; }
+#tourSvg .stop { cursor:pointer; }
+#tourSvg .pulse { animation:stopPulse 1.4s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+@keyframes stopPulse { 0%,100% { transform:scale(1); opacity:.9; } 50% { transform:scale(1.25); opacity:.35; } }
+#tourSvg .token { animation:tokenBob 1.2s ease-in-out infinite; }
+@keyframes tokenBob { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-8px); } }
+.tourSide { display:flex; flex-direction:column; justify-content:space-between; padding:12px 14px; min-height:0; overflow-y:auto; }
+.stopFlag { font-size:34px; line-height:1; }
+.stopCup { font-size:19px; font-weight:800; margin-top:2px; } .stopCity { font-size:12px; font-weight:800; opacity:.65; }
+.stopVs { display:flex; justify-content:center; align-items:flex-end; gap:2px; margin:6px 0 0; }
+.stopVs canvas { position:static; inset:auto; width:76px; height:auto; }
+.stopVs b { font-size:13px; font-weight:800; padding-bottom:28px; opacity:.6; }
+.stopNames { font-size:13.5px; font-weight:800; }
+.stopState { display:inline-block; margin-top:6px; font-size:12px; font-weight:800; padding:2px 10px; border-radius:999px; border:2px solid var(--ink); background:#fff; }
+.stopState.won { background:#FFF3C4; border-color:#E0A21B; } .stopState.next { background:#E4F2FC; border-color:var(--hi); } .stopState.lock { opacity:.7; border-style:dashed; }
+#playBtn[disabled] { opacity:.45; filter:grayscale(1); }
+@media (max-height:400px) {
+  .tour { gap:8px; } .tourMap { padding:6px 10px 4px; } .tourHead .logo { font-size:19px; } .tourHead .sub { font-size:10.5px; }
+  .tourSide { padding:6px 10px; } .stopFlag { font-size:24px; } .stopCup { font-size:15px; } .stopVs canvas { width:52px; } .stopVs b { padding-bottom:18px; }
+  .stopNames { font-size:12px; } .stopState { margin-top:3px; font-size:10.5px; }
+  .tourSide .titleMenu { margin-top:4px; gap:4px; } .tourSide .titleMenuItem { min-width:0 !important; padding:4px 10px; } .tourSide .titleMenu.row .titleMenuItem { font-size:13px; padding:3px 8px; }
+  .tourSide .titleMenu.row { flex-wrap:nowrap; }
+  #hub-link { font-size:12px; padding:3px 10px; border-width:2px; }
+}
 #ladder { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin:2px 0 6px; }
 .rival { border:2px solid var(--ink); background:#fff; border-radius:12px; padding:5px 8px; text-align:left; color:var(--ink);
   display:flex; align-items:center; gap:7px; min-width:0; }
@@ -281,8 +314,7 @@ body.playing.serving.you-serve #serves { display:flex; }
 </head>
 <body class="on-title">
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
-<a id="hub-link" href="hub.html">🏠 Home</a>
-<div id="buildInfo">v0.9.0 · Updated Nov 27, 2026</div>
+<div id="buildInfo">v0.10.0 · Updated Nov 27, 2026</div>
 
 <canvas id="cv"></canvas>
 
@@ -311,12 +343,18 @@ body.playing.serving.you-serve #serves { display:flex; }
 <div id="hint"></div>
 <div id="banner"><div class="big" id="bannerBig"></div><div class="small" id="bannerSmall"></div></div>
 
-<div class="overlay show" id="title"><div class="card">
-  <div class="logo">Moku <span>Badminton</span></div>
-  <div class="sub">You &amp; Moku · Doubles · 15 points</div>
-  <div id="ladder"></div>
-  <div class="titleMenu row"><button class="titleMenuItem" id="playBtn">▶ Play</button><button class="titleMenuItem plain small" id="recordsBtn">📊 Records</button><button class="titleMenuItem plain small" id="bookBtn">📖 Book</button></div>
-  <div class="how">You run by yourself! Tap a glowing button — on the gold ring for PERFECT.</div>
+<div class="overlay show" id="title"><div class="tour">
+  <!-- ホーム画面 = Moku World Tour(2026-11-27): 東南アジアの絵本の地図に大会をめぐる道すじ。勝った所にトロフィー、次の所に YOU & MOKU -->
+  <div class="card tourMap">
+    <div class="tourHead"><div><div class="logo">Moku <span>Badminton</span></div><div class="sub">🌏 Moku World Tour · <b id="tourCount">0 / 4</b> 🏆</div></div>
+      <a id="hub-link" href="hub.html">🏠 Home</a></div>
+    <svg id="tourSvg" viewBox="0 0 980 630" preserveAspectRatio="xMidYMid meet" aria-label="Tour map"></svg>
+  </div>
+  <div class="card tourSide">
+    <div id="stopCard"></div>
+    <div><div class="titleMenu"><button class="titleMenuItem" id="playBtn">▶ Play</button></div>
+    <div class="titleMenu row"><button class="titleMenuItem plain small" id="recordsBtn">📊 Records</button><button class="titleMenuItem plain small" id="bookBtn">📖 Book</button></div></div>
+  </div>
 </div></div>
 
 <div class="overlay dim" id="records"><div class="card">
@@ -1754,19 +1792,94 @@ body.playing.serving.you-serve #serves { display:flex; }
   });
 
   // ── タイトル・一時停止・結果 ──
+  // ── ホーム画面: Moku World Tour の地図 ──
+  // 経度・緯度を地図の座標に(絵本の地図なので、たてを少しつめている)
+  function MP(lon, lat) { return [(lon - 94.5) * 42 + 10, (15.8 - lat) * 25 + 14]; }
+  var PLACES_T = {
+    // off = 印をずらす量(KL とシンガポールは近いので重ならないように)、lab = 名前の置き場所
+    kl: { city: 'Kuala Lumpur', flag: '🇲🇾', at: [101.7, 3.15], off: [-38, -16], lab: ['end', -42, 2] },
+    sg: { city: 'Singapore', flag: '🇸🇬', at: [103.85, 1.3], off: [34, 22], lab: ['start', 42, 6] },
+    bkk: { city: 'Bangkok', flag: '🇹🇭', at: [100.5, 13.75], off: [0, 0], lab: ['start', 42, 2] },
+    jkt: { city: 'Jakarta', flag: '🇮🇩', at: [106.85, -6.2], off: [0, 0], lab: ['start', 42, -6] }
+  };
+  var LANDS = [ // おおまかな海岸線(経度, 緯度)
+    [[96, 15.6], [97.8, 14.5], [98.6, 12.6], [98.6, 10], [98.3, 8], [99.6, 6.9], [100.3, 6.2], [100.4, 4.8], [101.3, 2.9], [102.6, 1.9], [103.5, 1.3], [104.3, 1.5], [103.4, 4], [102.3, 6.2], [100.5, 7.4], [99.8, 9.3], [99.2, 10.6], [100, 12.5], [100.9, 13.4], [102.3, 12.2], [103, 11], [104.8, 10.4], [105.2, 8.7], [106.8, 10.4], [108.9, 11.5], [109.4, 13.5], [109.3, 15.6]],
+    [[95.3, 5.6], [97.5, 5.2], [100, 2.6], [103.7, 0.8], [106, -3], [105.8, -5.8], [104.5, -5.9], [102.3, -4], [100.3, -0.8], [98.8, 1.7], [97, 3.6]],
+    [[105.2, -6.8], [106, -5.9], [108.5, -6.3], [111, -6.4], [112.6, -6.9], [114.5, -7.7], [111, -8.2], [108, -7.8], [106.4, -7.4]],
+    [[109.6, 1.9], [110.5, 1.5], [111.8, 2.8], [113.2, 3.3], [115.3, 5], [116.8, 6.9], [117.7, 6], [118.8, 5], [117.8, 1.2], [116.5, -1.5], [116, -3.8], [114.5, -3.4], [112, -3.4], [110.2, -2.9], [109, -0.5]]
+  ];
+  var ROUTE_CTRL = [[105.4, 3.4], [104.6, 8.6], [108.6, 3.0]]; // 大会と大会のあいだの道すじが海の上を通るように
+  var tourBase = '';
+  function tourBaseSvg() {
+    var o = '<defs><pattern id="tw" width="70" height="30" patternUnits="userSpaceOnUse"><path d="M6 18 q8 -7 16 0 t16 0" stroke="#9FD3EC" stroke-width="2.5" fill="none" stroke-linecap="round"/></pattern></defs>';
+    o += '<rect x="0" y="0" width="980" height="630" rx="18" fill="#BFE6F5"/><rect x="0" y="0" width="980" height="630" rx="18" fill="url(#tw)"/>';
+    LANDS.forEach(function (L) { o += '<path d="M' + L.map(function (q) { return MP(q[0], q[1]).map(function (v) { return v.toFixed(0); }).join(' '); }).join(' L') + ' Z" fill="#CFE5A6" stroke="#4A2E1A" stroke-width="4" stroke-linejoin="round"/>'; });
+    // 小さな木と国の名前(うすく)
+    [[99.6, 15], [102.5, 5.3], [101.5, -1.5], [113, 0.5], [110, -7.2], [104.8, 12.6]].forEach(function (q) { var m = MP(q[0], q[1]); o += '<g transform="translate(' + m[0] + ' ' + m[1] + ')"><rect x="-2.5" y="-2" width="5" height="12" fill="#8A5A33"/><circle cx="0" cy="-9" r="11" fill="#7FB56A" stroke="#4A2E1A" stroke-width="2.5"/></g>'; });
+    [['THAILAND', 101.3, 15.0], ['MALAYSIA', 102.9, 6.3], ['INDONESIA', 101.2, -2.8], ['BORNEO', 113.6, 1.4]].forEach(function (t) { var m = MP(t[1], t[2]); o += '<text x="' + m[0] + '" y="' + m[1] + '" font-size="19" font-weight="800" fill="#4A2E1A" opacity=".28" text-anchor="middle" letter-spacing="3">' + t[0] + '</text>'; });
+    // 方位(N)
+    o += '<g transform="translate(925 60)"><circle r="30" fill="#FFF6E6" stroke="#4A2E1A" stroke-width="3"/><path d="M0 -22 L7 0 L0 -4 L-7 0 Z" fill="#E85A4F" stroke="#4A2E1A" stroke-width="2"/><text y="20" font-size="15" font-weight="800" text-anchor="middle" fill="#4A2E1A">N</text></g>';
+    return o;
+  }
+  function renderTour() {
+    if (!tourBase) tourBase = tourBaseSvg();
+    var won = function (i) { return !!progress.beaten[STAGES[i].pair.join('-')]; };
+    var nWon = STAGES.filter(function (d, i) { return won(i); }).length, next = Math.min(progress.unlocked - 1, STAGES.length - 1);
+    var here = STAGES.every(function (d, i) { return won(i); }) ? STAGES.length - 1 : next;
+    var o = tourBase, pts = STAGES.map(function (d) { var pl = PLACES_T[d.city], m = MP(pl.at[0], pl.at[1]); return [m[0] + pl.off[0], m[1] + pl.off[1]]; });
+    for (var i = 0; i < pts.length - 1; i++) { // 道すじ: 勝った所までは実線、その先は点線
+      var c0 = MP(ROUTE_CTRL[i][0], ROUTE_CTRL[i][1]), done = won(i) && i + 1 < progress.unlocked;
+      o += '<path d="M' + pts[i].join(' ') + ' Q' + c0.join(' ') + ' ' + pts[i + 1].join(' ') + '" fill="none" stroke="' + (done ? '#E0A21B' : '#4A2E1A') + '" stroke-width="' + (done ? 7 : 4) + '" stroke-dasharray="' + (done ? '0' : '4 12') + '" stroke-linecap="round" opacity="' + (done ? 1 : .6) + '"/>';
+    }
+    STAGES.forEach(function (d, i) {
+      var pl = PLACES_T[d.city], m = pts[i], open = i < progress.unlocked, w = won(i), sel = i === settings.stage;
+      var fill = w ? '#FFD86B' : open ? '#FFFFFF' : '#D9D3C7';
+      o += '<g class="stop" data-stage="' + i + '" transform="translate(' + m[0] + ' ' + m[1] + ')">';
+      if (open && !w) o += '<circle class="pulse" r="40" fill="none" stroke="#4FA3E0" stroke-width="5"/>';
+      if (sel) o += '<circle r="44" fill="rgba(79,163,224,.22)" stroke="#3E8FCC" stroke-width="4"/>';
+      o += '<circle r="31" fill="' + fill + '" stroke="#4A2E1A" stroke-width="4"/>';
+      o += '<text y="11" font-size="31" text-anchor="middle"' + (open ? '' : ' opacity=".45"') + '>' + (open ? pl.flag : '🔒') + '</text>';
+      if (w) o += '<text x="27" y="-20" font-size="25" text-anchor="middle">🏆</text>';
+      var lb = pl.lab;
+      o += '<text x="' + lb[1] + '" y="' + lb[2] + '" font-size="22" font-weight="800" text-anchor="' + lb[0] + '" fill="#4A2E1A" stroke="#FFF6E6" stroke-width="6" paint-order="stroke">' + pl.city + '</text>';
+      o += '<text x="' + lb[1] + '" y="' + (lb[2] + 21) + '" font-size="15" font-weight="800" text-anchor="' + lb[0] + '" fill="#1E4A75" stroke="#FFF6E6" stroke-width="5" paint-order="stroke">' + (i + 1) + '. ' + d.cup.replace('Moku ', '') + (d.fast ? ' ⚡' : '') + '</text>';
+      o += '</g>';
+    });
+    // YOU & MOKU の印(いまいる所)
+    var hm = pts[here];
+    o += '<g pointer-events="none" transform="translate(' + hm[0] + ' ' + (hm[1] - 40) + ')"><g class="token"><rect x="-58" y="-34" width="116" height="30" rx="15" fill="#4FA3E0" stroke="#4A2E1A" stroke-width="3"/>' +
+      '<text y="-13" font-size="15" font-weight="800" text-anchor="middle" fill="#fff">🏸 YOU &amp; MOKU</text><path d="M-7 -5 L0 6 L7 -5 Z" fill="#4FA3E0" stroke="#4A2E1A" stroke-width="3" stroke-linejoin="round"/></g></g>';
+    document.getElementById('tourSvg').innerHTML = o;
+    document.getElementById('tourCount').textContent = nWon + ' / ' + STAGES.length;
+    renderStopCard();
+  }
+  function drawPortrait(cv2, kind) { // 相手の絵(試合と同じ絵を小さく)
+    var g = cv2.getContext('2d'), oc = c; g.clearRect(0, 0, cv2.width, cv2.height);
+    c = g; g.save(); g.translate(cv2.width / 2 - 6, cv2.height - 8); g.scale(1.25, 1.25); g.strokeStyle = INK; g.lineWidth = lwCm = 3; g.lineJoin = 'round'; g.lineCap = 'round';
+    DRAW[kind]({ kind: kind, side: 1, swing: 0, legT: 0, moving: 0, racket: RIVALS[kind].racket }, 0); g.restore(); c = oc;
+  }
+  function renderStopCard() {
+    var i = settings.stage, d = STAGES[i], pl = PLACES_T[d.city], open = i < progress.unlocked, w = progress.beaten[d.pair.join('-')];
+    var prev = i ? STAGES[i - 1].cup.replace('Moku ', '') : '';
+    document.getElementById('stopCard').innerHTML =
+      '<div class="stopFlag">' + pl.flag + '</div><div class="stopCup">' + d.cup.replace('Moku ', '') + (d.fast ? ' ⚡' : '') + '</div>' +
+      '<div class="stopCity">' + pl.city + ' · ' + (d.boss ? 'Final' : 'Match ' + (i + 1)) + ' · 15 points</div>' +
+      '<div class="stopVs">' + (open ? '<canvas width="150" height="190" data-kind="' + d.pair[0] + '"></canvas><b>&amp;</b><canvas width="150" height="190" data-kind="' + d.pair[1] + '"></canvas>' : '<div style="font-size:42px;padding:10px 0">❔ ❔</div>') + '</div>' +
+      '<div class="stopNames">' + (open ? 'VS ' + pairName(i) : 'Rivals: ? & ?') + '</div>' +
+      '<div class="stopState ' + (w ? 'won' : open ? 'next' : 'lock') + '">' + (w ? '🏆 Champions' + (w > 1 ? ' ×' + w : '') : open ? (d.boss ? '👑 Final stop!' : '✨ Next stop!') : '🔒 Win the ' + prev + ' first') + '</div>';
+    Array.prototype.forEach.call(document.querySelectorAll('#stopCard canvas[data-kind]'), function (cv2) { drawPortrait(cv2, cv2.getAttribute('data-kind')); });
+    document.getElementById('playBtn').disabled = !open;
+    document.getElementById('playBtn').textContent = w ? '▶ Play again' : '▶ Play';
+  }
   function syncOpts() {
     if (settings.stage >= progress.unlocked) settings.stage = progress.unlocked - 1;
-    document.getElementById('ladder').innerHTML = STAGES.map(function (d, i) {
-      var open = i < progress.unlocked, won = progress.beaten[d.pair.join('-')];
-      var stt = !open ? '🔒 Win match ' + i : won ? '✓ Won' + (won > 1 ? ' ×' + won : '') : d.boss ? '👑 Final match!' : '✨ New!';
-      return '<button class="rival' + (i === settings.stage ? ' on' : '') + (open ? '' : ' locked') + '" data-stage="' + i + '"><span class="n">' + (i + 1) +
-        '</span><span class="t"><div class="cup">' + d.cup.replace('Moku ', '') + (d.fast ? ' ⚡' : '') + '</div><div class="nm">' + (open ? pairName(i) : '? & ?') + '</div><div class="st">' + stt + '</div></span></button>';
-    }).join('');
+    renderTour();
   }
-  document.getElementById('title').addEventListener('click', function (e) {
-    var b = e.target.closest('button'); if (!b) return; audio();
-    if (b.hasAttribute('data-stage')) { var i = +b.getAttribute('data-stage'); if (i >= progress.unlocked) return; settings.stage = i; setRivals(); }
-    saveSettings(); syncOpts();
+  document.getElementById('tourSvg').addEventListener('click', function (e) {
+    var g = e.target.closest && e.target.closest('[data-stage]'); if (!g) return; audio();
+    settings.stage = +g.getAttribute('data-stage');
+    if (settings.stage < progress.unlocked) { setRivals(); saveSettings(); }
+    renderTour();
   });
   function startMatch() {
     audio(); demo = false; paused = false;
@@ -1788,7 +1901,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     if (on && (phase === 'title' || phase === 'over' || demo)) return;
     paused = on; show('pause', on);
   }
-  document.getElementById('playBtn').addEventListener('click', startMatch);
+  document.getElementById('playBtn').addEventListener('click', function () { if (settings.stage < progress.unlocked) startMatch(); });
   // Review のカード: 上から見たコートの図+英語のひとこと
   var rvIdx = 0;
   function rvDraw(d, canvasId) {
