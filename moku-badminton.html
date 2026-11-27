@@ -351,7 +351,7 @@ body.playing.serving.you-serve #serves { display:flex; }
 </head>
 <body class="on-title">
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
-<div id="buildInfo">v0.10.8 · Updated Nov 27, 2026</div>
+<div id="buildInfo">v0.10.9 · Updated Nov 27, 2026</div>
 
 <canvas id="cv"></canvas>
 
@@ -466,6 +466,7 @@ body.playing.serving.you-serve #serves { display:flex; }
   // 大会と会場の街(窓から街の景色がのぞく)。名前は Moku の大会としてもじる(Night Jungle の Moku Night Safari と同じ考え方)
   // fast = ⚡ の印(いちばん速い最後の大会)
   var STAGES = [
+    // speed / react / q / fault / smashMul / leave は Match 1 の値だけを使う(setRivals())。2〜4 の値は前の版のなごり
     { cup: 'Moku Malaysia Masters', city: 'kl', pair: ['kon', 'ponta'],  speed: 3.4, react: 0.34, q: [0.18, 0.52, 0.30], fault: 0.16, smashMul: 0.78, leave: 0.15 },
     { cup: 'Moku Singapore Masters', city: 'sg', pair: ['chef', 'ninja'], speed: 3.9, react: 0.28, q: [0.26, 0.54, 0.20], fault: 0.14, smashMul: 0.86, leave: 0.4 },
     { cup: 'Moku Thailand Masters', city: 'bkk', pair: ['moyo', 'nox'],   speed: 4.4, react: 0.22, q: [0.36, 0.52, 0.12], fault: 0.11, smashMul: 0.95, leave: 0.6 },
@@ -606,12 +607,25 @@ body.playing.serving.you-serve #serves { display:flex; }
   function teamName() { return meName() + ' & MOKU'; }
   chars.forEach(function (ch) { ch.x = ch.side * 3; ch.z = 0; ch.tx = ch.x; ch.tz = 0; ch.wait = 0; ch.swing = 0; ch.swingOver = true;
     ch.legT = 0; ch.moving = 0; ch.jump = 0; ch.say = ''; ch.sayT = 0; });
+  var PUNISH_BASE = 0.3, PUNISH_STEP = 0.1;
+  // こちらの判断ミス: 相手に高くて打ちやすい球(真ん中より前)や、ネット前の浮いた球を渡した時
+  function playerGaveChance(ch) {
+    if (!lastHitter || lastHitter.team !== 0) return false;
+    var y = shuttle.p[1], x = Math.abs(shuttle.p[0]);
+    return (y >= 1.85 && x <= 5.0) || (y >= 1.2 && x < 3.0);
+  }
   function setRivals() { // 今の相手のペアを chars[2] / chars[3] に入れる
     var d = STAGES[settings.stage];
     d.pair.forEach(function (key, i) {
       var r = RIVALS[key], ch = chars[2 + i];
       ch.kind = key; ch.name = r.name; ch.pref = r.pref; ch.racket = r.racket;
-      ch.ai = { speed: d.speed + r.spd, react: d.react + (i ? 0.04 : 0), q: d.q, fault: d.fault, smashMul: d.smashMul * r.sm, leave: d.leave };
+      // 相手の強さ(2026-11-27、保護者と決定): 大会ごとに大きく変えない。足の速さ・反応・スマッシュは Match 1 のまま。
+      // 変えるのは2つだけ: ①相手のミス(Late・ミスショット・アウトの球に手を出す)が大会ごとに1割ずつ減る(× 0.9)
+      // ②こちらの判断ミス(打ちごろの球を渡した時)を見のがさず攻める割合が1割ずつ増える(30% → 40% → 50% → 60%)
+      var lv = settings.stage, B = STAGES[0], m = Math.pow(0.9, lv);
+      var late = B.q[2] * m, perf = B.q[0], good = 1 - perf - late;
+      ch.ai = { speed: B.speed + r.spd, react: B.react + (i ? 0.04 : 0), q: [perf, good, late], fault: B.fault * m,
+        smashMul: B.smashMul * r.sm, leave: 1 - (1 - 0.5) * m, punish: PUNISH_BASE + PUNISH_STEP * lv };
     });
     YOU.ai = demo ? MOKU_AI : null;
     document.getElementById('team1').textContent = pairName(settings.stage);
@@ -781,6 +795,11 @@ body.playing.serving.you-serve #serves { display:flex; }
     if (hits === 1 && ch === receiver && ((recvStance === 'front' && lastServe === 'long') || (recvStance === 'back' && lastServe === 'short'))) q = ['perfect', 'good', 'late'][pickW([0.05, 0.35, 0.6])];
     var f = q === 'late' ? Math.random() < Math.min(0.6, ch.ai.fault * 3) : q === 'good' ? Math.random() < ch.ai.fault * 0.4 : false;
     var type = aiShot(ch);
+    if (ch.team === 1 && ch.ai.punish && playerGaveChance(ch) && Math.random() < ch.ai.punish) {
+      // チャンスを見のがさない: 高い球はスマッシュ、ネット前はプッシュで、空いている所へ。ミスはしない
+      type = shuttle.p[1] >= 1.85 ? 'smash' : canPush(ch, shuttle.p[1]) ? 'push' : type;
+      if (q === 'late') q = 'good'; f = false;
+    }
     if (ch === MOKU && !demo && Math.random() < 0.25) say(MOKU, ['Mine!', 'Got it!', 'Hoo!'][Math.floor(Math.random() * 3)]);
     doHit(ch, type, q, f);
   }
