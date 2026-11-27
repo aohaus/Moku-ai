@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<script src="shared/moku-errors.js?v=20261126d"></script>
-<script src="shared/moku-gate.js?v=20261126d"></script>
+<script src="shared/moku-errors.js?v=20261127"></script>
+<script src="shared/moku-gate.js?v=20261127"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Moku Series</title>
 <!-- Icons: made by scripts/make-icons.py. Bump ?v= when they change so browsers refetch. -->
@@ -2316,6 +2316,12 @@ html.me-open #ceoPeek { display: none; }
     var p = readJSON('moku:moku-night-jungle:progress'), f = p && p.found;
     return f && typeof f === 'object' ? Math.min(MNJ_TOTAL, Object.keys(f).filter(function (k) { return f[k] > 0; }).length) : 0;
   }
+  // Moku Badminton: 勝った大会の数(moku-badminton.html の STAGES = 4 大会。beaten は相手ペアのキー → 勝った回数)
+  var MBD_CUPS = 4;
+  function mbdCups() {
+    var p = readJSON('moku:moku-badminton:progress'), b = p && p.beaten;
+    return b && typeof b === 'object' ? Math.min(MBD_CUPS, Object.keys(b).filter(function (k) { return b[k] > 0; }).length) : 0;
+  }
   // Moku Kata-Kata: 覚えた語(一度でも正解した語)の数(moku-kata.html の WORDS の数と合わせる)
   var MKK_TOTAL = 200;
   function mkkLearned() {
@@ -3095,6 +3101,31 @@ html.me-open #ceoPeek { display: none; }
       }
     },
     {
+      name: 'Moku Badminton',
+      card: 'mbd',
+      gameId: 'moku-badminton',
+      // 完了 = 4 つの大会(Moku Malaysia / Singapore / Thailand / Indonesia Masters)に全部勝った
+      isCompleted: function () {
+        if (isExplicitlyMarked('completed', 'mbd')) return true;
+        return mbdCups() >= MBD_CUPS;
+      },
+      isPlayed: function () {
+        if (isExplicitlyMarked('played', 'mbd')) return true;
+        var p = readJSON('moku:moku-badminton:progress');
+        return Boolean(p && p.played > 0);
+      },
+      progress: function () {
+        if (this.isCompleted()) return 1;
+        return Math.min(1, mbdCups() / MBD_CUPS);
+      },
+      badge: function () {
+        var p = readJSON('moku:moku-badminton:progress');
+        if (!p || !this.isPlayed()) return null;
+        var line = '🏆 ' + mbdCups() + ' / ' + MBD_CUPS + ' Masters';
+        return p.bestRally ? line + ' · Longest rally ' + p.bestRally : line;
+      }
+    },
+    {
       name: 'Moku Kata-Kata',
       card: 'mkk',
       gameId: 'moku-kata',
@@ -3206,6 +3237,7 @@ html.me-open #ceoPeek { display: none; }
     mff: { title: 'Facts Found', read: mffKnown, fmt: function (n) { return n + ' / ' + MFF_TOTAL + ' 📚'; } },
     mnj: { title: 'Critters Found', read: mnjFound, fmt: function (n) { return n + ' / ' + MNJ_TOTAL + ' 🔦'; } },
     mfl: { title: 'Festival Stars', read: mflStars, fmt: function (n) { return n + ' / 36 ⭐'; } },
+    mbd: { title: 'Longest Rally', read: function () { var p = readJSON('moku:moku-badminton:progress'); return p && p.bestRally; }, fmt: function (n) { return n + ' shots 🏸'; } },
     mkk: { title: 'Words Learned', read: mkkLearned, fmt: function (n) { return n + ' / ' + MKK_TOTAL + ' 📗'; } },
     ceo: { title: 'Pop Quizzes Solved', read: function () { var m = readJSON('moku:ceo-moku:memory'); return m && m.quiz && m.quiz.wins; }, fmt: function (n) { return n + ' 🧩'; } }
   };
@@ -3251,6 +3283,7 @@ html.me-open #ceoPeek { display: none; }
   // games can be merged early and go live together. Preview (*.pages.dev), localhost and file:
   // show them right away. Each game page has the same time in its own OPENS_AT — keep both in sync.
   var RELEASE_ASIA = '2026-11-21T16:00:00+08:00'; // Live in ASIA の5本の一斉公開(マレーシア時間)
+  var RELEASE_BADMINTON = '2026-11-27T16:00:00+08:00'; // Moku Badminton の公開(マレーシア時間、保護者の依頼)
   var CATALOG = {
     am:  { name: 'Angry Mokumoku', gameId: 'angry-mokumoku', genre: 'Slingshot Action', cta: 'Play', hi: '#4CBE55', lo: '#1A5020',
            tag: 'Fling Moku. Topple the fort.',
@@ -3360,6 +3393,10 @@ html.me-open #ceoPeek { display: none; }
            tag: 'Apa ini? Learn 200 Malay words!',
            desc: 'See a picture and pick the right Malay word from four. 200 words that kids in Malaysia use every day — animals, food, colors, numbers, school and more. Hear how to say them, and fill your Word Book!',
            moint: { cap: true, how: 'Quiz: +5 for each right answer, all 10 right: +20. Learn every word in a topic: +50. All 200 words: +300.' } },
+    mbd: { name: 'Moku Badminton', gameId: 'moku-badminton', genre: 'Doubles Badminton', cta: 'Play', hi: '#4FA3E0', lo: '#1E4A75', newUntil: '2026-12-11', opensAt: RELEASE_BADMINTON,
+           tease: { flag: '🏸', title: 'Moku Badminton', tag: 'YOU and Moku team up for doubles! Win the Moku Masters across Southeast Asia.' },
+           tag: 'YOU and Moku vs the rivals — doubles!',
+           desc: 'For the first time, YOU are in the game! Team up with Moku for doubles badminton and win the Moku World Tour: Malaysia, Singapore, Thailand and Indonesia Masters. Tap the shot buttons at the right time, hold Smash for a jump smash, then check 🧠 Review to learn smart tactics.' },
     ceo: { name: 'Sir CEO Moku', gameId: 'ceo-moku', genre: 'Chat & Quiz', cta: 'Visit', hi: '#D9925A', lo: '#6A3A1C', newUntil: '2026-12-08',
            tag: 'Meet the boss of Moku games!',
            desc: 'Visit Sir CEO Moku in his office. He picks a game for you every day, gives surprise quizzes, and listens to your game ideas. He is a little silly… and a little greedy.',
@@ -3368,6 +3405,7 @@ html.me-open #ceoPeek { display: none; }
   // 公開前のタイトルは CATALOG から外す(棚・詳細シート・My Games・Achievements に出ない)。
   // 公開の時刻にハブが開いていたら、見えている時に読み直して出す。
   var SOON_AT = Infinity;   // 公開前のタイトルがある時、いちばん早い公開時刻(告知バナー用)
+  var SOON_TEASE = null, SOON_HI = '#E85C9A', SOON_LO = '#3F8FA0';   // そのタイトルの CATALOG[].tease と色
   (function () {
     var dev = location.protocol === 'file:' || /\.pages\.dev$/.test(location.hostname) || /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
     // 開発用: ?tease=1 で、プレビューやファイルでも公開前の見え方(告知バナーだけ)を試せる
@@ -3376,6 +3414,8 @@ html.me-open #ceoPeek { display: none; }
     Object.keys(CATALOG).forEach(function (k) {
       var at = CATALOG[k].opensAt ? Date.parse(CATALOG[k].opensAt) : NaN;
       if (dev || !(at > Date.now())) return;
+      // 告知バナーの中身: いちばん早く公開するタイトルの tease(なければ Live in ASIA のときの名前は内緒の「?」の告知)
+      if (at < next) { SOON_TEASE = CATALOG[k].tease || null; SOON_HI = CATALOG[k].hi; SOON_LO = CATALOG[k].lo; }
       delete CATALOG[k];
       next = Math.min(next, at);
     });
@@ -3442,7 +3482,7 @@ html.me-open #ceoPeek { display: none; }
   };
   // Live in ASIA(2026-11-18〜): 東南アジアを事実で楽しく知るゲームの棚(5本)。2026-11-20 に一番下へ
   var SHELVES = [
-    { title: 'Action & Sports', sub: 'Fling, kick, fight, race', cards: ['mdp', 'mfg', 'mfr', 'mkt', 'br', 'mk', 'am'] },
+    { title: 'Action & Sports', sub: 'Fling, kick, fight, race', cards: ['mdp', 'mfg', 'mfr', 'mkt', 'br', 'mk', 'am', 'mbd'] },
     { title: 'Puzzle & Brain',  sub: 'Think, match, merge',      cards: ['mwr', 'mch', 'md', 'so', 'mm'] },
     { title: 'Cozy & Create',   sub: 'Take it slow',             cards: ['ceo', 'mml', 'mw6', 'mrc', 'fm', 'mf', 'mb', 'mc'] },
     { title: 'Party & Arcade',  sub: 'Play with friends',        cards: ['mbr', 'mw', 'mr'] },
@@ -3748,10 +3788,17 @@ html.me-open #ceoPeek { display: none; }
     var section = document.getElementById('teaseSection'), host = document.getElementById('teaseCard');
     if (!section || !host) return;
     if (!isFinite(SOON_AT) || SOON_AT <= Date.now()) { buildArrive(section, host); return; }
+    var t = SOON_TEASE;   // CATALOG[].tease があれば名前を出して告知、なければ名前は内緒の「?」
     var card = el('div', 'event-card tease-card');
-    card.style.setProperty('--hi', '#E85C9A');
-    card.style.setProperty('--lo', '#3F8FA0');
-    card.appendChild(el('span', 'event-flags', '🌏'));
+    card.style.setProperty('--hi', t ? SOON_HI : '#E85C9A');
+    card.style.setProperty('--lo', t ? SOON_LO : '#3F8FA0');
+    card.appendChild(el('span', 'event-flags', t ? t.flag : '🌏'));
+    if (t) {
+      section.querySelector('#teaseHead').textContent = '🎁 Coming Today';
+      var at0 = new Date(SOON_AT), today = new Date();
+      if (at0.toDateString() !== today.toDateString()) section.querySelector('#teaseHead').textContent = '🎁 Coming Soon';
+      section.querySelector('.section-sub').textContent = 'A new game is on its way!';
+    }
     var body = el('span', 'event-body');
     var eyebrow = el('span', 'event-eyebrow');
     var at = new Date(SOON_AT);
@@ -3759,10 +3806,11 @@ html.me-open #ceoPeek { display: none; }
     var when = el('span', 'event-when', '');
     eyebrow.appendChild(when);
     body.appendChild(eyebrow);
-    body.appendChild(el('span', 'event-title', 'Live in ASIA'));
-    body.appendChild(el('span', 'event-tag', '5 brand-new games are on their way… what could they be? 🤫'));
+    body.appendChild(el('span', 'event-title', t ? t.title : 'Live in ASIA'));
+    body.appendChild(el('span', 'event-tag', t ? t.tag : '5 brand-new games are on their way… what could they be? 🤫'));
     var row = el('span', 'tease-row');
-    for (var i = 0; i < 5; i++) { var q = el('span', 'tease-q', '?'); q.style.animationDelay = (i * 0.18) + 's'; row.appendChild(q); }
+    if (t) { var ic = el('span', 'tease-q', t.flag); ic.style.fontSize = '22px'; row.appendChild(ic); }
+    else for (var i = 0; i < 5; i++) { var q = el('span', 'tease-q', '?'); q.style.animationDelay = (i * 0.18) + 's'; row.appendChild(q); }
     body.appendChild(row);
     card.appendChild(body);
     host.textContent = '';
@@ -4985,8 +5033,8 @@ html.me-open #ceoPeek { display: none; }
   };
 })();
 </script>
-<script src="shared/moku-account.js?v=20261126d"></script>
-<script src="shared/moku-moint.js?v=20261126d"></script>
+<script src="shared/moku-account.js?v=20261127"></script>
+<script src="shared/moku-moint.js?v=20261127"></script>
 <script>
 // ---------- Invites (SPEC.md §7) ----------
 // Friends waiting for you in a multiplayer game, at the top of the hub:
