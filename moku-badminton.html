@@ -75,7 +75,7 @@ button { font-family:inherit; cursor:pointer; -webkit-tap-highlight-color:transp
   border-radius:999px; padding:5px 14px; box-shadow:0 3px 0 rgba(74,46,26,.35); }
 #buildInfo { position:fixed; left:calc(24px + var(--sal)); bottom:calc(20px + var(--sab)); z-index:720;
   color:rgba(255,255,255,.28); font-size:10.5px; pointer-events:none; }
-body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display:none; }
+body.ov #hub-link, body.ov #buildInfo, body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display:none; }
 
 /* ── 紙のカード(タイトル・一時停止・結果) ── */
 .overlay { position:fixed; inset:0; z-index:600; display:none; align-items:center; justify-content:center;
@@ -267,7 +267,7 @@ body.playing.serving.you-serve #serves { display:flex; }
 <body class="on-title">
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
 <a id="hub-link" href="hub.html">🏠 Home</a>
-<div id="buildInfo">v0.8.2 · Updated Nov 27, 2026</div>
+<div id="buildInfo">v0.8.3 · Updated Nov 27, 2026</div>
 
 <canvas id="cv"></canvas>
 
@@ -1553,7 +1553,10 @@ body.playing.serving.you-serve #serves { display:flex; }
   function hideHint() { document.getElementById('hint').classList.remove('show'); hintTimer = 0; }
   function showBanner(big, small) { var b = document.getElementById('banner'); document.getElementById('bannerBig').textContent = big; document.getElementById('bannerSmall').textContent = small; b.classList.remove('show'); void b.offsetWidth; b.classList.add('show'); }
   function hideBanner() { document.getElementById('banner').classList.remove('show'); }
-  function show(id, on) { document.getElementById(id).classList.toggle('show', on); }
+  function show(id, on) {
+    document.getElementById(id).classList.toggle('show', on);
+    document.body.classList.toggle('ov', !!document.querySelector('.overlay.show:not(#title)')); // カードを開いている間は右上の Home を隠す
+  }
 
   function press(type, el) {
     audio();
