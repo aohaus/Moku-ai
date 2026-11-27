@@ -345,7 +345,7 @@ body.playing.serving.you-serve #serves { display:flex; }
 </head>
 <body class="on-title">
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
-<div id="buildInfo">v0.10.4 · Updated Nov 27, 2026</div>
+<div id="buildInfo">v0.10.5 · Updated Nov 27, 2026</div>
 
 <canvas id="cv"></canvas>
 
@@ -458,7 +458,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     koro:  { name: 'KORO',      pref: { smash: 0.9, drop: 1.2, clear: 0.9, net: 1.4 }, spd: 0.45, sm: 1,    racket: '#8FD16A' }
   };
   // 大会と会場の街(窓から街の景色がのぞく)。名前は Moku の大会としてもじる(Night Jungle の Moku Night Safari と同じ考え方)
-  // fast = ゲームの速さ(2026-11-27、保護者と決定: Match 1〜3 は Slow、4 からは Normal)
+  // fast = ⚡ の印(いちばん速い最後の大会)
   var STAGES = [
     { cup: 'Moku Malaysia Masters', city: 'kl', pair: ['kon', 'ponta'],  speed: 3.4, react: 0.34, q: [0.18, 0.52, 0.30], fault: 0.16, smashMul: 0.78, leave: 0.15 },
     { cup: 'Moku Singapore Masters', city: 'sg', pair: ['chef', 'ninja'], speed: 3.9, react: 0.28, q: [0.26, 0.54, 0.20], fault: 0.14, smashMul: 0.86, leave: 0.4 },
@@ -466,8 +466,10 @@ body.playing.serving.you-serve #serves { display:flex; }
     { cup: 'Moku Indonesia Masters', city: 'jkt', pair: ['goro', 'koro'],  speed: 5.0, react: 0.15, q: [0.50, 0.44, 0.06], fault: 0.09, smashMul: 1.05, leave: 0.85, boss: true, fast: true }
   ];
   function pairName(i) { return RIVALS[STAGES[i].pair[0]].name + ' & ' + RIVALS[STAGES[i].pair[1]].name; }
-  var SPEED_SLOW = 0.72, SPEED_NORMAL = 0.9;
-  function gameSpeed() { return STAGES[settings.stage].fast ? SPEED_NORMAL : SPEED_SLOW; }
+  // ゲームの速さ(2026-11-27 に変更、保護者の依頼): 最初から前の Slow(0.72)より約3割速く、大会が進むごとに約1割ずつ速く。
+  // Match 1 0.94 → 2 1.03 → 3 1.13 → 4 1.25(シャトルも選手も同じ倍率なので、届く・届かないの計算は変わらない)
+  var SPEED_BASE = 0.72 * 1.3, SPEED_STEP = 1.1;
+  function gameSpeed() { return SPEED_BASE * Math.pow(SPEED_STEP, settings.stage); }
   var settings = { stage: 0 };
   try { var st = JSON.parse(localStorage.getItem(SET_KEY) || 'null'); if (st) { if (STAGES[st.stage]) settings.stage = st.stage; } } catch (e) {}
   function saveSettings() { try { localStorage.setItem(SET_KEY, JSON.stringify(settings)); } catch (e) {} }
