@@ -29,6 +29,8 @@
   - 速さは選ばない: Match 1〜3 は Slow、4 からは Normal(STAGES の fast)。
   - 試合は東南アジアの大会(Moku Malaysia / Singapore / Thailand / Indonesia Masters)。窓からその街の目じるし
     (ペトロナスツインタワーと KL タワー / マリーナベイ・サンズとフライヤー / ワット・アルン / モナス)がのぞく。
+  - ジャンプスマッシュ(v0.4.0、保護者の案): Smash を長押しして離すとジャンプして打つ。金色の輪で離すと最強の一打。
+    Smash は押した時ではなく離した時に打つ(短く押すとふつうの Smash)。
   - ルールは新しい 15 点制の1ゲームだけ(14-14 からは2点差、21 点で終わり)。サーブのコートは本物どおり。
   作る順番: ①コートとシャトル ②自動で走る・ボタン ③ルール ④CPU ⑤キャラを作る画面・タイトル・結果 ⑥ハブ・SPEC。
   v0.1.0 は ①〜④ と仮のタイトル・結果(子どもたちにスマホで手ざわりを試してもらう版)。
@@ -128,6 +130,9 @@ body.playing.serving.you-serve #serves { display:flex; }
 @keyframes soon { from { box-shadow:0 3px 0 rgba(74,46,26,.45), 0 0 0 0 rgba(255,205,70,.0); } to { box-shadow:0 3px 0 rgba(74,46,26,.45), 0 0 0 5px rgba(255,205,70,.55); } }
 .shot.ready { background:linear-gradient(#FFE58A,#FFC23D); transform:scale(1.07); animation:none;
   box-shadow:0 3px 0 rgba(74,46,26,.45), 0 0 14px 4px rgba(255,215,90,.9); }
+.shot.charging { background:linear-gradient(#FFB070,#FF7A3D); color:#fff; transform:scale(1.1); }
+.shot.charging.full { box-shadow:0 3px 0 rgba(74,46,26,.45), 0 0 16px 6px rgba(255,140,60,.9); }
+.shot .hold { font-size:8.5px; font-weight:800; opacity:.6; letter-spacing:0; }
 .shot:active, .shot.hit { transform:scale(.94) translateY(2px); }
 .serve { width:96px; height:70px; font-size:13px; }
 #hint { position:fixed; left:50%; bottom:calc(14px + var(--sab)); transform:translateX(-50%); z-index:310;
@@ -164,7 +169,7 @@ body.playing.serving.you-serve #serves { display:flex; }
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.3.1 · Updated Nov 27, 2026</div>
+<div id="buildInfo">v0.4.0 · Updated Nov 27, 2026</div>
 
 <canvas id="cv"></canvas>
 
@@ -176,7 +181,7 @@ body.playing.serving.you-serve #serves { display:flex; }
 
 <div id="shots">
   <button class="shot" data-shot="smash"><span class="key">I</span>
-    <svg viewBox="0 0 40 26"><path d="M4 4 L34 21" stroke="#E2573C" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M27 21 L35 22 L31 14" stroke="#E2573C" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>SMASH</button>
+    <svg viewBox="0 0 40 26"><path d="M4 4 L34 21" stroke="#E2573C" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M27 21 L35 22 L31 14" stroke="#E2573C" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>SMASH<span class="hold">hold = JUMP</span></button>
   <button class="shot" data-shot="clear"><span class="key">K</span>
     <svg viewBox="0 0 40 26"><path d="M4 22 Q18 -8 36 20" stroke="#3E8FCC" stroke-width="4" stroke-linecap="round" fill="none"/></svg>CLEAR</button>
   <button class="shot" data-shot="drop"><span class="key">J</span>
@@ -297,6 +302,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     land: function () { noise(0.06, 0.18, 900); },
     win: function () { tone(660, 660, 0.12, 0.15, 'triangle'); tone(880, 880, 0.18, 0.15, 'triangle', 0.1); },
     lose: function () { tone(330, 260, 0.25, 0.12, 'sine'); },
+    jumpSmash: function (big) { noise(0.14, 0.8, 1500); tone(big ? 900 : 760, 90, 0.18, 0.3, 'square'); if (big) tone(1600, 2400, 0.15, 0.1, 'sine', 0.05); },
     perfect: function () { tone(1320, 1760, 0.12, 0.08, 'sine', 0.03); },
     fanfare: function () { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, f, 0.22, 0.14, 'triangle', i * 0.13); }); }
   };
@@ -453,6 +459,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     } else if (type === 'smash') {
       var spd = (q === 'perfect' ? 34 : q === 'good' ? 27 : 19) * (ch.ai ? ch.ai.smashMul : 1);
       dx = q === 'perfect' ? 3.1 : q === 'good' ? 3.8 : 4.9;
+      if (jumpNow) { spd = q === 'perfect' ? 46 : q === 'good' ? 35 : 22; dx = q === 'perfect' ? 2.5 : q === 'good' ? 3.2 : 4.6; } // ジャンプスマッシュ
       if (q === 'perfect') tz = sign(tz || 1) * 2.4;
       v = solveAngle(from, r * dx, tz, spd);
       for (var j = 0; j < 8 && netHeight(from, v) < NET_H + 0.08; j++) { dx += 0.45; v = solveAngle(from, r * dx, tz, spd); }
@@ -481,9 +488,10 @@ body.playing.serving.you-serve #serves { display:flex; }
     lastSide = ch.side; lastHitter = ch; hits++; netHit = false;
     if (!serve) { rally++; if (rally > matchBestRally) matchBestRally = rally; }
     ch.swing = 0.28; ch.swingOver = y > 1.7; if (type === 'smash') ch.jump = 0.4;
+    if (jumpNow) { ch.jump = 0.55; ch.bigJump = true; spark(shuttle.p, q === 'perfect'); } else ch.bigJump = false;
     var down = type === 'smash' || type === 'drop' || type === 'net' || type === 'short';
     mode[ch.team] = down ? 'attack' : 'defend'; mode[1 - ch.team] = down ? 'defend' : 'attack';
-    if (type === 'smash') sfx.smash(); else sfx.hit(type === 'clear' || type === 'long' ? 0.8 : 0.3);
+    if (jumpNow) sfx.jumpSmash(q === 'perfect'); else if (type === 'smash') sfx.smash(); else sfx.hit(type === 'clear' || type === 'long' ? 0.8 : 0.3);
     if (serve) { document.body.classList.remove('serving', 'you-serve'); hideHint(); phase = 'rally'; }
     ch.wait = 0.22;
     plan();
@@ -506,8 +514,20 @@ body.playing.serving.you-serve #serves { display:flex; }
   function aiServe() { doHit(server, Math.random() < (server === MOKU ? 0.8 : 0.7) ? 'short' : 'long', 'good', false); }
 
   // YOU のボタン
+  // ジャンプスマッシュ: Smash を長押し(0.22 秒以上)して離すと、ジャンプして打つ。離したのが金色の輪の時なら最強の一打
+  var jumpNow = false, smashHold = 0, HOLD_MIN = 0.22, HOLD_FULL = 0.45;
   var playerTip = 0;
   function playerShot(type) {
+    if (type === 'jumpsmash') {
+      if (demo || paused || phase !== 'rally' || !shuttle.live || lastSide === -1 || netHit) return;
+      if (!inReach(YOU, 1.45) || shuttle.p[1] < 1.55) { if (now - playerTip > 1.2) { showHint('Let go on the gold ring!', 1.4); playerTip = now; } return; }
+      var dj = assigned === YOU && contact ? Math.abs(now - contact.t) : 0.2;
+      var qj = dj <= 0.09 ? 'perfect' : dj <= 0.2 ? 'good' : 'late';
+      floatText(YOU.x, 2.6, YOU.z, qj === 'perfect' ? 'JUMP SMASH!!' : qj === 'good' ? 'JUMP SMASH!' : 'LATE', qj === 'perfect' ? '#FF8A3D' : qj === 'good' ? '#FFD23F' : '#BFD5F0');
+      jumpNow = true; doHit(YOU, 'smash', qj, qj === 'late' && Math.random() < 0.2); jumpNow = false;
+      if (qj === 'perfect') say(MOKU, ['WOW!!', 'Hoo-hoo-HOO!', 'Super smash!'][Math.floor(Math.random() * 3)]);
+      return;
+    }
     if (demo || paused) return;
     if (phase === 'serve') { if (server === YOU && (type === 'short' || type === 'long')) doHit(YOU, type, 'good', false); return; }
     if (phase !== 'rally' || !shuttle.live || lastSide === -1 || netHit) return;
@@ -983,12 +1003,13 @@ body.playing.serving.you-serve #serves { display:flex; }
   }
   var DRAW = { kid: drawKid, moku: drawMoku, kon: drawKon, ponta: drawPonta, chef: drawChef, ninja: drawNinja, moyo: drawMoyo, nox: drawNox, goro: drawGoro, koro: drawKoro };
   function drawChar(ch) {
-    var jh = ch.jump > 0 ? Math.sin((1 - ch.jump / 0.4) * Math.PI) * 0.35 : 0;
+    var jl = ch.bigJump ? 0.55 : 0.4, jh = ch.jump > 0 ? Math.sin((1 - ch.jump / jl) * Math.PI) * (ch.bigJump ? 0.7 : 0.35) : 0;
     var p = P(ch.x, jh, ch.z), k = S / 100 * CHAR_SCALE;
     c.save(); c.translate(p[0], p[1]); c.scale(ch.side < 0 ? k : -k, k);
     c.strokeStyle = INK; c.lineWidth = lwCm = 2.4 / k; c.lineJoin = 'round'; c.lineCap = 'round';
     var bob = ch.moving > 0.1 ? Math.abs(Math.sin(ch.legT)) * 3 : 0;
     c.translate(0, -bob);
+    if (ch === YOU && smashHold) { var hk = Math.min(1, (performance.now() - smashHold) / 1000 / HOLD_FULL); c.scale(1 + hk * 0.06, 1 - hk * 0.1); } // ためている間はしゃがむ
     DRAW[ch.kind](ch, Math.sin(ch.legT) * 6 * ch.moving);
     c.restore();
     if (ch === YOU && !demo && phase !== 'title') { // YOU の印
@@ -1058,6 +1079,16 @@ body.playing.serving.you-serve #serves { display:flex; }
       c.globalAlpha = 1;
     }
   }
+  var sparks = [];
+  function spark(p, big) { for (var i = 0; i < (big ? 16 : 8); i++) { var a = Math.random() * TAU; sparks.push({ x: p[0], y: p[1], z: p[2], vx: Math.cos(a), vy: Math.sin(a), t: 0, big: big }); } }
+  function drawSparks(rdt) {
+    for (var i = sparks.length - 1; i >= 0; i--) {
+      var s0 = sparks[i]; s0.t += rdt; if (s0.t > 0.45) { sparks.splice(i, 1); continue; }
+      var p = P(s0.x, s0.y, s0.z), d = s0.t * (s0.big ? 160 : 110), a = 1 - s0.t / 0.45;
+      c.strokeStyle = s0.big ? 'rgba(255,140,60,' + a + ')' : 'rgba(255,215,90,' + a + ')'; c.lineWidth = 3; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(p[0] + s0.vx * d * 0.5, p[1] + s0.vy * d * 0.5); c.lineTo(p[0] + s0.vx * d, p[1] + s0.vy * d); c.stroke();
+    }
+  }
   function floatText(x, y, z, text, col) { floats.push({ x: x, y: y, z: z, text: text, col: col, t: 0 }); }
   function say(ch, text) { ch.say = text; ch.sayT = 1.5; }
 
@@ -1076,6 +1107,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     near.forEach(drawChar);
     if (shuttle.p[0] <= 0) drawShuttle();
     drawRing();
+    drawSparks(rdt);
     drawFloats(rdt);
     drawAbove();
   }
@@ -1121,7 +1153,25 @@ body.playing.serving.you-serve #serves { display:flex; }
     if (el) { el.classList.add('hit'); setTimeout(function () { el.classList.remove('hit'); }, 90); }
     playerShot(type);
   }
-  shotBtns.forEach(function (b) { b.addEventListener('pointerdown', function (e) { e.preventDefault(); press(b.getAttribute('data-shot'), b); }); });
+  var smashBtn = document.querySelector('[data-shot="smash"]');
+  function holdStart() { if (demo || paused || phase !== 'rally' || smashHold) return; audio(); smashHold = performance.now(); smashBtn.classList.add('charging'); }
+  function holdEnd(cancel) {
+    if (!smashHold) return;
+    var held = (performance.now() - smashHold) / 1000; smashHold = 0; smashBtn.classList.remove('charging', 'full');
+    if (cancel) return;
+    press(held >= HOLD_MIN ? 'jumpsmash' : 'smash', smashBtn);
+  }
+  shotBtns.forEach(function (b) {
+    var t = b.getAttribute('data-shot');
+    if (t === 'smash') { // 押した時ではなく離した時に打つ(短く押すとふつうの Smash、長押しはジャンプスマッシュ)
+      b.addEventListener('pointerdown', function (e) { e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (er) {} holdStart(); });
+      b.addEventListener('pointerup', function (e) { e.preventDefault(); holdEnd(false); });
+      b.addEventListener('pointercancel', function () { holdEnd(true); });
+      return;
+    }
+    b.addEventListener('pointerdown', function (e) { e.preventDefault(); press(t, b); });
+  });
+  window.addEventListener('keyup', function (e) { if (e.key.toLowerCase() === 'i') holdEnd(false); });
   Array.prototype.forEach.call(document.querySelectorAll('[data-serve]'), function (b) {
     b.addEventListener('pointerdown', function (e) { e.preventDefault(); press(b.getAttribute('data-serve'), b); });
   });
@@ -1130,6 +1180,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     if (e.repeat) return; var key = e.key.toLowerCase();
     if (key === 'escape' || key === 'p') { if (phase !== 'title' && phase !== 'over') setPause(!paused); return; }
     if (phase === 'serve') { if (key === 'j') press('short'); else if (key === 'k' || key === ' ') press('long'); return; }
+    if (key === 'i') { holdStart(); return; }
     if (KEYS[key]) press(KEYS[key], document.querySelector('[data-shot="' + KEYS[key] + '"]'));
   });
 
@@ -1192,6 +1243,7 @@ body.playing.serving.you-serve #serves { display:flex; }
       var r = document.getElementById('rally'); r.textContent = phase === 'rally' && rally >= 3 ? 'Rally ' + rally : '';
     }
     updateButtons();
+    if (smashHold) { smashBtn.classList.add('charging'); smashBtn.classList.toggle('full', (performance.now() - smashHold) / 1000 >= HOLD_MIN); }
     draw(paused ? 0 : rdt);
   }
 
