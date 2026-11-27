@@ -49,6 +49,8 @@
     ページごとに、お手本の図(緑 = 正しいショット、赤の点線 = よくあるまちがい)・やり方・合言葉・自分の成績と ⭐
     (⭐ 覚えた / ⭐⭐ 良い判断 10 回以上で 60% 以上 / ⭐⭐⭐ 30 回以上で 80% 以上 = Master)。
     Try it(その場面をもう一度打つ練習)は保留(2026-11-27、保護者)。
+  - v0.8.5: NET を HAIRPIN(ネットのすぐ向こうにふわっと。内部の種類は 'net' のまま)と PUSH(ネット前から速く低く相手の横へ
+    押し込む。高さ 0.9m 以上の球だけ)に分けた(保護者の依頼)。ボタンは 5 つ。キーは L / O。
   - v0.8.4: レッスンは文字のバーではなくカードのグリッドに(Lesson 6〜10 が増えても並ぶ)。カードはアイコンと名前・動くお手本
     (ミニコートで相手から球が来て、YOU が緑の正しいショットを打つ。赤の点線と ✗ はよくあるまちがい)・小さいバーと %。
     タップ / マウスで下にくわしい説明。
@@ -250,7 +252,8 @@ body.playing.serving.you-serve #serves { display:flex; }
   .serve { width:110px; height:82px; font-size:14px; }
   #board { font-size:15px; } #board .num { font-size:26px; }
 }
-@media (max-height:360px) { .shot { width:60px; height:54px; } .shot svg { height:22px; } #shots, #serves { gap:6px; } }
+@media (max-height:440px) { #shots { gap:6px; } #shots .shot { width:64px; height:54px; font-size:10.5px; } #shots .shot svg { height:22px; } }
+@media (max-height:360px) { #shots .shot { width:58px; height:48px; font-size:10px; } #shots .shot svg { height:18px; } #shots { gap:5px; } }
 
 /* 横向き専用(SPEC.md §4): 縦持ちのスマホ・タブレットでは回転をお願いする */
 #rotate-hint { display:none; position:fixed; inset:0; z-index:2000; background:#F3D9A8; color:var(--ink);
@@ -267,7 +270,7 @@ body.playing.serving.you-serve #serves { display:flex; }
 <body class="on-title">
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
 <a id="hub-link" href="hub.html">🏠 Home</a>
-<div id="buildInfo">v0.8.4 · Updated Nov 27, 2026</div>
+<div id="buildInfo">v0.8.5 · Updated Nov 27, 2026</div>
 
 <canvas id="cv"></canvas>
 
@@ -285,7 +288,9 @@ body.playing.serving.you-serve #serves { display:flex; }
   <button class="shot" data-shot="drop"><span class="key">J</span>
     <svg viewBox="0 0 40 26"><path d="M4 8 Q16 2 22 22" stroke="#4E9A4A" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M20 3 L20 23" stroke="#4A2E1A" stroke-width="1.5" stroke-dasharray="2 2"/></svg>DROP</button>
   <button class="shot" data-shot="net"><span class="key">L</span>
-    <svg viewBox="0 0 40 26"><path d="M10 20 Q20 6 28 21" stroke="#D99A1E" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M20 9 L20 25" stroke="#4A2E1A" stroke-width="2"/></svg>NET</button>
+    <svg viewBox="0 0 40 26"><path d="M12 21 Q20 4 26 21" stroke="#D99A1E" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M20 10 L20 25" stroke="#4A2E1A" stroke-width="2"/></svg>HAIRPIN</button>
+  <button class="shot" data-shot="push"><span class="key">O</span>
+    <svg viewBox="0 0 40 26"><path d="M3 9 L35 15" stroke="#C2410C" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M28 10 L36 15 L28 20" stroke="#C2410C" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M14 12 L14 25" stroke="#4A2E1A" stroke-width="2"/></svg>PUSH</button>
 </div>
 <div id="serves">
   <button class="shot serve" data-serve="short"><span class="key">J</span>
@@ -602,6 +607,13 @@ body.playing.serving.you-serve #serves { display:flex; }
         if (ang < 60 * D2R) ang += 6 * D2R; else dx += 0.35;
         v = solveSpeed(from, r * dx, tz, ang);
       }
+    } else if (type === 'push') {
+      // プッシュ: ネット前から、速く低い弾道で相手の中ほど〜奥の横へ押し込む(高い所で取るほど下向きに打てる)
+      dx = q === 'perfect' ? 4.4 : q === 'good' ? 3.8 + rnd(-0.3, 0.3) : 2.7;
+      if (q !== 'late') tz = sign(tz || 1) * 2.3;
+      ang = (y >= 1.45 ? -6 : y >= 1.1 ? 3 : 9) * D2R + (q === 'late' ? 8 * D2R : 0);
+      v = solveSpeed(from, r * dx, tz, ang);
+      for (var pi = 0; pi < 10 && netHeight(from, v) < NET_H + 0.1; pi++) { ang += 4 * D2R; v = solveSpeed(from, r * dx, tz, ang); }
     } else if (type === 'smash') {
       var spd = (q === 'perfect' ? 34 : q === 'good' ? 27 : 19) * (ch.ai ? ch.ai.smashMul : 1);
       dx = q === 'perfect' ? 3.1 : q === 'good' ? 3.8 : 4.9;
@@ -627,6 +639,7 @@ body.playing.serving.you-serve #serves { display:flex; }
   function canSmash(y) { return y >= 1.85; }
   function canNet(ch) { return Math.abs(ch.x) < 2.9; }
   function canNetAt(x) { return Math.abs(x) < 2.9; }
+  function canPush(ch, y) { return Math.abs(ch.x) < 3.2 && y >= 0.9; } // プッシュはネット前で、ある程度の高さの球だけ
   function doHit(ch, type, q, fault) {
     var y = shuttle.p[1];
     shuttle.v = makeShot(ch, type, q, fault);
@@ -638,7 +651,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     if (ch === YOU && type === 'smash' && !demo) { var sp = kmh(shuttle.v); if (sp > ms.topSmash) ms.topSmash = sp; floatText(YOU.x, 1.7, YOU.z, sp + ' km/h', '#FFE9C7'); }
     lastJump = jumpNow;
     if (jumpNow) { ch.jump = 0.55; ch.bigJump = true; spark(shuttle.p, q === 'perfect'); } else ch.bigJump = false;
-    var down = type === 'smash' || type === 'drop' || type === 'net' || type === 'short';
+    var down = type === 'smash' || type === 'drop' || type === 'net' || type === 'push' || type === 'short';
     mode[ch.team] = down ? 'attack' : 'defend'; mode[1 - ch.team] = down ? 'defend' : 'attack';
     if (jumpNow) sfx.jumpSmash(q === 'perfect'); else if (type === 'smash') sfx.smash(); else sfx.hit(type === 'clear' || type === 'long' ? 0.8 : 0.3);
     if (serve) { document.body.classList.remove('serving', 'you-serve'); hideHint(); phase = 'rally'; }
@@ -650,6 +663,7 @@ body.playing.serving.you-serve #serves { display:flex; }
   function aiShot(ch) {
     var y = shuttle.p[1], p = ch.pref, ws, types;
     if (canSmash(y)) { types = ['smash', 'drop', 'clear']; ws = [p.smash * (Math.abs(ch.x) < 5.2 ? 1 : 0.35), p.drop, p.clear]; }
+    else if (canNet(ch) && y >= 1.0) { types = ['push', 'net', 'clear']; ws = [p.net * 0.9, p.net * 0.6, 0.6]; }
     else if (canNet(ch) && y < 1.6) { types = ['net', 'clear', 'drop']; ws = [p.net, 0.8, 0.4]; }
     else { types = ['clear', 'drop']; ws = [1, p.drop * 0.5]; }
     return types[pickW(ws)];
@@ -684,6 +698,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     var y = shuttle.p[1];
     if (type === 'smash' && !canSmash(y)) return;
     if (type === 'net' && !canNet(YOU)) return;
+    if (type === 'push' && !canPush(YOU, y)) return;
     var dt = assigned === YOU && contact ? Math.abs(now - contact.t) : 0.15;
     var q = dt <= 0.1 ? 'perfect' : dt <= 0.22 ? 'good' : 'late';
     var f = q === 'late' && Math.random() < 0.14;
@@ -703,7 +718,7 @@ body.playing.serving.you-serve #serves { display:flex; }
   var LESSONS = {
     attack: { icon: '🔺', title: 'Attack the high ball', why: 'The shuttle was high and close. Smash it down — attack!', tip: 'Smash the high ones, moku!' },
     back:   { icon: '🏠', title: 'Not from the back', why: 'From the very back, a smash is slow and easy to return. A drop or clear is smarter.', tip: 'From the back, drop or clear, moku.' },
-    net:    { icon: '🕸️', title: 'Stay low at the net', why: 'Near the net, keep it low with a NET shot. Then they must hit up to you.', tip: 'At the net, keep it low, moku!' },
+    net:    { icon: '🕸️', title: 'Stay low at the net', why: 'Near the net, keep it low with a HAIRPIN. Then they must hit up to you.', tip: 'At the net, keep it low, moku!' },
     space:  { icon: '↔️', title: 'Use the space', why: 'They were waiting right there. Send it where nobody is!', tip: 'Hit where nobody is, moku!' },
     serve:  { icon: '🎯', title: 'Serve smart', why: 'The receiver was ready for that serve. Surprise them with the other one.', tip: 'Watch the receiver before you serve, moku!' },
     hurry:  { icon: '⏱️', title: 'Make them hurry', why: 'That shot gave them lots of time. The better shot makes them rush.', tip: 'Make them hurry, moku!' }
@@ -774,14 +789,14 @@ body.playing.serving.you-serve #serves { display:flex; }
   var NEXT_TIP = { // 次にどうするか(短く)
     attack: 'High ball in the middle → SMASH',
     back: 'At the back line → DROP or CLEAR, not SMASH',
-    net: 'Low ball near the net → NET',
+    net: 'Low ball near the net → HAIRPIN',
     space: 'Rivals close to the net → CLEAR to the back',
     serve: 'Receiver close → LONG serve · far back → SHORT'
   };
   // レッスンのカード: タップ / マウスを乗せると、下にくわしい説明
   document.addEventListener('click', function (e) { var t = e.target.closest && e.target.closest('.ltile'); if (t) lessonDetail(t); });
   document.addEventListener('mouseover', function (e) { var t = e.target.closest && e.target.closest('.ltile'); if (t) lessonDetail(t); });
-  var SHOT_NAME = { smash: 'SMASH', clear: 'CLEAR', drop: 'DROP', net: 'NET', short: 'SHORT SERVE', long: 'LONG SERVE' };
+  var SHOT_NAME = { smash: 'SMASH', clear: 'CLEAR', drop: 'DROP', net: 'HAIRPIN', push: 'PUSH', short: 'SHORT SERVE', long: 'LONG SERVE' };
   function noteDecision(type, q, serve, jump) {
     if (demo) return;
     decisions.push({ type: type, q: q, serve: serve, jump: jump, p: shuttle.p.slice(), pos: chars.map(function (c0) { return [c0.x, c0.z]; }),
@@ -813,6 +828,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     var y = d.p[1], types = d.serve ? ['short', 'long'] : ['clear', 'drop'];
     if (!d.serve && y >= 1.55) types.push('smash');
     if (!d.serve && canNet(YOU)) types.push('net');
+    if (!d.serve && canPush(YOU, y)) types.push('push');
     if (types.indexOf(d.type) < 0) types.push(d.type);
     var res = {};
     types.forEach(function (t) { jumpNow = t === 'smash' && (d.jump || y < 1.85); res[t] = shotValue(makeShot(YOU, t, 'good', false), d.serve); jumpNow = false; });
@@ -1583,6 +1599,7 @@ body.playing.serving.you-serve #serves { display:flex; }
       var t = b.getAttribute('data-shot'), ok = mine && (assigned === YOU || reach);
       if (t === 'smash' && !canSmash(yRef)) ok = false;
       if (t === 'net' && !canNet(YOU)) ok = false;
+      if (t === 'push' && !canPush(YOU, yRef)) ok = false;
       b.className = 'shot' + (!ok ? ' dim' : reach ? ' ready' : soon ? ' soon' : '');
     });
   }
@@ -1627,7 +1644,7 @@ body.playing.serving.you-serve #serves { display:flex; }
   Array.prototype.forEach.call(document.querySelectorAll('[data-serve]'), function (b) {
     b.addEventListener('pointerdown', function (e) { e.preventDefault(); press(b.getAttribute('data-serve'), b); });
   });
-  var KEYS = { i: 'smash', k: 'clear', j: 'drop', l: 'net' };
+  var KEYS = { i: 'smash', k: 'clear', j: 'drop', l: 'net', o: 'push' };
   window.addEventListener('keydown', function (e) {
     if (e.repeat) return; var key = e.key.toLowerCase();
     if (key === 'escape' || key === 'p') { if (phase !== 'title' && phase !== 'over') setPause(!paused); return; }
@@ -1757,7 +1774,7 @@ body.playing.serving.you-serve #serves { display:flex; }
       remember: 'High ball? Smash it!', ex: { p: [-3.0, 2.4, 0.6], pos: [[-3.2, 0.8], [-5.2, -1], [3.8, -1.5], [3.6, 1.5]], type: 'clear', best: 'smash', land: { clear: [6.2, 0.5], smash: [3.0, -2.4] } } },
     back: { how: 'From the very back, a smash flies a long way and slows down. Use a DROP or a CLEAR, then smash when you are closer.', remember: 'Far back? Drop or clear.',
       ex: { p: [-5.8, 2.5, 0.4], pos: [[-6.0, 0.5], [-2.0, -1], [3.5, -1.4], [3.5, 1.4]], type: 'smash', best: 'drop', land: { smash: [4.0, 0.3], drop: [1.4, -2.0] } } },
-    net: { how: 'If the shuttle is low near the net, play a NET shot that drops just over. Your rival must hit it UP — then you can attack.', remember: 'Low at the net? Keep it low!',
+    net: { how: 'If the shuttle is low near the net, play a HAIRPIN that drops just over. Your rival must hit it UP — then you can attack. If it is a bit higher, PUSH it fast to the side.', remember: 'Low at the net? Keep it low!',
       ex: { p: [-1.0, 0.8, 1.0], pos: [[-1.4, 1.0], [-4.5, -0.8], [2.2, -0.5], [4.8, 1.2]], type: 'clear', best: 'net', land: { clear: [6.1, 1.0], net: [0.8, 1.2] } } },
     space: { how: 'Look where the rivals are standing. If they are close to the net, a CLEAR to the back makes them run. Hit where nobody is!', remember: 'Find the empty space.',
       ex: { p: [-4.3, 2.2, 0], pos: [[-4.5, 0], [-1.8, 0.5], [1.6, -1.0], [2.0, 1.2]], type: 'drop', best: 'clear', land: { drop: [1.5, 0.2], clear: [6.1, -2.0] } } },
