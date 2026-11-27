@@ -51,6 +51,10 @@
     Try it(その場面をもう一度打つ練習)は保留(2026-11-27、保護者)。
   - v0.8.5: NET を HAIRPIN(ネットのすぐ向こうにふわっと。内部の種類は 'net' のまま)と PUSH(ネット前から速く低く相手の横へ
     押し込む。高さ 0.9m 以上の球だけ)に分けた(保護者の依頼)。ボタンは 5 つ。キーは L / O。
+  - v0.9.0: ボタンを 4 つに戻した。NET は短く押すと PUSH、長押しで HAIRPIN(PUSH できない低い球は HAIRPIN)。
+    Lesson 6〜10 を追加(子どもたちが候補 8 つからおすすめの 5 つに決定): 🔥 Keep attacking / ↕️ Front and back / 🧱 Block the smash /
+    ⬇️ No lifts at the front / 🔀 Mix it up。ラリーの流れ(rallyShots)をルールで判定し、Review のカードは物理でもミスだった時だけ出す。
+    候補から外したもの: Jump smash wisely(Not from the back に近い)・Attack the serve(出番が少ない)・Reset when late(物理の調整が先)。
   - v0.8.7: 相手のレシーバーは 45% で後ろ(3.8m)、ほかは前(2.4m)で待つ。前なら LONG、後ろなら SHORT が正解(Serve smart は
     物理ではなくこの決まりで判定)。逆をつかれたレシーバーは苦しい返球(Late が多い)。
   - v0.8.6: レッスンの % は達成度(Mastery)。半分は最近 20 回の場面で正しく選べた割合(80% で満点、場面 10 回で満額)、
@@ -154,7 +158,7 @@ body.ov #hub-link, body.ov #buildInfo, body:not(.on-title) #title-frame, body:no
 .lbars { width:100%; margin:8px auto 2px; text-align:left; }
 .lbHead { font-size:11px; font-weight:800; opacity:.6; margin-bottom:4px; }
 /* レッスンのカード: アイコンと名前・動くお手本(ミニコート)・小さいバー。レッスンが 10 になっても並ぶグリッド */
-.lgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(124px, 1fr)); gap:8px; }
+.lgrid { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:8px; } /* 10 のレッスンが 5 × 2 段 */
 .ltile { position:relative; background:#fff; border:2px solid var(--ink); border-radius:12px; padding:5px 6px 6px; cursor:pointer; text-align:center; }
 .ltile:hover, .ltile.sel { box-shadow:0 0 0 3px var(--hi); }
 .ltile.weak { border-color:#E2573C; background:#FFF0EA; }
@@ -173,7 +177,7 @@ body.ov #hub-link, body.ov #buildInfo, body:not(.on-title) #title-frame, body:no
 .ldetail { margin-top:8px; min-height:36px; font-size:12.5px; font-weight:700; line-height:1.35; padding:6px 10px; border-radius:10px; background:rgba(79,163,224,.08); }
 .ldetail b { font-weight:800; } .ldetail i { font-style:normal; color:#2F7D32; font-weight:800; margin-left:6px; }
 .ldetail.hint { opacity:.6; text-align:center; background:none; }
-@media (max-height:400px) { .lgrid { gap:5px; grid-template-columns:repeat(auto-fill, minmax(104px, 1fr)); } .ltile { padding:3px 4px 4px; } .ltile .lt { font-size:10.5px; } .ltile canvas { margin:2px 0 3px; } .ldetail { margin-top:5px; font-size:11.5px; padding:4px 8px; min-height:0; } }
+@media (max-height:400px) { .lgrid { gap:5px; } .ltile canvas { width:74%; margin:2px auto 3px; } .ltile .lt { min-height:0; } .ltile { padding:3px 4px 4px; } .ltile .lt { font-size:10.5px; } .ltile canvas { margin:2px 0 3px; } .ldetail { margin-top:5px; font-size:11.5px; padding:4px 8px; min-height:0; } }
 #bkTabs { display:flex; gap:6px; justify-content:center; margin:6px 0 2px; flex-wrap:wrap; }
 #bkTabs button { border:2px solid var(--ink); background:#fff; border-radius:12px; padding:3px 9px; font-weight:800; font-size:13px; color:var(--ink); min-width:52px; }
 #bkTabs button small { display:block; font-size:9px; letter-spacing:-.5px; color:#E0A21B; height:11px; }
@@ -278,7 +282,7 @@ body.playing.serving.you-serve #serves { display:flex; }
 <body class="on-title">
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
 <a id="hub-link" href="hub.html">🏠 Home</a>
-<div id="buildInfo">v0.8.7 · Updated Nov 27, 2026</div>
+<div id="buildInfo">v0.9.0 · Updated Nov 27, 2026</div>
 
 <canvas id="cv"></canvas>
 
@@ -296,9 +300,7 @@ body.playing.serving.you-serve #serves { display:flex; }
   <button class="shot" data-shot="drop"><span class="key">J</span>
     <svg viewBox="0 0 40 26"><path d="M4 8 Q16 2 22 22" stroke="#4E9A4A" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M20 3 L20 23" stroke="#4A2E1A" stroke-width="1.5" stroke-dasharray="2 2"/></svg>DROP</button>
   <button class="shot" data-shot="net"><span class="key">L</span>
-    <svg viewBox="0 0 40 26"><path d="M12 21 Q20 4 26 21" stroke="#D99A1E" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M20 10 L20 25" stroke="#4A2E1A" stroke-width="2"/></svg>HAIRPIN</button>
-  <button class="shot" data-shot="push"><span class="key">O</span>
-    <svg viewBox="0 0 40 26"><path d="M3 9 L35 15" stroke="#C2410C" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M28 10 L36 15 L28 20" stroke="#C2410C" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M14 12 L14 25" stroke="#4A2E1A" stroke-width="2"/></svg>PUSH</button>
+    <svg viewBox="0 0 40 26"><path d="M12 21 Q20 4 26 21" stroke="#D99A1E" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M20 10 L20 25" stroke="#4A2E1A" stroke-width="2"/></svg>NET<span class="hold">hold = HAIRPIN</span></button>
 </div>
 <div id="serves">
   <button class="shot serve" data-serve="short"><span class="key">J</span>
@@ -557,8 +559,9 @@ body.playing.serving.you-serve #serves { display:flex; }
     server = chars[0];
     setRivals(); updateBoard();
   }
-  var recvStance = 'front', lastServe = null;
+  var recvStance = 'front', lastServe = null, rallyShots = [];
   function setupServe() {
+    rallyShots = [];
     phase = 'serve'; shuttle.live = false; shuttle.trail = []; netHit = false; hits = 0; lastSide = 0; lastHitter = null;
     assigned = null; contact = null; predicted = null; rally = 0;
     var sT = servingTeam, rT = 1 - sT, even = score[sT] % 2 === 0;
@@ -657,6 +660,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     shuttle.v = makeShot(ch, type, q, fault);
     shuttle.live = true;
     var serve = type === 'short' || type === 'long';
+    rallyShots.push({ type: type, team: ch.team, who: ch.id, y: +y.toFixed(2), q: q, jump: !!jumpNow });
     lastSide = ch.side; lastHitter = ch; hits++; netHit = false;
     if (!serve) { rally++; if (rally > matchBestRally) matchBestRally = rally; }
     ch.swing = 0.28; ch.swingOver = y > 1.7; if (type === 'smash') ch.jump = 0.4;
@@ -738,7 +742,8 @@ body.playing.serving.you-serve #serves { display:flex; }
     serve:  { icon: '🎯', title: 'Serve smart', why: 'The receiver was ready for that serve. Surprise them with the other one.', tip: 'Watch the receiver before you serve, moku!' },
     hurry:  { icon: '⏱️', title: 'Make them hurry', why: 'That shot gave them lots of time. The better shot makes them rush.', tip: 'Make them hurry, moku!' }
   };
-  var FIVE = ['attack', 'back', 'net', 'space', 'serve']; // レッスンごとの Tactics score を出す5つ
+  // レッスンごとの Tactics score / Mastery を出すレッスン(2026-11-27 に 10 に。6〜10 は子どもたちが候補 8 つから選んだ 5 つ)
+  var FIVE = ['attack', 'back', 'net', 'space', 'serve', 'keepattack', 'frontback', 'block', 'frontlow', 'mix'];
   // バーの一覧(弱いレッスン = いちばん低い % に「Your habit」)
   // レッスンのカード(5 つ。Lesson 6〜10 もこの LESSON_LIST に足せば同じように並ぶ)
   // ── 達成度(Mastery): そのレッスンをどれだけ理解して、実践できているか(2026-11-27、保護者と決定)──
@@ -826,11 +831,53 @@ body.playing.serving.you-serve #serves { display:flex; }
   // レッスンのカード: タップ / マウスを乗せると、下にくわしい説明
   document.addEventListener('click', function (e) { var t = e.target.closest && e.target.closest('.ltile'); if (t) lessonDetail(t); });
   document.addEventListener('mouseover', function (e) { var t = e.target.closest && e.target.closest('.ltile'); if (t) lessonDetail(t); });
+  // Lesson 6〜10 の文(LESSONS / BOOK / NEXT_TIP に足す)。判定はルール(newLessonSits)
+  var NEW_LESSONS = {
+    keepattack: { icon: '🔥', title: 'Keep attacking', why: 'You were attacking and they sent back a weak, low shot. Don\'t lift it — keep hitting down!', tip: 'Keep the attack going, moku!' },
+    frontback:  { icon: '↕️', title: 'Front and back', why: 'You had just cleared them to the back. A drop near the net makes them run all the way forward!', tip: 'Clear, then drop, moku!' },
+    block:      { icon: '🧱', title: 'Block the smash', why: 'They smashed at you. A soft block near the net is safer than lifting it high again.', tip: 'Block their smash short, moku!' },
+    frontlow:   { icon: '⬇️', title: 'No lifts at the front', why: 'You were close to the net. A lift from there gives them an easy smash — push it or drop it instead.', tip: 'At the front, push it down, moku!' },
+    mix:        { icon: '🔀', title: 'Mix it up', why: 'That was the same shot three times in a row. Change it so your rivals can\'t guess!', tip: 'Surprise them, moku!' },
+    jumpwise:   { icon: '🦘', title: 'Jump smash wisely', why: 'A jump smash from the very back flies far and slows down. Save it for when you are closer.', tip: 'Jump smash from the middle, moku!' },
+    returnserve:{ icon: '🏸', title: 'Attack the serve', why: 'A short serve is a chance! Push it down or play a hairpin — don\'t lift it up.', tip: 'Push the short serve down, moku!' },
+    reset:      { icon: '🔄', title: 'Reset when late', why: 'You were late. A high, deep clear gives you time to get back in place.', tip: 'Late? Clear it high, moku!' }
+  };
+  var NEW_TIP = {
+    keepattack: 'Weak return after your attack → keep it DOWN, no CLEAR',
+    frontback: 'Just cleared them deep → DROP next',
+    block: 'Rival smash → block it short (DROP / HAIRPIN)',
+    frontlow: 'Mid-height ball at the front → PUSH or DROP, not CLEAR',
+    mix: 'Same shot twice → pick a different one',
+    jumpwise: 'Jump smash from the middle, not the back line',
+    returnserve: 'Short serve → PUSH or HAIRPIN, not CLEAR',
+    reset: 'Late → high, deep CLEAR'
+  };
+  var NEW_FIVE = ['keepattack', 'frontback', 'block', 'frontlow', 'mix'];
+  NEW_FIVE.forEach(function (k) { LESSONS[k] = NEW_LESSONS[k]; NEXT_TIP[k] = NEW_TIP[k]; });
+  // ラリーの流れ(この前の相手のショット・その前の味方のショット・YOU のそれまでのショット)を見て、Lesson 6〜10 の出番と良し悪しを決める
+  function newLessonSits(d, y, x) {
+    var out = [], pv = d.prev, p2 = d.prev2, m = d.mine || [];
+    if (d.serve) return out;
+    if (p2 && p2.team === 0 && (p2.type === 'smash' || p2.type === 'drop' || p2.type === 'push') && pv && pv.team === 1 && pv.y < 1.6)
+      out.push({ id: 'keepattack', good: d.type !== 'clear' });
+    if (m.length && m[m.length - 1] === 'clear' && y >= 1.55 && x <= 5.2) out.push({ id: 'frontback', good: d.type !== 'clear' });
+    if (pv && pv.team === 1 && pv.type === 'smash') out.push({ id: 'block', good: d.type !== 'clear' });
+    if (x < 3.2 && y >= 0.9 && y < 1.85) out.push({ id: 'frontlow', good: d.type !== 'clear' });
+    if (m.length >= 2 && m[m.length - 1] === m[m.length - 2]) out.push({ id: 'mix', good: d.type !== m[m.length - 1] });
+    if (d.jump) out.push({ id: 'jumpwise', good: x <= 5.0 });
+    if (pv && pv.team === 1 && pv.type === 'short') out.push({ id: 'returnserve', good: d.type !== 'clear' });
+    if (d.q === 'late') out.push({ id: 'reset', good: d.type === 'clear' }); // ⚠ physics disagrees today, see md
+    return out.filter(function (s) { return NEW_FIVE.indexOf(s.id) >= 0; });
+  }
+  
+  function sitGood(d, k) { var ns = (d.newSits || []).filter(function (s0) { return s0.id === k; })[0]; return ns ? ns.good : d.good; }
   var SHOT_NAME = { smash: 'SMASH', clear: 'CLEAR', drop: 'DROP', net: 'HAIRPIN', push: 'PUSH', short: 'SHORT SERVE', long: 'LONG SERVE' };
   function noteDecision(type, q, serve, jump) {
     if (demo) return;
     decisions.push({ type: type, q: q, serve: serve, jump: jump, stance: serve ? recvStance : null, p: shuttle.p.slice(), pos: chars.map(function (c0) { return [c0.x, c0.z]; }),
-      score: score.slice(), st: servingTeam, pointNo: score[0] + score[1], result: null });
+      score: score.slice(), st: servingTeam, pointNo: score[0] + score[1], result: null,
+      prev: rallyShots.length ? rallyShots[rallyShots.length - 1] : null, prev2: rallyShots.length > 1 ? rallyShots[rallyShots.length - 2] : null,
+      mine: rallyShots.filter(function (r) { return r.who === 'you'; }).map(function (r) { return r.type; }) });
   }
   // そのショットで、相手(Kon など)がどれだけ余裕をもって返せるか。値が大きいほど良いショット
   function shotValue(v, serve) {
@@ -880,13 +927,14 @@ body.playing.serving.you-serve #serves { display:flex; }
       if (canNetAt(d.p[0]) && y < 1.6) d.sits.push('net');
       if (oppFront) d.sits.push('space');
     }
+    d.newSits = newLessonSits(d, y, x); d.newSits.forEach(function (s0) { d.sits.push(s0.id); });
     if (d.good) d.lesson = null;
     else if (d.serve) d.lesson = 'serve';
     else if (d.best === 'smash' && y >= 1.85) d.lesson = 'attack';
     else if (d.type === 'smash' && x > 5.0) d.lesson = 'back';
     else if (d.best === 'net' && d.type === 'clear' && y < 1.6) d.lesson = 'net';
     else if ((d.type === 'drop' || d.type === 'net') && d.best === 'clear' && oppFront) d.lesson = 'space';
-    else d.lesson = 'hurry';
+    else { var nb = d.newSits.filter(function (s0) { return !s0.good; })[0]; d.lesson = nb ? nb.id : 'hurry'; }
   }
   // 5枚まで: 点を失った場面を先に・同じレッスンは1回・1枚はほめるカード
   function buildReview() {
@@ -902,7 +950,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     praise.slice(0, nPraise).forEach(function (d) { d.praise = true; cards.push(d); });
     var miss = {}; bad.forEach(function (d) { miss[d.lesson] = (miss[d.lesson] || 0) + 1; });
     var per = {}; FIVE.forEach(function (k) { per[k] = { n: 0, g: 0 }; });
-    decisions.forEach(function (d) { d.sits.forEach(function (k) { per[k].n++; if (d.good) per[k].g++; }); });
+    decisions.forEach(function (d) { d.sits.forEach(function (k) { per[k].n++; if (sitGood(d, k)) per[k].g++; }); });
     if (n) cards.unshift({ summary: true });
     return { tactics: tactics, total: n, cards: cards, miss: miss, per: per };
   }
@@ -1040,7 +1088,7 @@ body.playing.serving.you-serve #serves { display:flex; }
       review.before = masterySnapshot();
       FIVE.forEach(function (k) { var a = progress.lessonStats[k] = progress.lessonStats[k] || { n: 0, g: 0 }; a.n += review.per[k].n; a.g += review.per[k].g; });
       progress.lessonRecent = progress.lessonRecent || {}; // 最近 20 回の場面の結果(1 = 良い判断)
-      decisions.forEach(function (d) { (d.sits || []).forEach(function (k) { var r = (progress.lessonRecent[k] || '') + (d.good ? '1' : '0'); progress.lessonRecent[k] = r.slice(-RECENT_N); }); }); // 次の試合の前に Moku が言うひとこと
+      decisions.forEach(function (d) { (d.sits || []).forEach(function (k) { var r = (progress.lessonRecent[k] || '') + (sitGood(d, k) ? '1' : '0'); progress.lessonRecent[k] = r.slice(-RECENT_N); }); }); // 次の試合の前に Moku が言うひとこと
     }
     var badges = [];
     if (w === 0 && score[1] === 0) badges.push(['shutout', '🛡️ SHUTOUT!', 'Won without losing a point']);
@@ -1658,7 +1706,16 @@ body.playing.serving.you-serve #serves { display:flex; }
     if (el) { el.classList.add('hit'); setTimeout(function () { el.classList.remove('hit'); }, 90); }
     playerShot(type);
   }
-  var smashBtn = document.querySelector('[data-shot="smash"]');
+  var smashBtn = document.querySelector('[data-shot="smash"]'), netBtn = document.querySelector('[data-shot="net"]');
+  // NET ボタン(2026-11-27、ボタンを減らす): 短く押すと PUSH、長押しで HAIRPIN。PUSH できない低い球は短く押しても HAIRPIN
+  var netHold = 0;
+  function netStart() { if (demo || paused || phase !== 'rally' || netHold) return; audio(); netHold = performance.now(); netBtn.classList.add('charging'); }
+  function netEnd(cancel) {
+    if (!netHold) return;
+    var held = (performance.now() - netHold) / 1000; netHold = 0; netBtn.classList.remove('charging', 'full');
+    if (cancel) return;
+    press(held >= HOLD_MIN || !canPush(YOU, shuttle.p[1]) ? 'net' : 'push', netBtn);
+  }
   function holdStart() { if (demo || paused || phase !== 'rally' || smashHold) return; audio(); smashHold = performance.now(); smashBtn.classList.add('charging'); }
   function holdEnd(cancel) {
     if (!smashHold) return;
@@ -1674,18 +1731,25 @@ body.playing.serving.you-serve #serves { display:flex; }
       b.addEventListener('pointercancel', function () { holdEnd(true); });
       return;
     }
+    if (t === 'net') { // 離した時に打つ(短く = PUSH、長押し = HAIRPIN)
+      b.addEventListener('pointerdown', function (e) { e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (er) {} netStart(); });
+      b.addEventListener('pointerup', function (e) { e.preventDefault(); netEnd(false); });
+      b.addEventListener('pointercancel', function () { netEnd(true); });
+      return;
+    }
     b.addEventListener('pointerdown', function (e) { e.preventDefault(); press(t, b); });
   });
-  window.addEventListener('keyup', function (e) { if (e.key.toLowerCase() === 'i') holdEnd(false); });
+  window.addEventListener('keyup', function (e) { var k0 = e.key.toLowerCase(); if (k0 === 'i') holdEnd(false); if (k0 === 'l') netEnd(false); });
   Array.prototype.forEach.call(document.querySelectorAll('[data-serve]'), function (b) {
     b.addEventListener('pointerdown', function (e) { e.preventDefault(); press(b.getAttribute('data-serve'), b); });
   });
-  var KEYS = { i: 'smash', k: 'clear', j: 'drop', l: 'net', o: 'push' };
+  var KEYS = { i: 'smash', k: 'clear', j: 'drop' };
   window.addEventListener('keydown', function (e) {
     if (e.repeat) return; var key = e.key.toLowerCase();
     if (key === 'escape' || key === 'p') { if (phase !== 'title' && phase !== 'over') setPause(!paused); return; }
     if (phase === 'serve') { if (key === 'j') press('short'); else if (key === 'k' || key === ' ') press('long'); return; }
     if (key === 'i') { holdStart(); return; }
+    if (key === 'l') { netStart(); return; }
     if (KEYS[key]) press(KEYS[key], document.querySelector('[data-shot="' + KEYS[key] + '"]'));
   });
 
@@ -1804,7 +1868,7 @@ body.playing.serving.you-serve #serves { display:flex; }
   document.getElementById('recordsClose').addEventListener('click', function () { show('records', false); });
 
   // ── Tactics Book: Review で出会ったレッスンが図鑑のようにたまる。お手本の図・やり方・自分の成績と ⭐ ──
-  var BOOK_ORDER = ['attack', 'back', 'net', 'space', 'serve', 'hurry'];
+  var BOOK_ORDER = ['attack', 'back', 'net', 'space', 'serve', 'keepattack', 'frontback', 'block', 'frontlow', 'mix', 'hurry'];
   var BOOK = { // お手本の場面(上から見た図)。緑 = 正しいショット、赤 = よくあるまちがい
     attack: { how: 'When the shuttle is high and you are in the middle or near the net, hit it DOWN with a SMASH. They have to defend, and you take control.',
       remember: 'High ball? Smash it!', ex: { p: [-3.0, 2.4, 0.6], pos: [[-3.2, 0.8], [-5.2, -1], [3.8, -1.5], [3.6, 1.5]], type: 'clear', best: 'smash', land: { clear: [6.2, 0.5], smash: [3.0, -2.4] } } },
@@ -1819,6 +1883,25 @@ body.playing.serving.you-serve #serves { display:flex; }
     hurry: { how: 'Choose the shot that gives your rivals the least time. A shot they can reach easily lets them attack you.', remember: 'Make them run, make them rush.',
       ex: { p: [-3.3, 1.4, -1], pos: [[-3.5, -1], [-1.5, 1.2], [3.0, 0], [4.5, 1]], type: 'clear', best: 'drop', land: { clear: [6.0, 1.0], drop: [1.5, -2.2] } } }
   };
+  var NEW_BOOK = { // ex = the looping mini-court example (green = best, red dashes = common mistake). Court metres, YOU's side x < 0.
+    keepattack: { how: 'After your smash, drop or push, the rivals often send back a weak, low shot. Stay on the attack: push, drop or smash again. Lifting it gives them the chance to attack you.',
+      remember: 'Attacking? Keep it down!', ex: { p: [-2.4, 1.3, 0.4], pos: [[-2.6, 0.4], [-4.8, -1.0], [2.2, -1.2], [4.6, 1.3]], type: 'clear', best: 'push', land: { clear: [6.1, 0.6], push: [3.4, 2.6] } } },
+    frontback: { how: 'Move your rivals forward and backward. After a deep CLEAR, make the next shot a DROP near the net (or a smash). Clearing again lets them rest at the back.',
+      remember: 'Back, then front!', ex: { p: [-3.2, 2.3, 0], pos: [[-3.4, 0], [-5.0, -1.0], [5.4, -1.2], [5.0, 1.3]], type: 'clear', best: 'drop', land: { clear: [6.2, 0.5], drop: [1.3, 0.2] } } },
+    block: { how: 'When a smash comes at you, don\'t swing big. Block it short with a DROP or HAIRPIN near the net. The smasher is far back and has to run all the way forward.',
+      remember: 'Smash coming? Block it short.', ex: { p: [-4.0, 1.0, 0.8], pos: [[-4.2, 0.8], [-3.8, -1.4], [2.3, -0.8], [5.0, 1.0]], type: 'clear', best: 'drop', land: { clear: [6.0, 0.9], drop: [1.2, 2.1] } } },
+    frontlow: { how: 'In the front court, a mid-height shuttle is yours to attack. PUSH it flat to the side or DROP it. A lift from the front flies short and high — an easy smash for them.',
+      remember: 'Front court? Push, don\'t lift.', ex: { p: [-1.8, 1.3, -0.6], pos: [[-2.0, -0.6], [-4.6, 1.0], [2.4, 0.6], [4.8, -1.0]], type: 'clear', best: 'push', land: { clear: [5.4, -0.4], push: [3.4, -2.6] } } },
+    mix: { how: 'If you play the same shot again and again, your rivals know what\'s coming. Change it: clear, drop, push, hairpin, smash. Good players are hard to read.',
+      remember: 'Don\'t be easy to read!', ex: { p: [-4.6, 2.3, -0.5], pos: [[-4.8, -0.5], [-2.0, 1.0], [5.2, -1.2], [5.0, 1.2]], type: 'clear', best: 'drop', land: { clear: [6.1, -0.5], drop: [1.3, 1.5] } } },
+    jumpwise: { how: 'A jump smash is your strongest shot, but from the very back it travels far and slows down. Jump smash from the middle of the court; from the back, drop or clear first.',
+      remember: 'Jump smash from the middle.', ex: { p: [-6.0, 2.4, 0.4], pos: [[-6.2, 0.4], [-2.2, -1.0], [3.6, -1.4], [3.4, 1.4]], type: 'smash', best: 'drop', land: { smash: [4.4, 0.3], drop: [1.4, -2.0] } } },
+    returnserve: { how: 'When the rivals serve short, step in and hit the return DOWN: a PUSH to the side or a HAIRPIN close to the net. Lifting the return gives them an easy first smash.',
+      remember: 'Short serve? Push it down!', ex: { p: [-2.3, 1.1, 1.1], pos: [[-2.55, 1.2], [-4.3, -1.4], [2.35, -0.75], [4.4, 1.1]], type: 'clear', best: 'push', land: { clear: [6.0, 0.5], push: [3.4, 2.6] } } },
+    reset: { how: 'When you are late or pulled out of place, don\'t try a risky shot. Hit a high, deep CLEAR: it buys time for you and Moku to get back into position.',
+      remember: 'Late? Clear it high.', ex: { p: [-5.2, 1.4, 2.4], pos: [[-5.4, 2.6], [-2.0, -0.8], [2.2, -1.0], [4.4, 1.0]], type: 'drop', best: 'clear', land: { drop: [1.6, 1.2], clear: [6.1, -1.0] } } }
+  };
+  NEW_FIVE.forEach(function (k) { BOOK[k] = NEW_BOOK[k]; });
   function bookStars(k) { // ⭐ 覚えた / ⭐⭐ 達成度 50% 以上 / ⭐⭐⭐ 達成度 100%(Master)
     var b = progress.book || {}; if (!b[k]) return 0;
     var pt = lessonParts(k); if (!pt) return 1;
@@ -1871,6 +1954,7 @@ body.playing.serving.you-serve #serves { display:flex; }
       var r = document.getElementById('rally'); r.textContent = phase === 'rally' && rally >= 3 ? 'Rally ' + rally : '';
     }
     updateButtons();
+    if (netHold) { netBtn.classList.add('charging'); netBtn.classList.toggle('full', (performance.now() - netHold) / 1000 >= HOLD_MIN); }
     if (smashHold) { smashBtn.classList.add('charging'); smashBtn.classList.toggle('full', (performance.now() - smashHold) / 1000 >= HOLD_MIN); }
     draw(paused ? 0 : rdt);
   }
