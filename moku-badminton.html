@@ -222,7 +222,9 @@ body.ov #hub-link, body.ov #buildInfo, body:not(.on-title) #title-frame, body:no
 .ltab small { font-size:10.5px; opacity:.6; } .ltab.on { background:var(--hi); color:#fff; } .ltab.on small { opacity:.85; }
 .ltile canvas { margin-left:auto !important; margin-right:auto !important; max-width:240px; }
 .ltile .ls { font-size:10.5px; font-weight:700; color:#2F6B2C; line-height:1.25; min-height:2.5em; margin-top:2px; }
-.ltile { position:relative; background:#fff; border:2px solid var(--ink); border-radius:12px; padding:5px 6px 6px; cursor:pointer; text-align:center; }
+.ltile { position:relative; background:#fff; border:2px solid var(--ink); border-radius:12px; padding:5px 6px 6px; cursor:pointer; text-align:center;
+  display:flex; flex-direction:column; } /* コートのアニメとバーは下にそろえる */
+.ltile canvas.lanim { margin-top:auto !important; }
 .ltile:hover, .ltile.sel { box-shadow:0 0 0 3px var(--hi); }
 .ltile.weak { border-color:#E2573C; background:#FFF0EA; }
 .ltile .lt { font-size:11.5px; font-weight:800; line-height:1.2; min-height:2.4em; display:flex; align-items:center; justify-content:center; }
@@ -271,7 +273,11 @@ body.ov #hub-link, body.ov #buildInfo, body:not(.on-title) #title-frame, body:no
 #records .card { width:95vw; max-width:100%; max-height:95vh; }
 #records .lbars { width:100%; }
 #rvSummary { width:100%; }
-#records .stats { grid-template-columns:repeat(4, minmax(0,1fr)); }
+/* My Records の7つの数字: 枠なし・カードと同じ色で横1列(2026-11-27) */
+#records .stats { grid-template-columns:repeat(7, minmax(0,1fr)); gap:4px; margin:6px 0 4px; }
+#records .stat { background:transparent; border:none; padding:2px 2px; }
+#records .stat + .stat { border-left:1.5px dashed rgba(74,46,26,.22); border-radius:0; }
+#records .stat span, #records .stat small { white-space:normal; line-height:1.2; }
 #resultSub { font-size:13px; font-weight:700; opacity:.75; }
 
 /* ── HUD ── */
@@ -345,7 +351,7 @@ body.playing.serving.you-serve #serves { display:flex; }
 </head>
 <body class="on-title">
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
-<div id="buildInfo">v0.10.6 · Updated Nov 27, 2026</div>
+<div id="buildInfo">v0.10.7 · Updated Nov 27, 2026</div>
 
 <canvas id="cv"></canvas>
 
@@ -2054,7 +2060,7 @@ body.playing.serving.you-serve #serves { display:flex; }
       tile('Longest rally', pr.bestRally || '–', 'shots in a row') +
       tile('Top smash', pr.topSmash ? pr.topSmash + '<em> km/h</em>' : '–', 'try a JUMP SMASH!') +
       tile('PERFECT streak', pr.bestPerfectStreak || '–', 'in one match') +
-      tile('Winners YOU · MOKU', pr.youWinners + ' · ' + pr.mokuWinners, t ? 'You ' + Math.round(pr.youWinners / t * 100) + '% of the team' : 'all matches') +
+      tile('YOU · MOKU', pr.youWinners + ' · ' + pr.mokuWinners, t ? 'You ' + Math.round(pr.youWinners / t * 100) + '% of the team' : 'all matches') +
       tile('Matches', pr.played, pr.wins + ' won · ' + pr.losses + ' lost') +
       tile('Masters won', Object.keys(pr.beaten).length + ' / ' + STAGES.length, 'tournaments') +
       tile('Tactics', pr.tacticsBest != null ? pr.tacticsBest + '%' : '–', pr.tacticsLast != null ? 'last match ' + pr.tacticsLast + '%' : 'see 🧠 Review after a match');
