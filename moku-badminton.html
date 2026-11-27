@@ -31,6 +31,8 @@
     (ペトロナスツインタワーと KL タワー / マリーナベイ・サンズとフライヤー / ワット・アルン / モナス)がのぞく。
   - ジャンプスマッシュ(v0.4.0、保護者の案): Smash を長押しして離すとジャンプして打つ。金色の輪で離すと最強の一打。
     Smash は押した時ではなく離した時に打つ(短く押すとふつうの Smash)。
+  - スタッツ(v0.5.0、おすすめの組み合わせに決定): 最長ラリー・スマッシュの速さ(km/h)・PERFECT の連続・YOU と Moku が決めた点、
+    バッジ Shutout(15-0)と Comeback(5 点差から逆転)。結果の画面に NEW RECORD!、タイトルの「📊 Records」で今までの記録。
   - ルールは新しい 15 点制の1ゲームだけ(14-14 からは2点差、21 点で終わり)。サーブのコートは本物どおり。
   作る順番: ①コートとシャトル ②自動で走る・ボタン ③ルール ④CPU ⑤キャラを作る画面・タイトル・結果 ⑥ハブ・SPEC。
   v0.1.0 は ①〜④ と仮のタイトル・結果(子どもたちにスマホで手ざわりを試してもらう版)。
@@ -95,6 +97,35 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
 #resultSub b { color:var(--lo); }
 #resultTitle { font-size:28px; font-weight:800; }
 #resultScore { font-size:40px; font-weight:800; margin:2px 0; letter-spacing:.04em; }
+.titleMenu.row { flex-direction:row; justify-content:center; flex-wrap:wrap; }
+.titleMenu.row .titleMenuItem { min-width:150px; }
+.titleMenuItem.small { min-width:0 !important; font-size:15px; }
+.stats { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:6px; margin:8px 0 2px; }
+.stat { position:relative; background:#fff; border:2px solid var(--ink); border-radius:12px; padding:5px 6px 4px; min-width:0; }
+.stat span { display:block; font-size:10.5px; font-weight:800; opacity:.65; white-space:nowrap; }
+.stat b { display:block; font-size:19px; font-weight:800; line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.stat b em { font-size:11px; font-style:normal; }
+.stat small { display:block; font-size:10px; font-weight:700; opacity:.6; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.stat.new { background:#FFF3C4; border-color:#E0A21B; }
+.stat i { position:absolute; top:-9px; left:50%; transform:translateX(-50%); background:#E2573C; color:#fff; font-style:normal; font-size:9px;
+  font-weight:800; padding:1px 6px; border-radius:999px; white-space:nowrap; border:1.5px solid var(--ink); animation:pop .4s; }
+#resultBadges, #recordsBadges { display:flex; flex-wrap:wrap; justify-content:center; gap:6px; margin-top:4px; }
+.badge { background:var(--paper); border:2px solid #E0A21B; border-radius:999px; padding:2px 10px; font-size:11.5px; font-weight:700; }
+.badge b { color:#C2410C; }
+@media (max-width:560px) { .stats { grid-template-columns:repeat(2, minmax(0,1fr)); } }
+/* 背の低い横画面(Android の横持ちなど): カードを小さくして、ボタンまで画面に収める */
+@media (max-height:400px) {
+  .overlay { padding:calc(var(--sat) + 8px) calc(var(--sar) + 24px) calc(var(--sab) + 8px) calc(var(--sal) + 24px); }
+  .card { padding:8px 18px 9px; border-radius:14px; }
+  .logo { font-size:22px; } .sub { font-size:11px; margin:1px 0 5px; }
+  #ladder { gap:4px; margin:0 0 3px; } .rival { padding:2px 8px; } .rival .n { width:19px; height:19px; font-size:11px; }
+  .rival .nm { font-size:11.5px; } .rival .st, .rival .cup { font-size:9.5px; }
+  .titleMenu { margin-top:5px; gap:5px; } .titleMenuItem { font-size:16px; padding:5px 14px; box-shadow:0 3px 0 var(--ink); }
+  .titleMenu.row .titleMenuItem { min-width:130px; }
+  .how { display:none; }
+  #resultTitle { font-size:20px; } #resultScore { font-size:28px; margin:0; }
+  .stats { margin:9px 0 0; gap:5px; } .stat { padding:3px 5px 2px; } .stat.new { padding-top:8px; } .stat i { top:-8px; font-size:8.5px; } .stat b { font-size:15px; } .stat span, .stat small { font-size:9.5px; }
+}
 #resultSub { font-size:13px; font-weight:700; opacity:.75; }
 
 /* ── HUD ── */
@@ -169,7 +200,7 @@ body.playing.serving.you-serve #serves { display:flex; }
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.4.0 · Updated Nov 27, 2026</div>
+<div id="buildInfo">v0.5.0 · Updated Nov 27, 2026</div>
 
 <canvas id="cv"></canvas>
 
@@ -202,8 +233,15 @@ body.playing.serving.you-serve #serves { display:flex; }
   <div class="logo">Moku <span>Badminton</span></div>
   <div class="sub">You &amp; Moku · Doubles · 15 points</div>
   <div id="ladder"></div>
-  <div class="titleMenu"><button class="titleMenuItem" id="playBtn">▶ Play</button></div>
+  <div class="titleMenu row"><button class="titleMenuItem" id="playBtn">▶ Play</button><button class="titleMenuItem plain small" id="recordsBtn">📊 Records</button></div>
   <div class="how">You run by yourself! Tap a glowing button — on the gold ring for PERFECT.</div>
+</div></div>
+
+<div class="overlay dim" id="records"><div class="card">
+  <div class="logo">My <span>Records</span></div>
+  <div id="recordsBody" class="stats"></div>
+  <div id="recordsBadges"></div>
+  <div class="titleMenu"><button class="titleMenuItem plain" id="recordsClose">Close</button></div>
 </div></div>
 
 <div class="overlay dim" id="pause"><div class="card">
@@ -216,7 +254,9 @@ body.playing.serving.you-serve #serves { display:flex; }
   <div id="resultTitle"></div>
   <div id="resultScore"></div>
   <div id="resultSub"></div>
-  <div class="titleMenu"><button class="titleMenuItem" id="againBtn">▶ Play Again</button>
+  <div id="resultBadges"></div>
+  <div id="resultStats" class="stats"></div>
+  <div class="titleMenu row"><button class="titleMenuItem" id="againBtn">▶ Play Again</button>
   <button class="titleMenuItem plain" id="menuBtn">Menu</button></div>
 </div></div>
 
@@ -264,7 +304,9 @@ body.playing.serving.you-serve #serves { display:flex; }
   function saveSettings() { try { localStorage.setItem(SET_KEY, JSON.stringify(settings)); } catch (e) {} }
 
   // unlocked = 開いている相手の数(1〜4)、beaten = 相手ごとの勝った回数
-  var progress = { version: 1, gameId: 'moku-badminton', played: 0, wins: 0, losses: 0, pointsWon: 0, bestRally: 0, unlocked: 1, beaten: {}, updatedAt: null };
+  var progress = { version: 1, gameId: 'moku-badminton', played: 0, wins: 0, losses: 0, pointsWon: 0, bestRally: 0, unlocked: 1, beaten: {},
+    // スタッツ(2026-11-27、保護者と子どもが選んだ: 最長ラリー・スマッシュの速さ・PERFECT の連続・YOU と Moku の決めた点・Shutout・Comeback)
+    topSmash: 0, bestPerfectStreak: 0, youWinners: 0, mokuWinners: 0, badges: {}, updatedAt: null };
   try { var pr = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (pr && pr.version === 1) for (var k in pr) progress[k] = pr[k]; } catch (e) {}
   function saveProgress() { progress.updatedAt = new Date().toISOString(); try { localStorage.setItem(SAVE_KEY, JSON.stringify(progress)); } catch (e) {} }
 
@@ -395,8 +437,13 @@ body.playing.serving.you-serve #serves { display:flex; }
   var floats = [];
 
   function courtSign(team, rightCourtSide) { var s = team === 0 ? -1 : 1; return rightCourtSide ? -s : s; } // 右のコートの z の向き
+  // 1試合のスタッツ。スマッシュの速さは「ゲームの km/h」(ゲームは本物よりゆっくりなので、シャトルの速さ × 2 で見せる)
+  var ms = {};
+  function kmh(v) { return Math.round(Math.hypot(v[0], v[1], v[2]) * 3.6 * 2); }
+  function notePlayerHit(q) { if (q === 'perfect') { ms.perfectRun++; if (ms.perfectRun > ms.bestPerfect) ms.bestPerfect = ms.perfectRun; } else ms.perfectRun = 0; }
   function resetMatch() {
     score = [0, 0]; servingTeam = 0; rightCourt = [chars[0], chars[2]]; rally = 0; matchBestRally = 0;
+    ms = { topSmash: 0, perfectRun: 0, bestPerfect: 0, you: 0, moku: 0, rivalErr: 0, maxBehind: 0 };
     server = chars[0];
     setRivals(); updateBoard();
   }
@@ -488,6 +535,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     lastSide = ch.side; lastHitter = ch; hits++; netHit = false;
     if (!serve) { rally++; if (rally > matchBestRally) matchBestRally = rally; }
     ch.swing = 0.28; ch.swingOver = y > 1.7; if (type === 'smash') ch.jump = 0.4;
+    if (ch === YOU && type === 'smash' && !demo) { var sp = kmh(shuttle.v); if (sp > ms.topSmash) ms.topSmash = sp; floatText(YOU.x, 1.7, YOU.z, sp + ' km/h', '#FFE9C7'); }
     if (jumpNow) { ch.jump = 0.55; ch.bigJump = true; spark(shuttle.p, q === 'perfect'); } else ch.bigJump = false;
     var down = type === 'smash' || type === 'drop' || type === 'net' || type === 'short';
     mode[ch.team] = down ? 'attack' : 'defend'; mode[1 - ch.team] = down ? 'defend' : 'attack';
@@ -524,7 +572,7 @@ body.playing.serving.you-serve #serves { display:flex; }
       var dj = assigned === YOU && contact ? Math.abs(now - contact.t) : 0.2;
       var qj = dj <= 0.09 ? 'perfect' : dj <= 0.2 ? 'good' : 'late';
       floatText(YOU.x, 2.6, YOU.z, qj === 'perfect' ? 'JUMP SMASH!!' : qj === 'good' ? 'JUMP SMASH!' : 'LATE', qj === 'perfect' ? '#FF8A3D' : qj === 'good' ? '#FFD23F' : '#BFD5F0');
-      jumpNow = true; doHit(YOU, 'smash', qj, qj === 'late' && Math.random() < 0.2); jumpNow = false;
+      notePlayerHit(qj); jumpNow = true; doHit(YOU, 'smash', qj, qj === 'late' && Math.random() < 0.2); jumpNow = false;
       if (qj === 'perfect') say(MOKU, ['WOW!!', 'Hoo-hoo-HOO!', 'Super smash!'][Math.floor(Math.random() * 3)]);
       return;
     }
@@ -541,6 +589,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     var label = q === 'perfect' ? 'PERFECT!' : q === 'good' ? 'GOOD' : 'LATE';
     floatText(YOU.x, 2.3, YOU.z, label, q === 'perfect' ? '#FFD23F' : q === 'good' ? '#FFFFFF' : '#BFD5F0');
     if (q === 'perfect') sfx.perfect();
+    notePlayerHit(q);
     doHit(YOU, type, q, f);
     if (q === 'perfect' && Math.random() < 0.4) say(MOKU, ['Nice shot!', 'Wow!', 'Hoo-hoo!'][Math.floor(Math.random() * 3)]);
   }
@@ -627,10 +676,11 @@ body.playing.serving.you-serve #serves { display:flex; }
     score[w]++;
     if (window.__bdLog) window.__bdLog.push({ point: w, word: word, last: lastHitter && lastHitter.id, rally: rally });
     if (!demo) {
+      if (w === 0 && lastHitter === YOU) ms.you++; else if (w === 0 && lastHitter === MOKU) ms.moku++; else if (w === 0) ms.rivalErr++;
+      if (score[1] - score[0] > ms.maxBehind) ms.maxBehind = score[1] - score[0];
       if (w === 0) { progress.pointsWon++; sfx.win(); say(MOKU, ['Yay!', 'We did it!', 'Hoo-hoo!', 'Great teamwork!'][Math.floor(Math.random() * 4)]); }
       else { sfx.lose(); say(MOKU, ['It\'s okay!', 'Next one!', 'We got this!'][Math.floor(Math.random() * 3)]); }
       showBanner(word, w === 0 ? 'Point for YOU & MOKU!' : 'Point for ' + pairName(settings.stage));
-      if (rally > progress.bestRally) progress.bestRally = rally;
     }
     updateBoard();
   }
@@ -650,7 +700,16 @@ body.playing.serving.you-serve #serves { display:flex; }
     phase = 'over'; document.body.classList.remove('serving', 'you-serve'); hideHint();
     var st = settings.stage, opened = false;
     progress.played++; if (w === 0) progress.wins++; else progress.losses++;
-    if (matchBestRally > progress.bestRally) progress.bestRally = matchBestRally;
+    // 新記録(この試合の前の記録と比べる)
+    var rec = { rally: matchBestRally > progress.bestRally && matchBestRally > 0, smash: ms.topSmash > progress.topSmash, perfect: ms.bestPerfect > progress.bestPerfectStreak };
+    if (rec.rally) progress.bestRally = matchBestRally;
+    if (rec.smash) progress.topSmash = ms.topSmash;
+    if (rec.perfect) progress.bestPerfectStreak = ms.bestPerfect;
+    progress.youWinners += ms.you; progress.mokuWinners += ms.moku;
+    var badges = [];
+    if (w === 0 && score[1] === 0) badges.push(['shutout', '🛡️ SHUTOUT!', 'Won without losing a point']);
+    if (w === 0 && ms.maxBehind >= 5) badges.push(['comeback', '🔥 COMEBACK!', 'Won from ' + ms.maxBehind + ' points behind']);
+    badges.forEach(function (b) { progress.badges[b[0]] = (progress.badges[b[0]] || 0) + 1; });
     if (w === 0) {
       var key = STAGES[st].pair.join('-'); progress.beaten[key] = (progress.beaten[key] || 0) + 1;
       if (st + 1 < STAGES.length && progress.unlocked < st + 2) { progress.unlocked = st + 2; opened = true; }
@@ -659,8 +718,14 @@ body.playing.serving.you-serve #serves { display:flex; }
     if (w === 0) sfx.fanfare();
     document.getElementById('resultTitle').textContent = w === 0 ? (STAGES[st].boss ? 'Champions! 👑' : 'You Win! 🏆') : 'Good Game!';
     document.getElementById('resultScore').textContent = score[0] + ' – ' + score[1];
-    document.getElementById('resultSub').innerHTML = (opened ? '<b>🔓 New rivals: ' + pairName(st + 1) + '!</b><br>' : '') +
-      'Longest rally: ' + matchBestRally + ' · Best ever: ' + progress.bestRally;
+    document.getElementById('resultSub').innerHTML = opened ? '<b>🔓 New rivals: ' + pairName(st + 1) + '!</b>' : '';
+    function tile(label, val, best, isNew) { return '<div class="stat' + (isNew ? ' new' : '') + '">' + (isNew ? '<i>NEW RECORD!</i>' : '') + '<span>' + label + '</span><b>' + val + '</b><small>' + best + '</small></div>'; }
+    document.getElementById('resultStats').innerHTML =
+      tile('Longest rally', matchBestRally, 'Best: ' + progress.bestRally, rec.rally) +
+      tile('Top smash', ms.topSmash ? ms.topSmash + '<em> km/h</em>' : '–', 'Best: ' + (progress.topSmash || '–') + (progress.topSmash ? ' km/h' : ''), rec.smash) +
+      tile('PERFECT streak', ms.bestPerfect, 'Best: ' + progress.bestPerfectStreak, rec.perfect) +
+      tile('Winners YOU · MOKU', ms.you + ' · ' + ms.moku, ms.you > ms.moku ? 'You beat Moku! 🦉' : ms.you < ms.moku ? 'Moku wins this time!' : 'Perfect teamwork!', false);
+    document.getElementById('resultBadges').innerHTML = badges.map(function (b) { return '<span class="badge"><b>' + b[1] + '</b> ' + b[2] + '</span>'; }).join('');
     // 勝って次の相手が開いていれば、次は次の相手
     nextStage = w === 0 && st + 1 < STAGES.length ? st + 1 : st;
     document.getElementById('againBtn').textContent = nextStage !== st ? '▶ Next Match' : w === 0 ? '▶ Play Again' : '▶ Try Again';
@@ -1219,6 +1284,21 @@ body.playing.serving.you-serve #serves { display:flex; }
     paused = on; show('pause', on);
   }
   document.getElementById('playBtn').addEventListener('click', startMatch);
+  document.getElementById('recordsBtn').addEventListener('click', function () {
+    var pr = progress, t = pr.youWinners + pr.mokuWinners;
+    function tile(label, val, sub) { return '<div class="stat"><span>' + label + '</span><b>' + val + '</b><small>' + sub + '</small></div>'; }
+    document.getElementById('recordsBody').innerHTML =
+      tile('Longest rally', pr.bestRally || '–', 'shots in a row') +
+      tile('Top smash', pr.topSmash ? pr.topSmash + '<em> km/h</em>' : '–', 'try a JUMP SMASH!') +
+      tile('PERFECT streak', pr.bestPerfectStreak || '–', 'in one match') +
+      tile('Winners YOU · MOKU', pr.youWinners + ' · ' + pr.mokuWinners, t ? 'You ' + Math.round(pr.youWinners / t * 100) + '% of the team' : 'all matches') +
+      tile('Matches', pr.played, pr.wins + ' won · ' + pr.losses + ' lost') +
+      tile('Masters won', Object.keys(pr.beaten).length + ' / ' + STAGES.length, 'tournaments');
+    var B = [['shutout', '🛡️ SHUTOUT', 'Win 15–0'], ['comeback', '🔥 COMEBACK', 'Win from 5+ points behind']];
+    document.getElementById('recordsBadges').innerHTML = B.map(function (b) { var n = pr.badges[b[0]] || 0; return '<span class="badge" style="' + (n ? '' : 'opacity:.45;border-style:dashed') + '"><b>' + b[1] + '</b> ' + (n ? '×' + n : b[2]) + '</span>'; }).join('');
+    show('records', true);
+  });
+  document.getElementById('recordsClose').addEventListener('click', function () { show('records', false); });
   document.getElementById('againBtn').addEventListener('click', function () { settings.stage = nextStage; saveSettings(); startMatch(); });
   document.getElementById('menuBtn').addEventListener('click', toTitle);
   document.getElementById('resumeBtn').addEventListener('click', function () { setPause(false); });
