@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<script src="shared/moku-errors.js?v=20261126c"></script>
-<script src="shared/moku-gate.js?v=20261126c"></script>
+<script src="shared/moku-errors.js?v=20261126d"></script>
+<script src="shared/moku-gate.js?v=20261126d"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Moku Series</title>
 <!-- Icons: made by scripts/make-icons.py. Bump ?v= when they change so browsers refetch. -->
@@ -319,6 +319,11 @@ body[data-band="morning"] #starsLayer { --star-opacity: 0.15; }
   padding: 20px;
 }
 #a2hsOverlay.open { display: flex; }
+/* 🔗 Share Moku Series(⋯ メニュー)のコピーした時のお知らせ */
+#shareToast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 96px); transform: translateX(-50%); z-index: 60;
+  max-width: calc(100% - 32px); padding: 10px 16px; border-radius: 12px; background: #2A2E4A; color: #EDEEF6; font-size: 13.5px; font-weight: 700;
+  text-align: center; word-break: break-all; box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
+#shareToast[hidden] { display: none; }
 #a2hsModal {
   position: relative;
   width: min(420px, 100%);
@@ -1787,7 +1792,7 @@ html.me-open #ceoPeek { display: none; }
         <button class="icon-btn" id="settingsBtn" type="button" aria-haspopup="true" aria-expanded="false">⋯</button>
         <div id="settingsMenu">
           <button id="a2hsBtn" type="button">📲 Add to Home Screen</button>
-          <button id="transferBtn" type="button" data-moku-transfer>🔁 Transfer Progress</button>
+          <button id="shareHubBtn" type="button">🔗 Share Moku Series</button>
         </div>
       </div>
     </div>
@@ -2020,6 +2025,7 @@ html.me-open #ceoPeek { display: none; }
   </div>
 </section>
 
+<div id="shareToast" role="status" hidden></div>
 <div id="a2hsOverlay">
   <div id="a2hsModal" role="dialog" aria-modal="true" aria-labelledby="a2hsTitle">
     <button id="a2hsClose" type="button" aria-label="Close">✕</button>
@@ -3975,6 +3981,31 @@ html.me-open #ceoPeek { display: none; }
     if (sheetOpenKey) fillSheet(sheetOpenKey);
   }
 
+  // 🔗 Share Moku Series(⋯ メニュー、2026-11-26〜。前の Transfer Progress の場所)。保護者と決めた公開アドレス
+  // SHARE_URL を共有シート(LINE・AirDrop…)で送る。共有シートがなければコピー。index.html の同じボタンとそろえる。
+  (function () {
+    var SHARE_URL = 'https://dechatgpt.com/Moku-ai/';
+    var btn = document.getElementById('shareHubBtn'), toast = document.getElementById('shareToast');
+    if (!btn || !toast) return;
+    var timer = null;
+    function say(msg) { toast.textContent = msg; toast.hidden = false; clearTimeout(timer); timer = setTimeout(function () { toast.hidden = true; }, 3200); }
+    function copy() {
+      function fallback() {
+        var ta = document.createElement('textarea'); ta.value = SHARE_URL; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.top = '-9999px';
+        document.body.appendChild(ta); ta.select(); var ok = false; try { ok = document.execCommand('copy'); } catch (e) {} document.body.removeChild(ta);
+        say(ok ? '✅ Link copied! Paste it to a friend.' : SHARE_URL);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(SHARE_URL).then(function () { say('✅ Link copied! Paste it to a friend.'); }, fallback);
+      else fallback();
+    }
+    btn.addEventListener('click', function () {
+      if (window.__closeSettingsMenu) window.__closeSettingsMenu();
+      if (navigator.share) {
+        navigator.share({ title: 'Moku Series', text: 'Play mini-games with Moku the owl!', url: SHARE_URL }).catch(function (err) { if (!err || err.name !== 'AbortError') copy(); });
+      } else copy();
+    });
+  })();
+
   buildEvents();
   buildTease();
   buildShelves();
@@ -4954,9 +4985,8 @@ html.me-open #ceoPeek { display: none; }
   };
 })();
 </script>
-<script src="shared/moku-account.js?v=20261126c"></script>
-<script src="shared/moku-transfer.js?v=20261126c"></script>
-<script src="shared/moku-moint.js?v=20261126c"></script>
+<script src="shared/moku-account.js?v=20261126d"></script>
+<script src="shared/moku-moint.js?v=20261126d"></script>
 <script>
 // ---------- Invites (SPEC.md §7) ----------
 // Friends waiting for you in a multiplayer game, at the top of the hub:

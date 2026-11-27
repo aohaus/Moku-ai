@@ -57,7 +57,6 @@ UMD(ブラウザでは `window.<名前>`、Node では `require`)または IIFE�
 | `moku-gate.js` | — | ログイン必須ゲート(未ログインなら `index.html?next=` へ) |
 | `moku-account.js` | `MokuAccount` | ログイン・クラウドセーブ同期・Players。`API_BASE_URL` はここ |
 | `moku-moint.js` | `MokuMoint` | シリーズ共通通貨 Moint・Moku Closet(着せ替え SVG) |
-| `moku-transfer.js` | — | サーバー不要の引き継ぎコード(`MOKU1-` + deflate + base64url) |
 | `moku-scores.js` | `MokuScores` | ランキング(dreamlo-proxy 経由) |
 | `moku-random.js` | `MokuRandom` | シード付き乱数(mulberry32。端末とサーバーで同じ数列) |
 | `moku-chess-rules.js` | `MokuChessRules` | チェスのルール(0x88 盤・FEN・UCI)。サーバーでも使う |

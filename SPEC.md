@@ -214,7 +214,7 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
 - **バックエンド**: `backend/`(AWS SAM)。`/auth/*` と `/save` を既存の HTTP API に追加。DynamoDB `moku-accounts` テーブル。仕様は [`backend/API_SPEC.md`](backend/API_SPEC.md) の「Accounts」。
 - **クライアント**: [`shared/moku-account.js`](shared/moku-account.js)。
   - ハブ(`index.html` / `hub.html`): `<script src="shared/moku-account.js"></script>` + `[data-moku-account]`(ログインボタン/アカウントチップの差し込み先)+ `[data-moku-greeting]`(「Hello, <名前>!」に置き換え)。ページ表示時に同期する。
-    - `hub.html` は下部ナビの右端が **My Moku** タブ(着せ替えた Moku のアイコン。下の「My Moku 画面」を開く)。`index.html` はログイン前と後で画面を切り替える(2026-10-25〜。`<html>` の `is-in` クラス、`.guest-only` / `.member-only`)。ログイン前は Moku のバッジ+大きいロゴ+Get Started+幅広のカード型ボタン(`data-moku-account="wide"`。☁️ Log In+説明文+光が流れるアニメーション、`data-moku-new-until` の日付まで NEW バッジ)。ログイン後は Moku Closet で着せ替えた Moku(`MokuMoint.outfitSVG()`)+「Welcome back, <名前>!」+Moint 残高と保存状態(`MokuAccount.statusText()`)+▶ Play Games(ハブへ)+小さいロゴ、右上にアカウントチップ(`data-moku-account`)。Share / Transfer Progress / Add to Home Screen は右上の「⋯」メニュー。Total Played・Achievements はハブだけに置く。
+    - `hub.html` は下部ナビの右端が **My Moku** タブ(着せ替えた Moku のアイコン。下の「My Moku 画面」を開く)。`index.html` はログイン前と後で画面を切り替える(2026-10-25〜。`<html>` の `is-in` クラス、`.guest-only` / `.member-only`)。ログイン前は Moku のバッジ+大きいロゴ+Get Started+幅広のカード型ボタン(`data-moku-account="wide"`。☁️ Log In+説明文+光が流れるアニメーション、`data-moku-new-until` の日付まで NEW バッジ)。ログイン後は Moku Closet で着せ替えた Moku(`MokuMoint.outfitSVG()`)+「Welcome back, <名前>!」+Moint 残高と保存状態(`MokuAccount.statusText()`)+▶ Play Games(ハブへ)+小さいロゴ、右上にアカウントチップ(`data-moku-account`)。Share Moku Series / Add to Home Screen は右上の「⋯」メニュー(ハブの「⋯」も Add to Home Screen / Share Moku Series)。Total Played・Achievements はハブだけに置く。
   - ゲーム: `<script src="shared/moku-account.js" data-mode="background"></script>` を `</head>` 直前に1行足すだけ。UIは出さず、ページを閉じる/隠す時に進捗をアップロードする。未導入のゲームの進捗も次にハブを開いた時に同期される。
   - APIのURLは `moku-account.js` 冒頭の `API_BASE_URL`(2026-10-24 デプロイ済み: `https://d6hl1cxi0i.execute-api.ap-southeast-5.amazonaws.com`、呼べるのは `https://aohaus.github.io` と `https://dechatgpt.com` からのみ)。`npm run dev`(localhost:3000)では常に `server.js` のモック(招待コード `moku-dev`、メモリ保存)を使う。`API_BASE_URL` が空ならログインUIを出さない。
 - **同期対象**: `localStorage` のうち `moku:` `moku_` `moyomoyo-` `amoku-` で始まるキー全部(`moku:deviceId` `moku:account:*` `moku:sync:*` は除く)。**新規タイトルはこのどれかの接頭辞のキーを使うこと**(§2の `moku:<gameId>:<key>` 規約に従えば自動で対象になる)。
@@ -261,16 +261,10 @@ Mokuシリーズ全体で使う軽量な共有バックエンド。§1の「外�
   - 下部メニューの 🏠 Home・戻る・Esc でハブへ。
 - **下部メニュー**(2026-11-01〜): 🏠 Home / 🏆 Achievements / 🌳 Hollow / My Moku の4つは、My Moku・Hollow・Achievements の画面の上にも**いつも出ている**(`#bottomNav` の `z-index: 32`、画面は 30。シート・Choose Mokus・Closet などはその上)。今いる画面のボタンが光る(`markNav()`、ハブでは Home)。そのかわり3つの画面の右上の「✕ Close」はなくした。画面から画面へ移る時は履歴を置き換えるので、ブラウザの戻る・Home はいつもハブへ戻る。3つの画面の下には、メニューの高さぶんの余白がある。
 
-## 11. 引き継ぎコード(2026-10-24〜)
+## 11. 引き継ぎコード(2026-10-24〜2026-11-26、廃止)と Share Moku Series
 
-サーバーもアカウントも使わずに、進捗を別の端末へ移す仕組み。§10 のログインがまだ使えない環境でも、ログインしたくない人でも使える。
-
-- **クライアント**: [`shared/moku-transfer.js`](shared/moku-transfer.js)。`<script src="shared/moku-transfer.js"></script>` を読み込み、ボタンに `data-moku-transfer` 属性を付けるだけで画面が開く。現在は `hub.html` と `index.html` の「⋯」メニューに置いている。
-- **Send(送る側)**: §10 と同じ同期対象のキー(`moku:` `moku_` `moyomoyo-` `amoku-`、`moku:deviceId` `moku:account:*` `moku:sync:*` は除く)を1つのコードにまとめる。コピー / 共有シート(AirDrop・LINE 等)/ テキストファイル保存で渡す。
-- **Receive(受け取る側)**: コードを貼り付けるかファイルを開くと、送った端末・作成日時・セーブ数を見せて確認したうえで、**その端末の進捗をコードの内容で置き換える**(マージはしない)。そのあとページを再読み込みする。
-- **形式**: `MOKU1-` + base64url(zlib deflate(JSON))。`CompressionStream` がないブラウザでは非圧縮の `MOKU0-`。JSON は `{ v: 1, at, device, data }`。改行が混ざっても読める。途中で切れたコードは zlib のチェックサムで弾く。読み込み時は同期対象のキー・文字列値だけを受け付ける(ログイントークン等を書き込ませない)。
-- **大きさの目安**: 6タイトル分ほどの進捗で約1,200文字。手入力は想定せず、コピー&ペーストか共有で渡す。
-- **注意**: コードを持っている人は誰でも進捗をコピーできる(画面にも表示している)。同期対象のキーの定義は `moku-account.js` と同じで、変更する時は両方を直すこと。
+- **引き継ぎコードは 2026-11-26 に廃止した**(保護者と決定)。サーバーなしで進捗をコードにまとめて別の端末へ移す仕組み(`shared/moku-transfer.js`、`MOKU1-` + deflate + base64url)だったが、2026-10-25 からゲームとハブはログインした人だけが遊べるので、進捗はいつも §10 のクラウドセーブで端末どうしでそろう。使い道がなくなったので、ハブと `index.html` の「⋯」メニューの「🔁 Transfer Progress」とスクリプトを消した。昔のコードを読む画面もない(必要になったら git の履歴から戻せる)。
+- **🔗 Share Moku Series**(2026-11-26〜、ハブの「⋯」メニューの同じ場所): 公開アドレス `https://dechatgpt.com/Moku-ai/` を友達に送る(保護者の希望。ゲームごとのリンクにはしない)。押すと共有シート(LINE・AirDrop…、`navigator.share`)、なければリンクをコピーして「✅ Link copied!」。`index.html` の「⋯」の「🔗 Share Moku Series」も同じアドレス(それまでは開いているアドレスの `hub.html`)。アドレスを変える時は `hub.html` の `SHARE_URL` と `index.html` の `getHubShareUrl()` を両方。
 
 ## 12. 管理者と管理画面(2026-10-25〜)
 
