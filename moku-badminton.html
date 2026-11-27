@@ -49,6 +49,8 @@
     ページごとに、お手本の図(緑 = 正しいショット、赤の点線 = よくあるまちがい)・やり方・合言葉・自分の成績と ⭐
     (⭐ 覚えた / ⭐⭐ 良い判断 10 回以上で 60% 以上 / ⭐⭐⭐ 30 回以上で 80% 以上 = Master)。
     Try it(その場面をもう一度打つ練習)は保留(2026-11-27、保護者)。
+  - v0.8.1: レッスンのバー(Review と Records)の各行に「Next time: …」の短いヒント。行にマウスを乗せる / タップすると、
+    くわしい説明(Tactics Book と同じ文)が出る。
   - ルールは新しい 15 点制の1ゲームだけ(14-14 からは2点差、21 点で終わり)。サーブのコートは本物どおり。
   作る順番: ①コートとシャトル ②自動で走る・ボタン ③ルール ④CPU ⑤キャラを作る画面・タイトル・結果 ⑥ハブ・SPEC。
   v0.1.0 は ①〜④ と仮のタイトル・結果(子どもたちにスマホで手ざわりを試してもらう版)。
@@ -151,9 +153,20 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
 .lb .bar { height:12px; background:#EFE6D6; border:2px solid var(--ink); border-radius:999px; overflow:hidden; }
 .lb .bar i { display:block; height:100%; border-radius:999px; }
 .lb .lp { font-size:14px; font-weight:800; text-align:right; } .lb .lp small { font-size:10px; opacity:.55; margin-left:4px; }
+.lb { cursor:pointer; }
+.lb .qm { display:inline-block; width:15px; height:15px; line-height:13px; text-align:center; border-radius:50%; border:1.5px solid var(--ink);
+  font-size:10px; opacity:.45; margin-left:2px; vertical-align:1px; }
+.lb .nx { grid-column:1 / -1; font-size:11px; font-weight:700; color:#2F6B2C; margin-top:-2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.lb.weak .nx { color:#B4361F; }
+.lb .pop { display:none; position:absolute; left:8px; right:8px; top:calc(100% + 4px); z-index:5; background:#fff; border:2px solid var(--ink);
+  border-radius:12px; padding:8px 10px; font-size:12.5px; font-weight:700; line-height:1.35; box-shadow:0 6px 16px rgba(74,46,26,.25); text-align:left; }
+.lb .pop b { display:block; margin-bottom:3px; } .lb .pop i { display:block; margin-top:4px; font-style:normal; color:#2F7D32; font-weight:800; }
+.lb:nth-last-child(-n+2) .pop { top:auto; bottom:calc(100% + 4px); }
+.lb.open .pop { display:block; }
+@media (hover:hover) and (pointer:fine) { .lb:hover .pop, .lb:focus .pop { display:block; } .lb:hover { background:rgba(79,163,224,.08); } }
 .lb em { position:absolute; left:50%; transform:translateX(-50%); top:-10px; background:#E2573C; color:#fff; font-style:normal; font-size:9.5px; font-weight:800;
   padding:1px 7px; border-radius:999px; border:1.5px solid var(--ink); }
-@media (max-height:400px) { .lbars { gap:2px; margin:4px 0 0; } .lb { padding:1px 8px; } .lb .lt { font-size:11.5px; } .lb .bar { height:10px; } .lb .lp { font-size:12.5px; } }
+@media (max-height:400px) { .lbars { gap:1px; margin:4px 0 0; } .lb { padding:0 8px; row-gap:0; } .lb .nx { font-size:10px; } .lb .lt { font-size:11.5px; } .lb .bar { height:10px; } .lb .lp { font-size:12.5px; } }
 #bkTabs { display:flex; gap:6px; justify-content:center; margin:6px 0 2px; flex-wrap:wrap; }
 #bkTabs button { border:2px solid var(--ink); background:#fff; border-radius:12px; padding:3px 9px; font-weight:800; font-size:13px; color:var(--ink); min-width:52px; }
 #bkTabs button small { display:block; font-size:9px; letter-spacing:-.5px; color:#E0A21B; height:11px; }
@@ -252,7 +265,7 @@ body.playing.serving.you-serve #serves { display:flex; }
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.8.0 · Updated Nov 27, 2026</div>
+<div id="buildInfo">v0.8.1 · Updated Nov 27, 2026</div>
 
 <canvas id="cv"></canvas>
 
@@ -702,12 +715,28 @@ body.playing.serving.you-serve #serves { display:flex; }
     return FIVE.map(function (k) {
       var q = per[k] || { n: 0, g: 0 }, L = LESSONS[k], pc = q.n ? Math.round(q.g / q.n * 100) : null;
       var col = pc == null ? '#CFCCC7' : pc >= 80 ? '#4E9A4A' : pc >= 50 ? '#E0A21B' : '#E2573C';
-      return '<div class="lb' + (weak && weak.k === k ? ' weak' : '') + '"><span class="lt">' + L.icon + ' ' + L.title + '</span>' +
+      // 各行: 次にどうするかのヒント(1行)。マウスを乗せる / タップで、くわしい説明(Tactics Book と同じ文)
+      var nx = pc == null ? NEXT_TIP[k] : pc >= 80 ? '👍 Keep it up! ' + NEXT_TIP[k] : 'Next time: ' + NEXT_TIP[k];
+      return '<div class="lb' + (weak && weak.k === k ? ' weak' : '') + '" data-k="' + k + '" tabindex="0"><span class="lt">' + L.icon + ' ' + L.title + ' <b class="qm">?</b></span>' +
         '<span class="bar"><i style="width:' + (pc || 0) + '%;background:' + col + '"></i></span>' +
         '<span class="lp">' + (pc == null ? '–' : pc + '%') + '<small>' + (q.n ? q.g + '/' + q.n : '') + '</small></span>' +
+        '<span class="nx">' + nx + '</span>' +
+        '<span class="pop"><b>' + L.icon + ' ' + L.title + '</b>' + BOOK[k].how + '<i>✔ ' + BOOK[k].remember + '</i></span>' +
         (weak && weak.k === k ? '<em>Your habit!</em>' : '') + '</div>';
     }).join('');
   }
+  var NEXT_TIP = { // 次にどうするか(短く)
+    attack: 'High ball in the middle → SMASH',
+    back: 'At the back line → DROP or CLEAR, not SMASH',
+    net: 'Low ball near the net → NET',
+    space: 'Rivals close to the net → CLEAR to the back',
+    serve: 'Receiver close → LONG serve · far back → SHORT'
+  };
+  document.addEventListener('click', function (e) { // タッチの端末: タップで説明を開く / 閉じる
+    var row = e.target.closest && e.target.closest('.lb');
+    Array.prototype.forEach.call(document.querySelectorAll('.lb.open'), function (r) { if (r !== row) r.classList.remove('open'); });
+    if (row) row.classList.toggle('open');
+  });
   var SHOT_NAME = { smash: 'SMASH', clear: 'CLEAR', drop: 'DROP', net: 'NET', short: 'SHORT SERVE', long: 'LONG SERVE' };
   function noteDecision(type, q, serve, jump) {
     if (demo) return;
