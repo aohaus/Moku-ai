@@ -33,6 +33,10 @@
     Smash は押した時ではなく離した時に打つ(短く押すとふつうの Smash)。
   - スタッツ(v0.5.0、おすすめの組み合わせに決定): 最長ラリー・スマッシュの速さ(km/h)・PERFECT の連続・YOU と Moku が決めた点、
     バッジ Shutout(15-0)と Comeback(5 点差から逆転)。結果の画面に NEW RECORD!、タイトルの「📊 Records」で今までの記録。
+  - 主審とギャラリー(v0.6.0、保護者の案): ネットの向こうの高いいすにカメの主審。「Love all, play!」・点数(サーブ側が先、0 は love、
+    同点は all)・Service over・game point・Game! を英語で読み上げ、点を取った側へ腕をのばす。
+    観客の森の仲間は、自分たちの点でバンザイ(ジャンプスマッシュ・エース・10 本以上のラリーは紙ふぶき)、相手の点はやさしく「Ohh…」、
+    12 本以上のラリーは拍手。歓声と拍手は Web Audio で合成。
   - ルールは新しい 15 点制の1ゲームだけ(14-14 からは2点差、21 点で終わり)。サーブのコートは本物どおり。
   作る順番: ①コートとシャトル ②自動で走る・ボタン ③ルール ④CPU ⑤キャラを作る画面・タイトル・結果 ⑥ハブ・SPEC。
   v0.1.0 は ①〜④ と仮のタイトル・結果(子どもたちにスマホで手ざわりを試してもらう版)。
@@ -200,7 +204,7 @@ body.playing.serving.you-serve #serves { display:flex; }
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.5.0 · Updated Nov 27, 2026</div>
+<div id="buildInfo">v0.6.0 · Updated Nov 27, 2026</div>
 
 <canvas id="cv"></canvas>
 
@@ -345,6 +349,15 @@ body.playing.serving.you-serve #serves { display:flex; }
     win: function () { tone(660, 660, 0.12, 0.15, 'triangle'); tone(880, 880, 0.18, 0.15, 'triangle', 0.1); },
     lose: function () { tone(330, 260, 0.25, 0.12, 'sine'); },
     jumpSmash: function (big) { noise(0.14, 0.8, 1500); tone(big ? 900 : 760, 90, 0.18, 0.3, 'square'); if (big) tone(1600, 2400, 0.15, 0.1, 'sine', 0.05); },
+    crowd: function (p) { // 歓声+拍手
+      var a = audio(); if (!a) return; var t = a.currentTime;
+      if (!noiseBuf) noise(0.01, 0.0001, 1000);
+      var s0 = a.createBufferSource(); s0.buffer = noiseBuf; s0.loop = true; var f = a.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1100; f.Q.value = 0.7;
+      var g = a.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.12 * p, t + 0.15); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.1 + p * 0.3);
+      s0.connect(f); f.connect(g); g.connect(a.destination); s0.start(t); s0.stop(t + 1.6 + p * 0.3);
+      for (var i = 0; i < 8 + p * 6; i++) (function (d) { setTimeout(function () { noise(0.025, 0.12, 2500); }, d); })(150 + Math.random() * 900);
+    },
+    aww: function () { tone(340, 240, 0.6, 0.05, 'triangle'); tone(300, 210, 0.6, 0.04, 'triangle', 0.03); },
     perfect: function () { tone(1320, 1760, 0.12, 0.08, 'sine', 0.03); },
     fanfare: function () { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, f, 0.22, 0.14, 'triangle', i * 0.13); }); }
   };
@@ -443,6 +456,7 @@ body.playing.serving.you-serve #serves { display:flex; }
   function notePlayerHit(q) { if (q === 'perfect') { ms.perfectRun++; if (ms.perfectRun > ms.bestPerfect) ms.bestPerfect = ms.perfectRun; } else ms.perfectRun = 0; }
   function resetMatch() {
     score = [0, 0]; servingTeam = 0; rightCourt = [chars[0], chars[2]]; rally = 0; matchBestRally = 0;
+    prevServing = 0; ump.sayT = 0;
     ms = { topSmash: 0, perfectRun: 0, bestPerfect: 0, you: 0, moku: 0, rivalErr: 0, maxBehind: 0 };
     server = chars[0];
     setRivals(); updateBoard();
@@ -536,6 +550,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     if (!serve) { rally++; if (rally > matchBestRally) matchBestRally = rally; }
     ch.swing = 0.28; ch.swingOver = y > 1.7; if (type === 'smash') ch.jump = 0.4;
     if (ch === YOU && type === 'smash' && !demo) { var sp = kmh(shuttle.v); if (sp > ms.topSmash) ms.topSmash = sp; floatText(YOU.x, 1.7, YOU.z, sp + ' km/h', '#FFE9C7'); }
+    lastJump = jumpNow;
     if (jumpNow) { ch.jump = 0.55; ch.bigJump = true; spark(shuttle.p, q === 'perfect'); } else ch.bigJump = false;
     var down = type === 'smash' || type === 'drop' || type === 'net' || type === 'short';
     mode[ch.team] = down ? 'attack' : 'defend'; mode[1 - ch.team] = down ? 'defend' : 'attack';
@@ -667,7 +682,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     if (!netHit && inB && hits === 1) word = 'ACE!';
     pointTo(w, word);
   }
-  var introBanner = false;
+  var introBanner = false, prevServing = 0, lastJump = false;
   function pointTo(w, word) {
     introBanner = false;
     phase = 'point'; pointTimer = 1.7; assigned = null; contact = null;
@@ -675,7 +690,13 @@ body.playing.serving.you-serve #serves { display:flex; }
     else servingTeam = w;
     score[w]++;
     if (window.__bdLog) window.__bdLog.push({ point: w, word: word, last: lastHitter && lastHitter.id, rally: rally });
+    var serviceOver = prevServing !== servingTeam; prevServing = servingTeam;
+    // ギャラリー: 自分たちの点はよろこぶ(ジャンプスマッシュ・エース・長いラリーは大よろこび)、相手の点はやさしく「あ〜」
+    if (w === 0) crowdReact('cheer', (lastJump && lastHitter === YOU) || word === 'ACE!' || rally >= 10 ? 1.8 : 1);
+    else crowdReact(rally >= 12 ? 'clap' : 'aww');
     if (!demo) {
+      var gw = winnerOf();
+      umpCall(gw >= 0 ? 'Game! ' + (gw === 0 ? 'YOU & MOKU' : pairName(settings.stage)) + ' win' : (serviceOver ? 'Service over. ' : '') + scoreCall() + (gamePoint() ? ', game point' : ''), w === 0 ? -1 : 1);
       if (w === 0 && lastHitter === YOU) ms.you++; else if (w === 0 && lastHitter === MOKU) ms.moku++; else if (w === 0) ms.rivalErr++;
       if (score[1] - score[0] > ms.maxBehind) ms.maxBehind = score[1] - score[0];
       if (w === 0) { progress.pointsWon++; sfx.win(); say(MOKU, ['Yay!', 'We did it!', 'Hoo-hoo!', 'Great teamwork!'][Math.floor(Math.random() * 4)]); }
@@ -793,6 +814,102 @@ body.playing.serving.you-serve #serves { display:flex; }
   function skyMode() { if (skyQ) return skyQ; var h = new Date().getHours(); return h >= 6 && h < 18 ? 'day' : 'night'; }
   var builtSky = '';
   setInterval(function () { if (skyMode() !== builtSky) buildBg(); }, 60000);
+  // ── ギャラリー(森の仲間): 点が決まると反応する ──
+  // mood: idle / cheer(YOU & MOKU の点。power が大きいほど大よろこび)/ aww(相手の点。やさしく「あ〜」)/ clap(長いラリーに拍手)
+  var crowd = { by: 0, list: [], mood: 'idle', t: 9, power: 1, confetti: [], shouts: [] };
+  function crowdReact(mood, power) {
+    crowd.mood = mood; crowd.t = 0; crowd.power = power || 1; crowd.shouts = [];
+    var words = mood === 'cheer' ? (power > 1.4 ? ['WOOO!', 'AMAZING!', 'YAY!!', 'WOW!'] : ['Yay!', 'Nice!', 'Woo!', 'Go Moku!']) : mood === 'clap' ? ['Bravo!', 'Great rally!'] : ['Ohh…', 'Aww…'];
+    var n = mood === 'cheer' ? (power > 1.4 ? 4 : 2) : 1;
+    for (var i = 0; i < n && crowd.list.length; i++) crowd.shouts.push({ i: Math.floor(Math.random() * crowd.list.length), w: words[Math.floor(Math.random() * words.length)], d: i * 0.15 });
+    if (mood === 'cheer' && power > 1.4) for (var k = 0; k < 40; k++) crowd.confetti.push({ x: Math.random() * W, y: crowd.by - 40 - Math.random() * 40, vx: rnd(-30, 30), vy: rnd(-120, -40), rot: Math.random() * TAU, c: ['#E85A4F', '#FFD23F', '#4FA3E0', '#7FB56A', '#E8A6B8'][k % 5], t: 0 });
+    if (!demo) { if (mood === 'cheer' || mood === 'clap') sfx.crowd(mood === 'clap' ? 0.7 : power); else sfx.aww(); }
+  }
+  function drawCrowd(rdt) {
+    crowd.t += rdt;
+    var by = crowd.by, T = crowd.t, act = T < 1.8, decay = act ? 1 - T / 1.8 : 0;
+    c.strokeStyle = INK; c.lineWidth = 2;
+    for (var i = 0; i < crowd.list.length; i++) {
+      var a = crowd.list[i], r = a.r, x = a.x, dy = Math.sin(now * 2 + i) * 0.6, arms = 0, mouth = 0, sad = false;
+      if (act && crowd.mood === 'cheer') { dy = -Math.max(0, Math.sin(T * 13 + i * 1.7)) * 9 * crowd.power * decay; arms = 1; mouth = 1; }
+      else if (act && crowd.mood === 'clap') { dy = -Math.abs(Math.sin(T * 16 + i)) * 3 * decay; arms = 0.5 + Math.abs(Math.sin(T * 20 + i)) * 0.5; }
+      else if (act && crowd.mood === 'aww') { dy = 2.5 * decay; sad = true; }
+      var y = by + dy;
+      c.fillStyle = a.col;
+      if (arms) { // 腕(バンザイ / 拍手)
+        var ay = arms === 1 ? y - r * 2.4 : y - r * 1.2, ax = arms === 1 ? r * 1.15 : r * 0.35 * arms + r * 0.3;
+        c.beginPath(); c.ellipse(x - ax, ay, r * 0.28, r * 0.5, arms === 1 ? -0.4 : 0.6, 0, TAU); c.fill(); c.stroke();
+        c.beginPath(); c.ellipse(x + ax, ay, r * 0.28, r * 0.5, arms === 1 ? 0.4 : -0.6, 0, TAU); c.fill(); c.stroke();
+      }
+      c.beginPath(); c.arc(x - r * 0.6, y - r * 2.2, r * 0.38, 0, TAU); c.arc(x + r * 0.6, y - r * 2.2, r * 0.38, 0, TAU); c.fill(); c.stroke();
+      c.beginPath(); c.ellipse(x, y - r * 0.8, r * 1.05, r * 1.1, 0, 0, TAU); c.fill(); c.stroke();
+      c.beginPath(); c.arc(x, y - r * 1.75, r * 0.85, 0, TAU); c.fill(); c.stroke();
+      c.fillStyle = INK;
+      if (sad) { c.lineWidth = 1.6; c.beginPath(); c.moveTo(x - r * 0.42, y - r * 1.85); c.lineTo(x - r * 0.18, y - r * 1.78); c.moveTo(x + r * 0.42, y - r * 1.85); c.lineTo(x + r * 0.18, y - r * 1.78); c.stroke(); c.lineWidth = 2; }
+      else { c.beginPath(); c.arc(x - r * 0.3, y - r * 1.8, 1.7, 0, TAU); c.arc(x + r * 0.3, y - r * 1.8, 1.7, 0, TAU); c.fill(); }
+      if (mouth) { c.fillStyle = '#E85A4F'; c.beginPath(); c.ellipse(x, y - r * 1.45, r * 0.2, r * 0.17, 0, 0, TAU); c.fill(); }
+    }
+    c.fillStyle = '#8A5A33'; c.fillRect(0, by - 2, W, 8); c.strokeRect(-2, by - 2, W + 4, 8); // 手すり
+    for (var k = crowd.confetti.length - 1; k >= 0; k--) { // 紙ふぶき
+      var f = crowd.confetti[k]; f.t += rdt; if (f.t > 2) { crowd.confetti.splice(k, 1); continue; }
+      f.vy += 160 * rdt; f.x += f.vx * rdt; f.y += f.vy * rdt; f.rot += rdt * 6;
+      c.save(); c.translate(f.x, f.y); c.rotate(f.rot); c.fillStyle = f.c; c.globalAlpha = Math.min(1, 2 - f.t); c.fillRect(-4, -2.5, 8, 5); c.restore();
+    }
+    c.globalAlpha = 1;
+    crowd.shouts.forEach(function (sh) { // 声
+      var tt = T - sh.d; if (tt < 0 || tt > 1.3 || !crowd.list[sh.i]) return;
+      var a = crowd.list[sh.i]; c.globalAlpha = Math.min(1, (1.3 - tt) * 3);
+      c.font = '800 12px -apple-system,Segoe UI,Roboto,sans-serif'; c.textAlign = 'center'; c.lineWidth = 3;
+      c.strokeText(sh.w, a.x, by - a.r * 3 - tt * 14); c.fillStyle = crowd.mood === 'aww' ? '#DDE6F2' : '#FFF3C4'; c.fillText(sh.w, a.x, by - a.r * 3 - tt * 14);
+      c.globalAlpha = 1;
+    });
+  }
+
+  // ── 主審(高いいすに座ったカメのおじいさん。ネットの向こう側)。点数を英語で読み上げる ──
+  var ump = { say: '', sayT: 0, point: 0, pointT: 0 };
+  function umpCall(text, side) { ump.say = text; ump.sayT = 2.2; if (side) { ump.point = side; ump.pointT = 1.2; } }
+  function scoreCall() { // サーブ側の点を先に。0 は love、同点は all
+    var sT = servingTeam, a = score[sT], b = score[1 - sT];
+    function n(v) { return v === 0 ? 'love' : String(v); }
+    var txt = a === b ? n(a) + ' all' : n(a) + '–' + n(b);
+    return txt;
+  }
+  function gamePoint() { for (var t = 0; t < 2; t++) { var x = score[t] + 1; if ((x >= GAME_TO && x - score[1 - t] >= 2) || x >= GAME_CAP) return true; } return false; }
+  function drawUmpire(rdt) {
+    var base = P(0, 0, -HW - 0.95), k = S / 100 * CHAR_SCALE * 0.85;
+    ump.sayT -= rdt; ump.pointT -= rdt;
+    c.save(); c.translate(base[0], base[1]); c.scale(k, k);
+    c.strokeStyle = INK; c.lineWidth = 2.2 / k; c.lineJoin = 'round'; c.lineCap = 'round';
+    // いす(木)
+    c.fillStyle = '#A0693C';
+    [-22, 22].forEach(function (x) { c.fillRect(x - 4, -150, 8, 150); c.strokeRect(x - 4, -150, 8, 150); });
+    for (var y = -30; y > -150; y -= 30) { c.beginPath(); c.moveTo(-22, y); c.lineTo(22, y); c.stroke(); }
+    RR(-30, -162, 60, 14, 4, '#B97C4F');
+    // カメ
+    E(0, -190, 30, 30, '#6FA65C');
+    c.strokeStyle = 'rgba(40,70,30,.5)'; c.beginPath(); c.moveTo(-14, -210); c.lineTo(14, -210); c.lineTo(20, -188); c.lineTo(0, -172); c.lineTo(-20, -188); c.closePath(); c.stroke(); c.strokeStyle = INK;
+    E(0, -182, 20, 20, '#E8D9A8');
+    var up = ump.pointT > 0 ? ump.point : 0; // 点を取った側へ腕をのばす(自分たち = 画面の左)
+    c.save(); c.translate(up < 0 ? -16 : 16, -194); c.rotate(up < 0 ? -2.3 : up > 0 ? -0.8 : 0.9); E(10, 0, 12, 5, '#B7D68A'); c.restore();
+    if (!up) { c.save(); c.translate(-16, -194); c.rotate(2.2); E(10, 0, 12, 5, '#B7D68A'); c.restore(); }
+    E(0, -226, 17, 16, '#B7D68A');
+    c.beginPath(); c.arc(-7, -228, 5.5, 0, TAU); c.arc(7, -228, 5.5, 0, TAU); c.fillStyle = 'rgba(255,255,255,.5)'; c.fill(); c.stroke();
+    c.beginPath(); c.moveTo(-1.5, -228); c.lineTo(1.5, -228); c.stroke();
+    E(-7, -228, 1.8, 2, '#2B1B12', 0, true); E(7, -228, 1.8, 2, '#2B1B12', 0, true);
+    c.beginPath(); c.arc(0, -219, 4, 0.3, Math.PI - 0.3); c.stroke();
+    E(-6, -208, 6, 3.5, '#4FA3E0', 0.3); E(6, -208, 6, 3.5, '#4FA3E0', -0.3); // ちょうネクタイ
+    c.restore();
+    if (ump.sayT > 0) {
+      var t = P(0, 2.65 * CHAR_SCALE * 0.85, -HW - 0.95);
+      c.font = '800 13px -apple-system,Segoe UI,Roboto,sans-serif'; c.textAlign = 'center';
+      var w = c.measureText(ump.say).width + 20, bx = clamp(t[0], w / 2 + 4, W - w / 2 - 4), by = Math.max(t[1] - 18, safe.t + 66);
+      c.globalAlpha = Math.min(1, ump.sayT * 3);
+      c.fillStyle = '#FFFFFF'; c.strokeStyle = INK; c.lineWidth = 2.2;
+      c.beginPath(); if (c.roundRect) c.roundRect(bx - w / 2, by - 13, w, 24, 6); else c.rect(bx - w / 2, by - 13, w, 24); c.fill(); c.stroke();
+      c.fillStyle = INK; c.fillText(ump.say, bx, by + 4); c.globalAlpha = 1;
+    }
+  }
+
   // 窓の外の街: 大会ごとに、その街の目じるしを2つ目と3つ目の窓に、ほかはふつうのビル
   function drawSkyline(g, city, night, wy, wh, wn, ww) {
     // 背の低い画面では窓の上が画面の外なので、見えている高さ(avail)に収める
@@ -888,16 +1005,10 @@ body.playing.serving.you-serve #serves { display:flex; }
     }
     // 観客席の森の仲間(壁ぎわのベンチ)
     var by = horizon - 4;
+    // (観客と手すりは毎フレーム描く: 点が決まった時に動くため。drawCrowd())
     var critters = ['#C99366', '#A78BFA', '#9C7650', '#F2A03D', '#8FC77A', '#E8A6B8', '#B8B0A0'];
-    for (var a = 0, an = Math.ceil(W / 44); a < an; a++) {
-      var ax = a * 44 + 22 + (a % 2) * 6, col = critters[a % critters.length], r = 11 + (a * 7 % 4);
-      g.fillStyle = col; g.strokeStyle = INK; g.lineWidth = 2;
-      g.beginPath(); g.arc(ax - r * 0.6, by - r * 2.2, r * 0.38, 0, TAU); g.arc(ax + r * 0.6, by - r * 2.2, r * 0.38, 0, TAU); g.fill(); g.stroke();
-      g.beginPath(); g.ellipse(ax, by - r * 0.8, r * 1.05, r * 1.1, 0, 0, TAU); g.fill(); g.stroke();
-      g.beginPath(); g.arc(ax, by - r * 1.75, r * 0.85, 0, TAU); g.fill(); g.stroke();
-      g.fillStyle = INK; g.beginPath(); g.arc(ax - r * 0.3, by - r * 1.8, 1.7, 0, TAU); g.arc(ax + r * 0.3, by - r * 1.8, 1.7, 0, TAU); g.fill();
-    }
-    g.fillStyle = '#8A5A33'; g.fillRect(0, by - 2, W, 8); g.strokeStyle = INK; g.lineWidth = 2; g.strokeRect(-2, by - 2, W + 4, 8);
+    crowd.by = by; crowd.list = [];
+    for (var a = 0, an = Math.ceil(W / 44); a < an; a++) crowd.list.push({ x: a * 44 + 22 + (a % 2) * 6, col: critters[a % critters.length], r: 11 + (a * 7 % 4) });
     // 床(木)
     g.fillStyle = '#E2A766'; g.fillRect(0, horizon + 4, W, H - horizon + 10);
     g.strokeStyle = 'rgba(140,80,40,.22)'; g.lineWidth = 1;
@@ -1161,11 +1272,13 @@ body.playing.serving.you-serve #serves { display:flex; }
     // 画面は動かさない(2026-11-27、保護者の声: 上にずれると見づらい)。camY はいつも 0
     c.setTransform(DPR, 0, 0, DPR, 0, 0);
     c.drawImage(bg, 0, (BGPAD - camY) * DPR, bg.width, H * DPR, 0, 0, W, H);
+    drawCrowd(rdt);
     // ここから下は camY を P() の中で足している
     chars.forEach(function (ch) { drawShadow(ch.x, ch.z, 0.32, 0.25); });
     if (shuttle.live) drawShadow(shuttle.p[0], shuttle.p[2], 0.13 + 0.03 * Math.min(1, shuttle.p[1] / 3), 0.35);
     var far = chars.filter(function (ch) { return ch.side > 0; }).sort(function (a, b) { return a.z - b.z; });
     var near = chars.filter(function (ch) { return ch.side < 0; }).sort(function (a, b) { return a.z - b.z; });
+    drawUmpire(rdt);
     far.forEach(drawChar);
     if (shuttle.p[0] > 0) drawShuttle();
     drawNet();
@@ -1271,7 +1384,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     resetMatch(); setupServe();
     showHint(server === YOU ? 'Your serve! Tap SHORT or LONG' : 'You run by yourself — tap a glowing button!', 3);
     showBanner(STAGES[settings.stage].cup.replace('Moku ', '').toUpperCase(), (STAGES[settings.stage].boss ? 'FINAL · ' : 'MATCH ' + (settings.stage + 1) + ' · ') + 'VS ' + pairName(settings.stage));
-    introBanner = true; setTimeout(function () { if (introBanner) hideBanner(); introBanner = false; }, 1800);
+    introBanner = true; setTimeout(function () { if (introBanner) hideBanner(); introBanner = false; umpCall('Love all, play!'); }, 1800);
   }
   function toTitle() {
     demo = true; paused = false; phase = 'title';
