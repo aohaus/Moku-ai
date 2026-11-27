@@ -351,12 +351,12 @@ body.playing.serving.you-serve #serves { display:flex; }
 </head>
 <body class="on-title">
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
-<div id="buildInfo">v0.10.7 · Updated Nov 27, 2026</div>
+<div id="buildInfo">v0.10.9 · Updated Nov 27, 2026</div>
 
 <canvas id="cv"></canvas>
 
 <div id="hud"><div id="board">
-  <span class="srv" id="srv0"></span><span class="team">YOU &amp; MOKU</span><span class="num" id="sc0">0</span>
+  <span class="srv" id="srv0"></span><span class="team" id="team0">YOU &amp; MOKU</span><span class="num" id="sc0">0</span>
   <span>–</span><span class="num" id="sc1">0</span><span class="team" id="team1">KON &amp; PONTA</span><span class="srv" id="srv1"></span>
 </div><div id="rally"></div></div>
 <button id="pauseBtn" aria-label="Pause">❚❚</button>
@@ -466,6 +466,7 @@ body.playing.serving.you-serve #serves { display:flex; }
   // 大会と会場の街(窓から街の景色がのぞく)。名前は Moku の大会としてもじる(Night Jungle の Moku Night Safari と同じ考え方)
   // fast = ⚡ の印(いちばん速い最後の大会)
   var STAGES = [
+    // speed / react / q / fault / smashMul / leave は Match 1 の値だけを使う(setRivals())。2〜4 の値は前の版のなごり
     { cup: 'Moku Malaysia Masters', city: 'kl', pair: ['kon', 'ponta'],  speed: 3.4, react: 0.34, q: [0.18, 0.52, 0.30], fault: 0.16, smashMul: 0.78, leave: 0.15 },
     { cup: 'Moku Singapore Masters', city: 'sg', pair: ['chef', 'ninja'], speed: 3.9, react: 0.28, q: [0.26, 0.54, 0.20], fault: 0.14, smashMul: 0.86, leave: 0.4 },
     { cup: 'Moku Thailand Masters', city: 'bkk', pair: ['moyo', 'nox'],   speed: 4.4, react: 0.22, q: [0.36, 0.52, 0.12], fault: 0.11, smashMul: 0.95, leave: 0.6 },
@@ -596,17 +597,39 @@ body.playing.serving.you-serve #serves { display:flex; }
     { id: 'r2', team: 1, side: 1 }
   ];
   var YOU = chars[0], MOKU = chars[1];
+  // 自分の名前: ログインしているアカウントの表示名(ぱぱ・なぎ など)。ログインしていない時(プレビューなど)は YOU(2026-11-27)
+  function meName() {
+    var u = null; try { u = window.MokuAccount && MokuAccount.getUser && MokuAccount.getUser(); } catch (e) {}
+    var n = u && u.displayName ? String(u.displayName).trim() : '';
+    return n ? n.toUpperCase() : 'YOU';
+  }
+  function esc(t) { return String(t).replace(/[&<>"']/g, function (ch) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]; }); }
+  function teamName() { return meName() + ' & MOKU'; }
   chars.forEach(function (ch) { ch.x = ch.side * 3; ch.z = 0; ch.tx = ch.x; ch.tz = 0; ch.wait = 0; ch.swing = 0; ch.swingOver = true;
     ch.legT = 0; ch.moving = 0; ch.jump = 0; ch.say = ''; ch.sayT = 0; });
+  var PUNISH_BASE = 0.3, PUNISH_STEP = 0.1;
+  // こちらの判断ミス: 相手に高くて打ちやすい球(真ん中より前)や、ネット前の浮いた球を渡した時
+  function playerGaveChance(ch) {
+    if (!lastHitter || lastHitter.team !== 0) return false;
+    var y = shuttle.p[1], x = Math.abs(shuttle.p[0]);
+    return (y >= 1.85 && x <= 5.0) || (y >= 1.2 && x < 3.0);
+  }
   function setRivals() { // 今の相手のペアを chars[2] / chars[3] に入れる
     var d = STAGES[settings.stage];
     d.pair.forEach(function (key, i) {
       var r = RIVALS[key], ch = chars[2 + i];
       ch.kind = key; ch.name = r.name; ch.pref = r.pref; ch.racket = r.racket;
-      ch.ai = { speed: d.speed + r.spd, react: d.react + (i ? 0.04 : 0), q: d.q, fault: d.fault, smashMul: d.smashMul * r.sm, leave: d.leave };
+      // 相手の強さ(2026-11-27、保護者と決定): 大会ごとに大きく変えない。足の速さ・反応・スマッシュは Match 1 のまま。
+      // 変えるのは2つだけ: ①相手のミス(Late・ミスショット・アウトの球に手を出す)が大会ごとに1割ずつ減る(× 0.9)
+      // ②こちらの判断ミス(打ちごろの球を渡した時)を見のがさず攻める割合が1割ずつ増える(30% → 40% → 50% → 60%)
+      var lv = settings.stage, B = STAGES[0], m = Math.pow(0.9, lv);
+      var late = B.q[2] * m, perf = B.q[0], good = 1 - perf - late;
+      ch.ai = { speed: B.speed + r.spd, react: B.react + (i ? 0.04 : 0), q: [perf, good, late], fault: B.fault * m,
+        smashMul: B.smashMul * r.sm, leave: 1 - (1 - 0.5) * m, punish: PUNISH_BASE + PUNISH_STEP * lv };
     });
     YOU.ai = demo ? MOKU_AI : null;
     document.getElementById('team1').textContent = pairName(settings.stage);
+    document.getElementById('team0').textContent = teamName();
     if (bg && builtCity !== d.city) buildBg();
   }
   function speedOf(ch) { return ch.ai ? ch.ai.speed : ch.speed; }
@@ -772,6 +795,11 @@ body.playing.serving.you-serve #serves { display:flex; }
     if (hits === 1 && ch === receiver && ((recvStance === 'front' && lastServe === 'long') || (recvStance === 'back' && lastServe === 'short'))) q = ['perfect', 'good', 'late'][pickW([0.05, 0.35, 0.6])];
     var f = q === 'late' ? Math.random() < Math.min(0.6, ch.ai.fault * 3) : q === 'good' ? Math.random() < ch.ai.fault * 0.4 : false;
     var type = aiShot(ch);
+    if (ch.team === 1 && ch.ai.punish && playerGaveChance(ch) && Math.random() < ch.ai.punish) {
+      // チャンスを見のがさない: 高い球はスマッシュ、ネット前はプッシュで、空いている所へ。ミスはしない
+      type = shuttle.p[1] >= 1.85 ? 'smash' : canPush(ch, shuttle.p[1]) ? 'push' : type;
+      if (q === 'late') q = 'good'; f = false;
+    }
     if (ch === MOKU && !demo && Math.random() < 0.25) say(MOKU, ['Mine!', 'Got it!', 'Hoo!'][Math.floor(Math.random() * 3)]);
     doHit(ch, type, q, f);
   }
@@ -1140,12 +1168,12 @@ body.playing.serving.you-serve #serves { display:flex; }
     else crowdReact(rally >= 12 ? 'clap' : 'aww');
     if (!demo) {
       var gw = winnerOf();
-      umpCall(gw >= 0 ? 'Game! ' + (gw === 0 ? 'YOU & MOKU' : pairName(settings.stage)) + ' win' : (serviceOver ? 'Service over. ' : '') + scoreCall() + (gamePoint() ? ', game point' : ''), w === 0 ? -1 : 1);
+      umpCall(gw >= 0 ? 'Game! ' + (gw === 0 ? teamName() : pairName(settings.stage)) + ' win' : (serviceOver ? 'Service over. ' : '') + scoreCall() + (gamePoint() ? ', game point' : ''), w === 0 ? -1 : 1);
       if (w === 0 && lastHitter === YOU) ms.you++; else if (w === 0 && lastHitter === MOKU) ms.moku++; else if (w === 0) ms.rivalErr++;
       if (score[1] - score[0] > ms.maxBehind) ms.maxBehind = score[1] - score[0];
       if (w === 0) { progress.pointsWon++; sfx.win(); say(MOKU, ['Yay!', 'We did it!', 'Hoo-hoo!', 'Great teamwork!'][Math.floor(Math.random() * 4)]); }
       else { sfx.lose(); say(MOKU, ['It\'s okay!', 'Next one!', 'We got this!'][Math.floor(Math.random() * 3)]); }
-      showBanner(word, w === 0 ? 'Point for YOU & MOKU!' : 'Point for ' + pairName(settings.stage));
+      showBanner(word, w === 0 ? 'Point for ' + teamName() + '!' : 'Point for ' + pairName(settings.stage));
     }
     updateBoard();
   }
@@ -1204,7 +1232,7 @@ body.playing.serving.you-serve #serves { display:flex; }
       tile('Longest rally', matchBestRally, 'Best: ' + progress.bestRally, rec.rally) +
       tile('Top smash', ms.topSmash ? ms.topSmash + '<em> km/h</em>' : '–', 'Best: ' + (progress.topSmash || '–') + (progress.topSmash ? ' km/h' : ''), rec.smash) +
       tile('PERFECT streak', ms.bestPerfect, 'Best: ' + progress.bestPerfectStreak, rec.perfect) +
-      tile('Winners YOU · MOKU', ms.you + ' · ' + ms.moku, ms.you > ms.moku ? 'You beat Moku! 🦉' : ms.you < ms.moku ? 'Moku wins this time!' : 'Perfect teamwork!', false);
+      tile('Winners ' + esc(meName()) + ' · MOKU', ms.you + ' · ' + ms.moku, ms.you > ms.moku ? esc(meName() === 'YOU' ? 'You' : meName()) + ' beat Moku! 🦉' : ms.you < ms.moku ? 'Moku wins this time!' : 'Perfect teamwork!', false);
     document.getElementById('resultBadges').innerHTML = badges.map(function (b) { return '<span class="badge"><b>' + b[1] + '</b> ' + b[2] + '</span>'; }).join('');
     // 勝って次の相手が開いていれば、次は次の相手
     nextStage = w === 0 && st + 1 < STAGES.length ? st + 1 : st;
@@ -1662,7 +1690,7 @@ body.playing.serving.you-serve #serves { display:flex; }
       c.fillStyle = '#FFD23F'; c.strokeStyle = INK; c.lineWidth = 2;
       c.beginPath(); c.moveTo(t[0] - 7, t[1] - 10 + bounce); c.lineTo(t[0] + 7, t[1] - 10 + bounce); c.lineTo(t[0], t[1] - 1 + bounce); c.closePath(); c.fill(); c.stroke();
       c.font = '800 11px -apple-system,Segoe UI,Roboto,sans-serif'; c.textAlign = 'center';
-      c.lineWidth = 3; c.strokeText('YOU', t[0], t[1] - 13 + bounce); c.fillStyle = '#FFF'; c.fillText('YOU', t[0], t[1] - 13 + bounce);
+      c.lineWidth = 3; var nm = meName(); c.strokeText(nm, t[0], t[1] - 13 + bounce); c.fillStyle = '#FFF'; c.fillText(nm, t[0], t[1] - 13 + bounce);
     }
     if (ch.sayT > 0) { // 吹き出し
       var b = P(ch.x, (ch.kind === 'moku' ? 1.2 : 1.75) * CHAR_SCALE, ch.z); c.font = '800 13px -apple-system,Segoe UI,Roboto,sans-serif'; c.textAlign = 'center';
@@ -1907,8 +1935,9 @@ body.playing.serving.you-serve #serves { display:flex; }
     });
     // YOU & MOKU の印(いまいる所)
     var hm = pts[here]; tourPts = pts;
-    o += '<g id="tourToken" pointer-events="none" transform="translate(' + hm[0] + ' ' + (hm[1] - 40) + ')"><g class="token"><rect x="-58" y="-34" width="116" height="30" rx="15" fill="#4FA3E0" stroke="#4A2E1A" stroke-width="3"/>' +
-      '<text y="-13" font-size="15" font-weight="800" text-anchor="middle" fill="#fff">🏸 YOU &amp; MOKU</text><path d="M-7 -5 L0 6 L7 -5 Z" fill="#4FA3E0" stroke="#4A2E1A" stroke-width="3" stroke-linejoin="round"/></g></g>';
+    var tw = Math.max(116, 46 + Array.from(teamName()).reduce(function (a, ch) { return a + (ch.charCodeAt(0) > 255 ? 15 : 10); }, 0)); // 名前の長さに合わせる
+    o += '<g id="tourToken" pointer-events="none" transform="translate(' + hm[0] + ' ' + (hm[1] - 40) + ')"><g class="token"><rect x="' + (-tw / 2) + '" y="-34" width="' + tw + '" height="30" rx="15" fill="#4FA3E0" stroke="#4A2E1A" stroke-width="3"/>' +
+      '<text y="-13" font-size="15" font-weight="800" text-anchor="middle" fill="#fff">🏸 ' + esc(teamName()) + '</text><path d="M-7 -5 L0 6 L7 -5 Z" fill="#4FA3E0" stroke="#4A2E1A" stroke-width="3" stroke-linejoin="round"/></g></g>';
     document.getElementById('tourSvg').innerHTML = o;
     document.getElementById('tourCount').textContent = nWon + ' / ' + STAGES.length;
     renderStopCard();
@@ -2013,7 +2042,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     if (d.bookMode) { arrow(d.res[d.type].land, '#E2573C', true); arrow(d.res[d.best].land, '#2F9E44', false); } // 図鑑: 赤の点線 = よくあるまちがい、緑 = お手本
     else if (!d.praise && d.best !== d.type) arrow(d.res[d.best].land, '#2F9E44', true);
     if (!d.bookMode) arrow(d.res[d.type].land, d.praise ? '#2F9E44' : '#E2573C', false);
-    var who = [['YOU', '#4FA3E0'], ['M', '#C99366'], [RIVALS[STAGES[settings.stage].pair[0]].name[0], '#B59CF0'], [RIVALS[STAGES[settings.stage].pair[1]].name[0], '#E8A65A']];
+    var who = [[meName() === 'YOU' ? 'YOU' : Array.from(meName()).slice(0, 2).join(''), '#4FA3E0'], ['M', '#C99366'], [RIVALS[STAGES[settings.stage].pair[0]].name[0], '#B59CF0'], [RIVALS[STAGES[settings.stage].pair[1]].name[0], '#E8A65A']];
     d.pos.forEach(function (q, i) {
       g.fillStyle = who[i][1]; g.strokeStyle = '#4A2E1A'; g.lineWidth = 2.5; g.beginPath(); g.arc(X(q[0]), Z(q[1]), i ? 13 : 16, 0, TAU); g.fill(); g.stroke();
       g.fillStyle = '#fff'; g.font = '800 ' + (i ? 13 : 11) + 'px -apple-system,Segoe UI,Roboto,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(who[i][0], X(q[0]), Z(q[1]) + 1);
@@ -2060,7 +2089,7 @@ body.playing.serving.you-serve #serves { display:flex; }
       tile('Longest rally', pr.bestRally || '–', 'shots in a row') +
       tile('Top smash', pr.topSmash ? pr.topSmash + '<em> km/h</em>' : '–', 'try a JUMP SMASH!') +
       tile('PERFECT streak', pr.bestPerfectStreak || '–', 'in one match') +
-      tile('YOU · MOKU', pr.youWinners + ' · ' + pr.mokuWinners, t ? 'You ' + Math.round(pr.youWinners / t * 100) + '% of the team' : 'all matches') +
+      tile(esc(meName()) + ' · MOKU', pr.youWinners + ' · ' + pr.mokuWinners, t ? esc(meName() === 'YOU' ? 'You' : meName()) + ' ' + Math.round(pr.youWinners / t * 100) + '% of the team' : 'all matches') +
       tile('Matches', pr.played, pr.wins + ' won · ' + pr.losses + ' lost') +
       tile('Masters won', Object.keys(pr.beaten).length + ' / ' + STAGES.length, 'tournaments') +
       tile('Tactics', pr.tacticsBest != null ? pr.tacticsBest + '%' : '–', pr.tacticsLast != null ? 'last match ' + pr.tacticsLast + '%' : 'see 🧠 Review after a match');
