@@ -316,7 +316,7 @@ body.playing.serving.you-serve #serves { display:flex; }
   background:rgba(255,246,230,.92); border:2px solid var(--ink); border-radius:999px; padding:4px 14px; font-size:12.5px; font-weight:800;
   display:none; white-space:nowrap; }
 #hint.show { display:block; }
-#banner { position:fixed; left:0; right:0; top:34%; z-index:330; text-align:center; pointer-events:none; display:none; }
+#banner { position:fixed; left:0; right:0; top:34%; z-index:650; text-align:center; pointer-events:none; display:none; }
 #banner.show { display:block; animation:pop .35s cubic-bezier(.2,1.6,.4,1); }
 #banner .big { display:inline-block; font-size:clamp(24px, 8vh, 40px); font-weight:800; color:#fff; -webkit-text-stroke:2px var(--ink);
   text-shadow:0 4px 0 var(--ink); letter-spacing:.04em; }
@@ -345,7 +345,7 @@ body.playing.serving.you-serve #serves { display:flex; }
 </head>
 <body class="on-title">
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
-<div id="buildInfo">v0.10.5 · Updated Nov 27, 2026</div>
+<div id="buildInfo">v0.10.6 · Updated Nov 27, 2026</div>
 
 <canvas id="cv"></canvas>
 
@@ -1186,7 +1186,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     badges.forEach(function (b) { progress.badges[b[0]] = (progress.badges[b[0]] || 0) + 1; });
     if (w === 0) {
       var key = STAGES[st].pair.join('-'); progress.beaten[key] = (progress.beaten[key] || 0) + 1;
-      if (st + 1 < STAGES.length && progress.unlocked < st + 2) { progress.unlocked = st + 2; opened = true; }
+      if (st + 1 < STAGES.length && progress.unlocked < st + 2) { progress.unlocked = st + 2; opened = true; pendingFly = { from: st, to: st + 1 }; }
     }
     saveProgress();
     if (w === 0) sfx.fanfare();
@@ -1202,7 +1202,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     document.getElementById('resultBadges').innerHTML = badges.map(function (b) { return '<span class="badge"><b>' + b[1] + '</b> ' + b[2] + '</span>'; }).join('');
     // 勝って次の相手が開いていれば、次は次の相手
     nextStage = w === 0 && st + 1 < STAGES.length ? st + 1 : st;
-    document.getElementById('againBtn').textContent = nextStage !== st ? '▶ Next Match' : w === 0 ? '▶ Play Again' : '▶ Try Again';
+    document.getElementById('againBtn').textContent = nextStage !== st ? '✈️ Fly to the next city' : w === 0 ? '▶ Play Again' : '▶ Try Again';
     var rb = document.getElementById('reviewBtn'); rb.style.display = review.cards.length ? '' : 'none';
     rb.innerHTML = '🧠 Review <small>Tactics ' + review.tactics + '%</small>';
     setTimeout(function () { show('result', true); }, 700);
@@ -1883,7 +1883,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     var o = tourBase, pts = STAGES.map(function (d) { var pl = PLACES_T[d.city], m = MP(pl.at[0], pl.at[1]); return [m[0] + pl.off[0], m[1] + pl.off[1]]; });
     for (var i = 0; i < pts.length - 1; i++) { // 道すじ: 勝った所までは実線、その先は点線
       var c0 = MP(ROUTE_CTRL[i][0], ROUTE_CTRL[i][1]), done = won(i) && i + 1 < progress.unlocked;
-      o += '<path d="M' + pts[i].join(' ') + ' Q' + c0.join(' ') + ' ' + pts[i + 1].join(' ') + '" fill="none" stroke="' + (done ? '#E0A21B' : '#4A2E1A') + '" stroke-width="' + (done ? 7 : 4) + '" stroke-dasharray="' + (done ? '0' : '4 12') + '" stroke-linecap="round" opacity="' + (done ? 1 : .6) + '"/>';
+      o += '<path id="tseg' + i + '" d="M' + pts[i].join(' ') + ' Q' + c0.join(' ') + ' ' + pts[i + 1].join(' ') + '" fill="none" stroke="' + (done ? '#E0A21B' : '#4A2E1A') + '" stroke-width="' + (done ? 7 : 4) + '" stroke-dasharray="' + (done ? '0' : '4 12') + '" stroke-linecap="round" opacity="' + (done ? 1 : .6) + '"/>';
     }
     STAGES.forEach(function (d, i) {
       var pl = PLACES_T[d.city], m = pts[i], open = i < progress.unlocked, w = won(i), sel = i === settings.stage;
@@ -1900,8 +1900,8 @@ body.playing.serving.you-serve #serves { display:flex; }
       o += '</g>';
     });
     // YOU & MOKU の印(いまいる所)
-    var hm = pts[here];
-    o += '<g pointer-events="none" transform="translate(' + hm[0] + ' ' + (hm[1] - 40) + ')"><g class="token"><rect x="-58" y="-34" width="116" height="30" rx="15" fill="#4FA3E0" stroke="#4A2E1A" stroke-width="3"/>' +
+    var hm = pts[here]; tourPts = pts;
+    o += '<g id="tourToken" pointer-events="none" transform="translate(' + hm[0] + ' ' + (hm[1] - 40) + ')"><g class="token"><rect x="-58" y="-34" width="116" height="30" rx="15" fill="#4FA3E0" stroke="#4A2E1A" stroke-width="3"/>' +
       '<text y="-13" font-size="15" font-weight="800" text-anchor="middle" fill="#fff">🏸 YOU &amp; MOKU</text><path d="M-7 -5 L0 6 L7 -5 Z" fill="#4FA3E0" stroke="#4A2E1A" stroke-width="3" stroke-linejoin="round"/></g></g>';
     document.getElementById('tourSvg').innerHTML = o;
     document.getElementById('tourCount').textContent = nWon + ' / ' + STAGES.length;
@@ -1945,11 +1945,42 @@ body.playing.serving.you-serve #serves { display:flex; }
     introBanner = true; setTimeout(function () { if (introBanner) hideBanner(); introBanner = false; umpCall('Love all, play!');
       var tl = LESSONS[progress.tipLesson]; if (tl && !demo) { say(MOKU, tl.tip); MOKU.sayT = 3.5; } }, 1800);
   }
+  // ── 勝って次の街が開いた時: 地図の上を YOU & MOKU が次の街へ飛ぶ(2026-11-27)──
+  var pendingFly = null, tourPts = null;
+  function flyToNext(f) {
+    var tok = document.getElementById('tourToken'), seg = document.getElementById('tseg' + f.from), svg = document.getElementById('tourSvg');
+    if (!tok || !tourPts) return;
+    var a = tourPts[f.from], b = tourPts[f.to], cp = ROUTE_CTRL[f.from], c0 = MP(cp[0], cp[1]);
+    var len = seg ? seg.getTotalLength() : 0;
+    if (seg) { seg.style.strokeDasharray = len; seg.style.strokeDashoffset = len; }
+    var plane = document.createElementNS('http://www.w3.org/2000/svg', 'text'); // 飛んでいる間だけ ✈️
+    plane.setAttribute('font-size', '34'); plane.setAttribute('text-anchor', 'middle'); plane.textContent = '✈️'; svg.appendChild(plane);
+    document.getElementById('playBtn').disabled = true;
+    setTimeout(function () { tone(520, 880, 0.5, 0.08, 'triangle'); }, 500); // ひゅーん
+    var t0 = performance.now() + 500, DUR = 2200; // 地図を見せてから 0.5 秒後に飛び立つ
+    function step(now2) {
+      var u = Math.max(0, Math.min(1, (now2 - t0) / DUR)), e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2, k = 1 - e;
+      var x = k * k * a[0] + 2 * k * e * c0[0] + e * e * b[0], y = k * k * a[1] + 2 * k * e * c0[1] + e * e * b[1];
+      var lift = Math.sin(u * Math.PI) * 70; // 弧をえがいて少し高く
+      tok.setAttribute('transform', 'translate(' + x + ' ' + (y - 40 - lift) + ') scale(' + (1 + Math.sin(u * Math.PI) * 0.25) + ')');
+      var dx = 2 * k * (c0[0] - a[0]) + 2 * e * (b[0] - c0[0]), dy = 2 * k * (c0[1] - a[1]) + 2 * e * (b[1] - c0[1]);
+      plane.setAttribute('transform', 'translate(' + (x + 70) + ' ' + (y - 70 - lift) + ') rotate(' + (Math.atan2(dy, dx) * 180 / Math.PI + 45) + ')');
+      if (seg) seg.style.strokeDashoffset = len * (1 - e);
+      if (u < 1) requestAnimationFrame(step);
+      else {
+        plane.remove(); sfx.fanfare(); renderTour();
+        var nm = PLACES_T[STAGES[f.to].city].city;
+        showBanner('NEXT STOP!', '✈️ Welcome to ' + nm + '!'); setTimeout(hideBanner, 1800);
+      }
+    }
+    requestAnimationFrame(step);
+  }
   function toTitle() {
     demo = true; paused = false; phase = 'title';
     show('result', false); show('pause', false); show('title', true); hideBanner(); hideHint();
     document.body.classList.add('on-title'); document.body.classList.remove('playing', 'serving', 'you-serve');
     syncOpts(); resetMatch(); setupServe();
+    if (pendingFly) { var f = pendingFly; pendingFly = null; settings.stage = f.to; saveSettings(); setRivals(); renderTour(); flyToNext(f); }
   }
   function setPause(on) {
     if (on && (phase === 'title' || phase === 'over' || demo)) return;
@@ -2097,7 +2128,10 @@ body.playing.serving.you-serve #serves { display:flex; }
     var b = progress.book || {}; bookShow(BOOK_ORDER.filter(function (x) { return b[x]; })[0] || 'attack'); show('book', true);
   });
   document.getElementById('bookClose').addEventListener('click', function () { show('book', false); });
-  document.getElementById('againBtn').addEventListener('click', function () { settings.stage = nextStage; saveSettings(); startMatch(); });
+  document.getElementById('againBtn').addEventListener('click', function () {
+    if (pendingFly) { toTitle(); return; } // 次の街が開いた時は、まず地図で飛ぶのを見せる
+    settings.stage = nextStage; saveSettings(); startMatch();
+  });
   document.getElementById('menuBtn').addEventListener('click', toTitle);
   document.getElementById('resumeBtn').addEventListener('click', function () { setPause(false); });
   document.getElementById('quitBtn').addEventListener('click', toTitle);
