@@ -49,6 +49,9 @@
     ページごとに、お手本の図(緑 = 正しいショット、赤の点線 = よくあるまちがい)・やり方・合言葉・自分の成績と ⭐
     (⭐ 覚えた / ⭐⭐ 良い判断 10 回以上で 60% 以上 / ⭐⭐⭐ 30 回以上で 80% 以上 = Master)。
     Try it(その場面をもう一度打つ練習)は保留(2026-11-27、保護者)。
+  - v0.8.4: レッスンは文字のバーではなくカードのグリッドに(Lesson 6〜10 が増えても並ぶ)。カードはアイコンと名前・動くお手本
+    (ミニコートで相手から球が来て、YOU が緑の正しいショットを打つ。赤の点線と ✗ はよくあるまちがい)・小さいバーと %。
+    タップ / マウスで下にくわしい説明。
   - v0.8.1: レッスンのバー(Review と Records)の各行に「Next time: …」の短いヒント。行にマウスを乗せる / タップすると、
     くわしい説明(Tactics Book と同じ文)が出る。
   - ルールは新しい 15 点制の1ゲームだけ(14-14 からは2点差、21 点で終わり)。サーブのコートは本物どおり。
@@ -142,29 +145,25 @@ body.ov #hub-link, body.ov #buildInfo, body:not(.on-title) #title-frame, body:no
   #resultTitle { font-size:20px; } #resultScore { font-size:28px; margin:0; }
   .stats { margin:9px 0 0; gap:5px; } .stat { padding:3px 5px 2px; } .stat.new { padding-top:8px; } .stat i { top:-8px; font-size:8.5px; } .stat b { font-size:15px; } .stat span, .stat small { font-size:9.5px; }
 }
-.lbars { width:min(560px, 78vw); margin:8px auto 2px; display:flex; flex-direction:column; gap:4px; text-align:left; }
-.lbHead { font-size:11px; font-weight:800; opacity:.6; margin-bottom:1px; }
-.lb { display:grid; grid-template-columns:minmax(0,190px) 1fr 70px; align-items:center; gap:8px; position:relative;
-  padding:3px 8px; border-radius:10px; border:2px solid transparent; }
-.lb.weak { border-color:#E2573C; background:#FFF0EA; }
-.lb .lt { font-size:12.5px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.lb .bar { height:12px; background:#EFE6D6; border:2px solid var(--ink); border-radius:999px; overflow:hidden; }
-.lb .bar i { display:block; height:100%; border-radius:999px; }
-.lb .lp { font-size:14px; font-weight:800; text-align:right; } .lb .lp small { font-size:10px; opacity:.55; margin-left:4px; }
-.lb { cursor:pointer; }
-.lb .qm { display:inline-block; width:15px; height:15px; line-height:13px; text-align:center; border-radius:50%; border:1.5px solid var(--ink);
-  font-size:10px; opacity:.45; margin-left:2px; vertical-align:1px; }
-.lb .nx { grid-column:1 / -1; font-size:11px; font-weight:700; color:#2F6B2C; margin-top:-2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.lb.weak .nx { color:#B4361F; }
-.lb .pop { display:none; pointer-events:none; position:absolute; left:8px; right:8px; top:calc(100% + 4px); z-index:5; background:#fff; border:2px solid var(--ink);
-  border-radius:12px; padding:8px 10px; font-size:12.5px; font-weight:700; line-height:1.35; box-shadow:0 6px 16px rgba(74,46,26,.25); text-align:left; }
-.lb .pop b { display:block; margin-bottom:3px; } .lb .pop i { display:block; margin-top:4px; font-style:normal; color:#2F7D32; font-weight:800; }
-.lb:nth-last-child(-n+2) .pop { top:auto; bottom:calc(100% + 4px); }
-.lb.open .pop { display:block; }
-@media (hover:hover) and (pointer:fine) { .lb:hover .pop, .lb:focus .pop { display:block; } .lb:hover { background:rgba(79,163,224,.08); } }
-.lb em { position:absolute; left:50%; transform:translateX(-50%); top:-10px; background:#E2573C; color:#fff; font-style:normal; font-size:9.5px; font-weight:800;
-  padding:1px 7px; border-radius:999px; border:1.5px solid var(--ink); }
-@media (max-height:400px) { .lbars { gap:1px; margin:4px 0 0; } .lb { padding:0 8px; row-gap:0; } .lb .nx { font-size:10px; } .lb .lt { font-size:11.5px; } .lb .bar { height:10px; } .lb .lp { font-size:12.5px; } }
+.lbars { width:100%; margin:8px auto 2px; text-align:left; }
+.lbHead { font-size:11px; font-weight:800; opacity:.6; margin-bottom:4px; }
+/* レッスンのカード: アイコンと名前・動くお手本(ミニコート)・小さいバー。レッスンが 10 になっても並ぶグリッド */
+.lgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(124px, 1fr)); gap:8px; }
+.ltile { position:relative; background:#fff; border:2px solid var(--ink); border-radius:12px; padding:5px 6px 6px; cursor:pointer; text-align:center; }
+.ltile:hover, .ltile.sel { box-shadow:0 0 0 3px var(--hi); }
+.ltile.weak { border-color:#E2573C; background:#FFF0EA; }
+.ltile .lt { font-size:11.5px; font-weight:800; line-height:1.2; min-height:2.4em; display:flex; align-items:center; justify-content:center; }
+.ltile canvas { position:static; inset:auto; display:block; width:100%; height:auto; margin:3px 0 4px; border-radius:6px; }
+.ltile .lrow { display:flex; align-items:center; justify-content:center; gap:6px; }
+.ltile .bar { width:52px; height:8px; background:#EFE6D6; border:1.5px solid var(--ink); border-radius:999px; overflow:hidden; flex:none; }
+.ltile .bar i { display:block; height:100%; border-radius:999px; }
+.ltile .lp { font-size:13px; font-weight:800; } .ltile .lp small { font-size:9.5px; opacity:.55; margin-left:2px; }
+.ltile em { position:absolute; left:50%; transform:translateX(-50%); top:-10px; background:#E2573C; color:#fff; font-style:normal; font-size:9.5px; font-weight:800;
+  padding:1px 7px; border-radius:999px; border:1.5px solid var(--ink); white-space:nowrap; }
+.ldetail { margin-top:8px; min-height:36px; font-size:12.5px; font-weight:700; line-height:1.35; padding:6px 10px; border-radius:10px; background:rgba(79,163,224,.08); }
+.ldetail b { font-weight:800; } .ldetail i { font-style:normal; color:#2F7D32; font-weight:800; margin-left:6px; }
+.ldetail.hint { opacity:.6; text-align:center; background:none; }
+@media (max-height:400px) { .lgrid { gap:5px; grid-template-columns:repeat(auto-fill, minmax(104px, 1fr)); } .ltile { padding:3px 4px 4px; } .ltile .lt { font-size:10.5px; } .ltile canvas { margin:2px 0 3px; } .ldetail { margin-top:5px; font-size:11.5px; padding:4px 8px; min-height:0; } }
 #bkTabs { display:flex; gap:6px; justify-content:center; margin:6px 0 2px; flex-wrap:wrap; }
 #bkTabs button { border:2px solid var(--ink); background:#fff; border-radius:12px; padding:3px 9px; font-weight:800; font-size:13px; color:var(--ink); min-width:52px; }
 #bkTabs button small { display:block; font-size:9px; letter-spacing:-.5px; color:#E0A21B; height:11px; }
@@ -193,6 +192,7 @@ body.ov #hub-link, body.ov #buildInfo, body:not(.on-title) #title-frame, body:no
 #records { padding:calc(var(--sat) + 2.5vh) calc(var(--sar) + 2.5vw) calc(var(--sab) + 2.5vh) calc(var(--sal) + 2.5vw); }
 #records .card { width:95vw; max-width:100%; max-height:95vh; }
 #records .lbars { width:100%; }
+#rvSummary { width:min(720px, 86vw); }
 #records .stats { grid-template-columns:repeat(4, minmax(0,1fr)); }
 #resultSub { font-size:13px; font-weight:700; opacity:.75; }
 
@@ -267,7 +267,7 @@ body.playing.serving.you-serve #serves { display:flex; }
 <body class="on-title">
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
 <a id="hub-link" href="hub.html">🏠 Home</a>
-<div id="buildInfo">v0.8.3 · Updated Nov 27, 2026</div>
+<div id="buildInfo">v0.8.4 · Updated Nov 27, 2026</div>
 
 <canvas id="cv"></canvas>
 
@@ -710,22 +710,66 @@ body.playing.serving.you-serve #serves { display:flex; }
   };
   var FIVE = ['attack', 'back', 'net', 'space', 'serve']; // レッスンごとの Tactics score を出す5つ
   // バーの一覧(弱いレッスン = いちばん低い % に「Your habit」)
-  function lessonBars(per, minN) {
+  // レッスンのカード(5 つ。Lesson 6〜10 もこの LESSON_LIST に足せば同じように並ぶ)
+  function lessonTiles(per, minN) {
     var weak = null;
     FIVE.forEach(function (k) { var q = per[k]; if (q && q.n >= minN) { var r = q.g / q.n; if (!weak || r < weak.r) weak = { k: k, r: r }; } });
     if (weak && weak.r >= 0.8) weak = null;
-    return FIVE.map(function (k) {
+    return '<div class="lgrid">' + FIVE.map(function (k) {
       var q = per[k] || { n: 0, g: 0 }, L = LESSONS[k], pc = q.n ? Math.round(q.g / q.n * 100) : null;
       var col = pc == null ? '#CFCCC7' : pc >= 80 ? '#4E9A4A' : pc >= 50 ? '#E0A21B' : '#E2573C';
-      // 各行: 次にどうするかのヒント(1行)。マウスを乗せる / タップで、くわしい説明(Tactics Book と同じ文)
-      var nx = pc == null ? NEXT_TIP[k] : pc >= 80 ? '👍 Keep it up! ' + NEXT_TIP[k] : 'Next time: ' + NEXT_TIP[k];
-      return '<div class="lb' + (weak && weak.k === k ? ' weak' : '') + '" data-k="' + k + '" tabindex="0"><span class="lt">' + L.icon + ' ' + L.title + ' <b class="qm">?</b></span>' +
-        '<span class="bar"><i style="width:' + (pc || 0) + '%;background:' + col + '"></i></span>' +
-        '<span class="lp">' + (pc == null ? '–' : pc + '%') + '<small>' + (q.n ? q.g + '/' + q.n : '') + '</small></span>' +
-        '<span class="nx">' + nx + '</span>' +
-        '<span class="pop"><b>' + L.icon + ' ' + L.title + '</b>' + BOOK[k].how + '<i>✔ ' + BOOK[k].remember + '</i></span>' +
-        (weak && weak.k === k ? '<em>Your habit!</em>' : '') + '</div>';
-    }).join('');
+      return '<div class="ltile' + (weak && weak.k === k ? ' weak' : '') + '" data-k="' + k + '" tabindex="0">' +
+        (weak && weak.k === k ? '<em>Your habit!</em>' : '') +
+        '<div class="lt">' + L.icon + ' ' + L.title + '</div>' +
+        '<canvas class="lanim" data-k="' + k + '" width="320" height="180"></canvas>' +
+        '<div class="lrow"><span class="bar"><i style="width:' + (pc || 0) + '%;background:' + col + '"></i></span>' +
+        '<span class="lp" title="' + (q.n ? q.g + ' good / ' + q.n : '') + '">' + (pc == null ? '–' : pc + '%') + '</span></div></div>';
+    }).join('') + '</div><div class="ldetail hint">Tap a lesson to learn more</div>';
+  }
+  // お手本のアニメーション(GIF のようにくり返す): 相手から球が来る → YOU が打つ → 緑の正しいショットで落ちる。赤の点線と ✗ はよくあるまちがい
+  function drawLessonAnim(cv2, k, t) {
+    var g = cv2.getContext('2d'), Wd = 320, Hd = 180, ex = BOOK[k].ex, T = t % 2.8;
+    function X(x) { return 160 + x * 21; } function Z(z) { return 90 + z * 21; }
+    g.clearRect(0, 0, Wd, Hd); g.fillStyle = '#E2A766'; g.fillRect(0, 0, Wd, Hd);
+    g.fillStyle = '#8CCB8E'; g.strokeStyle = '#4A2E1A'; g.lineWidth = 3; g.fillRect(X(-HL), Z(-HW), HL * 42, HW * 42); g.strokeRect(X(-HL), Z(-HW), HL * 42, HW * 42);
+    g.strokeStyle = '#FFF8E7'; g.lineWidth = 1.5;
+    [[-HL, -SW, HL, -SW], [-HL, SW, HL, SW], [-LSL, -HW, -LSL, HW], [LSL, -HW, LSL, HW], [-SSL, -HW, -SSL, HW], [SSL, -HW, SSL, HW], [-HL, 0, -SSL, 0], [SSL, 0, HL, 0]].forEach(function (l) { g.beginPath(); g.moveTo(X(l[0]), Z(l[1])); g.lineTo(X(l[2]), Z(l[3])); g.stroke(); });
+    g.strokeStyle = '#4A2E1A'; g.lineWidth = 3; g.beginPath(); g.moveTo(X(0), Z(-HW) - 4); g.lineTo(X(0), Z(HW) + 4); g.stroke();
+    var x0 = X(ex.p[0]), z0 = Z(ex.p[2]);
+    function curve(to) { var x1 = X(to[0]), z1 = Z(to[1]); return [x0, z0, (x0 + x1) / 2, Math.min(z0, z1) - 20, x1, z1]; }
+    function at(cv, u) { var a = 1 - u; return [a * a * cv[0] + 2 * a * u * cv[2] + u * u * cv[4], a * a * cv[1] + 2 * a * u * cv[3] + u * u * cv[5]]; }
+    var bad = curve(ex.land[ex.type]), good = curve(ex.land[ex.best]);
+    g.strokeStyle = 'rgba(226,87,60,.55)'; g.lineWidth = 2.5; g.setLineDash([6, 5]); g.beginPath(); g.moveTo(bad[0], bad[1]); g.quadraticCurveTo(bad[2], bad[3], bad[4], bad[5]); g.stroke(); g.setLineDash([]);
+    g.strokeStyle = '#E2573C'; g.lineWidth = 3; g.beginPath(); g.moveTo(bad[4] - 6, bad[5] - 6); g.lineTo(bad[4] + 6, bad[5] + 6); g.moveTo(bad[4] + 6, bad[5] - 6); g.lineTo(bad[4] - 6, bad[5] + 6); g.stroke();
+    var who = [['#4FA3E0', 9], ['#C99366', 7], ['#B59CF0', 7], ['#E8A65A', 7]];
+    ex.pos.forEach(function (q, i) { g.fillStyle = who[i][0]; g.strokeStyle = '#4A2E1A'; g.lineWidth = 2; g.beginPath(); g.arc(X(q[0]), Z(q[1]), who[i][1], 0, TAU); g.fill(); g.stroke(); });
+    var sh, serve = k === 'serve', u;
+    if (T < 0.8 && !serve) { u = T / 0.8; var src = [X(ex.pos[2][0]), Z(ex.pos[2][1])]; sh = [src[0] + (x0 - src[0]) * u, src[1] + (z0 - src[1]) * u - Math.sin(u * Math.PI) * 22]; }
+    else if (T < 0.95) { sh = [x0, z0]; }
+    else {
+      u = Math.min(1, (T - 0.95) / 0.9);
+      g.strokeStyle = '#2F9E44'; g.lineWidth = 4; g.beginPath(); g.moveTo(good[0], good[1]);
+      for (var s2 = 1; s2 <= 20; s2++) { var pp = at(good, u * s2 / 20); g.lineTo(pp[0], pp[1]); } g.stroke();
+      sh = at(good, u);
+      if (u >= 1) { var ring = (T - 1.85) / 0.95; g.strokeStyle = 'rgba(47,158,68,' + (1 - ring) + ')'; g.lineWidth = 3; g.beginPath(); g.arc(good[4], good[5], 6 + ring * 14, 0, TAU); g.stroke(); }
+    }
+    if (T >= 0.8 && T < 1.1) { var f = (T - 0.8) / 0.3; g.strokeStyle = 'rgba(255,200,60,' + (1 - f) + ')'; g.lineWidth = 3; g.beginPath(); g.arc(x0, z0, 8 + f * 12, 0, TAU); g.stroke(); }
+    g.fillStyle = '#fff'; g.strokeStyle = '#4A2E1A'; g.lineWidth = 2; g.beginPath(); g.arc(sh[0], sh[1], 4.5, 0, TAU); g.fill(); g.stroke();
+    g.font = '800 16px -apple-system,Segoe UI,Roboto,sans-serif'; g.textAlign = 'left'; g.fillStyle = '#2F7D32'; g.strokeStyle = '#fff'; g.lineWidth = 4;
+    g.strokeText(SHOT_NAME[ex.best], 8, 20); g.fillText(SHOT_NAME[ex.best], 8, 20);
+  }
+  var animOn = false;
+  function lessonAnimLoop(ts) {
+    var list = Array.prototype.filter.call(document.querySelectorAll('canvas.lanim'), function (cv2) { return cv2.offsetParent; });
+    if (!list.length) { animOn = false; return; }
+    list.forEach(function (cv2) { drawLessonAnim(cv2, cv2.getAttribute('data-k'), ts / 1000); });
+    requestAnimationFrame(lessonAnimLoop);
+  }
+  function startLessonAnims() { if (!animOn) { animOn = true; requestAnimationFrame(lessonAnimLoop); } }
+  function lessonDetail(tile) {
+    var box = tile.closest('.lbars').querySelector('.ldetail'), k = tile.getAttribute('data-k'), L = LESSONS[k];
+    Array.prototype.forEach.call(tile.parentNode.children, function (t) { t.classList.toggle('sel', t === tile); });
+    box.className = 'ldetail'; box.innerHTML = '<b>' + L.icon + ' ' + L.title + ':</b> ' + BOOK[k].how + '<i>✔ ' + BOOK[k].remember + '</i>';
   }
   var NEXT_TIP = { // 次にどうするか(短く)
     attack: 'High ball in the middle → SMASH',
@@ -734,11 +778,9 @@ body.playing.serving.you-serve #serves { display:flex; }
     space: 'Rivals close to the net → CLEAR to the back',
     serve: 'Receiver close → LONG serve · far back → SHORT'
   };
-  document.addEventListener('click', function (e) { // タッチの端末: タップで説明を開く / 閉じる
-    var row = e.target.closest && e.target.closest('.lb');
-    Array.prototype.forEach.call(document.querySelectorAll('.lb.open'), function (r) { if (r !== row) r.classList.remove('open'); });
-    if (row) row.classList.toggle('open');
-  });
+  // レッスンのカード: タップ / マウスを乗せると、下にくわしい説明
+  document.addEventListener('click', function (e) { var t = e.target.closest && e.target.closest('.ltile'); if (t) lessonDetail(t); });
+  document.addEventListener('mouseover', function (e) { var t = e.target.closest && e.target.closest('.ltile'); if (t) lessonDetail(t); });
   var SHOT_NAME = { smash: 'SMASH', clear: 'CLEAR', drop: 'DROP', net: 'NET', short: 'SHORT SERVE', long: 'LONG SERVE' };
   function noteDecision(type, q, serve, jump) {
     if (demo) return;
@@ -1665,7 +1707,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     document.getElementById('rvCount').textContent = (rvIdx + 1) + ' / ' + cards.length;
     if (d.summary) { // 1枚目: 全体とレッスンごとの Tactics score
       document.getElementById('rvTitle').textContent = 'Tactics ' + review.tactics + '% · this match';
-      sum.innerHTML = lessonBars(review.per, 2); sum.style.display = ''; body.style.display = 'none';
+      sum.innerHTML = lessonTiles(review.per, 2); sum.style.display = ''; body.style.display = 'none'; startLessonAnims();
       return;
     }
     sum.style.display = 'none'; body.style.display = '';
@@ -1701,10 +1743,10 @@ body.playing.serving.you-serve #serves { display:flex; }
       tile('Matches', pr.played, pr.wins + ' won · ' + pr.losses + ' lost') +
       tile('Masters won', Object.keys(pr.beaten).length + ' / ' + STAGES.length, 'tournaments') +
       tile('Tactics', pr.tacticsBest != null ? pr.tacticsBest + '%' : '–', pr.tacticsLast != null ? 'last match ' + pr.tacticsLast + '%' : 'see 🧠 Review after a match');
-    document.getElementById('recordsLessons').innerHTML = pr.lessonStats ? '<div class="lbHead">Tactics by lesson (all matches)</div>' + lessonBars(pr.lessonStats, 3) : '';
+    document.getElementById('recordsLessons').innerHTML = pr.lessonStats ? '<div class="lbHead">Tactics by lesson (all matches)</div>' + lessonTiles(pr.lessonStats, 3) : '';
     var B = [['shutout', '🛡️ SHUTOUT', 'Win 15–0'], ['comeback', '🔥 COMEBACK', 'Win from 5+ points behind']];
     document.getElementById('recordsBadges').innerHTML = B.map(function (b) { var n = pr.badges[b[0]] || 0; return '<span class="badge" style="' + (n ? '' : 'opacity:.45;border-style:dashed') + '"><b>' + b[1] + '</b> ' + (n ? '×' + n : b[2]) + '</span>'; }).join('');
-    show('records', true);
+    show('records', true); startLessonAnims();
   });
   document.getElementById('recordsClose').addEventListener('click', function () { show('records', false); });
 
