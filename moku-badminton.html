@@ -45,7 +45,10 @@
     Tactics score(良い判断の割合)を Records に、いちばん多かったミスを次の試合の前に Moku がひとこと。
     v0.7.1: 5 つのレッスンごとにも Tactics score(その場面で良い判断をした割合。クセが分かる)。Review の1枚目と Records に
     バーで出し、いちばん低いレッスン(80% 未満)に「Your habit!」。
-    次: Tactics Book(学んだレッスンの図鑑)→ Try it(その場面をもう一度打つ練習)。
+  - Tactics Book(v0.8.0): タイトルの「📖 Book」。Review のカードに出たレッスン(6つ)が図鑑のようにたまる(Review に「📖 NEW」)。
+    ページごとに、お手本の図(緑 = 正しいショット、赤の点線 = よくあるまちがい)・やり方・合言葉・自分の成績と ⭐
+    (⭐ 覚えた / ⭐⭐ 良い判断 10 回以上で 60% 以上 / ⭐⭐⭐ 30 回以上で 80% 以上 = Master)。
+    Try it(その場面をもう一度打つ練習)は保留(2026-11-27、保護者)。
   - ルールは新しい 15 点制の1ゲームだけ(14-14 からは2点差、21 点で終わり)。サーブのコートは本物どおり。
   作る順番: ①コートとシャトル ②自動で走る・ボタン ③ルール ④CPU ⑤キャラを作る画面・タイトル・結果 ⑥ハブ・SPEC。
   v0.1.0 は ①〜④ と仮のタイトル・結果(子どもたちにスマホで手ざわりを試してもらう版)。
@@ -151,6 +154,17 @@ body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-ti
 .lb em { position:absolute; left:50%; transform:translateX(-50%); top:-10px; background:#E2573C; color:#fff; font-style:normal; font-size:9.5px; font-weight:800;
   padding:1px 7px; border-radius:999px; border:1.5px solid var(--ink); }
 @media (max-height:400px) { .lbars { gap:2px; margin:4px 0 0; } .lb { padding:1px 8px; } .lb .lt { font-size:11.5px; } .lb .bar { height:10px; } .lb .lp { font-size:12.5px; } }
+#bkTabs { display:flex; gap:6px; justify-content:center; margin:6px 0 2px; flex-wrap:wrap; }
+#bkTabs button { border:2px solid var(--ink); background:#fff; border-radius:12px; padding:3px 9px; font-weight:800; font-size:13px; color:var(--ink); min-width:52px; }
+#bkTabs button small { display:block; font-size:9px; letter-spacing:-.5px; color:#E0A21B; height:11px; }
+#bkTabs button.on { background:var(--hi); color:#fff; } #bkTabs button.locked { border-style:dashed; opacity:.5; }
+#bkCanvas { position:static; inset:auto; width:46%; max-width:340px; height:auto; border-radius:10px; flex:none; }
+#bkCanvas.locked { filter:grayscale(1) opacity(.35); }
+#bkTitle { font-size:16px; font-weight:800; margin-bottom:4px; }
+#bkHow { font-size:13px; font-weight:700; line-height:1.35; }
+#bkRemember { margin-top:6px; font-size:12.5px; font-weight:800; color:#2F7D32; }
+#bkStats { margin-top:6px; font-size:12px; font-weight:800; opacity:.75; }
+@media (max-height:400px) { #bkTabs { margin:3px 0 0; } #bkTabs button { padding:1px 7px; font-size:12px; } #bkTitle { font-size:14px; } #bkHow { font-size:11.5px; } #bkCanvas { width:40%; } }
 .review-btn { background:linear-gradient(#B59CF0,#7C5CD6) !important; }
 .review-btn small { font-size:12px; opacity:.9; }
 .rv { max-width:760px; text-align:left; }
@@ -238,7 +252,7 @@ body.playing.serving.you-serve #serves { display:flex; }
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
 <div id="title-frame"></div>
 <a id="hub-link" href="hub.html">🦉 Moku Series ▶</a>
-<div id="buildInfo">v0.7.1 · Updated Nov 27, 2026</div>
+<div id="buildInfo">v0.8.0 · Updated Nov 27, 2026</div>
 
 <canvas id="cv"></canvas>
 
@@ -271,7 +285,7 @@ body.playing.serving.you-serve #serves { display:flex; }
   <div class="logo">Moku <span>Badminton</span></div>
   <div class="sub">You &amp; Moku · Doubles · 15 points</div>
   <div id="ladder"></div>
-  <div class="titleMenu row"><button class="titleMenuItem" id="playBtn">▶ Play</button><button class="titleMenuItem plain small" id="recordsBtn">📊 Records</button></div>
+  <div class="titleMenu row"><button class="titleMenuItem" id="playBtn">▶ Play</button><button class="titleMenuItem plain small" id="recordsBtn">📊 Records</button><button class="titleMenuItem plain small" id="bookBtn">📖 Book</button></div>
   <div class="how">You run by yourself! Tap a glowing button — on the gold ring for PERFECT.</div>
 </div></div>
 
@@ -289,6 +303,14 @@ body.playing.serving.you-serve #serves { display:flex; }
   <div class="rvBody"><canvas id="rvCanvas" width="520" height="270"></canvas>
     <div class="rvText"><div id="rvLesson"></div><div id="rvPlayed"></div><div id="rvBetter"></div><div id="rvWhy"></div></div></div>
   <div class="titleMenu row"><button class="titleMenuItem plain small" id="rvPrev">◀</button><button class="titleMenuItem" id="rvNext">Next ▶</button></div>
+</div></div>
+
+<div class="overlay dim" id="book"><div class="card rv bk">
+  <div class="rvHead"><b>📖 Tactics Book</b><span id="bkCount"></span></div>
+  <div id="bkTabs"></div>
+  <div class="rvBody"><canvas id="bkCanvas" width="520" height="270"></canvas>
+    <div class="rvText"><div id="bkTitle"></div><div id="bkHow"></div><div id="bkRemember"></div><div id="bkStats"></div></div></div>
+  <div class="titleMenu row"><button class="titleMenuItem plain" id="bookClose">Close</button></div>
 </div></div>
 
 <div class="overlay dim" id="pause"><div class="card">
@@ -890,6 +912,8 @@ body.playing.serving.you-serve #serves { display:flex; }
       Object.keys(review.miss).forEach(function (k) { (progress.lessons[k] = progress.lessons[k] || { miss: 0 }).miss += review.miss[k]; });
       var top = Object.keys(review.miss).sort(function (a, b) { return review.miss[b] - review.miss[a]; })[0];
       progress.tipLesson = top || null;
+      progress.book = progress.book || {}; // Tactics Book: Review のカードに出たレッスンを「覚えた」にする
+      review.cards.forEach(function (d) { if (d.lesson && !progress.book[d.lesson]) { progress.book[d.lesson] = { at: new Date().toISOString().slice(0, 10) }; d.newLesson = true; } });
       progress.lessonStats = progress.lessonStats || {};
       FIVE.forEach(function (k) { var a = progress.lessonStats[k] = progress.lessonStats[k] || { n: 0, g: 0 }; a.n += review.per[k].n; a.g += review.per[k].g; }); // 次の試合の前に Moku が言うひとこと
     }
@@ -1574,8 +1598,8 @@ body.playing.serving.you-serve #serves { display:flex; }
   document.getElementById('playBtn').addEventListener('click', startMatch);
   // Review のカード: 上から見たコートの図+英語のひとこと
   var rvIdx = 0;
-  function rvDraw(d) {
-    var cv2 = document.getElementById('rvCanvas'), g = cv2.getContext('2d'), Wd = 520, Hd = 270;
+  function rvDraw(d, canvasId) {
+    var cv2 = document.getElementById(canvasId || 'rvCanvas'), g = cv2.getContext('2d'), Wd = 520, Hd = 270;
     function X(x) { return 260 + x * 34; } function Z(z) { return 135 + z * 34; }
     g.clearRect(0, 0, Wd, Hd); g.fillStyle = '#E2A766'; g.fillRect(0, 0, Wd, Hd);
     g.fillStyle = '#8CCB8E'; g.strokeStyle = '#4A2E1A'; g.lineWidth = 3; g.fillRect(X(-HL), Z(-HW), HL * 68, HW * 68); g.strokeRect(X(-HL), Z(-HW), HL * 68, HW * 68);
@@ -1589,8 +1613,9 @@ body.playing.serving.you-serve #serves { display:flex; }
       g.beginPath(); g.arc(x1, z1, 7, 0, TAU); g.fill();
       void a;
     }
-    if (!d.praise && d.best !== d.type) arrow(d.res[d.best].land, '#2F9E44', true);
-    arrow(d.res[d.type].land, d.praise ? '#2F9E44' : '#E2573C', false);
+    if (d.bookMode) { arrow(d.res[d.type].land, '#E2573C', true); arrow(d.res[d.best].land, '#2F9E44', false); } // 図鑑: 赤の点線 = よくあるまちがい、緑 = お手本
+    else if (!d.praise && d.best !== d.type) arrow(d.res[d.best].land, '#2F9E44', true);
+    if (!d.bookMode) arrow(d.res[d.type].land, d.praise ? '#2F9E44' : '#E2573C', false);
     var who = [['YOU', '#4FA3E0'], ['M', '#C99366'], [RIVALS[STAGES[settings.stage].pair[0]].name[0], '#B59CF0'], [RIVALS[STAGES[settings.stage].pair[1]].name[0], '#E8A65A']];
     d.pos.forEach(function (q, i) {
       g.fillStyle = who[i][1]; g.strokeStyle = '#4A2E1A'; g.lineWidth = 2.5; g.beginPath(); g.arc(X(q[0]), Z(q[1]), i ? 13 : 16, 0, TAU); g.fill(); g.stroke();
@@ -1619,7 +1644,7 @@ body.playing.serving.you-serve #serves { display:flex; }
       document.getElementById('rvBetter').innerHTML = '';
       document.getElementById('rvWhy').textContent = d.res[d.type].val >= 1.5 ? 'Nobody could reach it. That is how you win points!' : 'It gave them almost no time.' + (d.result === 'won' ? ' And you won the point!' : '');
     } else {
-      var ls = LESSONS[d.lesson]; L.className = ''; L.textContent = ls.icon + ' ' + ls.title;
+      var ls = LESSONS[d.lesson]; L.className = ''; L.textContent = ls.icon + ' ' + ls.title + (d.newLesson ? '  · 📖 NEW in your Book!' : '');
       document.getElementById('rvPlayed').innerHTML = 'You played: <b>' + (d.jump ? 'JUMP ' : '') + SHOT_NAME[d.type] + '</b>' + (d.res[d.type].net ? ' (into the net)' : d.res[d.type].out ? ' (out)' : '');
       document.getElementById('rvBetter').innerHTML = 'Better: <b>' + SHOT_NAME[d.best] + '</b>';
       document.getElementById('rvWhy').textContent = ls.why;
@@ -1648,6 +1673,50 @@ body.playing.serving.you-serve #serves { display:flex; }
     show('records', true);
   });
   document.getElementById('recordsClose').addEventListener('click', function () { show('records', false); });
+
+  // ── Tactics Book: Review で出会ったレッスンが図鑑のようにたまる。お手本の図・やり方・自分の成績と ⭐ ──
+  var BOOK_ORDER = ['attack', 'back', 'net', 'space', 'serve', 'hurry'];
+  var BOOK = { // お手本の場面(上から見た図)。緑 = 正しいショット、赤 = よくあるまちがい
+    attack: { how: 'When the shuttle is high and you are in the middle or near the net, hit it DOWN with a SMASH. They have to defend, and you take control.',
+      remember: 'High ball? Smash it!', ex: { p: [-3.0, 2.4, 0.6], pos: [[-3.2, 0.8], [-5.2, -1], [3.8, -1.5], [3.6, 1.5]], type: 'clear', best: 'smash', land: { clear: [6.2, 0.5], smash: [3.0, -2.4] } } },
+    back: { how: 'From the very back, a smash flies a long way and slows down. Use a DROP or a CLEAR, then smash when you are closer.', remember: 'Far back? Drop or clear.',
+      ex: { p: [-5.8, 2.5, 0.4], pos: [[-6.0, 0.5], [-2.0, -1], [3.5, -1.4], [3.5, 1.4]], type: 'smash', best: 'drop', land: { smash: [4.0, 0.3], drop: [1.4, -2.0] } } },
+    net: { how: 'If the shuttle is low near the net, play a NET shot that drops just over. Your rival must hit it UP — then you can attack.', remember: 'Low at the net? Keep it low!',
+      ex: { p: [-1.0, 0.8, 1.0], pos: [[-1.4, 1.0], [-4.5, -0.8], [2.2, -0.5], [4.8, 1.2]], type: 'clear', best: 'net', land: { clear: [6.1, 1.0], net: [0.8, 1.2] } } },
+    space: { how: 'Look where the rivals are standing. If they are close to the net, a CLEAR to the back makes them run. Hit where nobody is!', remember: 'Find the empty space.',
+      ex: { p: [-4.3, 2.2, 0], pos: [[-4.5, 0], [-1.8, 0.5], [1.6, -1.0], [2.0, 1.2]], type: 'drop', best: 'clear', land: { drop: [1.5, 0.2], clear: [6.1, -2.0] } } },
+    serve: { how: 'Watch the receiver before you serve. Standing close to the net? Serve LONG to the back. Standing far back? Serve SHORT.', remember: 'Serve to where they are not ready.',
+      ex: { p: [-2.0, 0.95, 0.75], pos: [[-2.35, 0.75], [-4.4, -1.1], [2.1, -1.2], [4.3, 1.4]], type: 'short', best: 'long', land: { short: [2.4, -1.5], long: [5.6, -1.5] } } },
+    hurry: { how: 'Choose the shot that gives your rivals the least time. A shot they can reach easily lets them attack you.', remember: 'Make them run, make them rush.',
+      ex: { p: [-3.3, 1.4, -1], pos: [[-3.5, -1], [-1.5, 1.2], [3.0, 0], [4.5, 1]], type: 'clear', best: 'drop', land: { clear: [6.0, 1.0], drop: [1.5, -2.2] } } }
+  };
+  function bookStars(k) { // ⭐ 覚えた / ⭐⭐ 良い判断 10 回以上で 60% 以上 / ⭐⭐⭐ 30 回以上で 80% 以上
+    var b = progress.book || {}; if (!b[k]) return 0;
+    var q = (progress.lessonStats || {})[k]; if (!q || !q.n) return 1;
+    var r = q.g / q.n; return q.g >= 30 && r >= 0.8 ? 3 : q.g >= 10 && r >= 0.6 ? 2 : 1;
+  }
+  var bkSel = 'attack';
+  function bookShow(k) {
+    bkSel = k; var b = progress.book || {}, learned = !!b[k], L = LESSONS[k], P = BOOK[k];
+    document.getElementById('bkCount').textContent = BOOK_ORDER.filter(function (x) { return b[x]; }).length + ' / ' + BOOK_ORDER.length + ' learned';
+    document.getElementById('bkTabs').innerHTML = BOOK_ORDER.map(function (x) {
+      var st = bookStars(x); return '<button data-bk="' + x + '" class="' + (x === k ? 'on' : '') + (b[x] ? '' : ' locked') + '">' + (b[x] ? LESSONS[x].icon : '?') + '<small>' + '⭐'.repeat(st) + '</small></button>';
+    }).join('');
+    var ex = P.ex, d = { p: ex.p, pos: ex.pos, type: ex.type, best: ex.best, res: {}, praise: false, bookMode: true };
+    d.res[ex.type] = { land: ex.land[ex.type] }; d.res[ex.best] = { land: ex.land[ex.best] };
+    rvDraw(d, 'bkCanvas'); document.getElementById('bkCanvas').className = learned ? '' : 'locked';
+    document.getElementById('bkTitle').textContent = learned ? L.icon + ' ' + L.title : '🔒 ? ? ?';
+    document.getElementById('bkHow').textContent = learned ? P.how : 'Play matches and open 🧠 Review. When Moku spots this lesson in your game, it is added here.';
+    document.getElementById('bkRemember').innerHTML = learned ? '✔ ' + P.remember + '<div style="font-size:10.5px;opacity:.7;color:var(--ink);margin-top:2px">Green = ' + SHOT_NAME[ex.best] + ' (do this) · Red dashes = ' + SHOT_NAME[ex.type] + ' (common mistake)</div>' : '';
+    var q = (progress.lessonStats || {})[k], st = bookStars(k);
+    document.getElementById('bkStats').textContent = !learned ? '' : (q && q.n ? 'Your score: ' + Math.round(q.g / q.n * 100) + '% (' + q.g + ' good / ' + q.n + ')' : 'Your score: see it grow in matches') +
+      ' · ' + '⭐'.repeat(st) + (st < 3 ? '  Next ⭐: ' + (st === 1 ? '10 good choices at 60%' : '30 good choices at 80%') : '  Master!');
+  }
+  document.getElementById('bkTabs').addEventListener('click', function (e) { var b = e.target.closest('[data-bk]'); if (b) bookShow(b.getAttribute('data-bk')); });
+  document.getElementById('bookBtn').addEventListener('click', function () {
+    var b = progress.book || {}; bookShow(BOOK_ORDER.filter(function (x) { return b[x]; })[0] || 'attack'); show('book', true);
+  });
+  document.getElementById('bookClose').addEventListener('click', function () { show('book', false); });
   document.getElementById('againBtn').addEventListener('click', function () { settings.stage = nextStage; saveSettings(); startMatch(); });
   document.getElementById('menuBtn').addEventListener('click', toTitle);
   document.getElementById('resumeBtn').addEventListener('click', function () { setPause(false); });
