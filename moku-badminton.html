@@ -51,9 +51,6 @@
     Try it(その場面をもう一度打つ練習)は保留(2026-11-27、保護者)。
   - v0.8.1: レッスンのバー(Review と Records)の各行に「Next time: …」の短いヒント。行にマウスを乗せる / タップすると、
     くわしい説明(Tactics Book と同じ文)が出る。
-  - キャラを作る画面(v0.9.0、作る順番の⑤): タイトルの「🧒 Me」と、初めて Play を押した時。髪型 4(Short / Ponytail / Bob / Spiky)・
-    髪の色 4・はだの色 4・シャツの色 6・🎲 Random。前から見た大きい絵と、ゲームの中の後ろ姿を並べて見せる。
-    保存はシリーズ共通のキー moku:player:look(SPEC.md §2。ほかのゲームでも YOU を出せるように)。
   - ルールは新しい 15 点制の1ゲームだけ(14-14 からは2点差、21 点で終わり)。サーブのコートは本物どおり。
   作る順番: ①コートとシャトル ②自動で走る・ボタン ③ルール ④CPU ⑤キャラを作る画面・タイトル・結果 ⑥ハブ・SPEC。
   v0.1.0 は ①〜④ と仮のタイトル・結果(子どもたちにスマホで手ざわりを試してもらう版)。
@@ -78,7 +75,7 @@ button { font-family:inherit; cursor:pointer; -webkit-tap-highlight-color:transp
   border-radius:999px; padding:5px 14px; box-shadow:0 3px 0 rgba(74,46,26,.35); }
 #buildInfo { position:fixed; left:calc(24px + var(--sal)); bottom:calc(20px + var(--sab)); z-index:720;
   color:rgba(255,255,255,.28); font-size:10.5px; pointer-events:none; }
-body.ov #hub-link, body.ov #buildInfo, body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display:none; }
+body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display:none; }
 
 /* ── 紙のカード(タイトル・一時停止・結果) ── */
 .overlay { position:fixed; inset:0; z-index:600; display:none; align-items:center; justify-content:center;
@@ -168,20 +165,6 @@ body.ov #hub-link, body.ov #buildInfo, body:not(.on-title) #title-frame, body:no
 .lb em { position:absolute; left:50%; transform:translateX(-50%); top:-10px; background:#E2573C; color:#fff; font-style:normal; font-size:9.5px; font-weight:800;
   padding:1px 7px; border-radius:999px; border:1.5px solid var(--ink); }
 @media (max-height:400px) { .lbars { gap:1px; margin:4px 0 0; } .lb { padding:0 8px; row-gap:0; } .lb .nx { font-size:10px; } .lb .lt { font-size:11.5px; } .lb .bar { height:10px; } .lb .lp { font-size:12.5px; } }
-.mk { width:min(860px, 95vw); }
-.mkBody { display:flex; gap:16px; align-items:center; margin-top:6px; }
-.mkPrev { position:relative; flex:none; width:40%; max-width:300px; background:linear-gradient(#CDEBF7,#FFF6E6); border:2px solid var(--ink); border-radius:14px; }
-#mkFront { position:static; inset:auto; display:block; width:100%; height:auto; }
-.mkBack { position:absolute; right:6px; bottom:6px; width:28%; background:rgba(255,255,255,.75); border:2px solid var(--ink); border-radius:10px; text-align:center; }
-#mkBack { position:static; inset:auto; display:block; width:100%; height:auto; } .mkBack small { display:block; font-size:9px; font-weight:800; opacity:.6; margin:-2px 0 2px; }
-.mkOpts { flex:1; min-width:0; text-align:left; }
-.mkRow { display:flex; align-items:center; gap:8px; margin:6px 0; } .mkRow > span { width:76px; flex:none; font-size:12px; font-weight:800; opacity:.7; }
-.mkRow > div { display:flex; flex-wrap:wrap; gap:6px; }
-.mkRow button { border:2px solid var(--ink); background:#fff; border-radius:999px; font-weight:800; font-size:13px; color:var(--ink); padding:4px 12px; min-height:34px; }
-.mkRow button.sw { width:34px; height:34px; padding:0; }
-.mkRow button.on { box-shadow:0 0 0 3px #fff, 0 0 0 6px var(--hi); }
-.mkRow button.txt.on { background:var(--hi); color:#fff; box-shadow:none; }
-@media (max-height:400px) { .mkBody { gap:10px; margin-top:2px; } .mkPrev { width:30%; } .mkRow { margin:3px 0; } .mkRow button { min-height:28px; padding:2px 10px; font-size:12px; } .mkRow button.sw { width:28px; height:28px; } }
 #bkTabs { display:flex; gap:6px; justify-content:center; margin:6px 0 2px; flex-wrap:wrap; }
 #bkTabs button { border:2px solid var(--ink); background:#fff; border-radius:12px; padding:3px 9px; font-weight:800; font-size:13px; color:var(--ink); min-width:52px; }
 #bkTabs button small { display:block; font-size:9px; letter-spacing:-.5px; color:#E0A21B; height:11px; }
@@ -284,7 +267,7 @@ body.playing.serving.you-serve #serves { display:flex; }
 <body class="on-title">
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
 <a id="hub-link" href="hub.html">🏠 Home</a>
-<div id="buildInfo">v0.9.0 · Updated Nov 27, 2026</div>
+<div id="buildInfo">v0.8.2 · Updated Nov 27, 2026</div>
 
 <canvas id="cv"></canvas>
 
@@ -317,7 +300,7 @@ body.playing.serving.you-serve #serves { display:flex; }
   <div class="logo">Moku <span>Badminton</span></div>
   <div class="sub">You &amp; Moku · Doubles · 15 points</div>
   <div id="ladder"></div>
-  <div class="titleMenu row"><button class="titleMenuItem" id="playBtn">▶ Play</button><button class="titleMenuItem plain small" id="recordsBtn">📊 Records</button><button class="titleMenuItem plain small" id="bookBtn">📖 Book</button><button class="titleMenuItem plain small" id="meBtn">🧒 Me</button></div>
+  <div class="titleMenu row"><button class="titleMenuItem" id="playBtn">▶ Play</button><button class="titleMenuItem plain small" id="recordsBtn">📊 Records</button><button class="titleMenuItem plain small" id="bookBtn">📖 Book</button></div>
   <div class="how">You run by yourself! Tap a glowing button — on the gold ring for PERFECT.</div>
 </div></div>
 
@@ -343,20 +326,6 @@ body.playing.serving.you-serve #serves { display:flex; }
   <div class="rvBody"><canvas id="bkCanvas" width="520" height="270"></canvas>
     <div class="rvText"><div id="bkTitle"></div><div id="bkHow"></div><div id="bkRemember"></div><div id="bkStats"></div></div></div>
   <div class="titleMenu row"><button class="titleMenuItem plain" id="bookClose">Close</button></div>
-</div></div>
-
-<div class="overlay dim" id="maker"><div class="card mk">
-  <div class="rvHead"><b id="mkTitle">🧒 Make your player</b><span id="mkName"></span></div>
-  <div class="mkBody">
-    <div class="mkPrev"><canvas id="mkFront" width="300" height="360"></canvas><div class="mkBack"><canvas id="mkBack" width="120" height="150"></canvas><small>in the game</small></div></div>
-    <div class="mkOpts">
-      <div class="mkRow"><span>Hair</span><div id="mkHair"></div></div>
-      <div class="mkRow"><span>Hair color</span><div id="mkHairCol"></div></div>
-      <div class="mkRow"><span>Skin</span><div id="mkSkin"></div></div>
-      <div class="mkRow"><span>Shirt</span><div id="mkShirt"></div></div>
-      <div class="titleMenu row"><button class="titleMenuItem plain small" id="mkRandom">🎲 Random</button><button class="titleMenuItem" id="mkDone">✔ Done</button></div>
-    </div>
-  </div>
 </div></div>
 
 <div class="overlay dim" id="pause"><div class="card">
@@ -535,17 +504,6 @@ body.playing.serving.you-serve #serves { display:flex; }
     { id: 'r2', team: 1, side: 1 }
   ];
   var YOU = chars[0], MOKU = chars[1];
-  // ── 自分のキャラ(YOU)。シリーズ共通のキー moku:player:look に保存(ほかのゲームや Hollow でも使えるように)──
-  var LOOK_KEY = 'moku:player:look';
-  var LOOK_OPTS = {
-    hair: [['short', 'Short'], ['pony', 'Ponytail'], ['bob', 'Bob'], ['spiky', 'Spiky']],
-    hairCol: ['#2B1D16', '#6B4423', '#A8703A', '#E0B050'],
-    skin: ['#FBD9BE', '#F2C8A0', '#D9A37A', '#A8704A'],
-    shirt: ['#4FA3E0', '#E85A4F', '#5DB35A', '#F2C14E', '#9B7BE0', '#F08AB5']
-  };
-  var lookSaved = false;
-  try { var lk = JSON.parse(localStorage.getItem(LOOK_KEY) || 'null'); if (lk && lk.version === 1) { ['hair', 'hairCol', 'skin', 'shirt'].forEach(function (k) { if (lk[k]) YOU.look[k] = lk[k]; }); lookSaved = true; } } catch (e) {}
-  function saveLook() { lookSaved = true; try { localStorage.setItem(LOOK_KEY, JSON.stringify({ version: 1, hair: YOU.look.hair, hairCol: YOU.look.hairCol, skin: YOU.look.skin, shirt: YOU.look.shirt, updatedAt: new Date().toISOString() })); } catch (e) {} }
   chars.forEach(function (ch) { ch.x = ch.side * 3; ch.z = 0; ch.tx = ch.x; ch.tz = 0; ch.wait = 0; ch.swing = 0; ch.swingOver = true;
     ch.legT = 0; ch.moving = 0; ch.jump = 0; ch.say = ''; ch.sayT = 0; });
   function setRivals() { // 今の相手のペアを chars[2] / chars[3] に入れる
@@ -1329,11 +1287,10 @@ body.playing.serving.you-serve #serves { display:flex; }
     RR(-17, -94, 34, 38, 10, L.shirt);
     c.fillStyle = 'rgba(255,248,231,.9)'; c.fillRect(-3, -92, 6, 34); // 背中のライン
     RR(-6, -100, 12, 8, 3, sk); // 首
+    if (L.hair === 'pony') E(-6, -100, 8, 14, L.hairCol, 0.15);
     E(18, -112, 4, 6, sk); // 右の耳だけ少し見える
     E(0, -116, 25, 25, L.hairCol);
     if (L.hair === 'bob') E(0, -106, 26, 14, L.hairCol);
-    if (L.hair === 'pony') { E(-2, -96, 8, 16, L.hairCol, 0.1); E(-1, -108, 5, 3.5, '#E85A4F'); } // 後ろ姿のポニーテール(髪の上に垂れる)
-    if (L.hair === 'spiky') { c.fillStyle = L.hairCol; c.beginPath(); for (var sp = 0; sp < 7; sp++) { var a0 = Math.PI * (1.05 + sp * 0.15); c.lineTo(Math.cos(a0) * 34, -118 + Math.sin(a0) * 34); c.lineTo(Math.cos(a0 + 0.07) * 22, -118 + Math.sin(a0 + 0.07) * 22); } c.closePath(); c.fill(); c.stroke(); }
     c.strokeStyle = 'rgba(255,255,255,.25)'; c.beginPath(); c.arc(-4, -122, 14, Math.PI * 1.15, Math.PI * 1.6); c.stroke(); c.strokeStyle = INK;
     racket(10, -88, armAngle(ch), sk, 24, ch.racket);
   }
@@ -1596,10 +1553,7 @@ body.playing.serving.you-serve #serves { display:flex; }
   function hideHint() { document.getElementById('hint').classList.remove('show'); hintTimer = 0; }
   function showBanner(big, small) { var b = document.getElementById('banner'); document.getElementById('bannerBig').textContent = big; document.getElementById('bannerSmall').textContent = small; b.classList.remove('show'); void b.offsetWidth; b.classList.add('show'); }
   function hideBanner() { document.getElementById('banner').classList.remove('show'); }
-  function show(id, on) {
-    document.getElementById(id).classList.toggle('show', on);
-    document.body.classList.toggle('ov', !!document.querySelector('.overlay.show:not(#title)')); // カードを開いている間は右上の Home を隠す
-  }
+  function show(id, on) { document.getElementById(id).classList.toggle('show', on); }
 
   function press(type, el) {
     audio();
@@ -1672,7 +1626,7 @@ body.playing.serving.you-serve #serves { display:flex; }
     if (on && (phase === 'title' || phase === 'over' || demo)) return;
     paused = on; show('pause', on);
   }
-  document.getElementById('playBtn').addEventListener('click', function () { if (!lookSaved) openMaker(startMatch); else startMatch(); });
+  document.getElementById('playBtn').addEventListener('click', startMatch);
   // Review のカード: 上から見たコートの図+英語のひとこと
   var rvIdx = 0;
   function rvDraw(d, canvasId) {
@@ -1750,60 +1704,6 @@ body.playing.serving.you-serve #serves { display:flex; }
     show('records', true);
   });
   document.getElementById('recordsClose').addEventListener('click', function () { show('records', false); });
-
-  // ── キャラを作る画面(髪型・髪の色・はだの色・シャツの色)。前から見た大きい絵と、ゲームの中の後ろ姿 ──
-  function drawKidFront(g, L, cx, by, k) {
-    var oc = c; c = g; // 絵の道具(E / RR / racket)は c に描くので、一時的にこの canvas へ
-    g.save(); g.translate(cx, by); g.scale(k, k); g.strokeStyle = INK; g.lineWidth = 3; g.lineJoin = 'round'; g.lineCap = 'round';
-    var sk = L.skin;
-    if (L.hair === 'pony') { E(-26, -112, 9, 18, L.hairCol, 0.5); }
-    if (L.hair === 'bob') E(0, -110, 30, 30, L.hairCol);
-    RR(-13, -46, 10, 40, 4, sk); RR(3, -46, 10, 40, 4, sk);
-    E(-8, -4, 9, 5, '#FFFFFF'); E(8, -4, 9, 5, '#FFFFFF');
-    RR(-16, -60, 32, 18, 5, '#2F3E66');
-    E(-22, -76, 6, 15, sk, 0.2);
-    RR(-18, -94, 36, 38, 10, L.shirt); g.fillStyle = '#FFF8E7'; g.fillRect(-16, -76, 32, 3);
-    RR(-6, -100, 12, 8, 3, sk);
-    E(0, -114, 26, 26, sk);
-    if (L.hair === 'short') { E(0, -128, 26, 14, L.hairCol); E(-12, -124, 12, 8, L.hairCol, -0.4); }
-    if (L.hair === 'pony') { E(0, -129, 26, 13, L.hairCol); E(10, -124, 12, 7, L.hairCol, 0.4); }
-    if (L.hair === 'bob') { E(0, -128, 28, 14, L.hairCol); E(-20, -112, 7, 16, L.hairCol); E(20, -112, 7, 16, L.hairCol); }
-    if (L.hair === 'spiky') { g.fillStyle = L.hairCol; g.beginPath(); for (var i = 0; i < 7; i++) { var a = Math.PI * (1.05 + i * 0.15); g.lineTo(Math.cos(a) * 36, -116 + Math.sin(a) * 36); g.lineTo(Math.cos(a + 0.07) * 23, -116 + Math.sin(a + 0.07) * 23); } g.closePath(); g.fill(); g.stroke(); }
-    E(-9, -112, 3.2, 4.4, '#2B1B12', 0, true); E(9, -112, 3.2, 4.4, '#2B1B12', 0, true);
-    E(-15, -104, 4.5, 2.6, 'rgba(255,120,120,.45)', 0, true); E(15, -104, 4.5, 2.6, 'rgba(255,120,120,.45)', 0, true);
-    g.beginPath(); g.arc(0, -106, 6, 0.25, Math.PI - 0.25); g.stroke();
-    lwCm = 3; racket(18, -86, -1.2, sk, 22, YOU.racket);
-    g.restore(); c = oc;
-  }
-  var mkThen = null;
-  function mkRender() {
-    var L = YOU.look;
-    function sw(id, key, list, isText) {
-      document.getElementById(id).innerHTML = list.map(function (v) {
-        var val = isText ? v[0] : v;
-        return '<button class="' + (isText ? 'txt' : 'sw') + (L[key] === val ? ' on' : '') + '" data-key="' + key + '" data-val="' + val + '"' + (isText ? '' : ' style="background:' + v + '" aria-label="' + key + '"') + '>' + (isText ? v[1] : '') + '</button>';
-      }).join('');
-    }
-    sw('mkHair', 'hair', LOOK_OPTS.hair, true); sw('mkHairCol', 'hairCol', LOOK_OPTS.hairCol); sw('mkSkin', 'skin', LOOK_OPTS.skin); sw('mkShirt', 'shirt', LOOK_OPTS.shirt);
-    var f = document.getElementById('mkFront').getContext('2d'); f.clearRect(0, 0, 300, 360);
-    f.fillStyle = 'rgba(60,35,15,.18)'; f.beginPath(); f.ellipse(150, 330, 60, 12, 0, 0, TAU); f.fill();
-    drawKidFront(f, L, 150, 330, 2.15);
-    var b = document.getElementById('mkBack').getContext('2d'); b.clearRect(0, 0, 120, 150);
-    var oc = c; c = b; b.save(); b.translate(60, 140); b.scale(0.85, 0.85); b.strokeStyle = INK; b.lineWidth = lwCm = 3; b.lineJoin = 'round'; b.lineCap = 'round';
-    drawKid(YOU, 0); b.restore(); c = oc;
-    var u = window.MokuAccount && MokuAccount.getUser && MokuAccount.getUser();
-    document.getElementById('mkName').textContent = u && u.displayName ? u.displayName : '';
-  }
-  function openMaker(then) { mkThen = then || null; document.getElementById('mkTitle').textContent = then ? '🧒 First, make your player!' : '🧒 Make your player'; mkRender(); show('maker', true); }
-  document.getElementById('maker').addEventListener('click', function (e) {
-    var b = e.target.closest('[data-key]'); if (!b) return; audio(); YOU.look[b.getAttribute('data-key')] = b.getAttribute('data-val'); mkRender();
-  });
-  document.getElementById('mkRandom').addEventListener('click', function () {
-    ['hairCol', 'skin', 'shirt'].forEach(function (k) { var l = LOOK_OPTS[k]; YOU.look[k] = l[Math.floor(Math.random() * l.length)]; });
-    YOU.look.hair = LOOK_OPTS.hair[Math.floor(Math.random() * LOOK_OPTS.hair.length)][0]; mkRender();
-  });
-  document.getElementById('mkDone').addEventListener('click', function () { saveLook(); show('maker', false); var t = mkThen; mkThen = null; if (t) t(); });
-  document.getElementById('meBtn').addEventListener('click', function () { openMaker(null); });
 
   // ── Tactics Book: Review で出会ったレッスンが図鑑のようにたまる。お手本の図・やり方・自分の成績と ⭐ ──
   var BOOK_ORDER = ['attack', 'back', 'net', 'space', 'serve', 'hurry'];

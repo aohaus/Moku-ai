@@ -29,7 +29,6 @@ Mokuball は実装済みだがハブ未公開(準備中)。
 - **保存先**: `localStorage`。ログイン中のプレイヤーは §10 のクラウドセーブで端末間同期される(ゲーム側は従来どおり `localStorage` だけを読み書きすればよい)。
 - **キー名前空間**: `moku:<gameId>:<key>` 形式で統一し、ゲーム間の衝突を防ぐ。
   - 例: `moku:angry-mokumoku:progress`, `moku:moyomoyo:highscore`
-  - シリーズ共通の自分のキャラ(2026-11-27〜、Moku Badminton で初登場): `moku:player:look` = `{ version: 1, hair, hairCol, skin, shirt, updatedAt }`(髪型は short / pony / bob / spiky、色は `#RRGGBB`)。遊んでいる子ども自身の見た目で、ほかのゲームで YOU を出す時も同じキーを読む。
 - **共通スキーマ(ゲームごとのセーブデータJSON)**:
   ```json
   {
