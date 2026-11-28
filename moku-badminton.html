@@ -114,6 +114,8 @@ button { font-family:inherit; cursor:pointer; -webkit-tap-highlight-color:transp
   border-radius:999px; padding:5px 14px; box-shadow:0 3px 0 rgba(74,46,26,.35); }
 #buildInfo { position:fixed; left:calc(24px + var(--sal)); bottom:calc(20px + var(--sab)); z-index:720;
   color:rgba(255,255,255,.28); font-size:10.5px; pointer-events:none; }
+body.on-title #banner { z-index:650; } /* 地図の上の NEXT STOP! だけ地図より前に。試合中の一時停止などのカードの上には出さない */
+body.ov #banner { display:none; }
 body.ov #hub-link, body.ov #buildInfo, body:not(.on-title) #title-frame, body:not(.on-title) #hub-link, body:not(.on-title) #buildInfo { display:none; }
 
 /* ── 紙のカード(タイトル・一時停止・結果) ── */
@@ -322,7 +324,7 @@ body.playing.serving.you-serve #serves { display:flex; }
   background:rgba(255,246,230,.92); border:2px solid var(--ink); border-radius:999px; padding:4px 14px; font-size:12.5px; font-weight:800;
   display:none; white-space:nowrap; }
 #hint.show { display:block; }
-#banner { position:fixed; left:0; right:0; top:34%; z-index:650; text-align:center; pointer-events:none; display:none; }
+#banner { position:fixed; left:0; right:0; top:34%; z-index:330; text-align:center; pointer-events:none; display:none; }
 #banner.show { display:block; animation:pop .35s cubic-bezier(.2,1.6,.4,1); }
 #banner .big { display:inline-block; font-size:clamp(24px, 8vh, 40px); font-weight:800; color:#fff; -webkit-text-stroke:2px var(--ink);
   text-shadow:0 4px 0 var(--ink); letter-spacing:.04em; }
@@ -351,7 +353,7 @@ body.playing.serving.you-serve #serves { display:flex; }
 </head>
 <body class="on-title">
 <div id="rotate-hint"><span>📱</span><p>Turn your device sideways to play!</p></div>
-<div id="buildInfo">v0.10.9 · Updated Nov 27, 2026</div>
+<div id="buildInfo">v0.10.10 · Updated Nov 28, 2026</div>
 
 <canvas id="cv"></canvas>
 
@@ -496,11 +498,21 @@ body.playing.serving.you-serve #serves { display:flex; }
 
   // ── 音(Web Audio で合成。最初のタップで resume)──
   var actx = null;
+  // iPhone / iPad で音が出なくなる時の対策(2026-11-28): ①マナーモード(消音スイッチ)でも鳴らす(Moku Rhythm Cafe と同じ)
+  // ②ほかのアプリや電話のあとの 'interrupted' からも戻す ③閉じられていたら作り直す ④最初のタップで無音を1つ鳴らして音を開く
+  var audioOpened = false;
   function audio() {
-    if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
-    if (actx.state === 'suspended') actx.resume();
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+    if (!actx || actx.state === 'closed') { try { actx = new (window.AudioContext || window.webkitAudioContext)(); audioOpened = false; } catch (e) { return null; } }
+    if (actx.state !== 'running') { try { actx.resume(); } catch (e) {} }
+    if (!audioOpened) {
+      try { var b0 = actx.createBuffer(1, 1, 22050), s0 = actx.createBufferSource(); s0.buffer = b0; s0.connect(actx.destination); s0.start(0); audioOpened = true; } catch (e) {}
+    }
     return actx;
   }
+  ['pointerdown', 'touchend', 'keydown'].forEach(function (ev) { window.addEventListener(ev, function () { audio(); }, true); });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && actx && actx.state !== 'running') { try { actx.resume(); } catch (e) {} } });
+  window.addEventListener('pageshow', function () { if (actx && actx.state !== 'running') { try { actx.resume(); } catch (e) {} } });
   function tone(f0, f1, dur, vol, type, delay) {
     var a = audio(); if (!a) return; var t = a.currentTime + (delay || 0);
     var o = a.createOscillator(), g = a.createGain(); o.type = type || 'sine';
