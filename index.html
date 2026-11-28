@@ -515,9 +515,23 @@ footer.page-footer {
 
     <div class="a2hs-panel" id="a2hsAndroid" hidden>
       <h2>📲 Add to Home Screen (Android)</h2>
-      <p class="a2hs-sub">On this device, you can add it directly with the button below.</p>
-      <button id="a2hsInstallBtn" type="button">Add to Home Screen</button>
-      <p class="a2hs-note">If the button doesn't respond, choose "Add to Home Screen" from the browser menu (⋮) instead.</p>
+      <!-- Chrome がインストールを申し出た時(beforeinstallprompt)だけボタン。申し出がない時(前に入れた・断った・まだ条件を満たさない)は手順を出す -->
+      <div id="a2hsQuick" hidden>
+        <p class="a2hs-sub">Tap the button to add Moku Series to your home screen.</p>
+        <button id="a2hsInstallBtn" type="button">Add to Home Screen</button>
+      </div>
+      <div id="a2hsDone" hidden>
+        <p class="a2hs-sub">✅ Added! Look for the Moku Series icon on your home screen.</p>
+      </div>
+      <div id="a2hsManual">
+        <p class="a2hs-sub">In Chrome, do these 3 steps:</p>
+        <ol class="a2hs-steps">
+          <li><span class="a2hs-icon">⋮</span><span class="a2hs-step-text">Tap the <strong>menu (⋮)</strong> at the top right</span></li>
+          <li><span class="a2hs-icon">➕</span><span class="a2hs-step-text">Tap <strong>"Add to Home screen"</strong> (or <strong>"Install app"</strong>)</span></li>
+          <li><span class="a2hs-icon">✅</span><span class="a2hs-step-text">Tap <strong>"Install"</strong> (or <strong>"Add"</strong>) to finish</span></li>
+        </ol>
+        <p class="a2hs-note">Already added? If the menu says "Open app", Moku Series is already on your phone. Check your home screen or your app list.</p>
+      </div>
     </div>
 
     <div class="a2hs-panel" id="a2hsDesktop" hidden>
@@ -666,10 +680,24 @@ footer.page-footer {
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPadOS "desktop" UA
   var isAndroid = /Android/.test(ua);
 
-  var deferredPrompt = null;
+  var deferredPrompt = null, installed = false;
+  var quickBox = document.getElementById('a2hsQuick');
+  var manualBox = document.getElementById('a2hsManual');
+  var doneBox = document.getElementById('a2hsDone');
+  // Android のパネル: Chrome が申し出ていればボタン、そうでなければ ⋮ メニューからの手順(以前はボタンが何もしなかった)
+  function renderAndroid() {
+    doneBox.hidden = !installed;
+    quickBox.hidden = installed || !deferredPrompt;
+    manualBox.hidden = installed || !!deferredPrompt;
+  }
   window.addEventListener('beforeinstallprompt', function (e) {
     e.preventDefault();
     deferredPrompt = e;
+    renderAndroid();
+  });
+  window.addEventListener('appinstalled', function () {
+    installed = true; deferredPrompt = null;
+    renderAndroid();
   });
 
   function showPanel() {
@@ -678,6 +706,7 @@ footer.page-footer {
       panelIOS.hidden = false;
     } else if (isAndroid) {
       panelAndroid.hidden = false;
+      renderAndroid();
     } else {
       panelDesktop.hidden = false;
     }
@@ -702,9 +731,15 @@ footer.page-footer {
   });
 
   installBtn.addEventListener('click', function () {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    deferredPrompt.userChoice.finally(function () { deferredPrompt = null; });
+    if (!deferredPrompt) { renderAndroid(); return; }
+    var p = deferredPrompt;
+    p.prompt();
+    p.userChoice.then(function (choice) {
+      if (choice && choice.outcome === 'accepted') installed = true;
+    }).catch(function () {}).then(function () {
+      deferredPrompt = null;   // 1回しか使えない。断った時は手順を出す
+      renderAndroid();
+    });
   });
 })();
 
